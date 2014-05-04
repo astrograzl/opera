@@ -1,0 +1,102 @@
+
+						QUICK TUTORIAL FOR OPERA 1.0
+
+
+***********************
+Supported Platforms
+***********************
+
+1. opera builds and runs on Linux and MacOSX. opera is NOT supported on Windows. 
+All the libraries mentioned in the DEPENDENCIES file must be installed first.
+
+***********************
+Comments for developers
+***********************
+
+1. DEPENDENCIES
+	- please esnure that the REQUIRED dependencies are insatalled properly.
+	See the file DEPENDENCIES in this directory.
+
+2. INSTALLATION
+	- follow the directions in the file INSTALLATION in this directory. Ensure that
+	the installation completed properly.
+
+3. OPERA DRIVER
+
+The program that runs OPERA is compiled as the bin file "$opera/bin/opera", which
+is stored in the $opera/bin/ directory. The source code for this file is "opera.cpp" 
+and is stored in $opera/src/tools/, which requires the "opera.h" header file that is 
+stored in $opera/include/tools/.
+
+All modules and libraries have to be compiled and the respective executables sent 
+to $opera/bin/. The source codes and header files are stored following the same pattern as 
+for the main program described above. 
+
+When one runs the main program "opera", it calls the harness passing the command 
+line arguments to it. The main harness script, "/harness/Makefile" will call all 
+the other scripts to run the pipeline, and each script will call a sequence of 
+other individual scripts, modules, tools, etc.
+
+4. INCLUDING AND TESTING NEW MODULES
+
+Each module is an independent program that should run independently 
+of every other module. Dependencies between modules are handled by the
+harness. The guest directories contain a sample module and harness call
+to that module.
+
+The easiest way to create a module is to copy the sample and modify it to
+your needs. The general architecture is that the module gathers the required
+arguments for processing ensuring that the inputs are all avaliable. It
+then reads the required calibrations using the serialization/deserialization
+support in the operaSpectralOrderVector.
+
+In general you should create a class to store the products of a modules
+execution. After the class is created then operaSpectralOrderVector should
+be augmented to serialize / deserialize the class contants.
+
+You then need to edit Makfile.am to include your module. 
+For example, here is the entry for core modules:
+
+# this lists the binaries to produce
+bin_PROGRAMS = operaGeometry operaIntensityStarPlusSky operaSNR \
+			operaFlatField operaIMShift operaPolar operaTelluricCorrection \
+			operaGain operaIntensityStarOnly operaReductionSet operaWavelengthCalibration \
+			operaRadialVelocity operaFitSN mymodule
+			
+Add your module to the end of this list and then add the build rule:
+			
+mymodule_SOURCES = mymodule.cpp mymodule.h
+
+Create the corresponding myclass.cpp and myclass.h in the src/libraries and include/libraries
+directories. The class shoud encapsulate the content created by processing done by
+the module.
+
+Then edit the src/libraries/Makefile.am to add the library:
+
+lib_LIBRARIES = liboperaException.a ... libmyclass.a
+
+libmyclasss_a_SOURCES = lmyclass.cpp myclass.h
+
+Then add your library to the Makefile.am library list in thes test/ src/core-guest and
+strv/tools directories.
+
+Then go to your home opera directory and enter:
+
+./configure --prefix=$HOME/opera-1.0
+
+and proceed with a make install.
+
+5. DIFFERENCE BETWEEN LIBRARIES AND MODULES
+
+Modules are self-contained programs with a "main". They should run independently 
+without the need for any other software. They perform simple tasks that don't assume 
+any information from the instrument/detector/mode in use.  Everything that modules
+need to know about specific characteristics is passed as arguments on the 
+command line. 
+
+Libraries are also programs that form a group of functions that are linked to modules. 
+For example, we may have a module that needs to read an image
+in FITS format, so this module will make use of opera FITS Image class libraries that
+have the proper functions to open and read the information in the FITS image.
+
+

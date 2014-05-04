@@ -1,0 +1,98 @@
+# what flags you want to pass to the C compiler & linker
+AM_CFLAGS = --pedantic -Wall -std=c99 -g -O1 -L$(PREFIX)/src/libraries/  -L../lib -L/usr/lib/x86_64-linux-gnu/ -L/usr/lib/ -L/usr/local/lib/ -I../include/ -I. -I/usr/local/include/ -DSTATIC=static
+AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ -L../lib -L/usr/lib/x86_64-linux-gnu/ -L/usr/lib/ -L/usr/local/lib/ -I../include/ -I. -I/usr/include/ -I/usr/local/include/ -DSTATIC=static
+AM_LDFLAGS = -loperaImageVector -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaEspadonsImage -loperaWIRCamImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaFITSImage -loperaFITSSubImage  -loperaImageVector -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector  -loperaFluxVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaMuellerMatrix -loperaFit -loperaLMFit -lPolynomial -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
+#AM_LDFLAGS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaEspadonsImage -loperaWIRCamImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaFITSImage -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
+# This is for Linux...
+#LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaEspadonsImage -loperaWIRCamImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaFITSImage -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaFluxVector -loperaImageVector -loperaFITSSubImage -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm
+
+LIBS = -loperaImageVector -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaEspadonsImage -loperaWIRCamImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaFITSImage -loperaFITSSubImage  -loperaImageVector -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector  -loperaFluxVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaMuellerMatrix -loperaFit -loperaLMFit -lPolynomial -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
+# this lists the binaries to produce
+bin_PROGRAMS = operaAsmTest operaMatrixLibTest operaMathLibTest operaJDTest testmpfit operaFITSProductTest \
+	operaMPFitLibTest operaFitLibTest operaImageOperatorTest operaFITSSubImageTest operaConfigurationAccesstest \
+	operaFITSImageTest operaEspadonsImageTest operaStatsLibTest operaGeometricShapesTest operaExtractionApertureTest \
+	operaFluxVectorTest operaPolarimetryTest operaMEFFITSImageTest operaMEFCubeTest operaCubeTest operaWIRCamImageTest \
+	operaPolarTest basicFITSImageTest gzstreamtest operaSextractorTest sitelletest SBIGtest FITSImageVectorTest \
+	operaAOBImageTest operaNICIImageTest operaNIFSImageTest operaCreateInstrumentEnvironmentSetup nancheck \
+	operastringstreamtest operaOESTest
+
+#
+# wcs support
+#				
+if LIBWCS
+AM_LDFLAGS += -lwcs
+LIBS += -lwcs
+endif
+
+operaOESTest_SOURCES = operaOESTest.cpp
+
+operastringstreamtest_SOURCES = operastringstreamtest.cpp
+
+nancheck_SOURCES = nancheck.cpp
+
+operaCreateInstrumentEnvironmentSetup_SOURCES = operaCreateInstrumentEnvironmentSetup.cpp operaCreateInstrumentEnvironmentSetup.h
+
+FITSImageVectorTest_SOURCES = FITSImageVectorTest.cpp
+
+SBIGtest_SOURCES = SBIGtest.cpp
+
+operaAOBImageTest_SOURCES = operaAOBImageTest.cpp
+
+operaNICIImageTest_SOURCES = operaNICIImageTest.cpp
+
+operaNIFSImageTest_SOURCES = operaNIFSImageTest.cpp
+
+sitelletest_SOURCES = sitelletest.cpp
+
+operaSextractorTest_SOURCES = operaSextractorTest.cpp
+
+gzstreamtest_SOURCES = gzstreamtest.cpp
+
+basicFITSImageTest_SOURCES = basicFITSImageTest.cpp
+
+operaPolarTest_SOURCES = operaPolarTest.cpp
+
+operaWIRCamImageTest_SOURCES = operaWIRCamImageTest.cpp
+
+operaMEFCubeTest_SOURCES = operaMEFCubeTest.cpp
+
+operaCubeTest_SOURCES = operaCubeTest.cpp
+
+operaMEFFITSImageTest_SOURCES = operaMEFFITSImageTest.cpp
+
+operaPolarimetryTest_SOURCES = operaPolarimetryTest.cpp
+
+operaFluxVectorTest_SOURCES = operaFluxVectorTest.cpp
+
+operaExtractionApertureTest_SOURCES = operaExtractionApertureTest.cpp
+
+operaGeometricShapesTest_SOURCES = operaGeometricShapesTest.cpp
+
+operaAsmTest_SOURCES = operaAsmTest.cpp
+			
+operaFITSImageTest_SOURCES = operaFITSImageTest.cpp operaFITSImageTest.h
+			
+operaEspadonsImageTest_SOURCES = operaEspadonsImageTest.cpp operaEspadonsImageTest.h
+			
+operaStatsLibTest_SOURCES = operaStatsLibTest.c operaStats.h
+
+operaFitLibTest_SOURCES = operaFitLibTest.c operaFit.h
+
+operaMPFitLibTest_SOURCES = operaMPFitLibTest.c
+
+testmpfit_SOURCES = testmpfit.c
+
+operaConfigurationAccesstest_SOURCES = operaConfigurationAccesstest.cpp operaConfigurationAccesstest.h
+			
+operaImageOperatorTest_SOURCES = operaImageOperatorTest.cpp operaImageOperatorTest.h
+			
+operaFITSSubImageTest_SOURCES = operaFITSSubImageTest.cpp operaFITSSubImageTest.h
+
+operaFITSProductTest_SOURCES = operaFITSProductTest.cpp
+
+operaJDTest_SOURCES = operaJDTest.c
+
+operaMathLibTest_SOURCES = operaMathLibTest.c operaMath.h
+
+operaMatrixLibTest_SOURCES = operaMatrixLibTest.c operaMatrix.h
+

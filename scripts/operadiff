@@ -1,0 +1,62 @@
+#! /bin/bash
+#########################################################################################
+#
+# Script name: operadiff
+# Version: 1.0
+# Description: do diffs between folders and the master source
+# Author(s): CFHT OPERA team
+# Affiliation: Canada France Hawaii Telescope 
+# Location: Hawaii USA
+# Date: Mar/2012
+# Contact: teeple@cfht.hawaii.edu
+# 
+# Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see:
+# http://software.cfht.hawaii.edu/licenses
+# -or-
+# http://www.gnu.org/licenses/gpl-3.0.html
+#
+#/// \package operadiff
+#/// \brief do diffs between folders and the master source
+#/// \arg token
+#/// \ingroup scripts
+#
+#########################################################################################
+if [[ "$1" == "-h" || "$1" == "--help" ]]
+then
+	echo "usage: $(basename $0) <folder>"
+	exit
+fi
+files=`ls $1`
+locs="$HOME/opera-1.0/test $HOME/opera-1.0/harness/espadons $HOME/opera-1.0/scripts $HOME/opera-1.0/include/ $HOME/opera-1.0/include/libraries/ $HOME/opera-1.0/include/core-espadons/  $HOME/opera-1.0/include/tools/ $HOME/opera-1.0/src/libraries/ $HOME/opera-1.0/src/core-espadons/  $HOME/opera-1.0/src/tools/"
+for file in $files
+do
+	for loc in $locs
+	do
+		master=`ls $loc/$file 2>/dev/null`
+		if [ "$master" != "" ]
+		then
+			if [ "`diff $master $1/$file`" != "" ]
+			then
+				echo "################## START OF $(basename $master) #################################"
+				diff $master $1/$file
+				echo "################## END OF $(basename $master) ###################################"
+			else
+				echo "################## $(basename $master) unchanged ################################"
+			fi
+		fi
+	done
+done
+exit

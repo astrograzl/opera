@@ -1,0 +1,116 @@
+
+						     OPERA 1.0 EXTERNAL DEPENDENCIES
+
+You must build and install all these external libraries and tools before building opera.
+Please DO NOT use macports, darwinports, or fink as they put stuff in odd places and will
+cause you much pain later on. The libraries below are small and build and install from
+source very easily with no further dependencies.
+
+We strove to minimize the dependencies. There are only four. You MUST install these in 
+the order shown and the installation MUST complete correctly. If a step fails, stop, and
+call CFHT software group for help (808-885-7944). Ask for the software group and indicate
+help with OPERA or send an email to teeple@cfht.hawaii.edu for help.
+
+We have successfull installations on Linux Kernel 2.6.x.x, and MacOSX - Snow Leopard, 
+Lion and Mountain Lion:
+
+Snow Leopard	- 10.6
+Lion			- 10.7
+Mountin Lion	- 10.8
+
+Older versions of MacOSX can be tricky because gcc of the appropriate version may be difficult
+to locate. The command line tools were bundled at one point with XCode, and later were
+unbundled and required a separate installation. If you have trouble locating the correct version
+command line tools please send an email to teeple@cfht.hawaii.edu for help.
+
+------------------------------- gotta have these -----------------------------------------
+
+- gcc		-- compiles with version 3.x.x and up to 4.2.x of gcc, note that version 2.x.x 
+			   has problems (no template suppport) and is not supported.
+			-- first determine which version of gcc and g++ you have, do this in a terminal window:
+				g++ -v
+				gcc -v
+			-- see MacOSX instructions below.
+
+-------- don't go any further if you don't have the right version of gcc / g++ ----------
+
+- cfitsio -- (mandatory) read and write FITS images				
+			-- http://heasarc.gsfc.nasa.gov/docs/software/fitsio/fitsio.html
+				Download the Linux version into your home directory and do the simplified steps
+				(ignore all the warnings):
+				cd cfitsio
+				./configure --prefix=/usr/local/
+				make
+				sudo make install
+
+- FFTW3   -- (mandatory)FFT Library
+			-- download from http://www.fftw.org/
+				Download the Linux version into your home directory and do the simplified steps:
+				cd fftw-3.3
+				./configure --prefix=/usr/local/
+				make
+				sudo make install
+
+- lz		-- (mandatory) used to compress intermediate results
+			-- download from http://www.zlib.net/
+				cd zlib-<version>
+				./configure
+				make
+				sudo make install
+			   
+------------------------------- you can stop here ------------------------------------------
+
+- gnuplot 4.4 -- (recommended) used by some modules, but a test is made to see if gnuplot is installed,
+	so operation will proceed without it (and without the plots)
+
+- XCode	-- (recommended) FOR MAC USERS ONLY 
+			- used to browse the opera-1.0 project on a mac and also
+			   to get a gcc compiler to build the above libraries...
+			- BUT you do need the command line tools!
+			- http://developer.apple.com
+				- you must register as a mac developer
+				- go to the xcode download page
+				- download Code and install it
+				- download the command line tools extras and install it (includes gcc or llvm-gcc)
+
+- fitsverify -- (recommended) used to check the validity of FITS output files
+			-- http://heasarc.gsfc.nasa.gov/docs/software/ftools/fitsverify/
+		- use the simplified command:
+		gcc -o fitsverify ftverify.c fvrf_data.c fvrf_file.c fvrf_head.c fvrf_key.c fvrf_misc.c -DSTANDALONE -L. -lcfitsio
+
+
+------------------------------- other stuff don't bother ---------------------------------------
+
+- WCSlib -- (if you need it) best to get it and build it as a standalone library and then include in 
+			lib/ then:
+		configure --enable-LIBWCS=true --prefix=$HOME/opera-1.0
+		
+		- http://www.atnf.csiro.au/people/mcalabre/WCS/wcslib/
+		- ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib-4.17.tar.bz2
+
+------------------------------- you should probably stop here -----------------------------------------
+
+- libPNG  -- (optional) used by the tool operaFITStoPNG and some visualization tools
+			-- you would configure thusly:
+			   ./configure --prefix=$HOME/opera-1.0/ --enable-LIBPNG=true
+			-- http://www.libpng.org
+				cd libpng-<version>
+				./configure --prefix=/usr/local/
+				make
+				sudo make install
+				
+- libfreetype -- (optional) used by the visualization tools to label graphs
+			-- http://www.freetype.org/
+
+--------------------------------------- forget it ------------------------------------------------------
+			
+- doxygen	-- (optional) used if you need to regenerate documentation
+			-- http://www.doxygen.org
+			
+- graphviz	-- (optional) used by doxygen if the doc/Doxyfile has HAVE_DOT = YES,
+				meaning that you want to generate callgraphs in the documentation.
+			-- http://www.graphviz.org
+
+- JPL		-- (optional) Solar System Ephemeris 
+			-- http://www.cv.nrao.edu/~rfisher/Ephemerides/ephem_descr.html
+

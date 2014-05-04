@@ -1,0 +1,11 @@
+/Makefile.am/1.8/Thu Sep 05 21:11:10 2013/-ko/
+/README.TEMPLATE/1.1/Thu Sep 26 01:08:04 2013/-ko/
+/opera.cpp/1.8/Wed Sep 18 00:43:16 2013/-ko/
+/operaConfigurationAccess.cpp/1.6/Fri May 10 23:39:45 2013/-ko/
+/operaCreateBadpixMask.cpp/1.3/Wed Nov 21 00:42:58 2012/-ko/
+/operaCreateBadpixMask.h/1.1/Thu Sep 26 01:08:04 2013/-ko/
+/operaFITStoPNG.c/1.5/Fri May 10 23:40:05 2013/-ko/
+/operaFits2txt.c/-1.2/dummy timestamp/-ko/
+/operaGenModuleTemplate.c/1.2/Thu Sep 26 01:08:04 2013/-ko/
+/operaImage.cpp/1.3/Fri May 10 23:34:29 2013/-ko/
+/operaParameterAccess.cpp/1.5/Fri May 10 23:41:01 2013/-ko/

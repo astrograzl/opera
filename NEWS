@@ -1,0 +1,4 @@
+Dec 18 2013 - Teeple
+	- moved .spc and .pol targets to Makefile.core
+
+

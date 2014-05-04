@@ -1,0 +1,85 @@
+#! /bin/bash
+#########################################################################################
+#
+# Script name: operagetpolarquad
+# Version: 1.0
+# Description: get a sequence of 4 polar images in sequence
+# Author(s): CFHT OPERA team
+# Affiliation: Canada France Hawaii Telescope 
+# Location: Hawaii USA
+# Date: Aug/2011
+# Contact: teeple@cfht.hawaii.edu
+# 
+# Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see:
+# http://software.cfht.hawaii.edu/licenses
+# -or-
+# http://www.gnu.org/licenses/gpl-3.0.html
+#
+#/// \package operagetword
+#/// \brief get word n from a list
+#/// \arg int index
+#/// \arg list of words
+#/// \ingroup scripts
+#
+#########################################################################################
+bindir=$opera/bin/
+
+((i=1))
+oks=""
+while [[ $1 ]] 
+do
+	if (( i == 1 )) 
+	then
+		object=`${bindir}/operagetheader $1 --keyword=OBJECT `
+		mode=`${bindir}/operagetmode $1`
+		speed=`${bindir}/operagetspeed $1`
+		stokes=`${bindir}/operagetstokes $1`
+		exp=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $3}' | sed -e s/,//`
+		seq=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
+		seqs=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
+		oks="$oks $1"
+		shift
+		((i++))
+	else	
+		if [[ $1 ]]
+		then
+			fobject=`${bindir}/operagetheader $1 --keyword=OBJECT `
+			fmode=`${bindir}/operagetmode $1`
+			fspeed=`${bindir}/operagetspeed $1`
+			fstokes=`${bindir}/operagetstokes $1`
+			fexp=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $3}' | sed -e s/,//`
+			fseq=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
+			fseqs=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
+			if [[ $object == $fobject && $mode == $fmode && $seq == $fseq && $stokes == $fstokes && $seqs == $fseqs && $fexp == $i ]]
+			then
+				oks="$oks $1"
+		   	((i++))
+		   	if (( i > 4 ))
+		   	then
+			  		break
+		   	fi
+		   	shift
+			else
+				oks=""
+				((i=1))
+			fi
+		else
+			break
+		fi
+	fi
+done
+echo "`expr $i - 1` $oks"
+exit

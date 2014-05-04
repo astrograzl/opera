@@ -1,0 +1,104 @@
+
+
+								INSTALLATION
+
+Prior to attempting to build OPERA, please check for and 
+install the DEPENDENCIES, as necesssary. See the file DEPENDENCIES in this directory.
+------------------------
+
+STOP - DO NOT PROCEED UNLESS ALL THE REQUIRED DEPENDENCIES INSTALLED PROPERLY
+
+STOP - DO NOT CONFIGURE AND BUILD AS USER ROOT
+
+---------------------------------------------------------------
+
+Below are the instructions on how to obtain and install OPERA:
+
+1. Download the compressed file: opera-1.0.zip from sourceforge.net:
+
+	http://sourceforge.net/projects/opera-pipeline/files/opera-1.0/opera-1.0-Jul01-2013.zip/download
+
+2. Remove an existing copy if you have one:
+
+   cd ~
+   rm -rf opera-1.0/
+   
+3. Unpack this file in your home directory:
+   unzip opera-1.0.zip
+
+4. Open a terminal and access the directory 
+   cd $HOME/opera-1.0/ 
+
+4a. OPERA builds with shared libraries. If you have never compiled shared libraries you may
+   need to do these steps next:
+   
+   glibtoolize
+   aclocal
+   autoconf
+   
+5. Run the configuration file,
+   ./configure --prefix=$HOME/opera-1.0/
+   or if you want to use libpng:
+   ./configure --prefix=$HOME/opera-1.0/ --enable-LIBPNG=true
+
+   NOTE: If you change the prefix to /usr/local/, most likely you DO NOT have
+   write permissions to that directory. In step 6 below you must use 
+   "sudo make install".
+   
+   *** NOTE: dynamic link libraries are used. If you get this error:
+   Error: �required file `./ltmain.sh' not found�
+   please see 'ltmain.sh Error' below.
+   
+   If you wish to use static libraries:
+   ./configure --disable-shared
+
+   *** NOTE: ubuntu users you MUST:
+   ./configure --disable-shared
+     
+6. Build:
+   make
+   make install
+   . ./setup.sh
+
+7. Release:
+   Once yoou have debugging your modules, you can significantly reduce the
+   module size by stripping debug info:
+   make install-strip
+
+=====================
+
+Notes for MacOSX
+
+We use XCode for development on MacOSX. Later versions of XCode do not include
+gcc, which we need to do builds of opera. To get the command line tools:
+
+1. Install XCode from developer.apple.com
+2. Click on XCode/Tools/Other
+3. It will take you to a web page where you can download the command line
+   tools (e.g. cc, gg, make, etc.)
+4. Download the .dmg, double-click and install.
+
+ltmain.sh Error:
+----------------
+8.3.9.1 Error: ‘required file `./ltmain.sh' not found’
+
+Libtool comes with a tool called libtoolize that will install libtool’s supporting 
+files into a package. Running this command will install ltmain.sh. 
+You should execute it before aclocal and automake.
+
+People upgrading old packages to newer autotools are likely to face this issue 
+because older Automake versions used to call libtoolize. Therefore old build scripts 
+do not call libtoolize.
+
+Since Automake 1.6, it has been decided that running libtoolize was none of Automake’s business. 
+Instead, that functionality has been moved into the autoreconf command (see Using autoreconf 
+in The Autoconf Manual). If you do not want to remember what to run and when, 
+just learn the autoreconf command. Hopefully, replacing existing bootstrap.sh or 
+autogen.sh scripts by a call to autoreconf should also free you from any similar 
+incompatible change in the future.
+
+=====================
+
+BUGS:
+
+
