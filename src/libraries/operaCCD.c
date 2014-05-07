@@ -441,7 +441,7 @@ int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,fl
 	
     // Measure orders lying before the first order detected and after fx[0]+slit 
 	nloword = 0;
-	while(xmmin > fx[0] + slit) {
+	while(xmmin > fx[0] + slit && nloword < nords && nloword < MAXORDERS) {	// D.T. May 6 2014 check for out of bounds
         int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xmmintmp,&ymmin,&xerrmin);
         
 		if(isItAboveNoise) {
@@ -467,7 +467,7 @@ int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,fl
 	acceptorder = 0;
 	nhiord = 0;
 	
-	while(xmiss < fx[np-1] - slit) {	
+	while(xmiss < fx[np-1] - slit && nhiord < nords && nhiord < MAXORDERS) {	// D.T. May 6 2014 check for out of bounds	
 		/*
 		 * test if there is already a detection for the xmiss predicted order position:
 		 */

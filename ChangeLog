@@ -1885,3 +1885,11 @@ Dec 17 2013 - Teeple
 Dec 18 2013 - Teeple
 	- moved .spc and .pol targets to Makefile.core
 
+May 8 2014 - Teeple
+	- fixed a bug in operaCCD.c operaCCDDetectMissingOrders causing geometry to segfault. Checked bounds of nloword and nhiord.
+	- fixed bugs in operaMatric.c - comparing pointers to ints
+	- fixed bus in operaStitchOrder.cpp - non-terminating loops
+	- integrated Lison's changes from the March build.
+	- integrated Eder's build from April.
+	- *** NOTE This build is for integration testing only - the changes have been very extensive!
+	

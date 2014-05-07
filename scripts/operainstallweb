@@ -141,7 +141,7 @@ scp -P 22 $zipname douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/pr
 scp -P 22 $gzipname douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
 if [ "$1" != "--noemail" ]
 then
-	recipients="emartioli@lna.br,kanoa@cfht.hawaii.edu,manset@cfht.hawaii.edu,teeple@cfht.hawaii.edu,moutou@cfht.hawaii.edu"
+	recipients="emartioli@lna.br,kanoa@cfht.hawaii.edu,manset@cfht.hawaii.edu,teeple@cfht.hawaii.edu,moutou@cfht.hawaii.edu,malo@cfht.hawaii.edu"
 	echo "############################################################################################"
 	echo "#    sending email to: $recipients"
 	echo "############################################################################################"

@@ -135,7 +135,7 @@ spectrograph_spectralResolution			:= 65000
 spectrograph_pixelsize					:= 13 13
 spectrograph_EspadonsCCDReadoutSpeed	:= $(EspadonsCCDReadoutSpeed_$(SPEED))
 spectrograph_SpectrographCCD			:= $(spectrograph_CCD_$(DETECTOR))
-spectrograph_EspadonsInstrumentMode		:= $(spectrograph_$(MOE))
+spectrograph_EspadonsInstrumentMode		:= $(spectrograph_$(MODE))
 
 #########################################################################################
 # Master Calibrations
@@ -303,6 +303,15 @@ telluric_normalizationbinsize	:= 110
 telluric_sigmathreshold			:= 1.25
 
 #########################################################################################
+# Stitch Orders
+#########################################################################################
+stitch_orderOfReference         := 51
+stitch_DWavelengthRange         := 0.1
+stitch_DWavelengthStep          := 0.00005
+stitch_XCorrelationThreshold    := 0.1
+stitch_sigmaThreshold           := 2.0
+
+#########################################################################################
 # dispersion Laurent Polynomial
 # max order must be zero and min order must be negative
 #########################################################################################
@@ -312,6 +321,7 @@ minoutputorder					:= 22
 maxoutputorder					:= 61
 binsizeToRemoveOutliers         := 7
 thresholdToRemoveOutliers       := 2
+disp_wcalmaxorderofpolynomial   := 1
 
 #########################################################################################
 # instrument profile
@@ -423,16 +433,22 @@ extraction_iterations			:= 3
 # Create Flux Calibration
 #########################################################################################
 
-createfluxcalibrationbinsize	:= 190
-createfluxcalibrationminorder	:= 23
-createfluxcalibrationmaxorder	:= 60
-createfluxcalibrationNormalizeCalibratedSpectrum := 0
+createfluxcalibrationbinsize	:= 500
+createfluxcalibrationminorder	:= 22
+createfluxcalibrationmaxorder	:= 61
 createfluxcalibrationPixelsize					:= 1 1
 createfluxcalibrationWavelengthForNormalization	:= 548
-createfluxcalibrationUseContinuumAcrossOrders	:= 0
-createfluxcalibrationorderBin					:= 4
-createfluxcalibrationlowOrderToClip				:= 25
-createfluxcalibrationhighOrderToClip			:= 60
+createfluxcalibrationnumberOfPointsInUniformSample      := 200
+createfluxcalibrationnumberOfPointsInUniformRefSample   := 70
+
+createfluxcalibration_WavelengthMaskForUncalContinuum   := wavelengthMaskForUncalContinuumDetection.txt
+createfluxcalibration_WavelengthMaskForRefContinuum   := wavelengthMaskForRefContinuumDetection.txt
+
+#########################################################################################
+# Master Flux Calibration
+#########################################################################################
+
+mastercomparison_combinemethod  :=  1
 
 #########################################################################################
 # Flux Calibration
@@ -498,9 +514,25 @@ starplusskymode_sp2			:= 0
 starplusskymode_pol			:= 0
 starplusskymode				:= $(starplusskymode_$(MODE))
 
-extractor_normalizationBinsize	:= 110
-extractor_usePolynomial			:= 0
-extractor_orderOfPolynomial		:= 5
+extractor_normalizationBinsize	:= 750
+
+extractor_numberOfPointsInUniformSample	:= 150
+extractor_AbsoluteCalibration	:= 0
+
+extractor_WavelengthMaskForUncalContinuum   := wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt
+
+#########################################################################################
+# To Generate LE Formats
+#########################################################################################
+
+RawFluxInElectronsPerElement            := 1
+NormalizedFluxToContinuum               := 2
+CalibratedFluxNormalizedToRefWavelength := 3
+
+ThArCalibratedInNM                      := 1
+TelluricCorrectedWavelengthInNM         := 2
+RVCorrectedWavelengthInNM               := 3
+RVAndTelluricCorrectedWavelengthInNM    := 4
 
 #########################################################################################
 # Polarimetry

@@ -638,7 +638,7 @@ void operaSpectralEnergyDistribution::calculateCalibratedElements(unsigned nPoin
     float *elemWavelength = new float[nElements];  
     
     for(unsigned i=0;i<nElements;i++) { 
-        elemWavelength[i] =  uncalibratedFluxElements->getwavelength(i);
+        elemWavelength[i] =  (float)uncalibratedFluxElements->getwavelength(i);
     }    
     
     operaFitSpline(nPointsInReference,wavelengthData_f,spectralEnergyData_f,nElements,elemWavelength,SEDModelFlux);
@@ -762,6 +762,7 @@ void operaSpectralEnergyDistribution::calculateSEDelements(double spectralBinCon
         
     for(unsigned i=0;i<nElements;i++) {
         fluxCalibration->setwavelength(uncalibratedFluxElements->getwavelength(i),i);
+        instrumentThroughput->setwavelength(uncalibratedFluxElements->getwavelength(i),i);
         
         double uncalibratedFlux = uncalibratedFluxElements->getFlux(i);
         double calibratedFlux = calibratedFluxElements->getFlux(i);

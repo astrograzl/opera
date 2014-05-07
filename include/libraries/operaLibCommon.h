@@ -107,6 +107,21 @@ extern "C" {
 		telescope                  // Telescope configuration format
     };
     
+    enum operaFluxType_t {
+		UnknownFluxType = 0,
+		RawFluxInElectronsPerElement,
+		NormalizedFluxToContinuum,
+		CalibratedFluxNormalizedToRefWavelength
+	};
+
+    enum operaWavelengthType_t {
+		UnknownWavelengthType = 0,
+		ThArCalibratedInNM,
+		TelluricCorrectedWavelengthInNM,
+		RVCorrectedWavelengthInNM,
+		RVAndTelluricCorrectedWavelengthInNM
+	};
+    
 #ifndef FOURSIDES
 #define FOURSIDES 4
 #endif

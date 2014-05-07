@@ -20,7 +20,8 @@ bin_PROGRAMS = operaSNR operaWavelengthCalibration \
 			operaOrderSpacingCalibration operaEchelleDispersionCalibration operaPolarimetryCorrection \
 			operaCalculateSpectralResolution operaMasterFluxCalibration \
 			operaObjectInTheSkySetup operaObservingConditionsSetup operaSpectrographSetup \
-			operaTelescopeSetup operaNormalizeAcrossOrders operaCreateFlatFieldFluxCalibration
+			operaTelescopeSetup operaNormalizeAcrossOrders operaCreateFlatFieldFluxCalibration \
+			operaTelluricCorrection operaStitchOrders operaGenerateLEFormats
 
 #
 # wcs support
@@ -29,6 +30,12 @@ if LIBWCS
 AM_LDFLAGS += -lwcs
 LIBS += -lwcs
 endif
+
+operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp operaGenerateLEFormats.h
+
+operaStitchOrders_SOURCES = operaStitchOrders.cpp operaStitchOrders.h
+
+operaTelluricCorrection_SOURCES = operaTelluricCorrection.cpp operaTelluricCorrection.h
 
 operaCreateFlatFieldFluxCalibration_SOURCES = operaCreateFlatFieldFluxCalibration.cpp operaCreateFlatFieldFluxCalibration.h
 

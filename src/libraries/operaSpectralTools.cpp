@@ -52,9 +52,9 @@ Date: Aug/2011
 #include "operaError.h"
 #include "libraries/operaSpectralTools.h"
 
-#include "libraries/operaLibCommon.h"       // for SPEED_OF_LIGHT_M
-#include "libraries/operaStats.h"       // for operaCrossCorrelation
-#include "libraries/operaFFT.h"         // for operaXCorrelation
+#include "libraries/operaLibCommon.h"           // for SPEED_OF_LIGHT_M
+#include "libraries/operaStats.h"               // for operaCrossCorrelation
+#include "libraries/operaFFT.h"                 // for operaXCorrelation
 
 using namespace std;
 
@@ -315,3 +315,272 @@ double IntegrateSpectralElementOfBlackBody(double wl0, double wlf, double T) {
     return sum;
 }
 
+
+double getFactorToMatchFluxesBetweenElements(operaSpectralElements *refElements,operaSpectralElements *elementsToMatch,double delta_wl) {
+    bool debug = false;
+    double ref_wl0 = refElements->getwavelength(0);
+    double ref_wlf = refElements->getwavelength(refElements->getnSpectralElements()-1);
+    double elem2match_wl0 = elementsToMatch->getwavelength(0);
+    double elem2match_wlf = elementsToMatch->getwavelength(elementsToMatch->getnSpectralElements()-1);
+    
+    if(ref_wl0 >= ref_wlf || elem2match_wl0 >= elem2match_wlf) {
+        throw operaException("getOverlappingWLRange: initial wl must not be greater than final wl. ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    // find intersecting range:
+    bool elementsIntersect = false;
+    double intersect_wl0 = 0;
+    double intersect_wlf = 0;
+    
+    if(elem2match_wl0 >= ref_wl0 && elem2match_wl0 <= ref_wlf) {
+        intersect_wl0 = elem2match_wl0;
+        intersect_wlf = ref_wlf;
+        elementsIntersect = true;
+    }
+    
+    if (elem2match_wlf >= ref_wl0 && elem2match_wlf <= ref_wlf) {
+        intersect_wlf = elem2match_wlf;
+        if(intersect_wl0 == 0) {
+            intersect_wl0 = ref_wl0;
+        }
+        elementsIntersect = true;
+    }
+    
+    if(debug) {
+        cout << "refElements     = " << ref_wl0 << " -> " << ref_wlf << endl;
+        cout << "elementsToMatch = " << elem2match_wl0 << " -> " << elem2match_wlf << endl;
+        if (elementsIntersect == true) {
+            cout << "Intersection    = " << intersect_wl0 << " -> " << intersect_wlf << endl;
+        } else {
+            cout << " Elements Do Not Intersect" << endl;
+        }
+    }
+    
+    
+    // first collect data:
+    unsigned refNElements = refElements->getnSpectralElements();
+    float *refFlux = new float[refNElements];
+    unsigned nref = 0;
+    
+    unsigned nElements = elementsToMatch->getnSpectralElements();
+    float *elemFlux = new float[nElements];
+    unsigned nelem = 0;
+    double factorToMatch = 1.0;
+    
+    if (elementsIntersect == true) {
+        
+        for(unsigned elemIndex=0; elemIndex<refNElements;elemIndex++) {
+            if(refElements->getwavelength(elemIndex) >= intersect_wl0 &&
+               refElements->getwavelength(elemIndex) <= intersect_wlf) {
+                refFlux[nref] = refElements->getFlux(elemIndex);
+                nref++;
+            }
+        }
+        
+        double medianRefFlux = (double)operaArrayMedian(nref,refFlux);
+        
+        for(unsigned elemIndex=0; elemIndex<nElements;elemIndex++) {
+            if(elementsToMatch->getwavelength(elemIndex) >= intersect_wl0 &&
+               elementsToMatch->getwavelength(elemIndex) <= intersect_wlf) {
+                elemFlux[nelem] = elementsToMatch->getFlux(elemIndex);
+                nelem++;
+            }
+        }
+        double medianElemFlux = (double)operaArrayMedian(nelem,elemFlux);
+        
+        factorToMatch = medianRefFlux/medianElemFlux;
+        if(debug) {
+            cout << medianRefFlux << " " << medianElemFlux << " " << factorToMatch << endl;
+        }
+    } else {
+        // find out which element set comes first
+        // to find the wavelength between the two orders
+
+        double refinflimit_wl, refsuplimit_wl;
+        double eleminflimit_wl, elemsuplimit_wl;
+        
+        if(ref_wlf < elem2match_wl0) { // ref comes first
+            refinflimit_wl = ref_wlf - delta_wl;
+            refsuplimit_wl = ref_wlf;
+            eleminflimit_wl = elem2match_wl0;
+            elemsuplimit_wl = elem2match_wl0 + delta_wl;
+            
+        } else {            
+            refinflimit_wl = ref_wl0;
+            refsuplimit_wl = ref_wl0 + delta_wl;
+            eleminflimit_wl = elem2match_wlf - delta_wl;
+            elemsuplimit_wl = elem2match_wlf;
+        }
+        if(debug) {
+            cout << "refinflimit_wl=" << refinflimit_wl << " refsuplimit_wl=" << refsuplimit_wl << endl;
+            cout << "eleminflimit_wl=" << eleminflimit_wl << " elemsuplimit_wl=" << elemsuplimit_wl << endl;
+        }
+        
+        for(unsigned elemIndex=0; elemIndex<refNElements;elemIndex++) {
+            if(refElements->getwavelength(elemIndex) >= refinflimit_wl &&
+               refElements->getwavelength(elemIndex) <= refsuplimit_wl) {
+                refFlux[nref] = refElements->getFlux(elemIndex);
+                nref++;
+            }
+        }
+        
+        double medianRefFlux = (double)operaArrayMedian(nref,refFlux);
+        
+        for(unsigned elemIndex=0; elemIndex<nElements;elemIndex++) {
+            if(elementsToMatch->getwavelength(elemIndex) >= eleminflimit_wl &&
+               elementsToMatch->getwavelength(elemIndex) <= elemsuplimit_wl) {
+                elemFlux[nelem] = elementsToMatch->getFlux(elemIndex);
+                nelem++;
+            }
+        }
+        double medianElemFlux = (double)operaArrayMedian(nelem,elemFlux);
+        
+        factorToMatch = medianRefFlux/medianElemFlux;
+        if(debug) {
+            cout << medianRefFlux << " " << medianElemFlux << " " << factorToMatch << endl;
+        }
+    }
+    delete[] refFlux;
+    delete[] elemFlux;
+    
+    return factorToMatch;
+}
+
+void calculateUniformSample(unsigned np,float *wl,float *flux, unsigned npout, float *uniform_wl, float *uniform_flux) {
+    float wl0 = wl[0];
+    float wlf = wl[np-1];
+    
+    float wlstep = fabs(wlf - wl0)/(float)(npout-1);
+    unsigned lastk=0;
+    
+    for(unsigned i=0;i<npout;i++) {
+        uniform_wl[i] = wl0 + (float)i*wlstep;
+        
+        for (unsigned k=lastk; k<np;k++) {
+            if(wl[k] >= uniform_wl[i] && k>0) {
+                float slope = (flux[k] - flux[k - 1])/ (wl[k] - wl[k - 1]);
+                float intercept = flux[k] - slope*wl[k];
+                uniform_flux[i] = intercept + slope*uniform_wl[i];
+                lastk = k-1;
+                break;
+            }
+        }
+    }
+}
+
+float getFluxAtWavelength(unsigned np,float *wl,float *flux,float wavelengthForNormalization) {
+    float wl0 = wl[0];
+    float wlf = wl[np-1];
+    
+    if(wavelengthForNormalization < wl0 || wavelengthForNormalization > wlf) {
+        cout << wl0 << " " << wavelengthForNormalization << " " << wlf << endl;
+
+        throw operaException("operaSpectralTools: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    float fluxAtwavelengthForNormalization = 0;
+    
+    for (unsigned k=0; k<np;k++) {
+        if(wl[k] >= wavelengthForNormalization && k>0) {
+            float slope = (flux[k] - flux[k - 1])/ (wl[k] - wl[k - 1]);
+            float intercept = flux[k] - slope*wl[k];
+            fluxAtwavelengthForNormalization = intercept + slope*wavelengthForNormalization;
+            break;
+        }
+    }
+    return  fluxAtwavelengthForNormalization;
+}
+
+/*
+ * Read mask
+ */
+unsigned readContinuumWavelengthMask(string wavelength_mask, double *wl0, double *wlf) {
+	ifstream astream;
+	string dataline;
+    
+	double tmpwl0 = -1.0;
+	double tmpwlf = -1.0;
+	unsigned np = 0;
+	
+	astream.open(wavelength_mask.c_str());
+	if (astream.is_open()) {
+		while (astream.good()) {
+			getline(astream, dataline);
+			if (strlen(dataline.c_str())) {
+				if (dataline.c_str()[0] == '#') {
+					// skip comments
+				} else {
+					sscanf(dataline.c_str(), "%lf %lf", &tmpwl0, &tmpwlf);
+                    wl0[np] = tmpwl0;
+                    wlf[np] = tmpwlf;
+                    np++;
+                }	// skip comments
+            }
+		} // while (astream.good())
+		astream.close();
+	}	// if (astream.open())
+	return np;
+}
+
+unsigned getSpectrumWithinWLRange(operaSpectralElements *inputSpectrum, double wl0, double wlf, double *outputFlux, double *outputWavelength) {
+    if(!inputSpectrum->getHasWavelength()) {
+        throw operaException("getSpectrumWithinWLRange: no wavelength in input SpectralElements. ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    unsigned np = 0;
+    for (unsigned i=0; i<inputSpectrum->getnSpectralElements(); i++) {
+        if(inputSpectrum->getwavelength(i) >= wl0 &&
+           inputSpectrum->getwavelength(i) <= wlf ) {
+            
+            outputFlux[np] = inputSpectrum->getFlux(i);
+            outputWavelength[np] = inputSpectrum->getwavelength(i);
+            np++;
+        }
+    }
+    return np;
+}
+
+bool getOverlappingWLRange(operaSpectralElements *refElements, operaSpectralElements *elementsToMatch, double &wl0, double &wlf) {
+    bool debug = false;
+    double ref_wl0 = refElements->getwavelength(0);
+    double ref_wlf = refElements->getwavelength(refElements->getnSpectralElements()-1);
+    double elem2match_wl0 = elementsToMatch->getwavelength(0);
+    double elem2match_wlf = elementsToMatch->getwavelength(elementsToMatch->getnSpectralElements()-1);
+    
+    if(ref_wl0 > ref_wlf || elem2match_wl0 > elem2match_wlf) {
+        throw operaException("getOverlappingWLRange: initial wl must not be greater than final wl. ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    // find overlapping range:
+    bool overlap = false;
+    double intersect_wl0 = 0;
+    double intersect_wlf = 0;
+    
+    if(elem2match_wl0 >= ref_wl0 && elem2match_wl0 <= ref_wlf) {
+        intersect_wl0 = elem2match_wl0;
+        intersect_wlf = ref_wlf;
+        overlap = true;
+    }
+    
+    if (elem2match_wlf >= ref_wl0 && elem2match_wlf <= ref_wlf) {
+        intersect_wlf = elem2match_wlf;
+        if(intersect_wl0 == 0) {
+            intersect_wl0 = ref_wl0;
+        }
+        overlap = true;
+    }
+    
+    wl0 = intersect_wl0;
+    wlf = intersect_wlf;
+    
+    if(debug) {
+        cout << "refElements     = " << ref_wl0 << " -> " << ref_wlf << endl;
+        cout << "elementsToMatch = " << elem2match_wl0 << " -> " << elem2match_wlf << endl;
+        if (overlap == true) {
+            cout << "Intersection    = " << intersect_wl0 << " -> " << intersect_wlf << endl;
+        } else {
+            cout << " Elements do not overlap" << endl;
+        }
+    }
+    
+    return overlap;
+}

@@ -396,6 +396,49 @@ errfile				:= $(logdir)operaerr.log
 
 endif	# observatory == CFHT
 
+#
+# experimental...
+#
+ifeq ($(observatory),GRACES)
+queuedir		= /data/uhane5/opera/
+outdir			= /data/uhane5/opera/
+USE_SYBASE		= 0
+LIBRE_ESPRIT_COMPATIBILITY	= 0
+OBJECTFILEPATTERN		= gracesmay[0-9]*o.$(FITS)$(inextension)
+FLATFILEPATTERN			= gracesmay[0-9]*f.$(FITS)$(inextension)
+BIASFILEPATTERN			= gracesmay[0-9]*b.$(FITS)$(inextension)
+THORIUMFILEPATTERN		= gracesmay[0-9]*c.$(FITS)$(inextension)
+FABPERFILEPATTERN		= gracesmay[0-9]*a.$(FITS)$(inextension)
+CALFILEPATTERN			= gracesmay[0-9]*[abcf].$(FITS)$(inextension)
+ALLFILEPATTERN			= gracesmay[0-9]*[oabcf].$(FITS)$(inextension)
+INTENSITYFILEPATTERN	= gracesmay[0-9]*i.$(FITS)$(extension)
+POLARIMETRYFILEPATTERN	= gracesmay[0-9]*p.$(FITS)$(extension)
+CALSFILEPATTERN			= gracesmay[0-9]*m.$(FITS)
+SNRFILEPATTERN			= gracesmay[0-9]*.sn$(gzip)
+REDUCTIONSETS		=	\
+					OLAPA-a_sp1_Normal OLAPA-a_sp1_Fast \
+					OLAPA-a_sp2_Normal OLAPA-a_sp2_Fast \
+					OLAPA-ab_sp1_Normal OLAPA-ab_sp1_Fast \
+					OLAPA-ab_sp2_Normal OLAPA-ab_sp2_Fast
+		
+DETECTOR_HEADERKEY          = DETECTOR
+MODE_HEADERKEY              = GSLICER
+SPEED_HEADERKEY             = RDTIME
+AMPLIFIER_HEADERKEY         = AMPLIST
+# the values of the keyword in the FITS header
+DETECTOR_EEV1_HEADERVALUE	= 'EEV1    '
+DETECTOR_OLAPA_HEADERVALUE	= 'OLAPA   '
+# the values of the keyword in the FITS header
+AMPLIFIER_a_HEADERVALUE		= 'a       '
+AMPLIFIER_ab_HEADERVALUE	= 'a,b     '
+# the values of the keyword in the FITS header
+MODE_sp1_HEADERVALUE		= 'FOURSLICE'
+MODE_sp2_HEADERVALUE		= 'TWOSLICE'
+# the values of the keyword in the FITS header
+SPEED_Fast_HEADERVALUE		= 38.00
+SPEED_Normal_HEADERVALUE	= 32.00
+endif
+
 #########################################################################################
 #///
 #/// \endcond

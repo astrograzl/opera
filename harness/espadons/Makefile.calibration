@@ -269,6 +269,14 @@ masterfabperots masterfabryperots: master.rlst
 	echo "$(pref) masterfabperots for $(NIGHT) complete in $(deltat)"
 
 #########################################################################################
+# Flat-field flux calibrations
+#########################################################################################
+masterflatfluxcalibration masterflatfluxcalibrations: master.rlst
+	@start=$$SECONDS; \
+	$(call doAllCalibrationModes,masterflatfluxcalibration_,fcal$(gzip)) ; \
+	echo "$(pref) masterflatfluxcalibrations for $(NIGHT) calibrations complete in $(deltat)"
+
+#########################################################################################
 # gains
 #########################################################################################
 gains: master.rlst
@@ -331,6 +339,16 @@ masterfluxcalibration masterfluxcalibrations: master.rlst
 	@start=$$SECONDS; \
 	$(call doAllCalibrationModes,masterfluxcalibration_,fcal$(gzip))
 
+#########################################################################################
+# Master polar flux calibration
+#########################################################################################
+masterpolarfluxcalibration masterpolarfluxcalibrations: master.rlst
+	@start=$$SECONDS; \
+	$(call doAllCalibrationModes,masterpolarfluxcalibration_,fcal$(gzip))
+	
+#########################################################################################
+# Master flatfield flux calibration
+#########################################################################################
 masterflatfieldfluxcalibration masterflatfieldfluxcalibrations: master.rlst
 	@start=$$SECONDS; \
 	$(call doAllCalibrationModes,masterflatfieldfluxcalibration_,fcal$(gzip))
@@ -567,14 +585,10 @@ normalizedflat_$(QUALIFIERS).$(FITS)$(extension): master.rlst $(QUALIFIERS).aper
 		if [ ! -e $(calibrationdir)normalizedflat_$(QUALIFIERS).$(FITS)$(extension) ] ;  then \
 			echo "$(pref) Starting normalized flat creation for $(QUALIFIERS)." ; \
 			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPixelSensitivityMap \
---outputNormFlat=$(calibrationdir)normalizedflat_$(QUALIFIERS).$(FITS)$(extension) \
---geometry=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
---instrumentprofle=$(calibrationdir)$(QUALIFIERS).prof$(gzip) \
+--outputfilename=$(calibrationdir)normalizedflat_$(QUALIFIERS).$(FITS)$(extension) \
 --masterbias=$(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) \
 --masterflat=$(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) \
---compressiontype=$(compressiontype)  \
---aperture=$(normalizedflataperture) \
---binsize=$(normalizedflatbinsize) $(optargs)" 2>&1 | tee -a $(logfile) ; \
+--badpixelmask=$(badpixelmask) $(optargs)" 2>&1 | tee -a $(logfile) ; \
 			if  (( $(TRACE) != 1 )) ; then echo "$(pref) fits `$(bindir)operafitsverify $(VERBOSE) $(calibrationdir)normalizedflat_$(QUALIFIERS).$(FITS)$(extension)`"; fi; \
 			if [[ "$(PLOT)" != "0" ]] ; then \
 				$(MAKE) -f $(makedir)Makefile normalizedflat_$(QUALIFIERS)r.png DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
@@ -799,6 +813,53 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 	fi
 
 #########################################################################################
+# Master polar flux calibration.
+# Note that P3 and P4 may be empty
+# Calculates master flux calibration for sum of 4 polar sequence
+#########################################################################################
+
+masterpolarfluxcalibration_$(QUALIFIERS).fcal$(gzip) :
+	@start=$$SECONDS; \
+	if [ ! -e $(calibrationdir)$@ ] ; then \
+		if [[ "$(MODE)" == "pol" ]] ; then \
+			echo "$(pref) Starting master polar flux calibration generation for $@ $(QUALIFIERS)" ; \
+			if [[ "$(PLOT)" != "0" ]] ; then \
+				pargs="--plotfilename=$(visualsdir)masterpolarfluxcalibration_$(QUALIFIERS)fcal.eps --spectrumDataFilename=$(byproductsdir)masterpolarfluxcalibration_$(QUALIFIERS)fcal.pdat --outputDataFilename=$(byproductsdir)masterpolarfluxcalibration_$(QUALIFIERS)outputfcal.pdat --scriptfilename=$(byproductsdir)masterpolarfluxcalibration_$(QUALIFIERS)fcal.gnu" ; \
+			fi ; \
+			for seq in 1 2 3 4 ; do \
+				if [ -e $(configdir)masterfluxcalibration_$(QUALIFIERS)$${seq}.fcal$(gzip) ] ; then \
+					inputfcals="$$inputfcals --inputfcal=$(configdir)masterfluxcalibration_$(QUALIFIERS)$${seq}.fcal$(gzip)" ; \
+				fi ; \
+			done ; \
+			if [[ "$${inputfcals}" == "" ]] ; then \
+				for seq in 1 2 3 4 ; do \
+					if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${seq}.fcal$(gzip) ] ; then \
+						inputfcals="$$inputfcals --inputfcal=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${seq}.fcal$(gzip)" ; \
+					fi ; \
+				done ; \
+			fi ; \
+			if [[ "$${inputfcals}" == "" ]] ; then \
+				if [ -e $(configdir)masterfluxcalibration_$(QUALIFIERS).fcal$(gzip) ] ; then \
+					inputfcals="--inputfcal=$(configdir)masterfluxcalibration_$(QUALIFIERS).fcal$(gzip)" ; \
+				else \
+					inputfcals="--inputconstant=1.0" ; \
+				fi ; \
+			fi ; \
+			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaMasterFluxCalibration \
+$${inputfcals} \
+--inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
+--inputReferenceSpectrum=$(calibrationdir)th_$(QUALIFIERS).e$(gzip) \
+--inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
+--combineMethod=$(mastercomparison_combinemethod) \
+--minorder=$(createfluxcalibrationminorder) \
+--maxorder=$(createfluxcalibrationmaxorder) \
+$${pargs} \
+--outputfcal=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
+			echo "$(pref) Master Polar Flux Calibration $@ created in $(deltat)" ; \
+		fi ; \
+	fi
+
+#########################################################################################
 # QUAILIFIERS-based flux calibration
 #
 # NOTE: This step is done after preliminary calibration:
@@ -846,7 +907,7 @@ masterfluxcalibration_$(QUALIFIERS).fcal$(gzip):
 $${inputfcals} \
 --inputReferenceSpectrum=$(calibrationdir)th_$(QUALIFIERS).e$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---combineMethod=$(createfluxcalibrationcombineMethod) \
+--combineMethod=$(mastercomparison_combinemethod) \
 --minorder=$(createfluxcalibrationminorder) \
 --maxorder=$(createfluxcalibrationmaxorder) \
 --outputfcal=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${seq}.fcal$(gzip) \
@@ -887,11 +948,6 @@ $${inputfcals} \
 --outputfcal=$(calibrationdir)$@ \
 $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile); \
-				echo "$(pref) Copying $@ to $(configdir)" ; \
-				if [ -e $(configdir)$@ ] ; then \
-					rm -f $(configdir)$@ ; \
-				fi ; \
-				cp -p $(calibrationdir)$@ $(configdir) ; \
 				echo "$(pref) master flux calibration for $(QUALIFIERS) complete in $(deltat)" ; \
 			fi ; \
 		fi ; \
@@ -899,7 +955,7 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 
 #########################################################################################
 #
-# QUAILIFIERS-based flux calibration based on flat field
+# QUALIFIERS-based flux calibration based on flat field
 #
 #########################################################################################
 masterflatfieldfluxcalibration_$(QUALIFIERS).fcal$(gzip): ff_$(QUALIFIERS).e$(gzip)
@@ -1040,15 +1096,6 @@ $${gains} \
 $${pargs} \
 --outputGeomFile=$(calibrationdir)$@ \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			if [[ "`which operaPlotGeom`" != "" ]] ; then \
-				wcal="$(configdir)wcal_ref.dat$(gzip)" ; \
-				if [ -e $(calibrationdir)$(QUALIFIERS).wcal$(gzip) ] ; then \
-					wcal=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-				fi ; \
-				$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPlotGeom --wave=$${wcal} --geom=$(calibrationdir)$@ --masterflat=$(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) --output=$(visualsdir)$*.geom.png" ; \
-			fi ; \
-		fi ; \
 		echo "$(pref) geometry for $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
 
@@ -1116,7 +1163,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting wavelength calibration for $(QUALIFIERS)" ;\
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--generate3DPlot=$(wcal_generate3DPlot) --subtractCentralWavelength=$(wcal_subtractCentralWavelength) --ordersplotfilename=$(visualsdir)$*owcar.eps --specplotfilename=$(visualsdir)$*swcar.eps --ordersdatafilename=$(byproductsdir)$*wcar.odat --atlasdatafilename=$(byproductsdir)$*wcar.adat --compdatafilename=$(byproductsdir)$*wcar.cdat --linesdatafilename=$(byproductsdir)$*wcar.ldat --ordersscriptfilename=$(byproductsdir)$*owcar.gnu --specscriptfilename=$(byproductsdir)$*swcar.gnu" ; \
+			pargs="--generate3DPlot=$(wcal_generate3DPlot) --subtractCentralWavelength=$(wcal_subtractCentralWavelength) --ordersplotfilename=$(visualsdir)$(QUALIFIERS).owcar.eps --specplotfilename=$(visualsdir)$(QUALIFIERS).swcar.eps --ordersdatafilename=$(byproductsdir)$(QUALIFIERS).wcar.odat --atlasdatafilename=$(byproductsdir)$(QUALIFIERS).wcar.adat --compdatafilename=$(byproductsdir)$(QUALIFIERS).wcar.cdat --linesdatafilename=$(byproductsdir)$(QUALIFIERS).wcar.ldat --ordersscriptfilename=$(byproductsdir)$(QUALIFIERS).owcar.gnu --specscriptfilename=$(byproductsdir)$(QUALIFIERS).swcar.gnu" ; \
 		fi ; \
 		initialguess="$(configdir)wcal_ref.dat$(gzip)" ; \
 		if [ -s $(calibrationdir)$@ ] ; then \
@@ -1145,21 +1192,16 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 $${pargs} \
 --outputWaveFile=$(calibrationdir)$@ \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			if [[ "`which operaPlotWave`" != "" ]] ; then \
-				$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPlotWave --wave=$(calibrationdir)$@ --tharref=$(configdir)$(thorium_argon_atlas_lines) --output=$(visualsdir)$*.wcar.png" ; \
-			fi ; \
-		fi ; \
 		echo "$(pref) wavelength calibration for $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
 
 #########################################################################################
 # Refine the wavelength calibration
 #########################################################################################
-%.wcal$(gzip): %.wcar$(gzip)
+%.wcal$(gzip): masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
-		echo "$(pref) Starting Wavelength refinement for $(QUALIFIERS)" ;\
+		echo "$(pref) Starting Wavelength refinement with operaStitchOrders for $(QUALIFIERS)" ;\
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			pargs="--plotfilename=$(visualsdir)$*wcal.eps --datafilename=$(byproductsdir)$*wcal.pdat --scriptfilename=$(byproductsdir)$*wcal.gnu" ; \
 		fi ; \
@@ -1167,24 +1209,18 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		if [ -e $(calibrationdir)$(QUALIFIERS).wcar$(gzip) ] ; then \
 			wcar=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) ; \
 		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaEchelleDispersionCalibration \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaStitchOrders \
+--inputSpectrum=$(calibrationdir)th_$(QUALIFIERS).e$(gzip) \
 --inputWaveFile=$${wcar} \
 --outputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---minorderOfLaurentPolynomial=$(dispminorderOfLaurentPolynomial) \
---maxorderOfLaurentPolynomial=$(dispmaxorderOfLaurentPolynomial) \
---maxorderofpolynomial=$(wcalmaxorderofpolynomial) \
---binsizeToRemoveOutliers=$(binsizeToRemoveOutliers) \
---thresholdToRemoveOutliers=$(thresholdToRemoveOutliers) \
---minoutputorder=$(minoutputorder) \
---maxoutputorder=$(maxoutputorder) \
+--orderOfReference=$(stitch_orderOfReference) \
+--DWavelengthRange=$(stitch_DWavelengthRange) \
+--DWavelengthStep=$(stitch_DWavelengthStep) \
+--XCorrelationThreshold=$(stitch_XCorrelationThreshold) \
+--sigmaThreshold=$(stitch_sigmaThreshold) \
 $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			if [[ "`which operaPlotWave`" != "" ]] ; then \
-				$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPlotWave --wave=$(calibrationdir)$@ --tharref=$(configdir)$(thorium_argon_atlas_lines) --output=$(visualsdir)$*.wcal.png" ; \
-			fi ; \
-		fi ; \
-		echo "$(pref) Wavelength refinement for $(QUALIFIERS) complete in $(deltat)" ; \
+		echo "$(pref) Wavelength refinement with operaStitchOrders for $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
 
 #########################################################################################
@@ -1235,6 +1271,25 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) Resolution calculation $(QUALIFIERS) complete in $(deltat)" ; \
+	fi
+
+#########################################################################################
+#
+# QUALIFIERS-based flux calibration based on flat field
+#
+#########################################################################################
+masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip): $(QUALIFIERS).wcar$(gzip) ff_$(QUALIFIERS).e$(gzip)
+	@start=$$SECONDS; \
+	if [ ! -e $(calibrationdir)$@ ] ; then \
+		echo "$(pref) Starting master flat field flux calibration for $(QUALIFIERS)" ;\
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateFlatFieldFluxCalibration \
+--inputMasterFlatSpectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
+--wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) \
+--binsize=$(createfluxcalibrationbinsize) \
+--wavelengthForNormalization=$(createfluxcalibrationWavelengthForNormalization) \
+--outputFluxCalibrationFile=$(calibrationdir)$@ \
+$(optargs)" 2>&1 | tee -a $(errfile); \
+		echo "$(pref) master flat field flux calibration for $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
 
 #########################################################################################

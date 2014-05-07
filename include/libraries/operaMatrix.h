@@ -165,6 +165,16 @@ CMatrix RotationMatrix2D(float angleInDegrees, CMatrix outputmatrix);
  */
 void printMatrix(CMatrix matrix);
 
+CMatrix MatrixIdentity(CMatrix InputsquareMatrix);
+float* MatrixGetDiagonal(CMatrix inputmatrix, float *v);
+CMatrix MatrixEigenValue(CMatrix inputmatrix, CMatrix eigenVectorMatrix, float *eigenValues);
+
+void jacobi_eigenvalue(int n, double a[], int it_max, double v[], double d[], int *it_num, int *rot_num);
+void r8mat_diag_get_vector ( int n, double a[], double v[] );
+void r8mat_identity ( int n, double a[] );
+double r8mat_is_eigen_right ( int n, int k, double a[], double x[], double lambda[] );
+double r8mat_norm_fro ( int m, int n, double a[] );
+     
 #ifdef __cplusplus
 }
 #endif

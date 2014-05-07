@@ -296,61 +296,22 @@ endif
 		echo "$(pref) LE SNR $@ $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
 
-#########################################################################################
-# Libre-Esprit-compatible Un-normalized intensity spectra.
-# with flux calibration, if available
-# with heliocentric wavelength calibration
-#########################################################################################
-
 %iu.s$(gzip): %.spc$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting un-normalized spectrum creation for $* $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		if [[ "$${mode}" == "pol" ]] ; then \
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
-		wavelengthCalibration="$(calibrationdir)$(QUALIFIERS).wcal$(gzip)" ; \
-		if [ -s $(calibrationdir)$*i.tell$(gzip) ] ; then \
-			if (( $(wanttelluriccorrection) == 1 )) ; then \
-				tell="--telluriccorrection=$(calibrationdir)$*i.tell$(gzip)" ; \
-			fi ; \
-		fi ; \
-		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
-				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
-			fi ; \
-		fi ; \
-		if (( $(upenawantfcal) == 0 )) ; then \
-			echo "$(pref) Moon Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(configdir)standardstars/Moon_operaFluxCal.dat ] ; then \
-				fcal="--LEfluxcalibrate=1 --LEfluxCalibration=$(configdir)standardstars/Moon_operaFluxCal.dat --LEfluxcalibrate=$(upenawantfcal)" ; \
-			fi ; \
-		fi ; \
-		if (( $(operawantfcal) == 0 )) ; then \
-			echo "$(pref) opera Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
-			fi ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)$(deconstructor) \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
---wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
---normalize=0 \
---etime=$${etime} \
---orderBin=$(fluxcalibrationorderBin) \
-$${fcal} \
-$${tell} \
-$${rvel} \
-$${pargs} \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
+--fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
+--wavelengthType=$(RVCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*iu.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
@@ -367,51 +328,18 @@ $${pargs} \
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting normalization of $@ $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
-		wavelengthCalibration="$(calibrationdir)$(QUALIFIERS).wcal$(gzip)" ; \
-		if [ -s $(calibrationdir)$*i.tell$(gzip) ] ; then \
-			if (( $(wanttelluriccorrection) == 1 )) ; then \
-				tell="--telluriccorrection=$(calibrationdir)$*i.tell$(gzip)" ; \
-			fi ; \
+		if [[ "$${mode}" == "pol" ]] ; then \
+			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
-		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
-				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
-			fi ; \
-		fi ; \
-		if (( $(upenawantfcal) == 0 )) ; then \
-			echo "$(pref) Moon Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(configdir)standardstars/Moon_operaFluxCal.dat ] ; then \
-				fcal="--LEfluxcalibrate=1 --LEfluxCalibration=$(configdir)standardstars/Moon_operaFluxCal.dat --LEfluxcalibrate=$(upenawantfcal)" ; \
-			fi ; \
-		fi ; \
-		if (( $(operawantfcal) == 0 )) ; then \
-			echo "$(pref) opera Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxcalibrate=1 --fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
-			fi ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)$(deconstructor) \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
---wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---normalize=1 \
---normalizationBinsize=$(extractor_normalizationBinsize) \
---usePolynomial=$(extractor_usePolynomial) \
---orderOfPolynomial=$(extractor_orderOfPolynomial) \
---etime=$${etime} \
---orderBin=$(fluxcalibrationorderBin) \
-$${fcal} \
-$${tell} \
-$${rvel} \
-$${pargs} \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
+--fluxType=$(NormalizedFluxToContinuum) \
+--wavelengthType=$(RVCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*in.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
@@ -428,44 +356,18 @@ $${pargs} \
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting un-normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		wavelengthCalibration="$(calibrationdir)$(QUALIFIERS).wcal$(gzip)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		if [[ "$${mode}" == "pol" ]] ; then \
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
-		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
-				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
-			fi ; \
-		fi ; \
-		if (( $(upenawantfcal) == 0 )) ; then \
-			echo "$(pref) Moon Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(configdir)standardstars/Moon_operaFluxCal.dat ] ; then \
-				fcal="--LEfluxcalibrate=1 --LEfluxCalibration=$(configdir)standardstars/Moon_operaFluxCal.dat --LEfluxcalibrate=$(upenawantfcal)" ; \
-			fi ; \
-		fi ; \
-		if (( $(operawantfcal) == 0 )) ; then \
-			echo "$(pref) opera Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
-			fi ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)$(deconstructor) \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
---wavelengthCalibration=$${wavelengthCalibration} \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---etime=$${etime} \
---orderBin=$(fluxcalibrationorderBin) \
-$${rvel} \
-$${fcal} \
-$${pargs} \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
+--fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
+--wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*iuw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
@@ -482,45 +384,18 @@ $${pargs} \
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
-		wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
-				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
-			fi ; \
+		if [[ "$${mode}" == "pol" ]] ; then \
+			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
-		if (( $(upenawantfcal) == 0 )) ; then \
-			echo "$(pref) Moon Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(configdir)standardstars/Moon_operaFluxCal.dat ] ; then \
-				fcal="--LEfluxcalibrate=1 --LEfluxCalibration=$(configdir)standardstars/Moon_operaFluxCal.dat --LEfluxcalibrate=$(upenawantfcal)" ; \
-			fi ; \
-		fi ; \
-		if (( $(operawantfcal) == 0 )) ; then \
-			echo "$(pref) opera Flux calibration available for $@ but not used." ; \
-		else \
-			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
-			fi ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)$(deconstructor) \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
---wavelengthCalibration=$${wavelengthCalibration} \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---normalize=1 \
---normalizationBinsize=$(extractor_normalizationBinsize) \
---usePolynomial=$(extractor_usePolynomial) \
---orderOfPolynomial=$(extractor_orderOfPolynomial) \
---etime=$${etime} \
---orderBin=$(fluxcalibrationorderBin) \
-$${rvel} \
-$${fcal} \
-$${pargs} \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
+--fluxType=$(NormalizedFluxToContinuum) \
+--wavelengthType=$(RVCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*in.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
@@ -533,39 +408,18 @@ $${pargs} \
 # no heliocentric wavelength calibration
 #########################################################################################
 
-%pu.s$(gzip): %.p$(gzip)
+%pu.s$(gzip): %.pol$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Un-normalized polarimetry for $@ $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		if (( $(operawantfcal) == 0 )) ; then \
-			echo "$(pref) opera Flux calibration for $@ not used." ; \
-		else \
-			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) --fluxcalibrate=$(operawantfcal)" ; \
-			fi ; \
-		fi ; \
-		if (( $(upenawantfcal) == 0 )) ; then \
-			echo "$(pref) upena Flux calibration for $@ not used." ; \
-		else \
-			if [ -e $(configdir)standardstars/Moon_operaFluxCal.dat ] ; then \
-				fcal="--LEfluxCalibration=$(configdir)standardstars/Moon_operaFluxCal.dat --LEfluxcalibrate=$(upenawantfcal)" ; \
-			fi ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPolarimetryCorrection \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---polar=$(spectradir)$*.p$(gzip) \
---wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---spectrumtype=$(LibreEspritpolarimetry) \
---etime=$${etime} \
-$${fcal} \
-$${rvel} \
-$${pargs} \
---orderBin=$(fluxcalibrationorderBin) \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
+--fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
+--wavelengthType=$(RVCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pu.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
@@ -578,55 +432,24 @@ $${pargs} \
 # with heliocentric wavelength calibration
 #########################################################################################
  
-%puw.s$(gzip): %.p$(gzip)
+%puw.s$(gzip): %.pol$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Un-normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-		if [ -s $(calibrationdir)$*p.tell$(gzip) ] ; then \
-			if (( $(wanttelluriccorrection) == 1 )) ; then \
-				wavelengthCalibration="$(calibrationdir)$*p.tell$(gzip)" ; \
-			fi ; \
-		fi ; \
-		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
-				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
-			fi ; \
-		fi ; \
-		if (( $(operawantfcal) == 0 )) ; then \
-			echo "$(pref) opera Flux calibration for $@ not used." ; \
-		else \
-			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) --fluxcalibrate=$(operawantfcal)" ; \
-			fi ; \
-		fi ; \
-		if (( $(upenawantfcal) == 0 )) ; then \
-			echo "$(pref) upena Flux calibration for $@ not used." ; \
-		else \
-			if [ -e $(configdir)standardstars/Moon_operaFluxCal.dat ] ; then \
-				fcal="--LEfluxCalibration=$(configdir)standardstars/Moon_operaFluxCal.dat --LEfluxcalibrate=$(upenawantfcal)" ; \
-			fi ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPolarimetryCorrection \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---polar=$(spectradir)$*.p$(gzip) \
---wavelengthCalibration=$${wavelengthCalibration} \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---spectrumtype=$(LibreEspritpolarimetry) \
---etime=$${etime} \
-$${fcal} \
-$${rvel} \
-$${pargs} \
---orderBin=$(fluxcalibrationorderBin) \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
+--fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
+--wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*puw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
 		echo "$(pref) Un-normalized telluric wavelength $@ created in $(deltat)" ; \
 	fi
+ 
 	
 #########################################################################################
 # Libre-Esprit-compatible Normalized polarimetry.
@@ -634,68 +457,42 @@ $${pargs} \
 # no heliocentric wavelength calibration
 #########################################################################################
 
-%pn.s$(gzip): %.p$(gzip)
+%pn.s$(gzip): %.pol$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Normalized polarimetry for $@ $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPolarimetryCorrection \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---polar=$(spectradir)$*.p$(gzip) \
---wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---spectrumtype=$(LibreEspritpolarimetry) \
---etime=$${etime} \
-$${fcal} \
-$${pargs} \
---orderBin=$(fluxcalibrationorderBin) \
---normalize=1 \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
+--fluxType=$(NormalizedFluxToContinuum) \
+--wavelengthType=$(RVCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pn.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
 		echo "$(pref) Normalized polarimetry $@ created in $(deltat)" ; \
 	fi
-	
+
 #########################################################################################
 # Libre-Esprit-compatible Normalized telluric wavelength corrected polarimetry.
 # with flux calibration, if available
 # with heliocentric wavelength calibration
 #########################################################################################
 
-%pnw.s$(gzip): %.p$(gzip)
+%pnw.s$(gzip): %.pol$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		wavelengthCalibration="$(calibrationdir)$(QUALIFIERS).wcal$(gzip)" ; \
-		if [ -s $(calibrationdir)$*p.tell$(gzip) ] ; then \
-			if (( $(wanttelluriccorrection) == 1 )) ; then \
-				wavelengthCalibration="$(calibrationdir)$*p.tell$(gzip)" ; \
-			fi ; \
-		fi ; \
-		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
-				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
-			fi ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPolarimetryCorrection \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---polar=$(spectradir)$*.p$(gzip) \
---wavelengthCalibration=$${wavelengthCalibration} \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---spectrumtype=$(LibreEspritpolarimetry) \
---etime=$${etime} \
-$${fcal} \
-$${rvel} \
-$${pargs} \
---orderBin=$(fluxcalibrationorderBin) \
---normalize=1 \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
---outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
+--fluxType=$(NormalizedFluxToContinuum) \
+--wavelengthType=$(RVCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pnw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \

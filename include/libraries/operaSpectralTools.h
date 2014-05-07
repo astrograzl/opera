@@ -40,6 +40,12 @@ Date: Aug/2011
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
+#include "libraries/operaSpectralElements.h"    // for operaSpectralElements
+#include "libraries/ladfit.h"						// for ladfit
+
+#define MAXNUMBEROFWLRANGES 1000
+#define MINNUMBEROFPOINTSINSIDEBIN 5
+
 
 /*! 
  * \brief general library routines.
@@ -128,5 +134,16 @@ double calculateBlackBodyVFlux(double Temperature);
  */
 double IntegrateSpectralElementOfBlackBody(double wl0, double wlf, double T);
 
+double getFactorToMatchFluxesBetweenElements(operaSpectralElements *refElements,operaSpectralElements *elementsToMatch, double delta_wl);
+
+void calculateUniformSample(unsigned np,float *wl,float *flux, unsigned npout, float *uniform_wl, float *uniform_flux);
+
+float getFluxAtWavelength(unsigned np,float *wl,float *flux,float wavelengthForNormalization);
+
+unsigned readContinuumWavelengthMask(string wavelength_mask, double *wl0, double *wlf);
+
+unsigned getSpectrumWithinWLRange(operaSpectralElements *inputSpectrum, double wl0, double wlf, double *outputFlux, double *outputWavelength);
+
+bool getOverlappingWLRange(operaSpectralElements *refElements, operaSpectralElements *elementsToMatch, double &wl0, double &wlf);
 
 #endif

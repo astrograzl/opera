@@ -732,7 +732,7 @@ void operaWavelength::refineWavelengthSolutionByXCorrelation(unsigned nPointsPer
 void operaWavelength::refineWavelengthSolutionByFindingMaxMatching(unsigned NpointsPerPar, double ParRangeSizeInPerCent, double acceptableMismatch) {
     double maxpercentage = 0;
     double *par = (double *)(getWavelengthPolynomial()->getVector());
-    double parcentre = par[0];
+    // DT May 8 2014 -- not used -- double parcentre = par[0];
     double dpar = fabs(par[0] * ParRangeSizeInPerCent/100.0)/double(NpointsPerPar);
     double par0 = par[0] -  fabs(par[0] * ParRangeSizeInPerCent/100.0)/2.0;
     double maxpar0 = par[0];

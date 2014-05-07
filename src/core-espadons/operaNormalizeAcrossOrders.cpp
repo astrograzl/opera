@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
                     if (verbose)
                         cout << "operaNormalizeAcrossOrders: Normalization for order number: "<< order << endl;
                     
-                    spectralOrder->applyNormalizationFromExistingContinuum(fspecdata,fcontinuumdata,TRUE, numberOfprintouts);
+                    spectralOrder->applyNormalizationFromExistingContinuum(fspecdata, fcontinuumdata, TRUE, TRUE, numberOfprintouts);
                 }
                 if (!spectralOrder->gethasWavelength()) {
                     if (verbose)

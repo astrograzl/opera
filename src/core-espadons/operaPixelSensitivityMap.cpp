@@ -76,81 +76,49 @@ using namespace std;
  * \ingroup core
  */
 
-
 int main(int argc, char *argv[])
 {
 	int opt;
-	string geometryfilename; 
-	string instrumentprofilefilename; 
-	string outputfilename; 
-	string masterbiasfilename; 
-	string masterflatfilename; 
+	string outputfilename;
+	string masterbias; 
+	string masterflat; 
 	string badpixelmask;	
-	float aperture = 30;
-	unsigned binsize = 20;		
-	
-	float spectralElementHeight = 1.0;
-	unsigned extraAperturePixels = 2; // those are extra-pixels to extend the aperture for the fitting but not for the normalization
-	
-	unsigned IPxsize = (unsigned)aperture + 2*extraAperturePixels + 1;
-	unsigned IPxsampling = 5; // 5 was found to be the best sampling for ESPaDOnS images.
-	unsigned IPysize = 1;
-	unsigned IPysampling = 1;		
-	eCompression compression = cNone;
-	
+    eCompression compression = cNone;
+
 	int debug=0, verbose=0, trace=0, plot=0;
 	
 	struct option longopts[] = {
-		{"geometry",1, NULL, 'g'},
-		{"instrumentprofle",1, NULL, 'i'},
-		{"outputNormFlat",1, NULL, 'o'},
-		{"masterbias",1, NULL, 'b'},
-		{"masterflat",1, NULL, 'f'},
-		{"badpixelmask",1, NULL, 'm'},
-		{"aperture",1, NULL, 'A'},	
-		{"binsize",1, NULL, 'B'},		
-		{"compressiontype", 1, NULL, 'C'},			
-
-		{"plot",		optional_argument, NULL, 'p'},       
+		{"outputfilename",              1, NULL, 'o'},
+		{"masterbias",                  1, NULL, 'b'},
+		{"masterflat",                  1, NULL, 'f'},
+		{"badpixelmask",                1, NULL, 'm'},
+        {"compressiontype",             1, NULL, 'C'},
+		{"plot",		optional_argument, NULL, 'p'},
 		{"verbose",		optional_argument, NULL, 'v'},
 		{"debug",		optional_argument, NULL, 'd'},
 		{"trace",		optional_argument, NULL, 't'},
-		{"help",		no_argument, NULL, 'h'},
+		{"help",              no_argument, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "g:o:b:f:m:i:A:B:C:v::d::t::p::h", 
-							 longopts, NULL))  != -1)
-	{
+	while((opt = getopt_long(argc, argv, "o:b:f:m:C:v::d::t::p::h", longopts, NULL))  != -1)
+    {
 		switch(opt) 
 		{
-			case 'g':
-				geometryfilename = optarg;
-				break;    
 			case 'o':
 				outputfilename = optarg;
 				break;   
 			case 'b':		// output
-				masterbiasfilename = optarg;
+				masterbias = optarg;
 				break;
 			case 'f':		// masterflat
-				masterflatfilename = optarg;
+				masterflat = optarg;
 				break;
 			case 'm':		// badpixelmask
 				badpixelmask = optarg;
 				break;
-			case 'i':		// instrumentprofilefilename
-				instrumentprofilefilename = optarg;
-				break;
-			case 'A':		// aperture in pixels
-				aperture = atof(optarg);
-				break; 			
-			case 'B':		// aperture in pixels
-				binsize = atoi(optarg);
-				break; 					
-			case 'C':
-				compression = (eCompression)atoi(optarg);	
-				break;    
-
+            case 'C':
+                compression = (eCompression)atoi(optarg);
+                break;
 			case 'v':
 				verbose = 1;
 				break;
@@ -177,95 +145,77 @@ int main(int argc, char *argv[])
 	/*Start the module here*/
 	
 	try {
-		// we need geometry...
-		if (geometryfilename.empty()) {
-			throw operaException("operaPixelSensitivityMap: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-		}
-		if (instrumentprofilefilename.empty()) {
-			throw operaException("operaPixelSensitivityMap: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-		}
-		// we need a masterbias...
-		if (masterbiasfilename.empty()) {
-			throw operaException("operaPixelSensitivityMap: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-		}
 		// we need a masterflat...
-		if (masterflatfilename.empty()) {
+		if (masterflat.empty()) {
 			throw operaException("operaPixelSensitivityMap: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}			
+        // we need an output...
+		if (outputfilename.empty()) {
+			throw operaException("operaPixelSensitivityMap: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		}
 		
 		if (verbose) {
-			cout << "operaPixelSensitivityMap: geometryfilename = " << geometryfilename << endl; 
-			cout << "operaPixelSensitivityMap: instrumentprofilefilename = " << instrumentprofilefilename << endl; 
-			cout << "operaPixelSensitivityMap: outputfilename = " << outputfilename << endl;
-			cout << "operaPixelSensitivityMap: masterflat = " << masterflatfilename << endl; 	
-			cout << "operaPixelSensitivityMap: masterbias = " << masterbiasfilename << endl; 		
-			cout << "operaPixelSensitivityMap: badpixelmask = " << badpixelmask << endl; 				
-			cout << "operaPixelSensitivityMap: aperture = " << aperture << endl; 		
-			cout << "operaPixelSensitivityMap: binsize = " << binsize << endl; 					
+			cout << "operaPixelSensitivityMap: outputfilename = " << outputfilename << endl; 
+			cout << "operaPixelSensitivityMap: masterflat = " << masterflat << endl; 	
+			cout << "operaPixelSensitivityMap: masterbias = " << masterbias << endl; 		
+			cout << "operaPixelSensitivityMap: badpixelmask = " << badpixelmask << endl;
+            cout << "operaPixelSensitivityMap: compression = " << compression << endl;
 		}
+        
+		operaFITSImage *flat = new operaFITSImage(masterflat, tfloat, READONLY);
 		
-		operaFITSImage *bias = new operaFITSImage(masterbiasfilename, tfloat, READONLY);					
-		operaFITSImage *flat = new operaFITSImage(masterflatfilename, tfloat, READONLY);
-		
+        operaFITSImage *bias = NULL;
+        operaFITSImage *badpix = NULL;
+        
+		if (!masterbias.empty()){
+			bias = new operaFITSImage(masterbias, tfloat, READONLY);
+		} else {
+            bias = new operaFITSImage(flat->getnaxis1(),flat->getnaxis2(),tfloat);
+            *bias = 0.0;
+        }
+        
+		if (!badpixelmask.empty()){
+			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
+		} else {
+            badpix = new operaFITSImage(flat->getnaxis1(),flat->getnaxis2(),tfloat);
+            *badpix = 1.0;
+        }
+
 		*flat -= *bias;			// remove bias from masterflat
 		
-		//float *flatData = flat->operaFITSImageClonePixels();
-		
-		//operaFITSImage *badpix = NULL;
-		//if (!badpixelmask.empty()){ 
-		//		badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);					
-		//}		
-		IPxsize = (unsigned)aperture + 2*extraAperturePixels + 1;
-		IPxsampling = 5; // 5 was found to be the best sampling for ESPaDOnS images.
-		IPysize = 1;
-		IPysampling = 1;	
-		
-		operaFITSImage *outputImage  = new operaFITSImage(outputfilename, flat->getnaxis1(), flat->getnaxis2(), tfloat, compression);
-		outputImage->operaFITSImageCopyHeader(flat);		
-		
-		*outputImage = 1.0;
-		
-		operaSpectralOrderVector spectralOrders(geometryfilename);
-		spectralOrders.ReadSpectralOrders(instrumentprofilefilename);
-		
-		unsigned minorder = spectralOrders.getMinorder();
-		unsigned maxorder = spectralOrders.getMaxorder();
-		
-		for (unsigned order=minorder; order<=maxorder; order++) {
-			//for (unsigned order=20; order<25; order++) {		
-			
-			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-			if (spectralOrder->gethasGeometry() && spectralOrder->gethasInstrumentProfile()) {
-				if(verbose) {
-					cout << "operaPixelSensitivityMap: Processing order: " << order << "/" << maxorder << endl;
-				}	
-				operaGeometry *geometry = spectralOrder->getGeometry();
-				//operaInstrumentProfile *instrumentProfile = spectralOrder->getInstrumentProfile();
-				
-				geometry->setapertureWidth(aperture);	
-				geometry->CalculateAndSetOrderLength();			
-				
-				spectralOrder->setSpectralElementsByHeight(spectralElementHeight);
-				unsigned maxnDataPoints = spectralOrder->getSpectralElements()->getnSpectralElements();
-				spectralOrder->setInstrumentProfileVector(IPxsize,IPxsampling,IPysize,IPysampling, maxnDataPoints);
-				
-				spectralOrder->NormalizeFlat(*flat,*outputImage,flat->getnaxis1(),flat->getnaxis2(), binsize);						
-				
-			} else {
-				if (verbose) {
-					cout << "operaPixelSensitivityMap: Skipping order: " << order << "/" << maxorder << endl;
-
-				}
+        long npixels = flat->getnpixels();
+        
+        float *flatData = (float *)flat->getpixels();
+        float *badpixData = (float *)badpix->getpixels();
+        
+        float maxvalue = -BIG;
+        
+        for(unsigned pixIndex=0;pixIndex<npixels;pixIndex++) {
+            if(maxvalue < flatData[pixIndex] && badpixData[pixIndex]) {
+                maxvalue = flatData[pixIndex];
+            }
+        }
+        
+        operaFITSImage outputImage(outputfilename, flat->getnaxis1(), flat->getnaxis2(), tfloat, compression);
+		outputImage.operaFITSImageCopyHeader(flat);
+        
+		for (unsigned y=0; y<flat->getnaxis2(); y++) {
+			for (unsigned x=0; x<flat->getnaxis1(); x++) {
+				outputImage[y][x] = ( (*flat)[y][x] + (*bias)[y][x] ) / maxvalue;
 			}
-
 		}
-		outputImage->operaFITSImageSave();		
-		outputImage->operaFITSImageClose();
-		delete outputImage;
-		flat->operaFITSImageClose();
-		delete flat;
-		bias->operaFITSImageClose();
-		delete bias;
+        
+        outputImage.operaFITSImageSave();
+		outputImage.operaFITSImageClose();
+
+        flat->operaFITSImageClose();
+		        
+        if(bias)
+            delete bias;
+        if(badpix)
+            delete badpix;
+        if(flat)
+            delete flat;
 	}
 	catch (operaException e) {
 		cerr << "operaPixelSensitivityMap: " << e.getFormattedMessage() << endl;

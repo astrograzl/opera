@@ -132,13 +132,16 @@ int main(int argc, char *argv[])
 		{0,0,0,0}};
 	
 	try {
-		while((opt = getopt_long(argc, argv, "i:o:k:m:b:C:T:M:S:E:B:V:a:s:v::d::t::p::h", 
+		while((opt = getopt_long(argc, argv, "i:l:o:k:m:b:C:T:M:S:E:B:V:a:s:v::d::t::p::h", 
 								 longopts, NULL))  != -1)
 		{
 			switch(opt) 
 			{
 				case 'i':		// images
 					images[imageIndex++] = optarg;
+					break;
+				case 'l':		// list of images
+					listofimages = optarg;
 					break;
 				case 'o':		// output
 					output = optarg;

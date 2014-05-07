@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
     string telluric_lines;
     string telluric_spectrum;
     /*
-     * Parameters for heliocentric wavelength correction
+     * Parameters for telluric wavelength correction
      */
 
 	int ordernumber = NOTPROVIDED;

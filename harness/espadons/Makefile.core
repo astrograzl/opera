@@ -85,8 +85,8 @@ reducelog:
 				echo "$(pref) Start of reduction for $(NIGHT) using $(maxthreads) threads" ; \
 				if (( $(operawantfcal) == 1 )) ; then \
 					echo Skipping $(MAKE) -f $(makedir)Makefile TARGET=i.fcal$(gzip) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory parintensity ; \
-					$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory masterflatfieldfluxcalibrations ; \
-					$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory masterfluxcalibrations ; \
+					echo Skipping $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory masterflatfieldfluxcalibrations ; \
+					$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory masterfluxcalibration ; \
 				fi ; \
 				$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory parpolarimetry ; \
 				$(MAKE) -f $(makedir)Makefile TARGET=m.$(FITS) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory parintensity ; \
@@ -106,7 +106,7 @@ reducelog:
 #
 # There are 4 passes:
 #   - create the fluxcalibrations based on the %.e
-#   - create the masterfluxcalibrations
+#   - create the masterfluxcalibration
 #   - create the m.fits, i.fits p.fits based on the %.sn, %.s
 #   - clean up
 #
@@ -124,7 +124,7 @@ intensity spectroscopy: directoriescreated
 		echo "$(pref) Starting intensity spectra for $(NIGHT) using $(maxthreads) threads." ; \
 		if (( $(operawantfcal) == 1 )) ; then \
 			echo Skipping $(MAKE) -f $(makedir)Makefile TARGET=i.fcal$(gzip) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory parintensity ; \
-			$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory masterfluxcalibrations ; \
+			$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory masterfluxcalibration ; \
 		fi ; \
 		$(MAKE) -f $(makedir)Makefile TARGET=m.$(FITS) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory parintensity ; \
 		$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory cleantmp ; \
@@ -264,7 +264,6 @@ endif
 --gain=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
 --geom=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
 --ordp=$(calibrationdir)$(QUALIFIERS).ordp$(gzip) \
---disp=$(calibrationdir)$(QUALIFIERS).disp$(gzip) \
 --rvel=$${rvel} \
 --prvel=$${prvel} \
 --tell=$${tell} \
@@ -387,18 +386,23 @@ $${pargs} \
 # flat field intensity spectrum.
 #########################################################################################
 
-ff_$(QUALIFIERS).e$(gzip):
+ff_$(QUALIFIERS).e$(gzip): 
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting flat field spectral intensity generation for $@ using $(maxthreads) threads" ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			pargs="--plotfilename=$(visualsdir)ff_$(QUALIFIERS)e.eps --datafilename=$(byproductsdir)ff_$(QUALIFIERS)e.pdat --scriptfilename=$(byproductsdir)ff_$(QUALIFIERS)e.gnu" ; \
 		fi ; \
+		args="--spectrumtype=$(DefaultSpectrumType) --spectrumtypename=$(DefaultSpectrumTypeName)" ; \
+		if [[ "$(TYPE)" == "setup" ]] ; then \
+			args="--noCrossCorrelation=1 --spectrumtype=$(RawBeamSpectrum) --spectrumtypename=RawBeamSpectrum" ; \
+		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaExtraction \
 --inputImage=$(calibrationdir)/masterflat_$(QUALIFIERS).$(FITS)$(extension) \
 --badpixelmask=$(badpixelmask) \
 --masterbias=$(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) \
 --masterflat=$(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) \
+$${args} \
 $${nargs} \
 --inputInstrumentProfileFile=$(calibrationdir)$(QUALIFIERS).prof$(gzip) \
 --inputGeometryFile=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
@@ -411,8 +415,6 @@ $${nargs} \
 --onTargetProfile=1 \
 --usePolynomialFit=$(extraction_usePolynomialFit) \
 --starplusskymode=0 \
---spectrumtype=$(RawBeamSpectrum) \
---spectrumtypename=RawBeamSpectrum \
 --ordernumber=$(ordernumber) \
 --maxthreads=$(maxthreads) \
 $${pargs} \
@@ -461,17 +463,18 @@ $${pargs} \
 --inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
 --spectrumtype=$(DefaultCalibratedSpectrumType) \
 --wavelengthCalibration=$${wavelengthCalibration} \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--inputWavelengthMaskForUncalContinuum=$(configdir)$(extractor_WavelengthMaskForUncalContinuum) \
 --object=\"$${object}\" \
 $${tell} \
 $${rvel} \
 $${fcal} \
---normalize=2 \
+--numberOfPointsInUniformSample=$(extractor_numberOfPointsInUniformSample) \
 --normalizationBinsize=$(extractor_normalizationBinsize) \
+--AbsoluteCalibration=$(extractor_AbsoluteCalibration) \
 --usePolynomial=$(extractor_usePolynomial) \
 --orderOfPolynomial=$(extractor_orderOfPolynomial) \
 --etime=$${etime} \
---orderBin=$(fluxcalibrationorderBin) \
 $${pargs} \
 --outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
@@ -520,21 +523,17 @@ $${pargs} \
 			fi ; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPolarimetryCorrection \
---inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
 --polar=$(spectradir)$*.p$(gzip) \
---wavelengthCalibration=$${wavelengthCalibration} \
---flatfieldspectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
 --spectrumtype=$(ExtendedPolarimetry) \
+--wavelengthCalibration=$${wavelengthCalibration} \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--fluxCalibration=$${fluxCalibration} \
 --etime=$${etime} \
 $${tell} \
-$${fcal} \
 $${rvel} \
---normalize=2 \
 --normalizationBinsize=$(extractor_normalizationBinsize) \
---usePolynomial=$(extractor_usePolynomial) \
---orderOfPolynomial=$(extractor_orderOfPolynomial) \
---etime=$${etime} \
---orderBin=$(fluxcalibrationorderBin) \
+--inputWavelengthMaskForUncalContinuum=$(configdir)$(extractor_WavelengthMaskForUncalContinuum) \
+--AbsoluteCalibration=$(extractor_AbsoluteCalibration) \
 --object=\"$${object}\" \
 $${pargs} \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
@@ -636,7 +635,7 @@ $${pargs} \
 --observatory_coords=\"$(observatory_coords)\" \
 --object_coords=\"$${absra_center} $${absdec_center}\" \
 --observatory_elevation=$(observatory_elevation) \
---JDTime=$${MJDATE} \
+--MJDTime=$${MJDATE} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi
@@ -677,18 +676,17 @@ $${pargs} \
 $${uargs} \
 --inputApertureFile=$(calibrationdir)$(QUALIFIERS).aper$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---normalizeCalibratedSpectrum=$(createfluxcalibrationNormalizeCalibratedSpectrum) \
 --exposureTime=$${etime} \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--inputWavelengthMaskForRefContinuum=$(configdir)$(createfluxcalibration_WavelengthMaskForRefContinuum) \
+--inputWavelengthMaskForUncalContinuum=$(configdir)$(createfluxcalibration_WavelengthMaskForUncalContinuum) \
+--numberOfPointsInUniformSample=$(createfluxcalibrationnumberOfPointsInUniformSample) \
+--numberOfPointsInUniformRefSample=$(createfluxcalibrationnumberOfPointsInUniformRefSample) \
 --pixelsize=\"$(createfluxcalibrationPixelsize)\" \
 --binsize=$(createfluxcalibrationbinsize) \
 --minorder=$(createfluxcalibrationminorder) \
 --maxorder=$(createfluxcalibrationmaxorder) \
 --wavelengthForNormalization=$(createfluxcalibrationWavelengthForNormalization) \
---useContinuumAcrossOrders=$(createfluxcalibrationUseContinuumAcrossOrders) \
---normalizeCalibratedSpectrum=$(createfluxcalibrationNormalizeCalibratedSpectrum) \
---orderBin=$(createfluxcalibrationorderBin) \
---lowOrderToClip=$(createfluxcalibrationlowOrderToClip) \
---highOrderToClip=$(createfluxcalibrationhighOrderToClip) \
 --outputFluxCalibrationFile=$(calibrationdir)$@ \
 $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile); \
@@ -807,6 +805,7 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 --input3=$(spectradir)$(P3).e$(gzip) \
 --input4=$(spectradir)$(P4).e$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
 --numberofexposures=$(POL) \
 --stokesparameter=`$(bindir)operagetstokes --numeric $(DATADIR)/$(P1)o.$(FITS)$(inextension)` \
 --method=$(polarmethod) \
@@ -847,9 +846,9 @@ $${pargs} \
 #########################################################################################
 # Barycentric Radial Velocity Correction
 # The .rvel file has the same format as the .wcal
-# JDTIME is mean time
+# MJDTIME is mean time
 #########################################################################################
-%p.rvel$(gzip):
+%p.rvel$(gzip): %p.tell$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Barycentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
@@ -869,7 +868,7 @@ $${pargs} \
 --observatory_coords=\"$(observatory_coords)\" \
 --object_coords=\"$${absra_center} $${absdec_center}\" \
 --observatory_elevation=$(observatory_elevation) \
---JDTime=$${MEANJDATE} \
+--MJDTime=$${MEANJDATE} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi

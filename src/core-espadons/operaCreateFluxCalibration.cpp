@@ -50,11 +50,13 @@
 #include "libraries/Polynomial.h"
 #include "libraries/operaFFT.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
+#include "libraries/operaSpectralTools.h"			// void calculateUniformSample, getFluxAtWavelength
 
 #include "core-espadons/operaCreateFluxCalibration.h"
 
 #define NOTPROVIDED -999
 #define MAXFLUXREFERENCELENGTH 20000
+#define MAXNUMBEROFREFWLRANGES 1000
 
 /*! \file operaCreateFluxCalibration.cpp */
 
@@ -77,7 +79,12 @@ unsigned readReferenceSpectrum(string reference_spectrum, double *referenceWavel
 void normalizeIntensityByMaximum(unsigned np, double *intensity, double *variance);
 void normalizeIntensityByReferenceWavelength(unsigned np, double *intensity, double *wavelength, double *outputNormIntensity, double refWavelength);
 double getReferenceFlux(unsigned np, double *intensity, double *wavelength, double refWavelength);
-    
+
+double operaArrayMaxValue_d(unsigned np, const double *xarray, const double *yarray, double *maxx);
+unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, float *refContinuumwl,float *refContinuumflux,float *refContinuumNormflux);
+unsigned getReferenceSpectrumRange(unsigned nRefContinuum,double *refContinuumwl,double *refContinuumflux,double *refContinuumNormflux,double wl0,double wlf, double **wl, double **flux, double **normflux);
+
+
 /*! 
  * operaCreateFluxCalibration
  * \author Eder Martioli
@@ -98,17 +105,22 @@ int main(int argc, char *argv[])
 	int opt;
 	
 	string inputUncalibratedSpectrum;
-	string inputCalibratedSpectrum;    
+	string inputCalibratedSpectrum;
+    string inputFlatFluxCalibration;
+    
 	string outputFluxCalibrationFile;
+    string inputWavelengthMaskForRefContinuum;
+    string inputWavelengthMaskForUncalContinuum;
+    
 	string inputaper;
 	string inputWaveFile;
 	
     double wavelengthForNormalization = 548;
     
-    bool normalizeCalibratedSpectrum = false;
+    unsigned numberOfPointsInUniformSample = 200;
+    unsigned numberOfPointsInUniformRefSample = 70;
     
     double exposureTime = 1;   // in seconds
-    int orderBin = 2;
 
 	struct pixelsize {
 		unsigned x, y;
@@ -121,12 +133,9 @@ int main(int argc, char *argv[])
     int maxorder = 62;    
     bool maxorderprovided = false;            
     
-    int lowOrderToClip = 25;    // for last step in FitFluxCalibrationAcrossOrders
-    int highOrderToClip = 60;   // for last steo in FitFluxCalibrationAcrossOrders
-    
     unsigned binsize = 100;
     
-    bool useContinuumAcrossOrders = false;
+    double delta_wl = 1.0; // wavelength (in nm) range for stiching non-overlapping orders
     
     bool interactive = false;
     
@@ -140,20 +149,20 @@ int main(int argc, char *argv[])
 	struct option longopts[] = {
 		{"inputUncalibratedSpectrum",       1, NULL, 'i'},
 		{"inputCalibratedSpectrum",         1, NULL, 'c'},
-		{"inputWaveFile",                   1, NULL, 'w'},
+		{"inputFlatFluxCalibration",        1, NULL, 'f'},
+        {"inputWavelengthMaskForRefContinuum",             1, NULL, 'm'},
+        {"inputWavelengthMaskForUncalContinuum",           1, NULL, 'u'},
+        {"inputWaveFile",                   1, NULL, 'w'},
 		{"outputFluxCalibrationFile",       1, NULL, 'o'},
 		{"inputApertureFile",               1, NULL, 'a'},   
-		{"normalizeCalibratedSpectrum",     1, NULL, 'N'},
 		{"wavelengthForNormalization",		1, NULL, 'L'},
-		{"useContinuumAcrossOrders",		1, NULL, 'A'},
 		{"exposureTime",                    1, NULL, 'E'},
-		{"orderBin",                        1, NULL, 'B'},
-		{"pixelsize",                       1, NULL, 'D'},            
+		{"pixelsize",                       1, NULL, 'D'},
 		{"ordernumber",                     1, NULL, 'O'},	
 		{"minorder",                        1, NULL, 'M'},
 		{"maxorder",                        1, NULL, 'X'},
-		{"lowOrderToClip",                  1, NULL, 'l'},
-		{"highOrderToClip",                 1, NULL, 'g'},
+		{"numberOfPointsInUniformSample",   1, NULL, 'l'},
+		{"numberOfPointsInUniformRefSample",1, NULL, 'g'},
 		{"binsize",                         1, NULL, 'b'},
 		{"plotfilename",                    1, NULL, 'P'},
 		{"spectrumDataFilename",            1, NULL, 'F'},
@@ -167,7 +176,7 @@ int main(int argc, char *argv[])
 		{"help",				no_argument, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "i:c:w:o:a:N:L:A:E:B:D:O:M:X:l:g:b:P:F:C:S:I:p::v::d::t::h",  longopts, NULL))  != -1)
+	while((opt = getopt_long(argc, argv, "i:c:f:m:u:w:o:a:L:E:D:O:M:X:l:g:b:P:F:C:S:I:p::v::d::t::h",  longopts, NULL))  != -1)
 	{
 		switch(opt) 
 		{
@@ -177,30 +186,30 @@ int main(int argc, char *argv[])
 			case 'c':
 				inputCalibratedSpectrum = optarg;	
 				break;
+			case 'f':
+				inputFlatFluxCalibration = optarg;
+				break;
+			case 'm':
+				inputWavelengthMaskForRefContinuum = optarg;
+				break;
+			case 'u':
+				inputWavelengthMaskForUncalContinuum = optarg;
+				break;
 			case 'w':
 				inputWaveFile = optarg;
-				break;                
+				break;
 			case 'o':		// output
 				outputFluxCalibrationFile = optarg;
 				break;
 			case 'a':
 				inputaper = optarg;
-				break;                
-			case 'N':
-				normalizeCalibratedSpectrum = (atoi(optarg)?true:false);
 				break;
 			case 'L':
 				wavelengthForNormalization = atof(optarg);
 				break;
-			case 'A':
-				useContinuumAcrossOrders = (atoi(optarg)?true:false);
-				break;
 			case 'E':
 				exposureTime = atof(optarg);
 				break;
-			case 'B':
-				orderBin = atoi(optarg);
-				break;                
 			case 'D':		// pixel size in microns
 				if (strlen(optarg))
 					sscanf(optarg, "%u %u", &pixelsize.x, &pixelsize.y);
@@ -217,10 +226,10 @@ int main(int argc, char *argv[])
                 maxorderprovided = true;
 				break;
 			case 'l':
-				lowOrderToClip = atoi(optarg);
+				numberOfPointsInUniformSample = atoi(optarg);
 				break;
 			case 'g':
-				highOrderToClip = atoi(optarg);
+				numberOfPointsInUniformRefSample = atoi(optarg);
 				break;                
 			case 'b':		// binsize
 				binsize = atoi(optarg);
@@ -272,7 +281,12 @@ int main(int argc, char *argv[])
 		// we need an input template spectrum...
 		if (inputCalibratedSpectrum.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-		}        
+		}
+		// we need an input flat flux calibration spectrum...
+		if (inputFlatFluxCalibration.empty()) {
+			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		}
+        
 		// we need an output...
 		if (outputFluxCalibrationFile.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
@@ -281,24 +295,33 @@ int main(int argc, char *argv[])
 		if (inputWaveFile.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
+		// we need a wavelength mask file for ref...
+		if (inputWavelengthMaskForRefContinuum.empty()) {
+			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		}
+		// we need a wavelength mask file for uncal...
+		if (inputWavelengthMaskForUncalContinuum.empty()) {
+			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		}
+        
 		// we need a aperture file...
 		if (inputaper.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
         
 		if (verbose) {
-			cout << "operaCreateFluxCalibration: input uncalibrated pectrum file = " << inputUncalibratedSpectrum << endl; 
-			cout << "operaCreateFluxCalibration: input calibrated spectrum file = " << inputCalibratedSpectrum << endl; 
-			cerr << "operaCreateFluxCalibration: inputWaveFile = " << inputWaveFile << endl;		
+			cout << "operaCreateFluxCalibration: input uncalibrated spectrum file = " << inputUncalibratedSpectrum << endl; 
+			cout << "operaCreateFluxCalibration: input calibrated spectrum file = " << inputCalibratedSpectrum << endl;
+			cout << "operaCreateFluxCalibration: inputFlatFluxCalibration = " << inputFlatFluxCalibration << endl;
+			cout << "operaCreateFluxCalibration: inputWavelengthMaskForRefContinuum = " << inputWavelengthMaskForRefContinuum << endl;
+			cout << "operaCreateFluxCalibration: inputWavelengthMaskForUncalContinuum = " << inputWavelengthMaskForUncalContinuum << endl;
+			cout << "operaCreateFluxCalibration: inputWaveFile = " << inputWaveFile << endl;
             cout << "operaCreateFluxCalibration: output flux calibration file = " << outputFluxCalibrationFile << endl;
 			cout << "operaCreateFluxCalibration: input aperture file = " << inputaper << endl;                        
-			cout << "operaCreateFluxCalibration: normalizeCalibratedSpectrum = " << normalizeCalibratedSpectrum << endl;		
             cout << "operaCreateFluxCalibration: wavelengthForNormalization= " << wavelengthForNormalization << " nm" << endl;
-			cout << "operaCreateFluxCalibration: useContinuumAcrossOrders = " << useContinuumAcrossOrders << endl;
             cout << "operaCreateFluxCalibration: exposure time= " << exposureTime << " seconds" << endl;
-			cout << "operaCreateFluxCalibration: order bin = " << orderBin << endl;
-			cout << "operaCreateFluxCalibration: lowOrderToClip = " << lowOrderToClip << endl;
-			cout << "operaCreateFluxCalibration: highOrderToClip = " << highOrderToClip << endl;
+			cout << "operaCreateFluxCalibration: numberOfPointsInUniformSample = " << numberOfPointsInUniformSample << endl;
+			cout << "operaCreateFluxCalibration: numberOfPointsInUniformRefSample = " << numberOfPointsInUniformRefSample << endl;
 			cout << "operaCreateFluxCalibration: pixelsize {x,y} = {" << pixelsize.x << "," << pixelsize.y << "}" << endl;
             if(ordernumber != NOTPROVIDED) {
                 cout << "operaCreateFluxCalibration: ordernumber = " << ordernumber << endl;            
@@ -348,242 +371,198 @@ int main(int argc, char *argv[])
         
 		if (verbose)
 			cout << "operaCreateFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
-        
+
 		/*
 		 * Flux calibration reference file:
-		 */        
-		/*
+         *
 		 * Read reference calibrated spectrum
 		 *		lambda vs. intensity, intensityVariance (optional)
 		 */
         nPointsInReferenceSpectrum = readReferenceSpectrum(inputCalibratedSpectrum, referenceWavelength, referenceIntensity, referenceVariance);        
-        
-        
-        // normalizeIntensityByReferenceWavelength(nPointsInReferenceSpectrum,referenceIntensity,referenceWavelength,referenceNormIntensity,wavelengthForNormalization);
-    
-        double referenceFluxForNormalization = getReferenceFlux(nPointsInReferenceSpectrum,referenceIntensity,referenceWavelength,wavelengthForNormalization);
-        
-        if (debug) {
-			cout << "operaCreateFluxCalibration: referenceFluxForNormalization = " << referenceFluxForNormalization << endl;
-        }
-        
-        if(debug) {
-            for(unsigned i=0;i<nPointsInReferenceSpectrum;i++) {
-                cout << referenceWavelength[i] << ' '
-                << referenceIntensity[i] << ' '
-                << referenceNormIntensity[i] << ' '
-                << referenceVariance[i] << endl;
-            }
-        }
+        normalizeIntensityByReferenceWavelength(nPointsInReferenceSpectrum,referenceIntensity,referenceWavelength,referenceNormIntensity,wavelengthForNormalization);
 
-        if(normalizeCalibratedSpectrum) {
-            normalizeIntensityByMaximum(nPointsInReferenceSpectrum,referenceIntensity,referenceVariance);
-        }
+        //---------------------------------
+        // Loop over orders to set maximum number of elements, set wavelength and the number of beams
+        // --> maxNElements & NumberofBeams
+        unsigned NumberofBeams = spectralOrders.getNumberofBeams(minorder, maxorder);
+        unsigned maxNElements = spectralOrders.getMaxNumberOfElementsInOrder(minorder, maxorder);
         
-        unsigned NumberofBeams = 0;        
         for (int order=minorder; order<=maxorder; order++) {
-            if (spectralOrders.GetSpectralOrder(order)->gethasSpectralElements()) {
-                NumberofBeams = spectralOrders.GetSpectralOrder(order)->getnumberOfBeams();
-                break;
+            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+            if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
+                operaWavelength *wavelength = spectralOrder->getWavelength();
+                operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();                
+                SpectralElements->setwavelengthsFromCalibration(wavelength);
             }
         }
         if (verbose) {
 			cout << "operaCreateFluxCalibration: NumberofBeams = " << NumberofBeams << endl;
         }
+        
         if(NumberofBeams == 0) {
             throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
         }
-  
-        unsigned nsigcut = 3;
-        
-        /*
-         *   E. Martioli Jul 2 2013.
-         *   The function below measures the continuum using the normalization algorithm
-         *   plus an additional fit to a robust line for the continuum across
-         *   orders. The fit takes only a local sample of orders:  currentOrder +/- orderBin.
-         *   The continuum data are populated in the spectralEnergyDistribution class. 
-         *   This function also interpolates points to create the uncalibrated elements in 
-         *   this class, so they won't need to be created again in the flux calibration routine
-         */
-        spectralOrders.measureContinuumAcrossOrders(binsize,orderBin,nsigcut);
-                
-        int *orderWithReferenceFluxForNormalization = new int[MAXORDERS];
-        unsigned *elemIndexWithReferenceFluxForNormalization = new unsigned[MAXORDERS];
-        
-        /*
-         *  E. Martioli Jul 2 2013.
-         *  The function below returns the number of orders (and size of output vectors) and 
-         *  two vectors, one with order numbers and the other with element indexes, which
-         *  are used as addresses to locate a given input wavelength in the extracted spectra. 
-         *  The function parses all orders and all spectral elements using wavelength calibration to 
-         *  search the right position in the image of a given wavelength. The reason it returns a 
-         *  vector is because in echelle spectra more than one order may contain the same wavelength.
-         */
-        unsigned nOrdersPicked = spectralOrders.getElemIndexAndOrdersByWavelength(orderWithReferenceFluxForNormalization,elemIndexWithReferenceFluxForNormalization,wavelengthForNormalization);
-        
-        double uncalibratedContinuumFluxForNormalization = 0;
-        double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS];
 
-        int orderpicked = 0;
-        unsigned elemIndexPicked = 0;
-        
-        for(unsigned i=0;i<nOrdersPicked;i++) {
-            double tmp_uncalibratedContinuumFluxForNormalization = spectralOrders.GetSpectralOrder(orderWithReferenceFluxForNormalization[i])->getSpectralEnergyDistribution()->getUncalibratedFluxElements()->getFlux(elemIndexWithReferenceFluxForNormalization[i]);
-            
-            if(uncalibratedContinuumFluxForNormalization < tmp_uncalibratedContinuumFluxForNormalization) {
-                uncalibratedContinuumFluxForNormalization = tmp_uncalibratedContinuumFluxForNormalization;
-                orderpicked = orderWithReferenceFluxForNormalization[i];
-                elemIndexPicked = elemIndexWithReferenceFluxForNormalization[i];
-            }
-         
-            if(debug) {
-                cout << orderWithReferenceFluxForNormalization[i] << ' '
-                << elemIndexWithReferenceFluxForNormalization[i]  << ' '
-                << wavelengthForNormalization << ' '
-                << tmp_uncalibratedContinuumFluxForNormalization << endl;
-            }
-        }
-                
+        //---------------------------------
         // below one can define constants for flux calibration
-        double AreaOfOnePixel = (pixelsize.x * pixelsize.y); // for example, the area of a pixel could also be included
+        // DT May 08 2014 -- not used -- double AreaOfOnePixel = (pixelsize.x * pixelsize.y); // for example, the area of a pixel could also be included
         double spectralBinConstant = exposureTime;
         double BeamSpectralBinConstant[MAXNUMBEROFBEAMS];
-
         for(unsigned beam=0; beam < NumberofBeams; beam++) {
-            uncalibratedContinuumBeamFluxForNormalization[beam] = spectralOrders.GetSpectralOrder(orderpicked)->getBeamSED(beam)->getUncalibratedFluxElements()->getFlux(elemIndexPicked);
+            // uncalibratedContinuumBeamFluxForNormalization[beam] = spectralOrders.GetSpectralOrder(orderpicked)->getBeamSED(beam)->getUncalibratedFluxElements()->getFlux(elemIndexPicked);
             BeamSpectralBinConstant[beam] = exposureTime;
         }
 
-        if(debug) {
-            cout << wavelengthForNormalization << " " << referenceFluxForNormalization << " " << uncalibratedContinuumFluxForNormalization << endl;
+        //---------------------------------
+        // Correct flat-field
+        if (!inputFlatFluxCalibration.empty()) {
+            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false);
         }
         
+        //---------------------------------
+        // Calculate a clean sample of the continuum from the ref spectrum
+        float *refContinuumwl = new float[MAXNUMBEROFREFWLRANGES];
+        float *refContinuumflux = new float[MAXNUMBEROFREFWLRANGES];
+        float *refContinuumNormflux = new float[MAXNUMBEROFREFWLRANGES];
+        unsigned nRefContinuum = getContinuumFromInputReferenceSpectrum(inputWavelengthMaskForRefContinuum,refContinuumwl,refContinuumflux,refContinuumNormflux);
 
-#ifdef PRINT_DEBUG
-        operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(orderpicked);
-        operaSpectralEnergyDistribution *spectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
-
-        for(unsigned i=0; i<spectralEnergyDistribution->getUncalibratedFluxElements()->getnSpectralElements(); i++) {
-            cout << i << " "
-                << spectralEnergyDistribution->getUncalibratedFluxElements()->getphotoCenterX(i) << " "
-                << spectralEnergyDistribution->getUncalibratedFluxElements()->getphotoCenterY(i) << " "
-                << spectralEnergyDistribution->getUncalibratedFluxElements()->getdistd(i) << " "
-                << spectralEnergyDistribution->getUncalibratedFluxElements()->getwavelength(i) << " "
-                << spectralOrder->getSpectralElements()->getFlux(i) << " "
-                << spectralEnergyDistribution->getUncalibratedFluxElements()->getFlux(i) << endl;
-        }
-#endif
-
-		for (int order=minorder; order<=maxorder; order++) {
-			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-
-            if (spectralOrder->gethasSpectralElements() &&
-                spectralOrder->gethasExtractionApertures() &&
-                spectralOrder->gethasWavelength()) {
-                
-                operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-                
-                if (verbose)
-					cout << "operaCreateFluxCalibration: Calibrating order number: "<< order << endl;
-                
-                double wl0 = SpectralElements->getwavelength(0);
-                double wlf = SpectralElements->getwavelength(SpectralElements->getnSpectralElements()-1);                
-                
-                if(verbose) {
-                    // print wavelength range of current order 
-                    cout << "operaCreateFluxCalibration: [Uncalibrated spectrum] spectral range: wl0=" << wl0 << " wlf=" << wlf << endl;
-                }
-                
-                double *refwl = NULL, *refflux = NULL, *refnormflux = NULL, *reffluxvar = NULL;
-                unsigned nPointsInReference;
-                nPointsInReference = getReferenceSpectrumRange(wl0,wlf,&refwl,&refflux,&refnormflux,&reffluxvar);
-                
-                if(verbose) {
-                    // print wavelength range of reference spectrum that matches current order
-                    cout << "operaCreateFluxCalibration: [Reference spectrum] " << nPointsInReference << " points selected in reference spectrum." << endl;
-                    cout << "operaCreateFluxCalibration: [Reference spectrum] spectral range: wl0=" << refwl[0] << " wlf=" << refwl[nPointsInReference-1] << endl;
-                }
-                
-                if(debug) {
-                    // loop below print out the reference spectrum for the wavelength range of current order 
-                    for(unsigned i=0; i<nPointsInReference; i++) {
-                        cout << refwl[i] << " " << refflux[i] << " " << refnormflux[i] << " " << reffluxvar[i] << endl;
-                    }
-                }
-                
-                // calculate flux calibration elements
-                if(useContinuumAcrossOrders) {
-                    spectralOrder->calculateFluxCalibrationFromExistingContinuum(nPointsInReference,refwl,refflux,referenceFluxForNormalization,spectralBinConstant,BeamSpectralBinConstant, uncalibratedContinuumFluxForNormalization,uncalibratedContinuumBeamFluxForNormalization,fspecdata,fcontinuumdata);
-                } else {
-                    spectralOrder->calculateFluxCalibration(nPointsInReference,refwl,refflux,referenceFluxForNormalization,binsize,spectralBinConstant, BeamSpectralBinConstant, uncalibratedContinuumFluxForNormalization,uncalibratedContinuumBeamFluxForNormalization,fspecdata,fcontinuumdata);
-                }
-               
-                if(spectralOrder->gethasSpectralEnergyDistribution()) {
-                    operaSpectralEnergyDistribution *spectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
-                    spectralEnergyDistribution->setwavelengthForNormalization(wavelengthForNormalization);
-                    if(debug) {
-                        for(unsigned i=0; i<SpectralElements->getnSpectralElements(); i++) {
-                            cout << order << " " << i << " "
-                            << SpectralElements->getwavelength(i) << " "
-                            << SpectralElements->getFlux(i) << " "
-                            << spectralEnergyDistribution->getUncalibratedFluxElements()->getFlux(i) << " "
-                            << spectralEnergyDistribution->getCalibratedFluxElements()->getFlux(i) << " "
-                            << spectralEnergyDistribution->getFluxCalibrationElements()->getFlux(i) << " "
-                            << spectralEnergyDistribution->getThroughputElements()->getFlux(i) << " "
-                            << referenceFluxForNormalization << " "
-                            << uncalibratedContinuumFluxForNormalization << endl;
-                        }
-                    }
-                }
-			}
-            if (!spectralOrder->gethasSpectralElements()) {
-				if (verbose)
-					cout << "operaCreateFluxCalibration: Skipping order number: "<< order << " no spectral elements." << endl;
-			}
-            
-            if (!spectralOrder->gethasExtractionApertures()) {
-				if (verbose)
-					cout << "operaCreateFluxCalibration: Skipping order number: "<< order << " no extraction aperture." << endl;
-			}
-            if (!spectralOrder->gethasWavelength()) {
-				if (verbose)
-					cout << "operaFluxCalibration: Skipping order number: "<< order << " no wavelength calibration." << endl;
-			}
-        }
-       
-        /*
-         * Fit robust line to neighbor orders in order to smooth out remaining features
-         *
-         * E. Martioli Aug 27 2013 -- The function below is working fine now but the results are not 
-         *                            satisfactory, so I turned them off. 
-         */
-        //spectralOrders.FitFluxCalibrationAcrossOrders(lowOrderToClip,highOrderToClip, orderBin, TRUE);
-        //spectralOrders.FitFluxCalibrationAcrossOrders(lowOrderToClip,highOrderToClip, orderBin, FALSE);
+        double refFluxForNormalization = (double)getFluxAtWavelength(nRefContinuum,refContinuumwl,refContinuumflux,wavelengthForNormalization);
+        
+        float *uniformRef_wl = new float[numberOfPointsInUniformRefSample];
+        float *uniformRef_flux = new float[numberOfPointsInUniformRefSample];
+        
+        calculateUniformSample(nRefContinuum,refContinuumwl,refContinuumflux,numberOfPointsInUniformRefSample,uniformRef_wl,uniformRef_flux);
 
         if(debug) {
-            for (int order=minorder; order<=maxorder; order++) {
-                operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+            // original sample
+            for(unsigned i=0;i<nRefContinuum;i++) {
+                cout << refContinuumwl[i] << " "
+                << refContinuumflux[i] << " "
+                << refContinuumNormflux[i] << endl;
+            }
+            // uniform sample
+            for (unsigned i=0; i<numberOfPointsInUniformRefSample; i++) {
+                cout << uniformRef_wl[i] << " " << uniformRef_flux[i] << endl;
+            }
+        }
+        
+        float *uniform_wl = new float[numberOfPointsInUniformSample];
+        float *uniform_flux = new float[numberOfPointsInUniformSample];
+        float *uniform_Beamflux[MAXNUMBEROFBEAMS];
+        for(unsigned beam=0;beam<NumberofBeams;beam++) {
+            uniform_Beamflux[beam] = new float[numberOfPointsInUniformSample];
+        }
+        
+        spectralOrders.calculateCleanUniformSampleOfContinuum(minorder,maxorder,binsize,delta_wl,inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,uniform_wl,uniform_flux,uniform_Beamflux,TRUE);
+        
+        double uncalFluxForNormalization = (double)getFluxAtWavelength(numberOfPointsInUniformSample,uniform_wl,uniform_flux,wavelengthForNormalization);
+        double uncalBeamFluxForNormalization[MAXNUMBEROFBEAMS];
+        for(unsigned beam=0;beam<NumberofBeams;beam++) {
+            uncalBeamFluxForNormalization[beam] = (double)getFluxAtWavelength(numberOfPointsInUniformSample,uniform_wl,uniform_Beamflux[beam],wavelengthForNormalization);
+        }
+        
+        //---------------------------------
+        // Use clean sample of the continuum from both the reference and uncalibrated spectrum
+        // to calculate flux calibration and instrument throughput for all orders
+        // Results are saved in the SED classes which will be written out to fcal
+        
+        float *CalibratedModelFlux = new float[maxNElements];
+        float *UncalibratedModelFlux = new float[maxNElements];
+        float *UncalibratedModelBeamFlux[MAXNUMBEROFBEAMS];
+        for(unsigned beam=0;beam<NumberofBeams;beam++) {
+            UncalibratedModelBeamFlux[beam] = new float[maxNElements];
+        }
+        float *elemWavelength = new float[maxNElements];
+        
+        operaSpectralEnergyDistribution *BeamSED[MAXNUMBEROFBEAMS];
+        operaSpectralElements *BeamFluxCalibrationElements[MAXNUMBEROFBEAMS];
+        operaSpectralElements *BeamThroughputElements[MAXNUMBEROFBEAMS];
+
+        for (int order=minorder; order<=maxorder; order++) {
+			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+            if (spectralOrder->gethasWavelength() &&
+                spectralOrder->gethasSpectralElements() &&
+                spectralOrder->gethasSpectralEnergyDistribution()) {
+				            
+				operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
+                operaSpectralEnergyDistribution *spectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
+                spectralEnergyDistribution->setwavelengthForNormalization(wavelengthForNormalization);
                 
-                if(spectralOrder->gethasSpectralElements() && spectralOrder->gethasSpectralEnergyDistribution()) {
-                    operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-                    operaSpectralEnergyDistribution *spectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
+                unsigned nElements = spectralElements->getnSpectralElements();
+
+                spectralEnergyDistribution->setUncalibratedFluxElements(spectralElements);
+                spectralEnergyDistribution->setCalibratedFluxElements(spectralElements);
+                
+                operaSpectralElements *calibratedFluxElements = spectralEnergyDistribution->getCalibratedFluxElements();
+                operaSpectralElements *uncalibratedFluxElements = spectralEnergyDistribution->getUncalibratedFluxElements();
+                
+                for(unsigned beam=0;beam<NumberofBeams;beam++) {
+                    BeamSED[beam] = spectralOrder->getBeamSED(beam);
+                    BeamSED[beam]->setUncalibratedFluxElements(spectralOrder->getBeamElements(beam));
+                    BeamSED[beam]->setCalibratedFluxElements(spectralOrder->getBeamElements(beam));
+                }
+                
+                for(unsigned i=0;i<nElements;i++) {
+                    elemWavelength[i] =  (float)spectralElements->getwavelength(i);
+                }
+
+                operaFitSpline(numberOfPointsInUniformSample,uniform_wl,uniform_flux,nElements,elemWavelength,UncalibratedModelFlux);
+                operaFitSpline(numberOfPointsInUniformRefSample,uniformRef_wl,uniformRef_flux,nElements,elemWavelength,CalibratedModelFlux);
+                
+                for(unsigned beam=0;beam<NumberofBeams;beam++) {
+                    operaFitSpline(numberOfPointsInUniformSample,uniform_wl,uniform_Beamflux[beam],nElements,elemWavelength,UncalibratedModelBeamFlux[beam]);
+                }
+                
+                operaSpectralElements *FluxCalibrationElements = spectralEnergyDistribution->getFluxCalibrationElements();
+                operaSpectralElements *ThroughputElements = spectralEnergyDistribution->getThroughputElements();
+                for(unsigned beam=0;beam<NumberofBeams;beam++) {
+                    BeamFluxCalibrationElements[beam] = BeamSED[beam]->getFluxCalibrationElements();
+                    BeamThroughputElements[beam] = BeamSED[beam]->getThroughputElements();
+                }
+                
+                for(unsigned i=0;i<nElements;i++) {
+                    calibratedFluxElements->setFlux((double)CalibratedModelFlux[i]/refFluxForNormalization,i);
+                    uncalibratedFluxElements->setFlux((double)UncalibratedModelFlux[i]/uncalFluxForNormalization,i);
                     
-                    //                spectralEnergyDistribution->setwavelengthForNormalization(wavelengthForNormalization);
-                    for(unsigned i=0; i<SpectralElements->getnSpectralElements(); i++) {
+                    FluxCalibrationElements->setFlux((double)(CalibratedModelFlux[i]/(UncalibratedModelFlux[i]/spectralBinConstant)),i);
+                    ThroughputElements->setFlux((double)(CalibratedModelFlux[i]/UncalibratedModelFlux[i])*(uncalFluxForNormalization/refFluxForNormalization),i);
+                    
+                    for(unsigned beam=0;beam<NumberofBeams;beam++) {
+                        BeamFluxCalibrationElements[beam]->setFlux((double)(CalibratedModelFlux[i]/(UncalibratedModelBeamFlux[beam][i]/BeamSpectralBinConstant[beam])),i);
+                        BeamThroughputElements[beam]->setFlux((double)(CalibratedModelFlux[i]/UncalibratedModelBeamFlux[beam][i])*(uncalBeamFluxForNormalization[beam]/refFluxForNormalization),i);
+                    }
+                    
+                    //cout << elemWavelength[i] << " " << CalibratedModelFlux[i] << endl;
+                }
+                spectralEnergyDistribution->setHasCalibratedFlux(true);
+                spectralEnergyDistribution->setHasUncalibratedFlux(true);
+                
+                if(debug) {
+                    for(unsigned i=0; i<spectralElements->getnSpectralElements(); i++) {
                         cout << order << " " << i << " "
-                        << SpectralElements->getwavelength(i) << " "
-                        << SpectralElements->getFlux(i) << " "
+                        << spectralElements->getwavelength(i) << " "
+                        << spectralElements->getFlux(i) << " "
+                        << UncalibratedModelFlux[i] << " "
+                        << CalibratedModelFlux[i] << " "
                         << spectralEnergyDistribution->getUncalibratedFluxElements()->getFlux(i) << " "
                         << spectralEnergyDistribution->getCalibratedFluxElements()->getFlux(i) << " "
                         << spectralEnergyDistribution->getFluxCalibrationElements()->getFlux(i) << " "
-                        << spectralEnergyDistribution->getThroughputElements()->getFlux(i) << endl;
+                        << spectralEnergyDistribution->getThroughputElements()->getFlux(i) << " ";
+                        for(unsigned beam=0;beam<NumberofBeams;beam++) {
+                            cout << BeamSED[beam]->getUncalibratedFluxElements()->getFlux(i) << " "
+                                << BeamSED[beam]->getFluxCalibrationElements()->getFlux(i) << " "
+                                << BeamSED[beam]->getThroughputElements()->getFlux(i) << " ";
+                        }
+                        cout << endl;
                     }
                 }
+            } else {
+                spectralOrder->sethasSpectralEnergyDistribution(FALSE);
             }
         }
-
+        
 		/*
-		 * and write it out
+		 * and write out fcal
 		 */
 		spectralOrders.WriteSpectralOrders(outputFluxCalibrationFile, Fcal);
 		
@@ -620,17 +599,14 @@ static void printUsageSyntax(char * modulename) {
 	" --outputFluxCalibrationFile=<SPEC_FILE>"
 	" --inputApertureFile=<APER_FILE>"
 	" --spectrumtype=<UNS_VALUE>"
-	" --normalizeCalibratedSpectrum=<BOOL>"
 	" --wavelengthForNormalization=<DOUBLE_VALUE>"
-	" --useContinuumAcrossOrders=<BOOL>"    
 	" --exposureTime=<FLOAT_VALUE>"
-	" --orderBin=<INT_VALUE>"
 	" --pixelsize=<FLOAT_VALUE>"
 	" --ordernumber=<UNS_VALUE>"
 	" --minorder=<UNS_VALUE>"
 	" --maxorder=<UNS_VALUE>"
-	" --lowOrderToClip=<UNS_VALUE>"
-	" --highOrderToClip=<UNS_VALUE>"
+	" --numberOfPointsInUniformSample=<UNS_VALUE>"
+	" --numberOfPointsInUniformRefSample=<UNS_VALUE>"
 	" --binsize=<UNS_VALUE>"
 	" --usePolynomial=<BOOL>"
 	" --orderOfPolynomial=<UNS_VALUE>"
@@ -652,17 +628,14 @@ static void printUsageSyntax(char * modulename) {
 	"  -w, --inputWaveFile=<WAVE_FILE>, Input wavelength calibration file\n"
 	"  -o, --outputFluxCalibrationFile=<SPEC_FILE>,  Output flux calibration conversion file \n"
 	"  -a, --inputApertureFile=<APER_FILE>, Input aperture calibration file\n"
-	"  -N, --normalizeCalibratedSpectrum=<BOOL>, Option to normalize calibration file\n"
 	"  -L, --wavelengthForNormalization=<DOUBLE_VALUE>, Wavelength (nm) for normalization of reference spectrum\n"
-	"  -A, --useContinuumAcrossOrders=<BOOL>, Use continuum across order instead of per order basis \n"
 	"  -E, --exposureTime=<WAVE_FILE>, Exposure time of input uncalibrated spectrum\n"
-	"  -B, --orderBin=<int>, number or orders to bin for continuum evaluation\n"    
 	"  -D, --pixelsize=<WAVE_FILE>, Detector pixel size\n"
 	"  -O, --ordernumber=<UNS_VALUE>, Absolute order number to extract (default=all)\n"
 	"  -M, --minorder=<UNS_VALUE>, Define minimum order number\n"
 	"  -X, --maxorder=<UNS_VALUE>, Define maximum order number\n"
-	"  -l, --lowOrderToClip=<UNS_VALUE>, Define lowest order to consider in the fit across orders\n"
-	"  -g, --highOrderToClip=<UNS_VALUE>, Define highest order to consider in the fit across orders\n"
+	"  -l, --numberOfPointsInUniformSample=<UNS_VALUE>, Define lowest order to consider in the fit across orders\n"
+	"  -g, --numberOfPointsInUniformRefSample=<UNS_VALUE>, Define highest order to consider in the fit across orders\n"
 	"  -b, --binsize=<UNS_VALUE>, Number of points to bin for continuum estimate \n"
 	"  -P, --plotfilename=<EPS_FILE>\n"
 	"  -E, --generate3DPlot=<BOOL>, Switch to generate 3D or 2D plot spectra\n"
@@ -852,5 +825,67 @@ void normalizeIntensityByMaximum(unsigned np, double *intensity, double *varianc
         intensity[i] /= maxIntensity;
         variance[i] /= maxIntensity;
 	}
+}
+
+
+double operaArrayMaxValue_d(unsigned np, const double *xarray, const double *yarray, double *maxx) {
+	double ymax = -3.4e+38;
+	double xmax = 0;
+    
+	while (np--) {
+		if(*yarray > ymax) {
+			ymax = *yarray;
+            xmax = *xarray;
+        }
+		yarray++;
+        xarray++;
+	}
+    *maxx = xmax;
+	return ymax;
+}
+
+
+unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, float *refContinuumwl,float *refContinuumflux,float *refContinuumNormflux) {
+    
+    double *wl0_vector = new double[MAXNUMBEROFREFWLRANGES];
+    double *wlf_vector = new double[MAXNUMBEROFREFWLRANGES];
+    
+    unsigned nRangesInWLMask = readContinuumWavelengthMask(inputWavelengthMaskForRefContinuum,wl0_vector,wlf_vector);
+    
+    unsigned nTotalPoints = 0;
+    for(unsigned k=0;k<nRangesInWLMask; k++){
+        
+        double *refwl = NULL, *refflux = NULL, *refnormflux = NULL, *reffluxvar = NULL;
+        unsigned nPointsInReference = getReferenceSpectrumRange(wl0_vector[k],wlf_vector[k],&refwl,&refflux,&refnormflux,&reffluxvar);
+        
+        double ref_wl=0;
+        double ref_maxFlux = 0;
+        double ref_maxNormFlux = 0;
+        
+        ref_maxFlux = operaArrayMaxValue_d(nPointsInReference,refwl,refflux,&ref_wl);
+        ref_maxNormFlux = operaArrayMaxValue_d(nPointsInReference,refwl,refnormflux, &ref_wl);
+        
+        if(debug) {
+            cout << k << " "
+            << nPointsInReference << " "
+            << wl0_vector[k] << " "
+            << wlf_vector[k] << " "
+            << ref_wl << " "
+            << ref_maxFlux << " "
+            << ref_maxNormFlux << endl;
+        }
+        
+        if(ref_wl && ref_maxFlux && ref_maxNormFlux) {
+            refContinuumwl[nTotalPoints] = (float)ref_wl;
+            refContinuumflux[nTotalPoints] = (float)ref_maxFlux;
+            refContinuumNormflux[nTotalPoints] = (float)ref_maxNormFlux;
+            nTotalPoints++;
+        }
+    }
+    
+    delete[] wl0_vector;
+    delete[] wlf_vector;
+    
+    return nTotalPoints;
 }
 

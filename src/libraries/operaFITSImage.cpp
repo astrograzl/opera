@@ -732,6 +732,60 @@ void operaFITSImage::operaFITSImageCopyHeader(operaFITSImage *from) {
 	}
 }
 
+
+/*
+ * operaFITSImageCopyHeader(operaFITSImage *from, unsigned inputhdu)
+ * \brief Copies all of the header information from image.
+ * \param from
+ * \throws operaException cfitsio error code
+ * \return void
+ */
+void operaFITSImage::operaFITSImageCopyHeaderFromDifferentHDU(operaFITSImage *from, unsigned inputabshdu) {
+	int status = 0;
+	int junk = 0;
+	int hdutype = 0;
+    
+    if (fits_movabs_hdu(from->getfitsfileptr(), inputabshdu, &hdutype, &status)) {
+        throw operaException("operaFITSImage: cfitsio error "+filename+" ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+    }
+	if (fits_copy_hdu(from->getfitsfileptr(), fptr, 0, &status)) {
+		throw operaException("operaFITSImage: cfitsio error "+filename+" ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+	}
+	//
+	// update the current HDU
+	//
+	hdu = fits_get_hdu_num(fptr, &junk);
+	//
+	// now update the headers in case they differ
+	//
+	if (datatype == tfloat || datatype == tdouble) {
+		float bzero = 0.0, bscale = 1.0;
+		if (fits_resize_img(fptr, bitpix, naxis, naxes, &status)) {
+			throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+		}
+		if (fits_set_bscale(fptr, bscale, bzero, &status)) {	// ??? doesn't seem to work...
+			throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+		}
+		if (datatype == tfloat) {
+			if (fits_update_key_lng(fptr, "BITPIX", bitpix, (char *)"Real*4 (complex, stored as float)", &status)) {
+				throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+			}
+		} else {
+			if (fits_update_key_lng(fptr, "BITPIX", bitpix, (char *)"Real*8 (complex, stored as float)", &status)) {
+				throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+			}
+		}
+		if (fits_update_key_flt(fptr, "BZERO", bzero, -1, NULL, &status)) {
+			throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+		}
+		if (fits_update_key_flt(fptr, "BSCALE", bscale, -1, NULL, &status)) {
+			throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+		}
+	}
+}
+
+
+
 /*! 
  * operaFITSImageCopyNonStructuralHeader(operaFITSImage *from) 
  * \brief Copies all of the non-structural header information from image.
@@ -1893,6 +1947,73 @@ void operaFITSImage::rotate90() {
 		}
 	}
 }
+
+/*
+ * operaFITSImage::mirrorColumns()
+ * \brief mirror x.
+ * \return void
+ */
+void operaFITSImage::mirrorColumns(void) {
+	switch (datatype) {
+		case tushort: {
+			unsigned short *clone = operaFITSImageClonePixelsUSHORT();
+			for (unsigned j = 0; j < naxis2; j++) {
+				for (unsigned i = 0; i < naxis1; i++) {
+					setpixel(getpixelUSHORT(clone, i, j, naxis1),naxis1-1-i,j);
+				}
+			}
+			free(clone);
+		}
+			break;
+		case tfloat: {
+			float *clone = operaFITSImageClonePixels();
+			for (unsigned j = 0; j < naxis2; j++) {
+				for (unsigned i = 0; i < naxis1; i++) {
+					setpixel(getpixel(clone, i, j, naxis1),naxis1-1-i,j);
+				}
+			}
+			free(clone);
+		}
+			break;
+		default:
+			throw operaErrorCodeDatatypeNotSupported;
+			break;
+	}
+}
+
+/*
+ * operaFITSImage::mirrorRows()
+ * \brief mirror y.
+ * \return void
+ */
+void operaFITSImage::mirrorRows(void) {
+	switch (datatype) {
+		case tushort: {
+			unsigned short *clone = operaFITSImageClonePixelsUSHORT();
+			for (unsigned j = 0; j < naxis2; j++) {
+				for (unsigned i = 0; i < naxis1; i++) {
+					setpixel(getpixelUSHORT(clone, i, j, naxis1),i,naxis2-1-j);
+				}
+			}
+			free(clone);
+		}
+			break;
+		case tfloat: {
+			float *clone = operaFITSImageClonePixels();
+			for (unsigned j = 0; j < naxis2; j++) {
+				for (unsigned i = 0; i < naxis1; i++) {
+					setpixel(getpixel(clone, i, j, naxis1),i,naxis2-1-j);
+				}
+			}
+			free(clone);
+		}
+			break;
+		default:
+			throw operaErrorCodeDatatypeNotSupported;
+			break;
+	}
+}
+
 /* 
  * operaFITSImage::assignVariances(float gain)
  * \brief Assign variances to each pixel in an image in units of ADU.
@@ -2273,6 +2394,75 @@ operaImageVector *operaFITSImage::where(unsigned x, unsigned y, unsigned dx, uns
 	}
 	return ivector;
 }
+
+/*
+ * \method resize(unsigned x0, unsigned xf, unsigned y0, unsigned yf)
+ * \brief resize a product image to the given rows, cols, retaining any existing data
+ * \note Resizing rows does not require copying data, where resizing columns does
+ * \return void
+ */
+void operaFITSImage::resize(unsigned x0, unsigned xf, unsigned y0, unsigned yf) {
+    
+    if((x0 == 0 && xf == 0 && y0 == 0 && yf == 0) ||
+       x0 >= xf  || y0 >= yf || xf > getnaxis1() || yf > getnaxis2()) {
+        throw operaException("operaFITSImage: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    unsigned cols = xf-x0;
+    unsigned rows = yf-y0;
+    unsigned oldcols = naxis1;
+    unsigned oldrows = naxis2;
+    
+	int status = 0;
+	
+	if (cols && rows && (oldrows != rows || oldcols != cols)) {
+        switch (datatype) {
+            case tushort: {
+                unsigned short *clone = operaFITSImageClonePixelsUSHORT();
+                for (unsigned j = 0; j < rows; j++) {
+                    unsigned y = y0 + j;
+                    for (unsigned i = 0; i < cols; i++) {
+                        unsigned x = x0 + i;
+                        setpixel(getpixelUSHORT(clone, x, y, oldcols),i,j,cols);
+                    }
+                }
+                free(clone);
+            }
+                break;
+            case tfloat: {
+                float *clone = operaFITSImageClonePixels();
+                for (unsigned j = 0; j < rows; j++) {
+                    unsigned y = y0 + j;
+                    for (unsigned i = 0; i < cols; i++) {
+                        unsigned x = x0 + i;
+                        setpixel(getpixel(clone, x, y, oldcols),i,j,cols);
+                    }
+                }
+                free(clone);
+            }
+                break;
+            default:
+                throw operaErrorCodeDatatypeNotSupported;
+                break;
+        }
+
+        naxis1 = cols;
+        naxis2 = rows;
+        npixels = naxis1*naxis2;
+        naxes[0] = naxis1;
+        naxes[1] = naxis2;
+        
+        if (fptr) {
+            if (fits_update_key_lng(fptr, "NAXIS1", naxis1, (char *)"Number of pixel columns", &status)) {
+                throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+            }
+            if (fits_update_key_lng(fptr, "NAXIS2", naxis2, (char *)"Number of pixel rows", &status)) {
+                throw operaException("operaFITSImage: cfitsio error ", (operaErrorCode)status, __FILE__, __FUNCTION__, __LINE__);
+            }
+        }
+    }
+}
+
+
 
 /* 
  * \method resize(unsigned cols, unsigned rows)

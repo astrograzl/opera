@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     unsigned combineMethod = 1; // Not implemented yet. Eder - Jan/09/2013.
     /*
      * combineMethod 1: mean
-     * combineMethod 2: median (not implement
+     * combineMethod 2: median (not implemented)
      * combineMethod 3: weigthed mean
      */
     
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 	}	
 	
 	try {
-
+        
 		// we need at least one input opera flux calibration file..
         if(inputFcalIndex == 0 && inputconstant == 0.0) {
 			throw operaException("operaMasterFluxCalibration: no input fcal or constant. ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
@@ -223,8 +223,8 @@ int main(int argc, char *argv[])
 		}
 		// we need an input reference spectrum...
 		if (inputReferenceSpectrum.empty()) {
-			throw operaException("operaMasterFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-		}        
+			throw operaException("operaMasterFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		}
 		// we need a wavelength calibration file...
 		if (inputWaveFile.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
@@ -237,23 +237,23 @@ int main(int argc, char *argv[])
             }
             cout << "operaMasterFluxCalibration: inputconstant = " << inputconstant << endl;
 			cout << "operaMasterFluxCalibration: output Flux Calibration .fcal file = " << outputfcal << endl;
-			cout << "operaMasterFluxCalibration: inputReferenceSpectrum = " << inputReferenceSpectrum << endl;            
+			cout << "operaMasterFluxCalibration: inputReferenceSpectrum = " << inputReferenceSpectrum << endl;
 			cout << "operaMasterFluxCalibration: inputWaveFile = " << inputWaveFile << endl;
 			cout << "operaMasterFluxCalibration: combineMethod = " << combineMethod << endl;
             if(ordernumber != NOTPROVIDED) {
-                cout << "operaMasterFluxCalibration: ordernumber = " << ordernumber << endl;            
-            }   
+                cout << "operaMasterFluxCalibration: ordernumber = " << ordernumber << endl;
+            }
             if(plot) {
                 cout << "operaMasterFluxCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaMasterFluxCalibration: spectrumDataFilename = " << spectrumDataFilename << endl;
-                cout << "operaMasterFluxCalibration: outputDataFilename = " << spectrumDataFilename << endl;                
-                cout << "operaMasterFluxCalibration: scriptfilename = " << scriptfilename << endl; 
+                cout << "operaMasterFluxCalibration: outputDataFilename = " << spectrumDataFilename << endl;
+                cout << "operaMasterFluxCalibration: scriptfilename = " << scriptfilename << endl;
                 if(interactive) {
-                    cout << "operaMasterFluxCalibration: interactive = YES" << endl; 
+                    cout << "operaMasterFluxCalibration: interactive = YES" << endl;
                 } else {
-                    cout << "operaMasterFluxCalibration: interactive = NO" << endl; 
+                    cout << "operaMasterFluxCalibration: interactive = NO" << endl;
                 }
-            }            
+            }
             
 		}
         
@@ -261,11 +261,11 @@ int main(int argc, char *argv[])
         
         if (!spectrumDataFilename.empty()) {
             fspecdata = new ofstream();
-            fspecdata->open(spectrumDataFilename.c_str());  
-        }         
-
+            fspecdata->open(spectrumDataFilename.c_str());
+        }
+        
         ofstream *foutdata = NULL;
-
+        
         if (!outputDataFilename.empty()) {
             foutdata = new ofstream();
             foutdata->open(outputDataFilename.c_str());
@@ -278,8 +278,8 @@ int main(int argc, char *argv[])
             minorder = spectralOrders.getMinorder();
         }
         if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();            
-        }        
+            maxorder = spectralOrders.getMaxorder();
+        }
         
         if(ordernumber != NOTPROVIDED) {
 			minorder = ordernumber;
@@ -287,30 +287,29 @@ int main(int argc, char *argv[])
 		}
         
 		if (verbose)
-			cout << "operaMasterFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
+			cout << "operaMasterFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         
         unsigned NumberofBeams = 0;
         double wavelengthForNormalization = 0;
-
+        
+        // initialize output vectors
         for (int order=minorder; order<=maxorder; order++) {
             operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-			if (!spectralOrder->gethasSpectralElements())
-				continue;
-            operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-            unsigned nElements = SpectralElements->getnSpectralElements();
             
-            if(nElements==0) {
-                cerr << "operaMasterFluxCalibration: skipping order " << order << " -> reference spectrum has nElements=0" << endl;
-                continue;
-            }
-            
-            if(order == minorder) {
-                NumberofBeams = spectralOrder->getnumberOfBeams(); // for plotting
-            }
-            
-            if (spectralOrder->gethasWavelength()) {
+			if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
+                operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
+                unsigned nElements = SpectralElements->getnSpectralElements();
+                
+                if(nElements==0) {
+                    cerr << "operaMasterFluxCalibration: skipping order " << order << " -> reference spectrum has nElements=0" << endl;
+                    continue;
+                }
+                
                 SpectralElements->setwavelengthsFromCalibration(spectralOrder->getWavelength());
                 
+                if(NumberofBeams == 0) {
+                    NumberofBeams = spectralOrder->getnumberOfBeams();
+                }
                 // create output energy distribution elements for output fcals
                 spectralOrder->createSpectralEnergyDistributionElements(nElements);
                 operaSpectralEnergyDistribution *SpectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
@@ -319,7 +318,6 @@ int main(int argc, char *argv[])
                     if(inputFcalIndex) {
                         SpectralEnergyDistribution->getFluxCalibrationElements()->setFlux(0.0,indexElem);
                         SpectralEnergyDistribution->getThroughputElements()->setFlux(0.0,indexElem);
-
                     } else {
                         SpectralEnergyDistribution->getFluxCalibrationElements()->setFlux(inputconstant,indexElem);
                         SpectralEnergyDistribution->getThroughputElements()->setFlux(inputconstant,indexElem);
@@ -335,11 +333,11 @@ int main(int argc, char *argv[])
                         } else {
                             spectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->setFlux(inputconstant,indexElem);
                             spectralOrder->getBeamSED(beam)->getThroughputElements()->setFlux(inputconstant,indexElem);
-                       }
+                        }
                         spectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->setFluxVariance(0.0,indexElem);
                         spectralOrder->getBeamSED(beam)->getThroughputElements()->setFluxVariance(0.0,indexElem);
                     }
-
+                    
                 }
                 spectralOrder->sethasSpectralEnergyDistribution(true);
                 SpectralEnergyDistribution->setHasFluxCalibration(true);
@@ -349,7 +347,7 @@ int main(int argc, char *argv[])
         
         float *referenceWavelength = new float[MAXSPECTRALELEMENTSPERORDER];
         float *inputWavelength = new float[MAXSPECTRALELEMENTSPERORDER];
-
+        
         float *inputFluxCal = new float[MAXSPECTRALELEMENTSPERORDER];
         float *inputThroughput = new float[MAXSPECTRALELEMENTSPERORDER];
         float *referenceInputFluxCal = new float[MAXSPECTRALELEMENTSPERORDER];
@@ -358,51 +356,68 @@ int main(int argc, char *argv[])
         float *inputBeamFluxCal[MAXNUMBEROFBEAMS],*referenceBeamInputFluxCal[MAXNUMBEROFBEAMS];
         float *inputBeamThroughput[MAXNUMBEROFBEAMS],*referenceBeamInputThroughput[MAXNUMBEROFBEAMS];
         
+        operaSpectralEnergyDistribution *BeamSED[MAXNUMBEROFBEAMS];
+		operaSpectralElements *beamFluxcalibration[MAXNUMBEROFBEAMS];
+        operaSpectralElements *beamThroughput[MAXNUMBEROFBEAMS];
+        
         for(unsigned beam = 0; beam < NumberofBeams; beam++) {
             inputBeamFluxCal[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
             inputBeamThroughput[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
             referenceBeamInputFluxCal[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
             referenceBeamInputThroughput[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
         }
-                
+        
         for(unsigned index=0; index<inputFcalIndex; index++) {
             // read input flux calibration
             operaSpectralOrderVector inputSpectralOrders(inputfcal[index]);
+            
+            // get wavelengthForNormalization
+            if(index==0) {
+                for (int order=minorder; order<=maxorder; order++) {
+                    operaSpectralOrder *inputSpectralOrder = inputSpectralOrders.GetSpectralOrder(order);
+                    if (inputSpectralOrder->gethasSpectralEnergyDistribution()) {
+                        operaSpectralEnergyDistribution *inputSpectralEnergyDistribution = inputSpectralOrder->getSpectralEnergyDistribution();
+                        if(inputSpectralEnergyDistribution->getwavelengthForNormalization() != 0) {
+                            wavelengthForNormalization = inputSpectralEnergyDistribution->getwavelengthForNormalization();
+                            break;
+                        }
+                    }
+                }
+            }
+            
             bool interpolate = FALSE;
             
             for (int order=minorder; order<=maxorder; order++) {
-                if (debug)
-                    cout << "operaMasterFluxCalibration: processing fcal index=" << index << " order=" << order << endl;
                 
                 operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-				
-				if (!spectralOrder->gethasSpectralElements())
-					continue;
-				
-                operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-                operaSpectralEnergyDistribution *SpectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
                 
-                unsigned nElements = SpectralElements->getnSpectralElements();
-                
-                if(nElements==0) {
-                    cerr << "operaMasterFluxCalibration: skipping order " << order << " -> reference spectrum has nElements=0" << endl;
-                    continue;
-                }
-        
-                if (spectralOrder->gethasWavelength()) {
+                if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralEnergyDistribution()) {
+                    
+                    if (debug)
+                        cout << "operaMasterFluxCalibration: processing fcal index=" << index << " order=" << order << endl;
+                    
+                    operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
+                    operaSpectralEnergyDistribution *SpectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
+                    
+                    SpectralEnergyDistribution->setwavelengthForNormalization(wavelengthForNormalization);
+                    
+                    unsigned nElements = SpectralElements->getnSpectralElements();
+                    
+                    if(nElements==0) {
+                        cerr << "operaMasterFluxCalibration: skipping order " << order << " -> reference spectrum has nElements=0" << endl;
+                        continue;
+                    }
+                    
                     for(unsigned indexElem=0; indexElem<nElements; indexElem++) {
                         referenceWavelength[indexElem] = (float)SpectralElements->getwavelength(indexElem);
                     }
                     
-                    // grab order input fcal
+                    // grab order of input fcal
                     operaSpectralOrder *inputSpectralOrder = inputSpectralOrders.GetSpectralOrder(order);
 
                     if (inputSpectralOrder->gethasSpectralEnergyDistribution()) {
                         operaSpectralEnergyDistribution *inputSpectralEnergyDistribution = inputSpectralOrder->getSpectralEnergyDistribution();
-                        if(index==0) {
-                            wavelengthForNormalization = inputSpectralEnergyDistribution->getwavelengthForNormalization();
-                            SpectralEnergyDistribution->setwavelengthForNormalization(wavelengthForNormalization);
-                        }
+
                         operaSpectralElements *FluxCalibration = inputSpectralEnergyDistribution->getFluxCalibrationElements();
                         operaSpectralElements *InstrumentThroughput = inputSpectralEnergyDistribution->getThroughputElements();
                         unsigned inputnElements = inputSpectralEnergyDistribution->getFluxCalibrationElements()->getnSpectralElements();
@@ -415,26 +430,34 @@ int main(int argc, char *argv[])
                                 cout << "operaMasterFluxCalibration: using interpolation since inputnElements="<< inputnElements<<" != nElements=" << nElements << endl;
                         }
                         
+                        for(unsigned beam = 0; beam < inputSpectralOrder->getnumberOfBeams(); beam++) {
+                            BeamSED[beam] = inputSpectralOrder->getBeamSED(beam);
+                            beamFluxcalibration[beam] = BeamSED[beam]->getFluxCalibrationElements();
+                            beamThroughput[beam] = BeamSED[beam]->getThroughputElements();
+                        }
+
+                        // loop below collects data from input fcal
                         for(unsigned indexElem=0; indexElem<inputnElements; indexElem++) {
                             inputWavelength[indexElem] = (float)FluxCalibration->getwavelength(indexElem);
-                            
+
                             if(!interpolate) {
                                 if(fabs(inputWavelength[indexElem] - referenceWavelength[indexElem]) > WAVELENGTH_PRECISION) {
-                                //if(inputWavelength[indexElem] != referenceWavelength[indexElem]) {
-                                  interpolate = TRUE;
-                                  if(verbose)
-                                     cout << "operaMasterFluxCalibration: using interpolation since |inputWavelength - referenceWavelength| = " << fabs(inputWavelength[indexElem] - referenceWavelength[indexElem]) << " > " << WAVELENGTH_PRECISION << endl;
+                                    //if(inputWavelength[indexElem] != referenceWavelength[indexElem]) {
+                                    interpolate = TRUE;
+                                    if(verbose)
+                                        cout << "operaMasterFluxCalibration: using interpolation since |inputWavelength - referenceWavelength| = " << fabs(inputWavelength[indexElem] - referenceWavelength[indexElem]) << " > " << WAVELENGTH_PRECISION << endl;
                                 }
                             }
-                            
+
                             inputFluxCal[indexElem] = (float)FluxCalibration->getFlux(indexElem);
                             inputThroughput[indexElem] = (float)InstrumentThroughput->getFlux(indexElem);
-                                                        
-                            for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
-                                inputBeamFluxCal[beam][indexElem] = (float)inputSpectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->getFlux(indexElem);
-                                inputBeamThroughput[beam][indexElem] = (float)inputSpectralOrder->getBeamSED(beam)->getThroughputElements()->getFlux(indexElem);
+
+                            for(unsigned beam = 0; beam < inputSpectralOrder->getnumberOfBeams(); beam++) {
+                                inputBeamFluxCal[beam][indexElem] = (float)(beamFluxcalibration[beam]->getFlux(indexElem));
+                                inputBeamThroughput[beam][indexElem] = (float)(beamThroughput[beam]->getFlux(indexElem));
                             }
-                            
+
+                            // below is for plotting
                             if(fspecdata != NULL) {
                                 *fspecdata << index << ' ' << order << ' ' << indexElem << ' '
                                 << FluxCalibration->getwavelength(indexElem) << ' '
@@ -442,20 +465,22 @@ int main(int argc, char *argv[])
                                 << FluxCalibration->getFluxVariance(indexElem) << ' '
                                 << InstrumentThroughput->getFlux(indexElem) << ' '
                                 << InstrumentThroughput->getFluxVariance(indexElem) << ' ';
-                               for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
+                                for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
                                     *fspecdata << beam << ' '
-                                    << inputSpectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->getFlux(indexElem) << ' '
-                                    << inputSpectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->getFluxVariance(indexElem) << ' '
-                                    << inputSpectralOrder->getBeamSED(beam)->getThroughputElements()->getFlux(indexElem) << ' '
-                                    << inputSpectralOrder->getBeamSED(beam)->getThroughputElements()->getFluxVariance(indexElem) << ' ';
+                                    << beamFluxcalibration[beam]->getFlux(indexElem) << ' '
+                                    << beamFluxcalibration[beam]->getFluxVariance(indexElem) << ' '
+                                    << beamThroughput[beam]->getFlux(indexElem) << ' '
+                                    << beamThroughput[beam]->getFluxVariance(indexElem) << ' ';
                                 }
                                 *fspecdata << endl;
                             }
                         }
+                        
+                        // below is for plotting
                         if(fspecdata != NULL) {
                             *fspecdata << endl;
                         }
-                        
+                                                
                         if(interpolate) {
                             if(verbose)
                                 cout << "operaMasterFluxCalibration: Starting interpolations" << endl;
@@ -478,10 +503,10 @@ int main(int argc, char *argv[])
                                 }
                             }
                         }
-                        
+
                         if(debug)
                             cout << "operaMasterFluxCalibration: adding values to the output fcal" << endl;
-
+                        
                         for(unsigned indexElem=0; indexElem<nElements; indexElem++) {
                             double fluxCal = SpectralEnergyDistribution->getFluxCalibrationElements()->getFlux(indexElem) + (double)referenceInputFluxCal[indexElem]/(double)inputFcalIndex;
                             double thru = SpectralEnergyDistribution->getThroughputElements()->getFlux(indexElem) + (double)referenceInputThroughput[indexElem]/(double)inputFcalIndex;
@@ -497,6 +522,7 @@ int main(int argc, char *argv[])
                                 spectralOrder->getBeamSED(beam)->getThroughputElements()->setFlux(beamthru,indexElem);
                             }
                             
+                            // below is for plotting
                             if(foutdata != NULL && index==inputFcalIndex-1) {
                                 *foutdata << index << ' ' << order << ' ' << indexElem << ' '
                                 << SpectralElements->getwavelength(indexElem) << ' '
@@ -514,28 +540,24 @@ int main(int argc, char *argv[])
                                 *foutdata << endl;
                             }
                         }
+                        // below is for plotting
                         if(foutdata != NULL && index==inputFcalIndex-1) {
                             *foutdata << endl;
                         }
                         
                     } else if (!inputSpectralOrder->gethasSpectralEnergyDistribution()) {
                         if (verbose)
-                            cout << "operaMasterFluxCalibration: Skipping order number: "<< order << " no input SpectralEnergyDistribution." << endl;
+                            cout << "operaMasterFluxCalibration: Skipping order number: "<< order << "for index=" << index << " no input SpectralEnergyDistribution." << endl;
                     }
-                    
-                } else if (!spectralOrder->gethasWavelength()) {
-                    if (verbose)
-                        cout << "operaMasterFluxCalibration: Skipping order number: "<< order << " no wavelength calibration." << endl;
-                }
-            }
-        }
+                } // if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralEnergyDistribution()) {
+            } //for (int order=minorder; order<=maxorder; order++) {
+        } //for(unsigned index=0; index<inputFcalIndex; index++) {
         
+        /*
+         * and write output
+         */
+        spectralOrders.WriteSpectralOrders(outputfcal, Fcal);
         
-		/* 
-		 * and write it out
-		 */
-		spectralOrders.WriteSpectralOrders(outputfcal, Fcal);
-		
         delete[] referenceWavelength;
         delete[] inputWavelength;
         delete[] inputFluxCal;
@@ -550,14 +572,14 @@ int main(int argc, char *argv[])
             delete[] referenceBeamInputThroughput[beam];
         }
         
-		if (fspecdata != NULL && foutdata != NULL) {
-			fspecdata->close();
+        if (fspecdata != NULL && foutdata != NULL) {
+            fspecdata->close();
             foutdata->close();
             
             if (!scriptfilename.empty()) {
                 GenerateMasterFluxCalibrationPlot(scriptfilename.c_str(),plotfilename.c_str(),spectrumDataFilename.c_str(),outputDataFilename.c_str(), NumberofBeams, interactive);
             }
-        } 
+        }
 	}
 	catch (operaException e) {
 		cerr << "operaMasterFluxCalibration: " << e.getFormattedMessage() << endl;

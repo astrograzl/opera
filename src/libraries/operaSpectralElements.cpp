@@ -576,48 +576,46 @@ double operaSpectralElements::getnormalizedFlux(unsigned indexElem) {
 }
 void operaSpectralElements::setnormalizedFlux(double value, unsigned indexElem) { 
 	normalizedFlux->setflux(value, indexElem);
-}    
+}
+void operaSpectralElements::setnormalizedFluxVariance(double value, unsigned indexElem) {
+	normalizedFlux->setvariance(value, indexElem);
+}
 void operaSpectralElements::copyTOnormalizedFlux(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		normalizedFlux->setflux(getFlux(i), i);
-	}
-}    
+    *normalizedFlux = *fluxvector;
+}
 void operaSpectralElements::copyFROMnormalizedFlux(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		setFlux(getnormalizedFlux(i), i);
-	}
-}    
+    *fluxvector = *normalizedFlux;
+}
 double operaSpectralElements::getfcalFlux(unsigned indexElem) { 
 	return fcalFlux->getflux(indexElem);
 }
 void operaSpectralElements::setfcalFlux(double value, unsigned indexElem) {
 	fcalFlux->setflux(value, indexElem);
 }
-void operaSpectralElements::copyTOfcalFlux(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		fcalFlux->setflux(getFlux(i), i);
-	}
-}    
+void operaSpectralElements::setfcalFluxVariance(double value, unsigned indexElem) {
+	fcalFlux->setvariance(value, indexElem);
+}
+void operaSpectralElements::copyTOfcalFlux(void) {
+    *fcalFlux = *fluxvector;
+}
 void operaSpectralElements::copyFROMfcalFlux(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		setFlux(getfcalFlux(i), i);
-	}
-}    
+    *fluxvector = *fcalFlux;
+}
 double operaSpectralElements::getrawFlux(unsigned indexElem) {
 	return rawFlux->getflux(indexElem);
 }
 void operaSpectralElements::setrawFlux(double value, unsigned indexElem) {
 	rawFlux->setflux(value, indexElem);
 }
+void operaSpectralElements::setrawFluxVariance(double value, unsigned indexElem) {
+	rawFlux->setvariance(value, indexElem);
+}
+
 void operaSpectralElements::copyTOrawFlux(void) {
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		rawFlux->setflux(getFlux(i), i);
-	}
+    *rawFlux = *fluxvector;
 }
 void operaSpectralElements::copyFROMrawFlux(void) {
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		setFlux(rawFlux->getflux(i), i);
-	}
+    *fluxvector = *rawFlux;
 }
 
 /*

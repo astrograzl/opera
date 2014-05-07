@@ -340,8 +340,8 @@ public:
 	
     void applyNormalizationForEmissionSpectrum(unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial, ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, unsigned numberOfprintouts);
 
-    void applyNormalizationFromExistingContinuum(ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, unsigned numberOfprintouts);
- 
+    void applyNormalizationFromExistingContinuum(ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, bool normalizeBeams, unsigned numberOfprintouts);
+
     void normalizeSpectrum(operaFluxVector &uncalibratedFlux, operaFluxVector &normalizedFlux, operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial);
 	
     void measureContinuum(operaFluxVector &uncalibratedFlux,operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned nsigcut, unsigned orderOfPolynomial, bool usePolynomial);    
@@ -358,9 +358,20 @@ public:
         
     void calculateFluxCalibration(unsigned nPointsInReference,double *refwl,double *refflux,double referenceFluxForNormalization, unsigned binsize,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], ostream *poutspec, ostream *poutcontinuum);
     
+    void calculateFluxCalibration(unsigned nPointsInReference,double *refwl,double *refflux, unsigned binsize,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS], ostream *poutspec, ostream *poutcontinuum);    
+    
     void applyFluxCalibration(double exposureTime, ostream *poutcontinuum);
     
     void applyFluxCalibration(double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], bool absoluteCalibration, ostream *poutspec);
+        
+    void divideSpectralElementsBySEDElements(bool useThroughput, ostream *poutspec, bool StarPlusSky);
+
+    void multiplySpectralElementsBySEDElements(bool useThroughput,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS], ostream *poutspec);
+
+    void multiplySpectralElementsBySEDElements(bool useThroughput,double spectralBinConstant, ostream *poutspec);
+    
+    void normalizeSpectralElementsByConstant(double maxFluxForNormalization, double maxBeamFluxForNormalization[MAXNUMBEROFBEAMS]);
+
     
 	/*
 	 * LE compatibility
@@ -379,7 +390,8 @@ public:
 	 * Barycentric Wavelength Correction
 	 */
     void applyBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond);
-	
+	void setExtendedBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond);
+    void applyBarycentricWavelengthCorrectionFromExtendedRvel(void);
 };
 
 #endif

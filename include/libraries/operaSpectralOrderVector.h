@@ -332,6 +332,8 @@ public:
     
     unsigned getElemIndexAndOrdersByWavelength(int *orderWithReferenceFluxForNormalization, unsigned *elemIndexWithReferenceFluxForNormalization, double wavelength);
 
+    unsigned getOrdersByWavelengthRange(int *orderForWavelengthRange, double Range_wl0, double Range_wlf);
+
     void measureContinuumAcrossOrders(unsigned binsize, int orderBin, unsigned nsigcut);
 
     void measureContinuumAcrossOrders(unsigned binsize, int orderBin, unsigned nsigcut, unsigned nOrdersPicked, int *orderForWavelength);
@@ -343,6 +345,17 @@ public:
 	unsigned getLEElementCount(string LEfluxCalibration);
 	
 	void readLEFluxCalibration(string LEfluxCalibration, operaSpectralElements *fluxCalibrationElements);
+    
+    void calculateCleanUniformSampleOfContinuum(int Minorder, int Maxorder, unsigned binsize, double delta_wl, string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, float *uniform_wl, float *uniform_flux,float *uniform_Beamflux[MAXNUMBEROFBEAMS], bool useBeams);
+    
+    void readTelluricWavelengthINTOExtendendSpectra(string telluriccorrection, int Minorder, int Maxorder);
+    void readRVCorrectionINTOExtendendSpectra(string Radialvelocitycorrection, string WavelengthCalibration, int Minorder, int Maxorder);
+    void correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky);
+    void saveExtendedRawFlux(int Minorder, int Maxorder);
+    void normalizeFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams);
+    void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);
+    unsigned getMaxNumberOfElementsInOrder(int Minorder, int Maxorder);
+    unsigned getNumberofBeams(int Minorder, int Maxorder);
 };
 
 /*

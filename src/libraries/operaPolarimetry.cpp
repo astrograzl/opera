@@ -1170,6 +1170,14 @@ void operaPolarimetry::calculateDegreeOfPolarization(stokes_parameter_t StokesIn
         throw operaException("operaPolarimetry: unrecognized method to calculate polarization.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);        
     }
 #endif
+    
+    // The fix below is necessary since the angles of the analyzer with respect to the
+    // reference system for ESPaDOnS don't follow the same order as described in the literature.
+    // added on Dec 04 2013 EM
+    if(StokesIndex == StokesQ) {
+        PoverI -= (PoverI * 2.0);
+    }
+    
     setDegreeOfPolarization(StokesIndex, &PoverI);
     
     if (NumberOfExposures==4) {

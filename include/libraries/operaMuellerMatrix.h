@@ -8,7 +8,7 @@
  Location: Hawaii USA
  Date: Aug/2011
  
- Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
+ Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Tele]scope
  
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by

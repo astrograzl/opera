@@ -59,7 +59,6 @@
 #include "libraries/operaPolarimetry.h"             // for method_t and operaPolarimetry
 #include "libraries/operaStats.h"
 #include "libraries/operaLibCommon.h"               // for anglecoord_t and timecoord_t
-#include "libraries/operaHelio.h"					// for sexigesimal conversion
 
 #include "core-espadons/operaPolar.h"
 
@@ -236,7 +235,9 @@ int main(int argc, char *argv[])
 	string input[4];
 	string outputfilename;
 	string inputWaveFile;
-        
+    
+    string inputFlatFluxCalibration;
+    
     /* Method enumeration definition */
     method_t method = Ratio;
     
@@ -259,28 +260,7 @@ int main(int argc, char *argv[])
     
     bool generate3DPlot = FALSE;
     bool plotContinuum = FALSE;
-    
-    /*
-     * Barycentric radial velocity correction
-     */    
-	string radialvelocitycorrection;
-    /*
-     * Parameters for normalization
-     */
-    bool normalize = false;  
- 	bool fluxcalibrate = false;
-    unsigned normalizationBinsize = 100;
-    bool usePolynomial = FALSE;
-    unsigned orderOfPolynomial = 5;    
-	/*
-     * Parameters for flux calibration
-     */    
-    string fluxCalibration;
-	float exposureTime = 0.0;
-    
-    bool AbsoluteCalibration = false;
-    int orderBin = 2;
-    
+        
 	struct option longopts[] = {
 		{"input1",				1,			NULL, '1'},
 		{"input2",				1,			NULL, '2'},
@@ -291,22 +271,12 @@ int main(int argc, char *argv[])
 		{"method",				1,			NULL, 'm'},
 		{"numberofexposures",	1,			NULL, 'c'},
 		{"inputWaveFile",		1,			NULL, 'w'},	// wavelength calibration file (.wcal or .tell)
- 		{"radialvelocitycorrection",	1,	NULL, 'V'},  // Barycentric wavelength correction file (.rvel)
 
 		{"ordernumber",			1,			NULL, 'O'},
 		{"minorder",			1,			NULL, 'M'},
 		{"maxorder",			1,			NULL, 'X'},
 		
-		{"normalize",			1,			NULL, 'N'},	// apply flux normalization                                               
- 		{"normalizationBinsize",1,			NULL, 'b'},	// binsize for normalization                                                   
-		{"usePolynomial",		1,			NULL, 'l'},	// option to use polynomial for normalization 
-		{"orderOfPolynomial",	1,			NULL, 'r'},	// option to set degree of polynomial for normalization
-		
-        {"fluxcalibrate",		1,			NULL, 'f'},	// apply flux calibration        
-        {"fluxCalibration",		1,			NULL, 'x'},	// apply flux calibration; file (.fcal)        
-        {"etime",				1,			NULL, 'T'},	// needed for flux calibration        
-		{"orderBin",            1,          NULL, 'B'},  // needed for flux calibration
-		{"AbsoluteCalibration", 1,          NULL, 'A'},  // absolute or relative flux calibration
+        {"inputFlatFluxCalibration",		1,			NULL, 'f'},	// flat field file (.fcal)
 
 		{"plotfilename",		1,			NULL, 'P'},
 		{"datafilename",		1,			NULL, 'F'},
@@ -324,7 +294,7 @@ int main(int argc, char *argv[])
 		{0,0,0,0}
     };
 	
-	while((opt = getopt_long(argc, argv, "1:2:3:4:o:s:c:m:w:V:O:N:b:l:r:f:x:T:B:A:M:X:P:F:S:I:E:C:p::I::v::d::t::h", 
+	while((opt = getopt_long(argc, argv, "1:2:3:4:o:s:c:m:w:O:M:X:f:P:F:S:I:E:C:p::I::v::d::t::h", 
 							 longopts, NULL))  != -1)
 	{
 		switch(opt) 
@@ -356,9 +326,6 @@ int main(int argc, char *argv[])
 			case 'w':
 				inputWaveFile = optarg;
 				break;  
-			case 'V':		// for telluric wl correction
-				radialvelocitycorrection = optarg;
-				break;
 				
 			case 'O':
 				ordernumber = atoi(optarg);
@@ -372,33 +339,8 @@ int main(int argc, char *argv[])
                 maxorderprovided = true;
 				break;
 
-			case 'f':		// for flux calibration
-				fluxcalibrate = atoi(optarg)==1;
-				break;
-			case 'N':		// for normalization
-				normalize = atoi(optarg)==1;
-				break;
-			case 'b':		// normalization binsize
-				normalizationBinsize = atoi(optarg);
-				break;
-			case 'l':		
-				usePolynomial = atoi(optarg)==1;
-				break;
-			case 'r':
-				orderOfPolynomial = atoi(optarg);
-				break;  
-
-			case 'x':       // for flux calibration
-				fluxCalibration = optarg;
-				break;    
-			case 'T':
-				exposureTime = atof(optarg);
-				break;		
-			case 'B':
-				orderBin = atoi(optarg);
-				break;
-			case 'A':
-				AbsoluteCalibration = atoi(optarg)==1;
+			case 'f':		// flat field fcal
+				inputFlatFluxCalibration = optarg;
 				break;
 
 			case 'E':
@@ -473,22 +415,12 @@ int main(int argc, char *argv[])
             for(unsigned i=0;i<NumberOfExposures;i++) {
                 cout << "operaPolar: input " << i+1 << " = " << input[i] << endl;
             }
-			cout << "operaPolar: output file = " << outputfilename << endl;
-			cout << "operaPolar: inputWaveFile = " << inputWaveFile << endl;
+			cout << "operaPolar: outputfilename = " << outputfilename << endl;
+			cout << "operaPolar: StokesParameter = " << inputWaveFile << endl;
 			cout << "operaPolar: StokesParameter = " << StokesParameter << endl; 
 			cout << "operaPolar: method = " << method << endl;
-            cout << "operaPolar: normalize = " << normalize << endl;  
-            cout << "operaPolar: binsize for normalization = " << normalizationBinsize << endl; 
-            cout << "operaPolar: usePolynomial = " << usePolynomial << endl; 
-            cout << "operaPolar: orderOfPolynomial = " << orderOfPolynomial << endl; 
-            cout << "operaPolar: input flux calibration file = " << fluxCalibration << endl; 
-            cout << "operaPolar: flux calibrate = " << fluxcalibrate << endl; 
-			cout << "operaPolar: exposure time = " << exposureTime << endl;
-			cout << "operaPolar: order bin = " << orderBin << endl;
-			cout << "operaPolar: absolute calibration = " << AbsoluteCalibration << endl;
+            cout << "operaPolar: inputFlatFluxCalibration = " << inputFlatFluxCalibration << endl;
             
-            cout << "operaPolar: radialvelocitycorrection = " << radialvelocitycorrection << endl;  
-			
             if(ordernumber != NOTPROVIDED) {
                 cout << "operaPolar: ordernumber = " << ordernumber << endl;            
             }             
@@ -503,43 +435,11 @@ int main(int argc, char *argv[])
             
 		}
         
-        /* Create the spectral order vector based on inputs */
-        operaSpectralOrderVector *spectralOrdervector[4];
-        
-        
-        unsigned NumberofBeams = 2;
-        double uncalibratedContinuumFluxForNormalization[4];
-        double uncalibratedContinuumBeamFluxForNormalization[4][MAXNUMBEROFBEAMS];
-        double spectralBinConstant[4];
-        double BeamSpectralBinConstant[4][MAXNUMBEROFBEAMS];
-        
-        for(unsigned i=0;i<NumberOfExposures;i++) {
-            /* Inputs file name check */
-            if (input[i].empty()) {
-                throw operaException("operaPolar: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
-            }
-            /* Create the spectral order vector based on inputs */
-            spectralOrdervector[i] = new operaSpectralOrderVector(input[i]);
-            if (!inputWaveFile.empty()) {
-                spectralOrdervector[i]->ReadSpectralOrders(inputWaveFile);
-            }
-            
-            if (!fluxCalibration.empty()) {
-                spectralOrdervector[i]->ReadSpectralOrders(fluxCalibration);
-    
-                unsigned nsigcut = 3;
-                spectralOrdervector[i]->getContinuumFluxesForNormalization(&uncalibratedContinuumFluxForNormalization[i],uncalibratedContinuumBeamFluxForNormalization[i],normalizationBinsize, orderBin, nsigcut);
-                
-                spectralBinConstant[i] = exposureTime;
-                for(unsigned beam=0; beam < NumberofBeams; beam++) {
-                    BeamSpectralBinConstant[i][beam] = exposureTime;
-                }
-            }
-            
-        }
-        
         /* Create output spectral order vector based on base spectrum (i=0)*/
         operaSpectralOrderVector outputorderVector(input[0]);
+        if (!inputFlatFluxCalibration.empty()) {
+            outputorderVector.ReadSpectralOrders(inputFlatFluxCalibration);
+        }
         if (!inputWaveFile.empty()) {
             outputorderVector.ReadSpectralOrders(inputWaveFile);
         }
@@ -560,6 +460,26 @@ int main(int argc, char *argv[])
 			cerr << "operaPolar: minorder = " << minorder << " maxorder = " << maxorder << endl;
 		}
         
+        /* Create the spectral order vector based on inputs */
+        operaSpectralOrderVector *spectralOrdervector[4];
+        for(unsigned i=0;i<NumberOfExposures;i++) {
+            /* Inputs file name check */
+            if (input[i].empty()) {
+                throw operaException("operaPolar: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+            }
+            /* Create the spectral order vector based on inputs */
+            spectralOrdervector[i] = new operaSpectralOrderVector(input[i]);
+            if (!inputWaveFile.empty()) {
+                spectralOrdervector[i]->ReadSpectralOrders(inputWaveFile);
+            }
+            
+            /* Correct flat-field */
+            if (!inputFlatFluxCalibration.empty()) {
+                spectralOrdervector[i]->correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false);
+            }
+        }
+        
+        
         operaSpectralOrder *spectralOrder[4];
         operaSpectralElements *spectralElements[4];
         operaWavelength *wavelength[4];
@@ -576,19 +496,11 @@ int main(int argc, char *argv[])
                 spectralOrder[i] = spectralOrdervector[i]->GetSpectralOrder(order);
                 
                 if(spectralOrder[i]->gethasSpectralElements()) {
-					if (normalize) {
-						spectralOrder[i]->applyNormalization(normalizationBinsize, orderOfPolynomial, usePolynomial, NULL, NULL, TRUE, 0);
-					} else if (fluxcalibrate && !fluxCalibration.empty() && spectralOrder[i]->gethasSpectralEnergyDistribution()) {
-                        spectralOrder[i]->applyFluxCalibration(spectralBinConstant[i], BeamSpectralBinConstant[i], uncalibratedContinuumFluxForNormalization[i],uncalibratedContinuumBeamFluxForNormalization[i], AbsoluteCalibration, NULL);
-					}
                     spectralElements[i] = spectralOrder[i]->getSpectralElements();
                     spectralElementsTest++;
 					if (spectralOrder[i]->gethasWavelength()) {
-						wavelength[i] =  spectralOrder[i]->getWavelength();
+						wavelength[i] = spectralOrder[i]->getWavelength();
 						spectralElements[i]->setwavelengthsFromCalibration(wavelength[i]);
-						if(!radialvelocitycorrection.empty()) {
-							spectralOrder[i]->applyBarycentricWavelengthCorrection(spectralOrdervector[i]->getBarycentricRadialVelocityCorrection());
-						}
 					}
                 }
             }
@@ -600,6 +512,9 @@ int main(int argc, char *argv[])
                 unsigned length = spectralOrder[0]->getBeamElements(0)->getFluxVector()->getlength();
                 
                 operaSpectralOrder *outputspectralOrder = outputorderVector.GetSpectralOrder(order);
+                if (!inputFlatFluxCalibration.empty() && outputspectralOrder->gethasSpectralEnergyDistribution()) {
+                    outputspectralOrder->divideSpectralElementsBySEDElements(true, NULL, false);
+                }
                 operaSpectralElements *outputspectralElements = outputspectralOrder->getSpectralElements();
                 operaWavelength *outputwavelength = NULL;
                 

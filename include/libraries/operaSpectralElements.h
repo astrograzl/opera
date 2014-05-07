@@ -212,15 +212,18 @@ public:
 	void copyTOrvel(void);
 	void copyFROMrvel(void);
 	double getnormalizedFlux(unsigned indexElem);  
-	void setnormalizedFlux(double value, unsigned indexElem);    
+	void setnormalizedFlux(double value, unsigned indexElem);
+    void setnormalizedFluxVariance(double value, unsigned indexElem);
 	void copyTOnormalizedFlux(void);
 	void copyFROMnormalizedFlux(void);
-	double getfcalFlux(unsigned indexElem);  
-	void setfcalFlux(double value, unsigned indexElem);    
+	double getfcalFlux(unsigned indexElem);
+	void setfcalFlux(double value, unsigned indexElem);
+    void setfcalFluxVariance(double value, unsigned indexElem);    
 	void copyTOfcalFlux(void);
 	void copyFROMfcalFlux(void);
 	double getrawFlux(unsigned indexElem);  
-	void setrawFlux(double value, unsigned indexElem);    
+	void setrawFlux(double value, unsigned indexElem);
+    void setrawFluxVariance(double value, unsigned indexElem);
 	void copyTOrawFlux(void);
 	void copyFROMrawFlux(void);
 	

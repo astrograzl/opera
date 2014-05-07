@@ -56,7 +56,9 @@ bin_PROGRAMS = operaSNR$(EXEEXT) operaWavelengthCalibration$(EXEEXT) \
 	operaObservingConditionsSetup$(EXEEXT) \
 	operaSpectrographSetup$(EXEEXT) operaTelescopeSetup$(EXEEXT) \
 	operaNormalizeAcrossOrders$(EXEEXT) \
-	operaCreateFlatFieldFluxCalibration$(EXEEXT)
+	operaCreateFlatFieldFluxCalibration$(EXEEXT) \
+	operaTelluricCorrection$(EXEEXT) operaStitchOrders$(EXEEXT) \
+	operaGenerateLEFormats$(EXEEXT)
 
 #
 # wcs support
@@ -124,6 +126,9 @@ operaFluxCalibration_LDADD = $(LDADD)
 am_operaGain_OBJECTS = operaGain.$(OBJEXT)
 operaGain_OBJECTS = $(am_operaGain_OBJECTS)
 operaGain_LDADD = $(LDADD)
+am_operaGenerateLEFormats_OBJECTS = operaGenerateLEFormats.$(OBJEXT)
+operaGenerateLEFormats_OBJECTS = $(am_operaGenerateLEFormats_OBJECTS)
+operaGenerateLEFormats_LDADD = $(LDADD)
 am_operaGeometryCalibration_OBJECTS =  \
 	operaGeometryCalibration.$(OBJEXT)
 operaGeometryCalibration_OBJECTS =  \
@@ -205,9 +210,17 @@ operaStarOnly_LDADD = $(LDADD)
 am_operaStarPlusSky_OBJECTS = operaStarPlusSky.$(OBJEXT)
 operaStarPlusSky_OBJECTS = $(am_operaStarPlusSky_OBJECTS)
 operaStarPlusSky_LDADD = $(LDADD)
+am_operaStitchOrders_OBJECTS = operaStitchOrders.$(OBJEXT)
+operaStitchOrders_OBJECTS = $(am_operaStitchOrders_OBJECTS)
+operaStitchOrders_LDADD = $(LDADD)
 am_operaTelescopeSetup_OBJECTS = operaTelescopeSetup.$(OBJEXT)
 operaTelescopeSetup_OBJECTS = $(am_operaTelescopeSetup_OBJECTS)
 operaTelescopeSetup_LDADD = $(LDADD)
+am_operaTelluricCorrection_OBJECTS =  \
+	operaTelluricCorrection.$(OBJEXT)
+operaTelluricCorrection_OBJECTS =  \
+	$(am_operaTelluricCorrection_OBJECTS)
+operaTelluricCorrection_LDADD = $(LDADD)
 am_operaTelluricWavelengthCorrection_OBJECTS =  \
 	operaTelluricWavelengthCorrection.$(OBJEXT)
 operaTelluricWavelengthCorrection_OBJECTS =  \
@@ -250,6 +263,7 @@ SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
 	$(operaExtraction_SOURCES) \
 	$(operaExtractionApertureCalibration_SOURCES) \
 	$(operaFluxCalibration_SOURCES) $(operaGain_SOURCES) \
+	$(operaGenerateLEFormats_SOURCES) \
 	$(operaGeometryCalibration_SOURCES) \
 	$(operaInstrumentProfileCalibration_SOURCES) \
 	$(operaMasterBias_SOURCES) $(operaMasterComparison_SOURCES) \
@@ -265,7 +279,9 @@ SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
 	$(operaPolarimetryCorrection_SOURCES) \
 	$(operaReductionSet_SOURCES) $(operaSNR_SOURCES) \
 	$(operaSpectrographSetup_SOURCES) $(operaStarOnly_SOURCES) \
-	$(operaStarPlusSky_SOURCES) $(operaTelescopeSetup_SOURCES) \
+	$(operaStarPlusSky_SOURCES) $(operaStitchOrders_SOURCES) \
+	$(operaTelescopeSetup_SOURCES) \
+	$(operaTelluricCorrection_SOURCES) \
 	$(operaTelluricWavelengthCorrection_SOURCES) \
 	$(operaWavelengthCalibration_SOURCES)
 DIST_SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
@@ -279,6 +295,7 @@ DIST_SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
 	$(operaExtraction_SOURCES) \
 	$(operaExtractionApertureCalibration_SOURCES) \
 	$(operaFluxCalibration_SOURCES) $(operaGain_SOURCES) \
+	$(operaGenerateLEFormats_SOURCES) \
 	$(operaGeometryCalibration_SOURCES) \
 	$(operaInstrumentProfileCalibration_SOURCES) \
 	$(operaMasterBias_SOURCES) $(operaMasterComparison_SOURCES) \
@@ -294,7 +311,9 @@ DIST_SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
 	$(operaPolarimetryCorrection_SOURCES) \
 	$(operaReductionSet_SOURCES) $(operaSNR_SOURCES) \
 	$(operaSpectrographSetup_SOURCES) $(operaStarOnly_SOURCES) \
-	$(operaStarPlusSky_SOURCES) $(operaTelescopeSetup_SOURCES) \
+	$(operaStarPlusSky_SOURCES) $(operaStitchOrders_SOURCES) \
+	$(operaTelescopeSetup_SOURCES) \
+	$(operaTelluricCorrection_SOURCES) \
 	$(operaTelluricWavelengthCorrection_SOURCES) \
 	$(operaWavelengthCalibration_SOURCES)
 ETAGS = etags
@@ -464,6 +483,9 @@ AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 	-loperaSpectralEnergyDistribution -loperaSpectrumSimulation \
 	-lPixelSet -loperaStats -loperaLib -lfftw3 -lgzstream \
 	-lcfitsio -lz -lsofa_c -lpthread -lm $(am__append_1)
+operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp operaGenerateLEFormats.h
+operaStitchOrders_SOURCES = operaStitchOrders.cpp operaStitchOrders.h
+operaTelluricCorrection_SOURCES = operaTelluricCorrection.cpp operaTelluricCorrection.h
 operaCreateFlatFieldFluxCalibration_SOURCES = operaCreateFlatFieldFluxCalibration.cpp operaCreateFlatFieldFluxCalibration.h
 operaNormalizeAcrossOrders_SOURCES = operaNormalizeAcrossOrders.cpp operaNormalizeAcrossOrders.h
 operaTelescopeSetup_SOURCES = operaTelescopeSetup.cpp operaTelescopeSetup.h
@@ -597,6 +619,9 @@ operaFluxCalibration$(EXEEXT): $(operaFluxCalibration_OBJECTS) $(operaFluxCalibr
 operaGain$(EXEEXT): $(operaGain_OBJECTS) $(operaGain_DEPENDENCIES) 
 	@rm -f operaGain$(EXEEXT)
 	$(CXXLINK) $(operaGain_OBJECTS) $(operaGain_LDADD) $(LIBS)
+operaGenerateLEFormats$(EXEEXT): $(operaGenerateLEFormats_OBJECTS) $(operaGenerateLEFormats_DEPENDENCIES) 
+	@rm -f operaGenerateLEFormats$(EXEEXT)
+	$(CXXLINK) $(operaGenerateLEFormats_OBJECTS) $(operaGenerateLEFormats_LDADD) $(LIBS)
 operaGeometryCalibration$(EXEEXT): $(operaGeometryCalibration_OBJECTS) $(operaGeometryCalibration_DEPENDENCIES) 
 	@rm -f operaGeometryCalibration$(EXEEXT)
 	$(CXXLINK) $(operaGeometryCalibration_OBJECTS) $(operaGeometryCalibration_LDADD) $(LIBS)
@@ -660,9 +685,15 @@ operaStarOnly$(EXEEXT): $(operaStarOnly_OBJECTS) $(operaStarOnly_DEPENDENCIES)
 operaStarPlusSky$(EXEEXT): $(operaStarPlusSky_OBJECTS) $(operaStarPlusSky_DEPENDENCIES) 
 	@rm -f operaStarPlusSky$(EXEEXT)
 	$(CXXLINK) $(operaStarPlusSky_OBJECTS) $(operaStarPlusSky_LDADD) $(LIBS)
+operaStitchOrders$(EXEEXT): $(operaStitchOrders_OBJECTS) $(operaStitchOrders_DEPENDENCIES) 
+	@rm -f operaStitchOrders$(EXEEXT)
+	$(CXXLINK) $(operaStitchOrders_OBJECTS) $(operaStitchOrders_LDADD) $(LIBS)
 operaTelescopeSetup$(EXEEXT): $(operaTelescopeSetup_OBJECTS) $(operaTelescopeSetup_DEPENDENCIES) 
 	@rm -f operaTelescopeSetup$(EXEEXT)
 	$(CXXLINK) $(operaTelescopeSetup_OBJECTS) $(operaTelescopeSetup_LDADD) $(LIBS)
+operaTelluricCorrection$(EXEEXT): $(operaTelluricCorrection_OBJECTS) $(operaTelluricCorrection_DEPENDENCIES) 
+	@rm -f operaTelluricCorrection$(EXEEXT)
+	$(CXXLINK) $(operaTelluricCorrection_OBJECTS) $(operaTelluricCorrection_LDADD) $(LIBS)
 operaTelluricWavelengthCorrection$(EXEEXT): $(operaTelluricWavelengthCorrection_OBJECTS) $(operaTelluricWavelengthCorrection_DEPENDENCIES) 
 	@rm -f operaTelluricWavelengthCorrection$(EXEEXT)
 	$(CXXLINK) $(operaTelluricWavelengthCorrection_OBJECTS) $(operaTelluricWavelengthCorrection_LDADD) $(LIBS)
@@ -688,6 +719,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtractionApertureCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFluxCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGain.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGenerateLEFormats.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGeometryCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaInstrumentProfileCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMasterBias.Po@am__quote@
@@ -709,7 +741,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaSpectrographSetup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStarOnly.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStarPlusSky.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStitchOrders.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaTelescopeSetup.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaTelluricCorrection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaTelluricWavelengthCorrection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaWavelengthCalibration.Po@am__quote@
 

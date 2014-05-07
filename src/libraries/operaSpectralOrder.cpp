@@ -1463,7 +1463,6 @@ void operaSpectralOrder::setSpectralElementsByStitchingApertures(double effectiv
         double alpha = aa - intersect;
         double beta = bb - slope;
 		
-#ifdef PRINT_DEBUG
         // Applying Bhaskara's equation we have:
         // y = (-beta +/- sqrt(beta^2 - 4*alpha*cc)/(2*alpha)
 		
@@ -1486,9 +1485,8 @@ void operaSpectralOrder::setSpectralElementsByStitchingApertures(double effectiv
         } else {
             ycenter = ycenter_plus;
         }
-#endif
         
-        ycenter = (2*alpha)/(-beta - sqrt(beta*beta - 4*alpha*cc));
+        //ycenter = (2*alpha)/(-beta - sqrt(beta*beta - 4*alpha*cc));
         xcenter = (double)Geometry->getCenterPolynomial()->Evaluate((double)ycenter);
         
         SpectralElements->setphotoCenter(xcenter, ycenter, indexElem);
@@ -3656,21 +3654,22 @@ void operaSpectralOrder::applyNormalizationForEmissionSpectrum(unsigned binsize,
 }
 
 
-void operaSpectralOrder::applyNormalizationFromExistingContinuum(ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, unsigned numberOfprintouts) {
+void operaSpectralOrder::applyNormalizationFromExistingContinuum(ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, bool normalizeBeams, unsigned numberOfprintouts) {
     
     operaFluxVector *normalizedBeamFlux[MAXNUMBEROFBEAMS];
     operaFluxVector *beamContinuum[MAXNUMBEROFBEAMS];
 	operaFluxVector *spectralFlux = SpectralElements->getFluxVector();
     
-    for(unsigned beam=0; beam < numberOfBeams; beam++) {
-        normalizedBeamFlux[beam] = new operaFluxVector(BeamElements[beam]->getFluxVector()->getlength());
-        
-        beamContinuum[beam] = BeamSED[beam]->getUncalibratedFluxElements()->getFluxVector();
-		operaFluxVector *beamFlux = BeamElements[beam]->getFluxVector();
-        
-        (*normalizedBeamFlux[beam]) = (*beamFlux)/(*beamContinuum[beam]);
-    }
-	
+    if(normalizeBeams) {
+        for(unsigned beam=0; beam < numberOfBeams; beam++) {
+            normalizedBeamFlux[beam] = new operaFluxVector(BeamElements[beam]->getFluxVector()->getlength());
+            
+            beamContinuum[beam] = BeamSED[beam]->getUncalibratedFluxElements()->getFluxVector();
+            operaFluxVector *beamFlux = BeamElements[beam]->getFluxVector();
+            
+            (*normalizedBeamFlux[beam]) = (*beamFlux)/(*beamContinuum[beam]);
+        }
+	}
     unsigned numberOfElements = spectralFlux->getlength();
 	
 	if (numberOfElements == 0) {
@@ -3731,16 +3730,20 @@ void operaSpectralOrder::applyNormalizationFromExistingContinuum(ostream *poutsp
     }
     
     if(overwriteUncalFlux) {
-        for(unsigned beam=0; beam < numberOfBeams; beam++) {
-            BeamElements[beam]->setFluxVector(normalizedBeamFlux[beam]);
+        if(normalizeBeams) {
+            for(unsigned beam=0; beam < numberOfBeams; beam++) {
+                BeamElements[beam]->setFluxVector(normalizedBeamFlux[beam]);
+            }
         }
         SpectralElements->setFluxVector(&normalizedFlux);
     }
     
-    for(unsigned beam=0; beam < numberOfBeams; beam++) {
-        if (normalizedBeamFlux[beam])
-			delete normalizedBeamFlux[beam];
-        normalizedBeamFlux[beam] = NULL;
+    if(normalizeBeams) {
+        for(unsigned beam=0; beam < numberOfBeams; beam++) {
+            if (normalizedBeamFlux[beam])
+                delete normalizedBeamFlux[beam];
+            normalizedBeamFlux[beam] = NULL;
+        }
     }
 }
 
@@ -4101,6 +4104,98 @@ void operaSpectralOrder::calculateFluxCalibrationFromExistingContinuum(unsigned 
     }
 }
 
+void operaSpectralOrder::calculateFluxCalibration(unsigned nPointsInReference,double *refwl,double *refflux, unsigned binsize,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS], ostream *poutspec, ostream *poutcontinuum) {
+    
+    double referenceFluxForNormalization = 1.0;
+    double uncalibratedContinuumFluxForNormalization = 1.0;
+    double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS];
+    
+	if (binsize == 0) {
+		throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+	}
+    SpectralElements->setwavelengthsFromCalibration(Wavelength);
+    
+    // use info in SpectralElements and binsize to create spectralEnergyDistribution
+    createSpectralEnergyDistribution(binsize);
+
+    unsigned nsigcut = 3;
+
+    SpectralEnergyDistribution->setUncalibratedFluxElements(SpectralElements);
+    SpectralEnergyDistribution->calculateCalibratedElements(nPointsInReference,refwl,refflux);
+    SpectralEnergyDistribution->calculateUncalibratedElements(binsize,nsigcut);
+    
+    for(unsigned beam=0; beam < numberOfBeams; beam++) {
+        uncalibratedContinuumBeamFluxForNormalization[beam] = 1.0;
+        
+        for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+            BeamElements[beam]->setdistd(SpectralElements->getdistd(indexElem), indexElem);
+        }
+        BeamElements[beam]->setwavelengthsFromCalibration(Wavelength);
+        
+        BeamSED[beam]->setUncalibratedFluxElements(BeamElements[beam]);
+        BeamSED[beam]->calculateCalibratedElements(nPointsInReference,refwl,refflux);
+        BeamSED[beam]->calculateUncalibratedElements(binsize,nsigcut);
+        BeamSED[beam]->calculateSEDelements(BeamSpectralBinConstant[beam],referenceFluxForNormalization,uncalibratedContinuumBeamFluxForNormalization[beam]);
+    }
+    
+    SpectralEnergyDistribution->calculateSEDelements(spectralBinConstant,referenceFluxForNormalization,uncalibratedContinuumFluxForNormalization);
+    
+    sethasSpectralEnergyDistribution(true);
+    
+    if (poutspec != NULL) {
+        for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+            *poutspec << orderNumber << " "
+            << indexElem << " "
+            << SpectralElements->getphotoCenterX(indexElem) << " "
+            << SpectralElements->getphotoCenterY(indexElem) << " "
+            << SpectralElements->getdistd(indexElem) << " "
+            << SpectralElements->getwavelength(indexElem) << " "
+            << SpectralElements->getFlux(indexElem) << " "
+            << SpectralElements->getFluxVariance(indexElem) << " "
+            << SpectralEnergyDistribution->getFluxCalibrationElements()->getFlux(indexElem) << " "
+			<< SpectralEnergyDistribution->getFluxCalibrationElements()->getFluxVariance(indexElem) << " "
+			<< SpectralEnergyDistribution->getThroughputElements()->getFlux(indexElem) << " "
+			<< SpectralEnergyDistribution->getThroughputElements()->getFluxVariance(indexElem) << " "
+			<< referenceFluxForNormalization << " "
+			<< uncalibratedContinuumFluxForNormalization << " " ;
+            
+            for(unsigned beam = 0; beam < numberOfBeams; beam++) {
+                *poutspec << beam << " "
+                << BeamElements[beam]->getFlux(indexElem) << " "
+                << BeamElements[beam]->getFluxVariance(indexElem) << " "
+                << BeamSED[beam]->getFluxCalibrationElements()->getFlux(indexElem) << " "
+                << BeamSED[beam]->getFluxCalibrationElements()->getFluxVariance(indexElem) << " "
+                << BeamSED[beam]->getThroughputElements()->getFlux(indexElem) << " "
+                << BeamSED[beam]->getThroughputElements()->getFluxVariance(indexElem) << " "
+                << uncalibratedContinuumBeamFluxForNormalization[beam] << " ";
+            }
+            *poutspec << endl;
+        }
+        *poutspec << endl;
+    }
+	
+    if (poutcontinuum != NULL) {
+        for(unsigned i=0;i < SpectralEnergyDistribution->getnDataPoints(); i++) {
+            *poutcontinuum << orderNumber << " "
+			<< i << " "
+			<< SpectralEnergyDistribution->getdistanceData(i) << " "
+			<< SpectralEnergyDistribution->getwavelengthData(i) << " "
+			<< SpectralEnergyDistribution->getfluxData(i) << " ";
+            
+            for(unsigned beam = 0; beam < numberOfBeams; beam++) {
+                *poutcontinuum << beam << " "
+				<< BeamSED[beam]->getfluxData(i) << " ";
+            }
+			
+            *poutcontinuum << endl;
+        }
+        *poutcontinuum << endl;
+    }
+    
+}
+
+
+
 void operaSpectralOrder::calculateFluxCalibration(unsigned nPointsInReference,double *refwl,double *refflux,double referenceFluxForNormalization, unsigned binsize,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], ostream *poutspec, ostream *poutcontinuum) {
     
 	if (binsize == 0) {
@@ -4185,6 +4280,200 @@ void operaSpectralOrder::calculateFluxCalibration(unsigned nPointsInReference,do
     
 }
 
+void operaSpectralOrder::normalizeSpectralElementsByConstant(double maxFluxForNormalization, double maxBeamFluxForNormalization[MAXNUMBEROFBEAMS]) {
+    if (maxFluxForNormalization == 0) {
+		throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+	}
+    
+    unsigned nspecElem = SpectralElements->getnSpectralElements();
+    
+    operaFluxVector normalizedFlux(nspecElem);
+    normalizedFlux = (*SpectralElements->getFluxVector()) / maxFluxForNormalization;
+    SpectralElements->setFluxVector(&normalizedFlux);
+
+    for(unsigned beam = 0; beam < numberOfBeams; beam++) {
+        if (maxBeamFluxForNormalization[beam] == 0) {
+            throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+        }
+        operaFluxVector normalizedBeamFlux(nspecElem);
+        normalizedBeamFlux = (*BeamElements[beam]->getFluxVector()) / maxBeamFluxForNormalization[beam];
+        BeamElements[beam]->setFluxVector(&normalizedBeamFlux);
+    }
+}
+
+void operaSpectralOrder::divideSpectralElementsBySEDElements(bool useThroughput, ostream *poutspec, bool StarPlusSky) {
+    
+    if(!gethasSpectralEnergyDistribution()) {
+        throw operaException("operaSpectralOrder::applyFluxCalibration: ",operaErrorHasNoSpectralElements, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    operaSpectralElements *fluxCalibrationElements = SpectralEnergyDistribution->getFluxCalibrationElements();
+    operaSpectralElements *thruputElements = SpectralEnergyDistribution->getThroughputElements();
+    
+    unsigned ncalElem = fluxCalibrationElements->getnSpectralElements();
+    unsigned nspecElem = SpectralElements->getnSpectralElements();
+    
+    if(ncalElem != nspecElem) {
+		throw operaException("operaSpectralOrder:applyFluxCalibration: ncalElem != nspecElem; ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    operaFluxVector outputCalibratedFlux(nspecElem);
+    
+    if(useThroughput) {
+        outputCalibratedFlux = (*SpectralElements->getFluxVector()) / ((*thruputElements->getFluxVector())) ;
+    } else {
+        outputCalibratedFlux = (*SpectralElements->getFluxVector()) / ((*fluxCalibrationElements->getFluxVector())) ;
+    }
+    
+    SpectralElements->setFluxVector(&outputCalibratedFlux);
+	
+    for(unsigned beam=0; beam < numberOfBeams; beam++) {
+        operaSpectralElements *fluxCalibrationBeamElements = BeamSED[beam]->getFluxCalibrationElements();
+        operaSpectralElements *thruputBeamElements = BeamSED[beam]->getThroughputElements();
+        
+        operaFluxVector outputCalibratedBeamFlux(nspecElem);
+        
+        if(useThroughput) {
+            outputCalibratedBeamFlux = (*BeamElements[beam]->getFluxVector()) / ((*thruputBeamElements->getFluxVector())) ;
+        } else {
+            outputCalibratedBeamFlux = (*BeamElements[beam]->getFluxVector()) / ((*fluxCalibrationBeamElements->getFluxVector())) ;
+        }
+        
+        BeamElements[beam]->setFluxVector(&outputCalibratedBeamFlux);
+    }
+	
+    if(StarPlusSky) {
+        calculateStarAndSkyElements(NULL);
+    }
+    
+    if (poutspec != NULL) {
+        for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+            *poutspec << orderNumber << " "
+            << indexElem << " "
+            << SpectralElements->getphotoCenterX(indexElem) << " "
+            << SpectralElements->getphotoCenterY(indexElem) << " "
+            << SpectralElements->getdistd(indexElem) << " "
+            << SpectralElements->getwavelength(indexElem) << " "
+            << SpectralElements->getFlux(indexElem) << " "
+			<< SpectralElements->getFluxVariance(indexElem) << " ";
+            
+            for(unsigned beam = 0; beam < numberOfBeams; beam++) {
+                *poutspec << BeamElements[beam]->getFlux(indexElem) << " "
+				<< BeamElements[beam]->getFluxVariance(indexElem) << " ";
+            }
+            *poutspec << endl;
+        }
+        *poutspec << endl;
+    }
+}
+
+
+void operaSpectralOrder::multiplySpectralElementsBySEDElements(bool useThroughput,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS], ostream *poutspec) {
+    
+    if(!gethasSpectralEnergyDistribution()) {
+        throw operaException("operaSpectralOrder::applyFluxCalibration: ",operaErrorHasNoSpectralElements, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    operaSpectralElements *fluxCalibrationElements = SpectralEnergyDistribution->getFluxCalibrationElements();
+    operaSpectralElements *thruputElements = SpectralEnergyDistribution->getThroughputElements();
+    
+    unsigned ncalElem = fluxCalibrationElements->getnSpectralElements();
+    unsigned nspecElem = SpectralElements->getnSpectralElements();
+    
+    if(ncalElem != nspecElem) {
+		throw operaException("operaSpectralOrder:applyFluxCalibration: ncalElem != nspecElem; ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    operaFluxVector outputCalibratedFlux(nspecElem);
+    
+    if(useThroughput) {
+        outputCalibratedFlux = (*SpectralElements->getFluxVector()) * ((*thruputElements->getFluxVector())) / (spectralBinConstant);
+    } else {
+        outputCalibratedFlux = (*SpectralElements->getFluxVector()) * ((*fluxCalibrationElements->getFluxVector()))  / (spectralBinConstant) ;
+    }
+    
+    SpectralElements->setFluxVector(&outputCalibratedFlux);
+	
+    for(unsigned beam=0; beam < numberOfBeams; beam++) {
+        operaSpectralElements *fluxCalibrationBeamElements = BeamSED[beam]->getFluxCalibrationElements();
+        operaSpectralElements *thruputBeamElements = BeamSED[beam]->getThroughputElements();
+        
+        operaFluxVector outputCalibratedBeamFlux(nspecElem);
+        
+        if(useThroughput) {
+            outputCalibratedBeamFlux = (*BeamElements[beam]->getFluxVector()) * ((*thruputBeamElements->getFluxVector()))  / (BeamSpectralBinConstant[beam]);
+        } else {
+            outputCalibratedBeamFlux = (*BeamElements[beam]->getFluxVector()) * ((*fluxCalibrationBeamElements->getFluxVector()))  / (BeamSpectralBinConstant[beam]);
+        }
+        
+        BeamElements[beam]->setFluxVector(&outputCalibratedBeamFlux);
+    }
+	
+    if (poutspec != NULL) {
+        for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+            *poutspec << orderNumber << " "
+            << indexElem << " "
+            << SpectralElements->getphotoCenterX(indexElem) << " "
+            << SpectralElements->getphotoCenterY(indexElem) << " "
+            << SpectralElements->getdistd(indexElem) << " "
+            << SpectralElements->getwavelength(indexElem) << " "
+            << SpectralElements->getFlux(indexElem) << " "
+			<< SpectralElements->getFluxVariance(indexElem) << " ";
+            
+            for(unsigned beam = 0; beam < numberOfBeams; beam++) {
+                *poutspec << BeamElements[beam]->getFlux(indexElem) << " "
+				<< BeamElements[beam]->getFluxVariance(indexElem) << " ";
+            }
+            *poutspec << endl;
+        }
+        *poutspec << endl;
+    }
+}
+
+/*
+ * Same as multiplySpectralElementsBySEDElements but without changing the beams
+ */
+void operaSpectralOrder::multiplySpectralElementsBySEDElements(bool useThroughput,double spectralBinConstant, ostream *poutspec) {
+    
+    if(!gethasSpectralEnergyDistribution()) {
+        throw operaException("operaSpectralOrder::applyFluxCalibration: ",operaErrorHasNoSpectralElements, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    operaSpectralElements *fluxCalibrationElements = SpectralEnergyDistribution->getFluxCalibrationElements();
+    operaSpectralElements *thruputElements = SpectralEnergyDistribution->getThroughputElements();
+    
+    unsigned ncalElem = fluxCalibrationElements->getnSpectralElements();
+    unsigned nspecElem = SpectralElements->getnSpectralElements();
+    
+    if(ncalElem != nspecElem) {
+		throw operaException("operaSpectralOrder:applyFluxCalibration: ncalElem != nspecElem; ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    operaFluxVector outputCalibratedFlux(nspecElem);
+    
+    if(useThroughput) {
+        outputCalibratedFlux = (*SpectralElements->getFluxVector()) * ((*thruputElements->getFluxVector())) / (spectralBinConstant);
+    } else {
+        outputCalibratedFlux = (*SpectralElements->getFluxVector()) * ((*fluxCalibrationElements->getFluxVector()))  / (spectralBinConstant) ;
+    }
+    
+    SpectralElements->setFluxVector(&outputCalibratedFlux);
+	
+    if (poutspec != NULL) {
+        for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+            *poutspec << orderNumber << " "
+            << indexElem << " "
+            << SpectralElements->getphotoCenterX(indexElem) << " "
+            << SpectralElements->getphotoCenterY(indexElem) << " "
+            << SpectralElements->getdistd(indexElem) << " "
+            << SpectralElements->getwavelength(indexElem) << " "
+            << SpectralElements->getFlux(indexElem) << " "
+			<< SpectralElements->getFluxVariance(indexElem) << endl;
+        }
+        *poutspec << endl;
+    }
+}
+
 void operaSpectralOrder::applyFluxCalibration(double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], bool absoluteCalibration, ostream *poutspec) {
     
     if(!gethasSpectralEnergyDistribution()) {
@@ -4220,7 +4509,7 @@ void operaSpectralOrder::applyFluxCalibration(double spectralBinConstant,double 
         if(absoluteCalibration) {
             outputCalibratedBeamFlux = ((*BeamElements[beam]->getFluxVector())*(BeamSpectralBinConstant[beam]) / (*fluxCalibrationBeamElements->getFluxVector()));
         } else {
-            outputCalibratedFlux = (*BeamElements[beam]->getFluxVector()) / ((*thruputBeamElements->getFluxVector())*(uncalibratedContinuumBeamFluxForNormalization[beam])) ;
+            outputCalibratedBeamFlux = (*BeamElements[beam]->getFluxVector()) / ((*thruputBeamElements->getFluxVector())*(uncalibratedContinuumBeamFluxForNormalization[beam])) ;
         }
         
         BeamElements[beam]->setFluxVector(&outputCalibratedBeamFlux);
@@ -4385,16 +4674,20 @@ void operaSpectralOrder::calculateStarAndSkyElements(ostream *poutspec) {
     operaFluxVector skyFlux(nspecElem);
     operaFluxVector starPlusSkyFlux(nspecElem);
     
-    // This routine assumes that the first half of beams is sky 
-    // and the second half is object+sky
+    // Below it assumes there is only two beams, beam=0 is star+sky and beam=1 is sky
+    starPlusSkyFlux = (*BeamElements[0]->getFluxVector());
+    skyFlux = (*BeamElements[1]->getFluxVector());
     
+    // Below it assumes that the first half of beams is object+sky 
+    // and the second half is sky
+    /*
     for(unsigned beam = 0; beam < numberOfBeams; beam++) {   
         if(beam < floor(float(numberOfBeams)/2)) {
             starPlusSkyFlux += (*BeamElements[beam]->getFluxVector());  
         } else if(float(beam) >= float(numberOfBeams)/2) {
             skyFlux += (*BeamElements[beam]->getFluxVector());  
         }
-    }        
+    } */
     
     for(unsigned indexElem=0;indexElem<nspecElem;indexElem++) {
         SkyElements->setphotoCenter(SpectralElements->getphotoCenterX(indexElem),SpectralElements->getphotoCenterY(indexElem),indexElem);        
@@ -4404,7 +4697,15 @@ void operaSpectralOrder::calculateStarAndSkyElements(ostream *poutspec) {
     
     operaFluxVector starFlux(nspecElem);
     
-    starFlux = starPlusSkyFlux - skyFlux;
+    //starFlux = starPlusSkyFlux - skyFlux;
+    
+    // Below is a workaround since operaFluxVector routines can't handle negative values appropriately
+    for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+        double skysubtractedflux = starPlusSkyFlux.getflux(indexElem) - skyFlux.getflux(indexElem);
+        double variance = starPlusSkyFlux.getvariance(indexElem);
+        starFlux.setflux(skysubtractedflux,indexElem);
+        starFlux.setvariance(variance,indexElem);
+    }
     
     SpectralElements->setFluxVector(&starFlux);
     
@@ -4487,14 +4788,39 @@ void operaSpectralOrder::calculatePolarElements(ostream *poutspec) {
 /*
  * Barycentric Wavelength Correction
  */
-void operaSpectralOrder::applyBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond) {
+void operaSpectralOrder::applyBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond) {
     if(gethasWavelength() && SpectralElements->getHasDistance() && !SpectralElements->getHasWavelength()) {
         SpectralElements->setwavelengthsFromCalibration(getWavelength());
     }
     
     for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
         double currentElemWavelength = SpectralElements->getwavelength(indexElem);
-        double wavelengthCorrection = currentElemWavelength*(RVcorrectionInKmPerSecond/SPEED_OF_LIGHT_M);
+        double wavelengthCorrection = currentElemWavelength*(RVcorrectionInMetersPerSecond/SPEED_OF_LIGHT_M);
         SpectralElements->setwavelength(currentElemWavelength+wavelengthCorrection,indexElem);
     }
 }
+
+void operaSpectralOrder::setExtendedBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond) {
+    
+    if(!gethasWavelength() || !SpectralElements->getHasDistance() || !SpectralElements->getHasExtendedBeamFlux()) {
+        throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+        double currentElemWavelength = SpectralElements->getwavelength(indexElem);
+        double wavelengthCorrection = currentElemWavelength*(RVcorrectionInMetersPerSecond/SPEED_OF_LIGHT_M);
+        SpectralElements->setrvel(wavelengthCorrection,indexElem);
+    }
+}
+
+void operaSpectralOrder::applyBarycentricWavelengthCorrectionFromExtendedRvel(void) {
+    
+    if(!SpectralElements->getHasExtendedBeamFlux()) {
+        throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
+        SpectralElements->setwavelength(SpectralElements->getwavelength(indexElem) + SpectralElements->getrvel(indexElem),indexElem);
+    }
+}
+

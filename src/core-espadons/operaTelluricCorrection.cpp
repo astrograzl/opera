@@ -51,17 +51,17 @@
 #include "libraries/operaException.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaSpectralOrder.h"
-#include "libraries/operaSpectralElements.h"		// for operaSpectrum_t
-#include "core/operaTelluricCorrection.h"
+#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
+#include "core-espadons/operaTelluricWavelengthCorrection.h"
 
 /*! \brief telluric correction. */
 /*! \file operaTelluricCorrection.cpp */
 /*! \package operaTelluricCorrection */
 
 using namespace std;
-
+#if 0
 static int debug=0, verbose=0, trace=0;
-
+#endif
 /*! 
  * operaTelluricCorrection
  * \author Doug Teeple
@@ -81,6 +81,9 @@ static int debug=0, verbose=0, trace=0;
 
 int main(int argc, char *argv[])
 {
+#if 0
+	
+???? DT May 8 2014 this doesnt seem right at all????
 	int opt;
 	string wavelengthcalibrationfilename;
 	string inputfilename;
@@ -185,10 +188,10 @@ int main(int argc, char *argv[])
 		cerr << "operaTelluricCorrection: " << operaStrError(errno) << endl;
 		return EXIT_FAILURE;
 	}
-	
+#endif	
 	return EXIT_SUCCESS;
 } 
-
+#if 0
 /* Print out the proper program usage syntax */
 static void printUsageSyntax(char * modulename) {
 	
@@ -204,3 +207,4 @@ static void printUsageSyntax(char * modulename) {
 	"  -o, --output=<PRODUCT_FILE_NAME>, Output product file  \n"
 	"  -i, --input=<INPUT_FILE_NAME>, Input files  \n\n";
 }
+#endif

@@ -87,6 +87,8 @@ int main(int argc, char *argv[])
     
     unsigned maxorderofpolynomial = 4;      // maximum degree of polynomial for wavelength solution
 
+    bool updateOrderOfPolynomial = false;
+    
     unsigned minoutputorder = 22;
     bool minorderprovided = false;
     unsigned maxoutputorder = 61;
@@ -357,6 +359,8 @@ int main(int argc, char *argv[])
          * Below it uses the echelle dispersion calibration to update the wavelength solution
          * Note that this will only be called if there is an associated output calibration file
          */
+        unsigned neworderofpolynomial = maxorderofpolynomial;
+        
         if (!outputWaveFile.empty()) {
 			spectralOrdervector.setMinorder(minoutputorder);
 			spectralOrdervector.setMaxorder(maxoutputorder);
@@ -369,7 +373,11 @@ int main(int argc, char *argv[])
                 operaWavelength *wavelength =  spectralOrder->getWavelength();
                 Polynomial *wavelengthPolynomial =  wavelength->getWavelengthPolynomial();
                 
-                wavelengthPolynomial->setOrderOfPolynomial(maxorderofpolynomial);
+                if(updateOrderOfPolynomial) {
+                    wavelengthPolynomial->setOrderOfPolynomial(neworderofpolynomial); // set new order of output polynomial
+                } else {
+                    neworderofpolynomial = wavelengthPolynomial->getOrderOfPolynomial();  // don't update order of polynomial
+                }
                 
                 for(unsigned wlcoeffIndex=0; wlcoeffIndex < maxorderofpolynomial; wlcoeffIndex++) {
                     double wavelengthPolynomialCoeff = dispersionPolynomial[wlcoeffIndex]->Evaluate(double(order));

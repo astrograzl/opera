@@ -120,6 +120,8 @@ int main(int argc, char *argv[])
      * Parameters for Barycentric wavelength correction
      */
     double JDTime = 0.0;
+    double MJDTime = 0.0;
+
     skycoord_t object_coords = {0, 0, 0.0, 0, 0, 0.0};
     double ra, dec;
     geocoord_t observatory_coords = {19, 49, 41.86, 155, 28, 18.00};
@@ -139,6 +141,7 @@ int main(int argc, char *argv[])
         {"outputRVelFile",				1, NULL, 'o'},    // output radial velocity correction file (.rvel)
  		
 		{"JDTime",						1, NULL, 'J'},    // time in julian date
+		{"MJDTime",						1, NULL, 'D'},    // time in modified julian date
 		{"object_coords",				1, NULL, 'K'},    // object sky coordinates
 		{"observatory_coords",			1, NULL, 'G'},    // observatory geographic coordinates
 		{"observatory_elevation",		1, NULL, 'E'},    // observatory elevation in meters
@@ -154,7 +157,7 @@ int main(int argc, char *argv[])
 		{"help",						0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "i:o:J:K:G:E:O:M:X:p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "i:o:J:D:K:G:E:O:M:X:p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		switch(opt)
@@ -169,11 +172,15 @@ int main(int argc, char *argv[])
             case 'J':		// time in julian date
 				JDTime = atof(optarg);
 				break;
+            case 'D':		// time in modified julian date
+				MJDTime = atof(optarg);
+				break;
             case 'K':		// sky coordinates "RA Dec"
                 if (strlen(optarg)) {
 					struct time_coord sexigesimal = {0,0,0};
 					sscanf(optarg, "%lf %lf", &ra, &dec);
                     ra = ra * (24.0/360.0);
+                    
 					dec_to_sexigesimal(ra, &sexigesimal);
 					object_coords.ra_h = (int)sexigesimal.hh;
 					object_coords.ra_m = (int)sexigesimal.mm;
@@ -244,7 +251,6 @@ int main(int argc, char *argv[])
 		if (verbose) {
 			cout << "operaBarycentricWavelengthCorrection: inputWaveFile = " << inputWaveFile << endl;
 			cout << "operaBarycentricWavelengthCorrection: outputRVelFile = " << outputRVelFile << endl;
-            cout << "operaBarycentricWavelengthCorrection: time in JD = " << JDTime << endl;
 			cout << "operaBarycentricWavelengthCorrection: sky coordinates RA = " << object_coords.ra_h << ":" << object_coords.ra_m << ":"<< object_coords.ra_s  << " Dec=" << object_coords.dec_d << ":" << object_coords.dec_m << ":"<< object_coords.dec_s << "\n";
 			cout << "operaBarycentricWavelengthCorrection: geographic coordinates Latitude = " << observatory_coords.latitude_d << ":" << observatory_coords.latitude_m << ":"<< observatory_coords.latitude_s  << " Longitude=" << observatory_coords.longitude_d << ":" << observatory_coords.longitude_m << ":"<< observatory_coords.longitude_s << "\n";
             cout << "operaBarycentricWavelengthCorrection: observatory_elevation = " << observatory_elevation << " m" << endl;
@@ -321,7 +327,21 @@ int main(int argc, char *argv[])
         }
         
         double JDTime1 = 2400000.5;
-        double mjd = JDTime - JDTime1;
+        
+        if(MJDTime == 0 && JDTime != 0) {
+            MJDTime = JDTime - JDTime1;
+        } else if (MJDTime != 0 && JDTime == 0) {
+            JDTime = MJDTime + JDTime1;
+        } else {
+            throw operaException("operaBarycentricWavelengthCorrection: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
+        }
+        
+        if (verbose) {
+            cout << "operaBarycentricWavelengthCorrection: time in JD = " << JDTime << endl;
+            cout << "operaBarycentricWavelengthCorrection: time in MJD = " << MJDTime << endl;
+        }
+        
+        double mjd = MJDTime;
         
         int iyear, imonth, iday;
         double fractionday;
@@ -430,10 +450,10 @@ int main(int argc, char *argv[])
          */
         heliocentric_correction(JDTime,ra,dec,ha,dbl_latitude,observatory_elevation, &timeCorrection, &rvCorrection);
         
-        if(debug) {
+     //   if(debug) {
             cout << "operaBarycentricWavelengthCorrection: TOTAL velocity correction (operaHelio library) = " << rvCorrection <<  " km/s" << endl;            
             cout << endl;            
-        }
+      //  }
 
         /*
          * Below we implement SOFA routines to calculate the Barycentric

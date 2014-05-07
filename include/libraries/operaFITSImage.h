@@ -1224,7 +1224,13 @@ public:
 	 * \brief Copies all of the header information from image.
 	 */
 	void operaFITSImageCopyHeader(operaFITSImage *from);					// copy header unit
-	/*! 
+    /*
+     * operaFITSImageCopyHeader(operaFITSImage *from, unsigned inputhdu)
+     * \brief Copies all of the header information from image.
+     */
+    void operaFITSImageCopyHeaderFromDifferentHDU(operaFITSImage *from, unsigned inputabshdu);
+	
+    /*!
 	 * operaFITSImageCopyNonStructuralHeader(operaFITSImage *from) 
 	 * \brief Copies all of the non-structural header information from image.
 	 */
@@ -1250,7 +1256,19 @@ public:
 	 * \brief rotate 90 degrees.
 	 */
 	void rotate90();
-	/*! 
+    /*!
+     * operaFITSImage::mirrorColumns()
+     * \brief mirror x.
+     */
+    void mirrorColumns(void);
+    
+    /*!
+     * operaFITSImage::mirrorRows()
+     * \brief mirror y.
+     */
+    void mirrorRows(void);
+    
+	/*!
 	 * operaFITSImage::assignVariances(float gain)
 	 * \brief Assign variances to each pixel in an image.
 	 */
@@ -1354,6 +1372,12 @@ public:
 	
 	operaImageVector *where(unsigned x, unsigned y, unsigned dx, unsigned dy);
 	
+    /*
+	 * \sa method resize(unsigned x0, unsigned xf, unsigned y0, unsigned yf)
+	 * \brief resize a product image to the given rows, cols, retaining any existing data
+     */
+    void resize(unsigned x0, unsigned xf, unsigned y0, unsigned yf);
+
 	/*! 
 	 * \sa method resize(unsigned cols, unsigned rows)
 	 * \brief resize a product image to the given rows, cols, retaining any existing data
