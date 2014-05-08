@@ -1892,4 +1892,8 @@ May 8 2014 - Teeple
 	- integrated Lison's changes from the March build.
 	- integrated Eder's build from April.
 	- *** NOTE This build is for integration testing only - the changes have been very extensive!
-	
+
+May 9 2014 - Teeple
+	- fixed circular and missing dependencies in master flat field generation
+	- fixed bad arguments to extraction
+	- fixed memory issues in reductionlist generation

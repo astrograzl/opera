@@ -120,8 +120,7 @@ ifeq ($(OSTYPE),darwin)
 	outdir			:= $$(dirname $(prefix))/opera/
 	USE_SYBASE		:= 0
 else
-	mastersrcdir	:= /cfht/src/medusa/espadons/$(me)/
-	queuedir		:= /data/niele/espadons/
+	queuedir		= /data/uhane5/opera/
 	setuproot		:= $(queuedir)opera/
 ifeq ($(observatory),CFHT)
 	USE_SYBASE		:= 0
@@ -237,18 +236,18 @@ POL					:= 4
 # SNR         [0-9]*.sn$(gzip) 
 #########################################################################################
 
-OBJECTFILEPATTERN		:= [0-9]*o.$(FITS)$(inextension)
-FLATFILEPATTERN			:= [0-9]*f.$(FITS)$(inextension)
-BIASFILEPATTERN			:= [0-9]*b.$(FITS)$(inextension)
-THORIUMFILEPATTERN		:= [0-9]*c.$(FITS)$(inextension)
-FABPERFILEPATTERN		:= [0-9]*a.$(FITS)$(inextension)
-CALFILEPATTERN			:= [0-9]*[abcf].$(FITS)$(inextension)
-ALLFILEPATTERN			:= [0-9]*[oabcf].$(FITS)$(inextension)
+OBJECTFILEPATTERN		:= gracesmay[0-9]*o.$(FITS)$(inextension)
+FLATFILEPATTERN			:= gracesmay[0-9]*f.$(FITS)$(inextension)
+BIASFILEPATTERN			:= gracesmay[0-9]*b.$(FITS)$(inextension)
+THORIUMFILEPATTERN		:= gracesmay[0-9]*c.$(FITS)$(inextension)
+FABPERFILEPATTERN		:= gracesmay[0-9]*a.$(FITS)$(inextension)
+CALFILEPATTERN			:= gracesmay[0-9]*[abcf].$(FITS)$(inextension)
+ALLFILEPATTERN			:= gracesmay[0-9]*[oabcf].$(FITS)$(inextension)
 
-INTENSITYFILEPATTERN	:= [0-9]*i.$(FITS)$(extension)
-POLARIMETRYFILEPATTERN	:= [0-9]*p.$(FITS)$(extension)
-CALSFILEPATTERN			:= [0-9]*m.$(FITS)
-SNRFILEPATTERN			:= [0-9]*.sn$(gzip)
+INTENSITYFILEPATTERN	:= gracesmay[0-9]*i.$(FITS)$(extension)
+POLARIMETRYFILEPATTERN	:= gracesmay[0-9]*p.$(FITS)$(extension)
+CALSFILEPATTERN			:= gracesmay[0-9]*m.$(FITS)
+SNRFILEPATTERN			:= gracesmay[0-9]*.sn$(gzip)
 
 OBJECTROOTPATTERN		:= o.$(FITS)$(inextension)
 INTENSITYROOTPATTERN	:= i.$(FITS)$(extension)
@@ -270,15 +269,10 @@ endif
 # mode changes be split into a, b, c sets
 #########################################################################################
 REDUCTIONSETS		:=	\
-					EEV1_sp1_Slow EEV1_sp1_Normal EEV1_sp1_Fast \
-					EEV1_sp2_Slow EEV1_sp2_Normal EEV1_sp2_Fast \
-					EEV1_pol_Slow EEV1_pol_Normal EEV1_pol_Fast \
-					OLAPA-a_sp1_Slow OLAPA-a_sp1_Normal OLAPA-a_sp1_Fast \
-					OLAPA-a_sp2_Slow OLAPA-a_sp2_Normal OLAPA-a_sp2_Fast \
-					OLAPA-a_pol_Slow OLAPA-a_pol_Normal OLAPA-a_pol_Fast \
-					OLAPA-ab_sp1_Slow OLAPA-ab_sp1_Normal OLAPA-ab_sp1_Fast \
-					OLAPA-ab_sp2_Slow OLAPA-ab_sp2_Normal OLAPA-ab_sp2_Fast \
-					OLAPA-ab_pol_Slow OLAPA-ab_pol_Normal OLAPA-ab_pol_Fast
+					OLAPA-a_sp1_Normal OLAPA-a_sp1_Fast \
+					OLAPA-a_sp2_Normal OLAPA-a_sp2_Fast \
+					OLAPA-ab_sp1_Normal OLAPA-ab_sp1_Fast \
+					OLAPA-ab_sp2_Normal OLAPA-ab_sp2_Fast
 
 #########################################################################################
 # defaults.... these will be overridden
@@ -303,7 +297,7 @@ QUALIFIERNAMELIST	:= DETECTOR MODE SPEED AMPLIFIER
 #########################################################################################
 # the keys to look for
 DETECTOR_HEADERKEY	:= DETECTOR
-MODE_HEADERKEY		:= INSTMODE
+MODE_HEADERKEY		:= GSLICER
 SPEED_HEADERKEY		:= EREADSPD
 AMPLIFIER_HEADERKEY	:= AMPLIST
 # the values of the keyword in the FITS header
@@ -314,8 +308,8 @@ AMPLIFIER_a_HEADERVALUE		:= 'a       '
 AMPLIFIER_ab_HEADERVALUE	:= 'a,b     '
 # the values of the keyword in the FITS header
 MODE_pol_HEADERVALUE		:= 'Polarimetry, R=65,000'
-MODE_sp1_HEADERVALUE		:= 'Spectroscopy, star+sky, R=65,000'
-MODE_sp2_HEADERVALUE		:= 'Spectroscopy, star only, R=80,000'
+MODE_sp1_HEADERVALUE		:= 'FOURSLICE'
+MODE_sp2_HEADERVALUE		:= 'TWOSLICE'
 # the values of the keyword in the FITS header
 # Note the % wildcard...
 SPEED_Fast_HEADERVALUE		:= 'Fast:%'
@@ -396,38 +390,6 @@ logfile				:= $(logdir)opera.log
 errfile				:= $(logdir)operaerr.log
 
 endif	# observatory == CFHT
-
-#########################################################################################
-#
-# experimental GRACES defines...
-#
-#########################################################################################
-ifeq ($(observatory),GRACES)
-queuedir		= /data/uhane5/opera/
-outdir			= /data/uhane5/opera/
-USE_SYBASE		= 0
-LIBRE_ESPRIT_COMPATIBILITY	= 0
-OBJECTFILEPATTERN		= gracesmay[0-9]*o.$(FITS)$(inextension)
-FLATFILEPATTERN			= gracesmay[0-9]*f.$(FITS)$(inextension)
-BIASFILEPATTERN			= gracesmay[0-9]*b.$(FITS)$(inextension)
-THORIUMFILEPATTERN		= gracesmay[0-9]*c.$(FITS)$(inextension)
-FABPERFILEPATTERN		= gracesmay[0-9]*a.$(FITS)$(inextension)
-CALFILEPATTERN			= gracesmay[0-9]*[abcf].$(FITS)$(inextension)
-ALLFILEPATTERN			= gracesmay[0-9]*[oabcf].$(FITS)$(inextension)
-INTENSITYFILEPATTERN	= gracesmay[0-9]*i.$(FITS)$(extension)
-POLARIMETRYFILEPATTERN	= gracesmay[0-9]*p.$(FITS)$(extension)
-CALSFILEPATTERN			= gracesmay[0-9]*m.$(FITS)
-SNRFILEPATTERN			= gracesmay[0-9]*.sn$(gzip)
-REDUCTIONSETS		=	\
-					OLAPA-a_sp1_Normal OLAPA-a_sp1_Fast \
-					OLAPA-a_sp2_Normal OLAPA-a_sp2_Fast \
-					OLAPA-ab_sp1_Normal OLAPA-ab_sp1_Fast \
-					OLAPA-ab_sp2_Normal OLAPA-ab_sp2_Fast
-		
-MODE_HEADERKEY              = GSLICER
-MODE_sp1_HEADERVALUE		= 'FOURSLICE'
-MODE_sp2_HEADERVALUE		= 'TWOSLICE'
-endif
 
 #########################################################################################
 #///

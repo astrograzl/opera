@@ -346,7 +346,7 @@ $${pargs} \
 # Note: spectral lines are no longer used in wavelength calibration, so are not created...
 #########################################################################################
 
-th_$(QUALIFIERS).e$(gzip): $(QUALIFIERS).geom$(gzip) normalizedflat_$(QUALIFIERS).$(FITS)$(extension) # th_$(QUALIFIERS).l$(gzip)
+th_$(QUALIFIERS).e$(gzip): normalizedflat_$(QUALIFIERS).$(FITS)$(extension) # th_$(QUALIFIERS).l$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting thorium spectral intensity generation for $@ using $(maxthreads) threads" ; \
@@ -386,7 +386,7 @@ $${pargs} \
 # flat field intensity spectrum.
 #########################################################################################
 
-ff_$(QUALIFIERS).e$(gzip): $(QUALIFIERS).prof$(gzip)
+ff_$(QUALIFIERS).e$(gzip): $(calibrationdir)$(QUALIFIERS).prof$(gzip) $(QUALIFIERS).geom$(gzip) $(QUALIFIERS).aper$(gzip) masterflat_$(QUALIFIERS).$(FITS)$(extension) masterbias_$(QUALIFIERS).$(FITS)$(extension) masterflat_$(QUALIFIERS).$(FITS)$(extension)
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting flat field spectral intensity generation for $@ using $(maxthreads) threads" ; \
@@ -456,7 +456,7 @@ $${pargs} \
 			echo "$(pref) opera Flux calibration for $@ not used." ; \
 		else \
 			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
+				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) --fluxcalibrate=$(operawantfcal)" ; \
 			fi ; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)$(deconstructor) \
@@ -510,7 +510,7 @@ $${pargs} \
 			echo "$(pref) opera Flux calibration for $@ not used." ; \
 		else \
 			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
+				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) --fluxcalibrate=$(operawantfcal)" ; \
 			fi ; \
 		fi ; \
 		if (( $(upenawantfcal) == 0 )) ; then \
