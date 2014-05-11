@@ -1,6 +1,6 @@
-May 9 2014 - Teeple
-	- fixed circular and missing dependencies in master flat field generation
-	- fixed bad arguments to extraction
-	- fixed memory issues in reductionlist generation
-
+May 12 2014 - Teeple
+	- flat field intensity spectrum rule was changed to have a dependency on the
+	aperture rather than the profile, since the aperture is used. The profile
+	dependency is in the aperture rule.
+	- added Build Master Documentation in doc/
 

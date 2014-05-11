@@ -65,6 +65,18 @@ Below are the instructions on how to obtain and install OPERA:
    module size by stripping debug info:
    make install-strip
 
+8. Installing for Sourceforge (build master):
+   The main source of Opera is held at CFHT on the machine named opera. Integrations
+   happen on this machine. After an integration and successful build, the entire
+   opera distribution is sent to sourceforge and a copy is sent to CFHT servers
+   on /data/world/doug. There is a script to do this:
+
+    ./scripts/operainstallweb
+    
+    This script takes two optional arguments: --nodoc and --noemail. By default
+    doxygen docs are created and a distribution email is sent. These flags speed
+    up the distribution by disabling the features.
+
 =====================
 
 Notes for MacOSX
