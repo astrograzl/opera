@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 		} 
 		
 		
-		if (debug) {  
+		if (verbose) {  
 			cout << 
 			"   ....................................................... \n"	
 			"   Running module: " << argv[0] << "\n" 
@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
 		
 		char qualival_from_FITS[MAXCONFIGVALUES][FLEN_VALUE],extractval_from_FITS[MAXCONFIGVALUES][FLEN_VALUE];
 		int FitStatus = 0, accept_quali;
-		int notfits[MAXNFILES];
+		//... not used DT May 14 2014 int notfits[MAXNFILES];
 		char comment[FLEN_COMMENT];  
 		fitsfile *fptr;
 		

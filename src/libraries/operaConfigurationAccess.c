@@ -89,12 +89,12 @@ const char *configurationfilebasename = "/harness/espadons/Makefile.configuratio
 operaErrorCode operaConfigurationAccessSetConfigurationFilepath(const char *filepath) {
 	char *prefix = getenv("opera");
 	if (prefix == NULL) {	// means set the default
-		strncpy(configurationfilename, "..", sizeof(configurationfilename));
-		strncat(configurationfilename, configurationfilebasename, sizeof(configurationfilename));	
+		strncpy(configurationfilename, "..", sizeof(configurationfilename)-1);
+		strncat(configurationfilename, configurationfilebasename, sizeof(configurationfilename)-1);	
 		return operaErrorCodeEnvironmentnotset;
 	} else {
-		strncpy(configurationfilename, prefix, sizeof(configurationfilename));
-		strncat(configurationfilename, configurationfilebasename, sizeof(configurationfilename));
+		strncpy(configurationfilename, prefix, sizeof(configurationfilename)-1);
+		strncat(configurationfilename, configurationfilebasename, sizeof(configurationfilename)-1);
 	}
 	return operaErrorCodeOK;
 }
@@ -145,7 +145,7 @@ operaErrorCode operaConfigurationAccessGet(const char *name, char **value) {
 				while (*end == '\t' || *end == ' ') {							// get rid of trailing ws
 					*end-- = '\0';
 				}
-				strncpy(*value, start, sizeof(scanbuff)); 
+				strncpy(*value, start, sizeof(scanbuff)-1); 
 				break;
 			}
 		if (feof(stream))

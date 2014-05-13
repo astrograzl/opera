@@ -1562,7 +1562,7 @@ void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *my
         unsigned imin = ii[j] - slit/2;
         unsigned imax = ii[j] + slit/2;
         
-        if(imin < 0) {imin = 0;}
+        if(slit/2 > ii[j]) {imin = 0;}
         if(imax >= np) {imax = np;}
         
         if(fabs(imax-imin) < slit) {

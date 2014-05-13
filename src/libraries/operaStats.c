@@ -371,7 +371,7 @@ double operaArrayMedian_d(unsigned np, const double *array) {
 		middle = (low + high) / 2; 
 		if (arr[middle] > arr[high]) 
 			ELEM_SWAP_d(arr[middle], arr[high]) ;
-		if (arr[low] > arr[high]) ;
+		if (arr[low] > arr[high])
 				ELEM_SWAP_d(arr[low], arr[high]) ;
 		if (arr[middle] > arr[low]) 
 			ELEM_SWAP_d(arr[middle], arr[low]) ;

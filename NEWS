@@ -1,6 +1,5 @@
-May 12 2014 - Teeple
-	- flat field intensity spectrum rule was changed to have a dependency on the
-	aperture rather than the profile, since the aperture is used. The profile
-	dependency is in the aperture rule.
-	- added Build Master Documentation in doc/
+May 14 2014 - Teeple
+	- operaApertureCalibration, added check for positive flux before indicating
+	that an order has an aperture.
+	- removed many compiler warnings thanks to Lison
 

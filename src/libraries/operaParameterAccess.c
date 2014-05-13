@@ -87,15 +87,15 @@ operaErrorCode operaParameterAccessSetParamaterFilepath(const char *filepath) {
 	if (filepath == NULL || *filepath == '\0') {
 		char *prefix = getenv("opera");
 		if (prefix == NULL) {	// means set the default
-			strncpy(parameterfilename, "..", sizeof(parameterfilename));
-			strncat(parameterfilename, parameterfilebasename, sizeof(parameterfilename));	
+			strncpy(parameterfilename, "..", sizeof(parameterfilename)-1);
+			strncat(parameterfilename, parameterfilebasename, sizeof(parameterfilename)-1);	
 			return operaErrorCodeEnvironmentnotset;
 		} else {
-			strncpy(parameterfilename, prefix, sizeof(parameterfilename));
-			strncat(parameterfilename, parameterfilebasename, sizeof(parameterfilename));
+			strncpy(parameterfilename, prefix, sizeof(parameterfilename)-1);
+			strncat(parameterfilename, parameterfilebasename, sizeof(parameterfilename)-1);
 		}
 	} else {
-		strncpy(parameterfilename, filepath, sizeof(parameterfilename));
+		strncpy(parameterfilename, filepath, sizeof(parameterfilename)-1);
 	}
 	return operaErrorCodeOK;
 }
@@ -146,7 +146,7 @@ operaErrorCode operaParameterAccessGet(const char *name, char **value) {
 				while (*end == '\t' || *end == ' ') {							// get rid of trailing ws
 					*end-- = '\0';
 				}
-				strncpy(*value, start, sizeof(scanbuff)); 
+				strncpy(*value, start, sizeof(scanbuff)-1); 
 				break;
 			}
 		if (feof(stream))

@@ -397,37 +397,6 @@ errfile				:= $(logdir)operaerr.log
 
 endif	# observatory == CFHT
 
-#########################################################################################
-#
-# experimental GRACES defines...
-#
-#########################################################################################
-ifeq ($(observatory),GRACES)
-queuedir		= /data/uhane5/opera/
-outdir			= /data/uhane5/opera/
-USE_SYBASE		= 0
-LIBRE_ESPRIT_COMPATIBILITY	= 0
-OBJECTFILEPATTERN		= gracesmay[0-9]*o.$(FITS)$(inextension)
-FLATFILEPATTERN			= gracesmay[0-9]*f.$(FITS)$(inextension)
-BIASFILEPATTERN			= gracesmay[0-9]*b.$(FITS)$(inextension)
-THORIUMFILEPATTERN		= gracesmay[0-9]*c.$(FITS)$(inextension)
-FABPERFILEPATTERN		= gracesmay[0-9]*a.$(FITS)$(inextension)
-CALFILEPATTERN			= gracesmay[0-9]*[abcf].$(FITS)$(inextension)
-ALLFILEPATTERN			= gracesmay[0-9]*[oabcf].$(FITS)$(inextension)
-INTENSITYFILEPATTERN	= gracesmay[0-9]*i.$(FITS)$(extension)
-POLARIMETRYFILEPATTERN	= gracesmay[0-9]*p.$(FITS)$(extension)
-CALSFILEPATTERN			= gracesmay[0-9]*m.$(FITS)
-SNRFILEPATTERN			= gracesmay[0-9]*.sn$(gzip)
-REDUCTIONSETS		=	\
-					OLAPA-a_sp1_Normal OLAPA-a_sp1_Fast \
-					OLAPA-a_sp2_Normal OLAPA-a_sp2_Fast \
-					OLAPA-ab_sp1_Normal OLAPA-ab_sp1_Fast \
-					OLAPA-ab_sp2_Normal OLAPA-ab_sp2_Fast
-		
-MODE_HEADERKEY              = GSLICER
-MODE_sp1_HEADERVALUE		= 'FOURSLICE'
-MODE_sp2_HEADERVALUE		= 'TWOSLICE'
-endif
 
 #########################################################################################
 #///

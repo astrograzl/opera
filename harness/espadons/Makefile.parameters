@@ -599,10 +599,10 @@ polarbinningsize	:= 750
 recipients					:= teeple,manset,forshay,tburd,moutou
 
 # is fluxcalibration requested
-upenawantfcal				:= 0
-operawantfcal				:= 0
+upenawantfcal				:= 1
+operawantfcal				:= 1
 
-# what kind(s) of wavelengt correction are desired
+# what kind(s) of wavelength correction are desired
 wanttelluriccorrection		:= 1
 wantbarycentriccorrection	:= 1
 

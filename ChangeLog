@@ -1888,7 +1888,7 @@ Dec 18 2013 - Teeple
 May 8 2014 - Teeple
 	- fixed a bug in operaCCD.c operaCCDDetectMissingOrders causing geometry to segfault. Checked bounds of nloword and nhiord.
 	- fixed bugs in operaMatrix.c - comparing pointers to ints
-	- fixed bus in operaStitchOrder.cpp - non-terminating loops
+	- fixed bugs in operaStitchOrder.cpp - non-terminating loops
 	- integrated Lison's changes from the March build.
 	- integrated Eder's build from April.
 	- *** NOTE This build is for integration testing only - the changes have been very extensive!
@@ -1904,3 +1904,28 @@ May 12 2014 - Teeple
 	aperture rather than the profile, since the aperture is used. The profile
 	dependency is in the aperture rule.
 	- added Build Master Documentation in doc/
+
+May 14 2014 - Teeple
+	- operaApertureCalibration, added check for positive flux before indicating
+	that an order has an aperture.
+	- removed many compiler warnings thanks to Lison:
+		operaCCD.c:1565:17: warning: comparison of unsigned expression < 0 is
+		always false [-Wtautological-compare]
+			if(imin < 0) {imin = 0;}
+				~~~~ ^ ~
+			1 warning generated.
+		operaStats.c:374:29: warning: if statement has empty body [-Wempty-body]
+			if (arr[low] > arr[high]) ;
+                                          ^
+		operaStats.c:374:29: note: put the semicolon on a separate line to silence
+		this warning
+		1 warning generated.
+		operaConfigurationAccess.c:93:61: warning: the value of the size argument
+		in 'strncat' is too large, might lead to a buffer overflow
+		[-Wstrncat-size]
+                strncat(configurationfilename, configurationfilebasename,sizeof(configurationfilename));
+	- build problems arose on the Debian machines, seems to be a 32 bit vs 64 bit issue, linker
+	problems indicate that libraries are being built 32 bit.
+	- fixed problems above and the r2dn servers are working once more
+	
+	

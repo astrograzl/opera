@@ -47,6 +47,7 @@ make -C $HOME/${version}/ distclean
 rm -f $HOME/${version}/*.fits
 rm -f $HOME/${version}/bin/*
 rm -f $HOME/${version}/lib/*
+rm -f $HOME/${version}/src/libraries/*.a $HOME/${version}/src/libraries/*.la 
 rm -f $HOME/${version}/config/masterfluxcalibration_*
 rm -f $HOME/${version}/src/tools/.ds9opera.tcl
 if [[ "$1" == "--nodoc" ]]

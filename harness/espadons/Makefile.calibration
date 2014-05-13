@@ -953,6 +953,26 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 		fi ; \
 	fi
 
+
+#########################################################################################
+#
+# QUALIFIERS-based flux calibration based on flat field
+#
+#########################################################################################
+masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip): $(QUALIFIERS).wcar$(gzip) ff_$(QUALIFIERS).e$(gzip)
+	@start=$$SECONDS; \
+	if [ ! -e $(calibrationdir)$@ ] ; then \
+		echo "$(pref) Starting master flat field flux calibration for $(QUALIFIERS)" ;\
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateFlatFieldFluxCalibration \
+--inputMasterFlatSpectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
+--wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) \
+--binsize=$(createfluxcalibrationbinsize) \
+--wavelengthForNormalization=$(createfluxcalibrationWavelengthForNormalization) \
+--outputFluxCalibrationFile=$(calibrationdir)$@ \
+$(optargs)" 2>&1 | tee -a $(errfile); \
+		echo "$(pref) master flat field flux calibration for $(QUALIFIERS) complete in $(deltat)" ; \
+	fi
+
 #########################################################################################
 #
 # QUALIFIERS-based flux calibration based on flat field
@@ -1272,26 +1292,6 @@ $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) Resolution calculation $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
-
-#########################################################################################
-#
-# QUALIFIERS-based flux calibration based on flat field
-#
-#########################################################################################
-masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip): $(QUALIFIERS).wcar$(gzip) ff_$(QUALIFIERS).e$(gzip)
-	@start=$$SECONDS; \
-	if [ ! -e $(calibrationdir)$@ ] ; then \
-		echo "$(pref) Starting master flat field flux calibration for $(QUALIFIERS)" ;\
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateFlatFieldFluxCalibration \
---inputMasterFlatSpectrum=$(calibrationdir)ff_$(QUALIFIERS).e$(gzip) \
---wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) \
---binsize=$(createfluxcalibrationbinsize) \
---wavelengthForNormalization=$(createfluxcalibrationWavelengthForNormalization) \
---outputFluxCalibrationFile=$(calibrationdir)$@ \
-$(optargs)" 2>&1 | tee -a $(errfile); \
-		echo "$(pref) master flat field flux calibration for $(QUALIFIERS) complete in $(deltat)" ; \
-	fi
-
 #########################################################################################
 #///
 #/// \endcond
