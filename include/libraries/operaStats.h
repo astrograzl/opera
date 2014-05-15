@@ -90,6 +90,7 @@ float operaUniformRand(float xmin, float xmax);
 float operaGaussRand(float xcen, float sig);
 unsigned operaCountPixels(unsigned np, const float *array, float minvalue, float maxvalue);
 double operaCrossCorrelation(unsigned np, const double *array1, const double *array2);
+float operaCrossCorrelation_f(unsigned np, const float *array1, const float *array2);
 operaErrorCode operaHistogram(unsigned int *outarray, unsigned int nbins, const float *inarray, unsigned int incount, unsigned int binsize, float minvalue, float maxvalue);
 void weight_mean_error(unsigned nx, float *x, float *sigmax, float *xmean, float *xsigma);
 float robust_sigma(unsigned n, float *inarray, unsigned reference);

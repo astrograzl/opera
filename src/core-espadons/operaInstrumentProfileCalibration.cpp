@@ -225,9 +225,9 @@ void *processOrder(void *argument) {
             }
             
         } else {
-            double MaxContamination = 0.1;      // accept up to 1% flux contamination from neighbor line
-            double amplitudeCutOff = 3*noise;  // limit lines with amplitude greater than 10 x CCD noise
-            unsigned nSigCut = 3;               // limit lines with width up to twice larger than the median deviation
+            double MaxContamination = 0.05;      // accept up to 1% flux contamination from neighbor line
+            double amplitudeCutOff = 2*noise;  // limit lines with amplitude greater than 10 x CCD noise
+            unsigned nSigCut = 2;               // limit lines with width up to twice larger than the median deviation
             
             operaSpectralLines *spectralLines = NULL;
             try {
@@ -531,12 +531,21 @@ int main(int argc, char *argv[])
         if(!IPysampling)
             IPysampling = 5;
         
+        // -- E. Martioli 14 May 2014
+        // Changed values below to increase sensitivity on fainter lines
+        // in GRACES comparison spectra. Previous values were the following:
+        // LocalMaxFilterWidth = 2.5*referenceLineWidth;
+        // DetectionThreshold = 0.2;
+        // MinPeakDepth = 1.5*noise;
+        // Note: the problem here could be when using FP exposures, where it
+        //       could detect ghosts as if they were specral lines.
+        
         if(!LocalMaxFilterWidth)
-            LocalMaxFilterWidth = 3*referenceLineWidth;
+            LocalMaxFilterWidth = 2.5*referenceLineWidth;
         if(!DetectionThreshold)
-            DetectionThreshold = 0.2;
+            DetectionThreshold = 0.1;
         if(!MinPeakDepth)
-            MinPeakDepth = 1.5*noise; 
+            MinPeakDepth = 1.25*noise;
         
         if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();

@@ -85,6 +85,9 @@ unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned w
 
 void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *myerr, unsigned nlines, float *xlines, float *ylines, float *medianWidth);
     
+    unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float threshold,float *xmean, float *ymean);
+    
+    
 #ifdef __cplusplus
 }
 #endif

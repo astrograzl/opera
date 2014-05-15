@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
 	
 	struct option longopts[] = {
 		{"images",				1, NULL, 'i'},
+        {"listofimages",        1, NULL, 'l'},
 		{"output",				1, NULL, 'o'},
 		{"badpixelmask",		1, NULL, 'm'},
 		{"masterbias",			1, NULL, 'b'},

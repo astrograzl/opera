@@ -5049,9 +5049,7 @@ void operaSpectralOrderVector::readRadialVelocityCorrection(string filename) {
 	}		
 }
 
-void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterFlatImage, operaFITSImage &badpixImage, float slit, unsigned nsamples, unsigned sampleCenterPosition, int detectionMethod, bool FFTfilter, float gain, float noise, unsigned x1, unsigned x2, unsigned y1, unsigned y2, ostream *pout) {
-	
-#define WITH_ERRORS 1
+void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterFlatImage, operaFITSImage &badpixImage, float slit, unsigned nsamples, unsigned sampleCenterPosition, int detectionMethod, bool FFTfilter, float gain, float noise, unsigned x1, unsigned x2, unsigned y1, unsigned y2, unsigned cleanbinsize, float nsigcut, ostream *pout) {
     
     unsigned nx = x2 - x1;
     unsigned ny = y2 - y1;
@@ -5218,9 +5216,104 @@ void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterF
 #ifdef WITH_ERRORS
     int errorcode = operaMPFitPolynomial(npspc, OrderPosition, OrderSeparation, OrderSeparationError, npars, par, ecoeffs, &chisqr);
     if (errorcode <= 0) {
-        throw operaException("operaGeometryCalibration: ", operaErrorGeometryBadFit, __FILE__, __FUNCTION__, __LINE__);
+        throw operaException("operaSpectralOrderVector: ", operaErrorGeometryBadFit, __FILE__, __FUNCTION__, __LINE__);
     }
     
+#else
+    operaLMFitPolynomial(npspc, OrderPosition, OrderSeparation, npars, par, &chisqr);
+#endif
+    
+    
+    /*
+     *  Below it applies a sigma clip cleaning
+     */
+    unsigned binsize = cleanbinsize;
+    float nsig = nsigcut;
+    
+    if (binsize==0 || npspc==0) {
+        throw operaException("operaSpectralOrderVector: binsize=0 or nDataPoints=0", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);
+    }
+    unsigned nDataPoints = npspc;
+    
+    double *cleanxdataVector = new double[nDataPoints];
+    double *cleanydataVector = new double[nDataPoints];
+    double *cleanyerrorVector = new double[nDataPoints];
+
+    unsigned numberOfCleanPoints = 0;
+    
+    float *xtmp = new float[nDataPoints];
+    float *ytmp = new float[nDataPoints];
+    
+    for(unsigned i=0; i<nDataPoints; i++) {
+        
+        int firstPoint = (int)i - (int)binsize;
+        int lastPoint = (int)i + (int)binsize + 1;
+        
+        if(firstPoint < 0) {
+            firstPoint = 0;
+            lastPoint = 2*(int)binsize + 1;
+        }
+        if(lastPoint > (int)nDataPoints) {
+            lastPoint = (int)nDataPoints;
+            firstPoint = (int)nDataPoints - 2*(int)binsize - 1;
+            if(firstPoint < 0) {
+                firstPoint = 0;
+            }
+        }
+        
+        unsigned np = 0;
+        for(unsigned ii=(unsigned)firstPoint; ii<(unsigned)lastPoint; ii++) {
+            xtmp[np] = (float)OrderPosition[ii];
+            ytmp[np] = (float)OrderSeparation[ii];
+            np++;
+        }
+        
+        float am,bm,abdevm;
+        
+        //--- Robust linear fit
+        ladfit(xtmp,ytmp,np,&am,&bm,&abdevm); /* robust linear fit: f(x) =  a + b*x */
+        
+        //--- Clean up
+        float fitMedianSlope = (bm*(float)OrderPosition[i] + am);
+        
+        if(fabs((float)OrderSeparation[i] - fitMedianSlope) < nsig*abdevm) {
+            cleanxdataVector[numberOfCleanPoints] = OrderPosition[i];
+            cleanydataVector[numberOfCleanPoints] = OrderSeparation[i];
+#ifdef WITH_ERRORS
+
+            cleanyerrorVector[numberOfCleanPoints] = OrderSeparationError[i];  
+#else
+            cleanyerrorVector[numberOfCleanPoints] = 0.0;
+#endif
+            numberOfCleanPoints++;
+        }
+    }
+    
+    for(unsigned i=0; i<numberOfCleanPoints; i++) {
+        OrderPosition[i] = cleanxdataVector[i];
+        OrderSeparation[i] = cleanydataVector[i];
+        OrderSeparationError[i] = cleanyerrorVector[i];
+    }
+    nDataPoints = numberOfCleanPoints;
+    
+    delete[] cleanxdataVector;
+    delete[] cleanydataVector;
+    delete[] cleanyerrorVector;
+    
+    npspc = nDataPoints;
+    /*
+     *  End of sigma clip cleaning
+     */
+    
+    
+    /*
+     * Perform polynomial fit on clean data
+     */
+#ifdef WITH_ERRORS
+    errorcode = operaMPFitPolynomial(npspc, OrderPosition, OrderSeparation, OrderSeparationError, npars, par, ecoeffs, &chisqr);
+    if (errorcode <= 0) {
+        throw operaException("operaGeometryCalibration: ", operaErrorGeometryBadFit, __FILE__, __FUNCTION__, __LINE__);
+    }
 #else
     operaLMFitPolynomial(npspc, OrderPosition, OrderSeparation, npars, par, &chisqr);
 #endif
@@ -6413,7 +6506,7 @@ void operaSpectralOrderVector::calculateCleanUniformSampleOfContinuum(int Minord
     //---------------------------------
     // Calculate a clean sample of the continuum from the uncalibrated spectrum
     unsigned maxNumberoOfTotalPoints = (unsigned)(ceil((float)maxNElements/(float)binsize) + 1)*MAXORDERS;
-    
+
     //---------------------------------
     // Collect continuum sample using input mask
     
@@ -6428,7 +6521,7 @@ void operaSpectralOrderVector::calculateCleanUniformSampleOfContinuum(int Minord
     double *wlf_vector = new double[MAXNUMBEROFWLRANGES];
     
     unsigned nRangesInWLMask = readContinuumWavelengthMask(inputWavelengthMaskForUncalContinuum,wl0_vector,wlf_vector);
-    
+
     float *wl_tmp = new float[2*binsize];
     float *flux_tmp = new float[2*binsize];
     float *beamflux_tmp[MAXNUMBEROFBEAMS];
@@ -6441,6 +6534,7 @@ void operaSpectralOrderVector::calculateCleanUniformSampleOfContinuum(int Minord
     double maxwl = -BIG;
     
     for (int order=Minorder; order<=Maxorder; order++) {
+
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
         if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
             operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
@@ -6531,7 +6625,7 @@ void operaSpectralOrderVector::calculateCleanUniformSampleOfContinuum(int Minord
     for(unsigned beam=0;beam<NumberofBeams;beam++) {
         uncal_final_Beamflux[beam] = new float[maxNumberoOfTotalPoints+2];
     }
-    
+
     unsigned npFinal = 0;
     unsigned np = 0;
     for(unsigned index=0; index<nTotalPoints; index++) {
@@ -6602,14 +6696,18 @@ void operaSpectralOrderVector::calculateCleanUniformSampleOfContinuum(int Minord
 
         //cout << uncal_final_wl[npFinal-1] << " " << uncal_final_flux[npFinal-1] << endl;
     }
-    
+
     uncal_final_wl[npFinal] = maxwl;
-    uncal_final_flux[npFinal] = uncal_final_flux[npFinal-1];
-    for(unsigned beam=0;beam<NumberofBeams;beam++) {
-        uncal_final_Beamflux[beam][npFinal] = uncal_final_Beamflux[beam][npFinal-1];
+    if(npFinal) {
+        uncal_final_flux[npFinal] = uncal_final_flux[npFinal-1];
+        
+        for(unsigned beam=0;beam<NumberofBeams;beam++) {
+            uncal_final_Beamflux[beam][npFinal] = uncal_final_Beamflux[beam][npFinal-1];
+        }
     }
+
     npFinal++;
-    
+
  /*   for (unsigned i=0; i<npFinal; i++) {
         cout << uncal_final_wl[i] << " " << uncal_final_flux[i] << endl;
     }
@@ -6642,7 +6740,7 @@ void operaSpectralOrderVector::calculateCleanUniformSampleOfContinuum(int Minord
             cout << endl;
         }
     }
-    
+
     delete[] uncal_wl;
     delete[] uncal_flux;
     delete[] wl0_vector;
@@ -6712,7 +6810,24 @@ void operaSpectralOrderVector::correctFlatField(string inputFlatFluxCalibration,
     for (int order=Minorder; order<=Maxorder; order++) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
         if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasSpectralEnergyDistribution()) {
-            spectralOrder->divideSpectralElementsBySEDElements(true, NULL,StarPlusSky);
+            spectralOrder->divideSpectralElementsBySEDElements(true, NULL,StarPlusSky,false);
+        } else {
+            spectralOrder->sethasSpectralElements(false);
+        }
+    }
+}
+
+void operaSpectralOrderVector::correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky, bool starplusskyInvertSkyFiber) {
+    if (inputFlatFluxCalibration.empty()) {
+        throw operaException("operaSpectralOrderVector: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    ReadSpectralOrders(inputFlatFluxCalibration);
+    
+    for (int order=Minorder; order<=Maxorder; order++) {
+        operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
+        if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasSpectralEnergyDistribution()) {
+            spectralOrder->divideSpectralElementsBySEDElements(true, NULL,StarPlusSky,starplusskyInvertSkyFiber);
         } else {
             spectralOrder->sethasSpectralElements(false);
         }
@@ -6724,6 +6839,8 @@ void operaSpectralOrderVector::saveExtendedRawFlux(int Minorder, int Maxorder) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
         if (spectralOrder->gethasSpectralElements()) {
             spectralOrder->getSpectralElements()->copyTOrawFlux();
+            spectralOrder->getSpectralElements()->copyTOnormalizedFlux();
+            spectralOrder->getSpectralElements()->copyTOfcalFlux();
         }
     }
 }
@@ -6755,7 +6872,6 @@ void operaSpectralOrderVector::normalizeFluxINTOExtendendSpectra(string inputWav
     float *elemWavelength = new float[maxNElements];
     operaSpectralEnergyDistribution *BeamSED[MAXNUMBEROFBEAMS];
     operaSpectralElements *uncalibratedBeamFluxElements[MAXNUMBEROFBEAMS];
-    
     for (int order=Minorder; order<=Maxorder; order++) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
         if (spectralOrder->gethasWavelength() &&
@@ -6779,7 +6895,7 @@ void operaSpectralOrderVector::normalizeFluxINTOExtendendSpectra(string inputWav
             for(unsigned i=0;i<nElements;i++) {
                 elemWavelength[i] =  (float)spectralElements->getwavelength(i);
             }
-            
+
             operaFitSpline(numberOfPointsInUniformSample,uniform_wl,uniform_flux,nElements,elemWavelength,UncalibratedModelFlux);
             
                 for(unsigned beam=0;beam<NumberofBeams;beam++) {
@@ -6797,7 +6913,7 @@ void operaSpectralOrderVector::normalizeFluxINTOExtendendSpectra(string inputWav
                     BeamSED[beam]->setHasUncalibratedFlux(true);
                 }
             spectralOrder->applyNormalizationFromExistingContinuum(NULL,NULL,TRUE,normalizeBeams,2);
-            
+
             spectralElements->copyTOnormalizedFlux();
             spectralElements->copyFROMrawFlux();
         }
@@ -6981,7 +7097,6 @@ void operaSpectralOrderVector::normalizeAndCalibrateFluxINTOExtendendSpectra(str
             } else { // use throughput
                 spectralOrder->multiplySpectralElementsBySEDElements(true, spectralBinConstant, NULL);
             }
-            
             spectralElements->copyTOfcalFlux();
             spectralElements->copyFROMrawFlux();
         }

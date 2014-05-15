@@ -111,7 +111,9 @@ int main(int argc, char *argv[])
     
     double delta_wl = 1.0; // wavelength (in nm) range for stiching non-overlapping orders
 
- 	int ordernumber = NOTPROVIDED;
+ 	bool starplusskyInvertSkyFiber = false;
+    
+    int ordernumber = NOTPROVIDED;
     
     int minorder = 22;
     int maxorder = 62;    
@@ -144,7 +146,8 @@ int main(int argc, char *argv[])
         {"etime",						1, NULL, 'E'},	// needed for flux calibration        
 		{"AbsoluteCalibration",         1, NULL, 'A'},  // absolute or relative flux calibration
 
-		
+        {"starplusskyInvertSkyFiber",   1, NULL, 'R'},
+
 		{"ordernumber",					1, NULL, 'O'},	// just do a particular order
 		{"minorder",					1, NULL, 'M'},	// only consider this order range
 		{"maxorder",					1, NULL, 'X'}, 	// only consider this order range
@@ -163,7 +166,7 @@ int main(int argc, char *argv[])
 		{"help",						0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "i:o:s:y:w:V:T:m:u:l:b:C:E:A:O:M:X:P:F:c:S:I:p::v::d::t::h", 
+	while((opt = getopt_long(argc, argv, "i:o:s:y:w:V:T:m:u:l:b:C:E:A:R:O:M:X:P:F:c:S:I:p::v::d::t::h", 
 							 longopts, NULL))  != -1)
 	{
 		switch(opt) 
@@ -212,6 +215,10 @@ int main(int argc, char *argv[])
 				AbsoluteCalibration = atoi(optarg)==1;
 				break;
                 
+            case 'R':
+				starplusskyInvertSkyFiber = (atoi(optarg)?true:false);
+				break;
+
 			case 'O':
 				ordernumber = atoi(optarg);
 				break;				
@@ -285,6 +292,7 @@ int main(int argc, char *argv[])
             cout << "operaStarPlusSky: input flux calibration file = " << fluxCalibration << endl; 
 			cout << "operaStarPlusSky: exposure time = " << exposureTime << endl;
 			cout << "operaStarPlusSky: absolute calibration = " << AbsoluteCalibration << endl;
+			cout << "operaStarPlusSky: starplusskyInvertSkyFiber = " << starplusskyInvertSkyFiber << endl;
             cout << "operaStarPlusSky: radialvelocitycorrection = " << radialvelocitycorrection << endl;
             cout << "operaStarPlusSky: telluriccorrection = " << telluriccorrection << endl;
             cout << "operaStarPlusSky: inputFlatFluxCalibration = " << inputFlatFluxCalibration << endl;
@@ -329,6 +337,8 @@ int main(int argc, char *argv[])
 		 * Down to business, read in all the source and calibration data.
 		 */
 		operaSpectralOrderVector spectralOrders(input);
+        spectralOrders.ReadSpectralOrders(wavelengthCalibration);
+        
 		if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();
         }
@@ -352,49 +362,58 @@ int main(int argc, char *argv[])
         }
         
         unsigned NumberofBeams = spectralOrders.getNumberofBeams(minorder, maxorder);
-        
+                
         for (int order=minorder; order<=maxorder; order++) {
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 			if (spectralOrder->gethasSpectralElements()) {
 				spectralOrder->getSpectralElements()->CreateExtendedvectors(spectralOrder->getSpectralElements()->getnSpectralElements());
+                
                 // Save the raw flux for later
                 spectralOrder->getSpectralElements()->copyTOrawFlux();
+                spectralOrder->getSpectralElements()->copyTOnormalizedFlux();
+                spectralOrder->getSpectralElements()->copyTOfcalFlux();
+                
+                if(spectralOrder->gethasWavelength()) {
+                    operaWavelength *Wavelength = spectralOrder->getWavelength();
+                    spectralOrder->getSpectralElements()->setwavelengthsFromCalibration(Wavelength);
+                    spectralOrder->getSpectralElements()->copyTOtell();
+                }
 			}
 		}
-        
+
         //---------------------------------
         // Load telluric corrected wavelength calibration
 		if (!telluriccorrection.empty()) {
             spectralOrders.readTelluricWavelengthINTOExtendendSpectra(telluriccorrection, minorder, maxorder);
 		}
-        
+
         //---------------------------------
         // Load Barycentric RV wavelength correction and also wavelength calibration
         if (!radialvelocitycorrection.empty()) {
             spectralOrders.readRVCorrectionINTOExtendendSpectra(radialvelocitycorrection, wavelengthCalibration, minorder, maxorder);
         }
-        
+
         bool StarPlusSky = true;
         
         //---------------------------------
         // Correct flat-field
         if (!inputFlatFluxCalibration.empty()) {
-            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, StarPlusSky);
+            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber);
             spectralOrders.saveExtendedRawFlux(minorder, maxorder);
         }
-        
+
         //---------------------------------
         // Flux Normalization and Flux Calibration Stuff
         
         /*
          * Flux Calibration Stuff ...
          */        
-		if (!fluxCalibration.empty()) {
+		if (!fluxCalibration.empty() && !inputWavelengthMaskForUncalContinuum.empty()) {
             spectralOrders.normalizeAndCalibrateFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,fluxCalibration, exposureTime, AbsoluteCalibration,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, StarPlusSky);
-        } else {
+        } else if (!inputWavelengthMaskForUncalContinuum.empty()) {
             spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
         }
-        
+
         // output a wavelength calibrated spectrum...
 		spectralOrders.setObject(object);
 		spectralOrders.WriteSpectralOrders(outputSpectraFile, spectralOrderType);
@@ -434,7 +453,8 @@ static void printUsageSyntax(char * modulename) {
 	"  -N, --normalization=1|0, apply flux normalization\n"
 	"  -b, --normalizationBinsize=<float>,  binsize for normalization\n"
 	"  -B, --orderBin=<int>, number or orders to bin for continuum evaluation\n"
-	"  -A, --AbsoluteCalibration=<bool>, perform absolute flux calibration\n"    
+	"  -A, --AbsoluteCalibration=<bool>, perform absolute flux calibration\n"
+	"  -R, --starplusskyInvertSkyFiber=<bool>, Star+sky: invert sky fiber (default is beam[0]=star and beam[1]=sky). \n"
 	"  -l, --usePolynomial=1|0, option to use polynomial for normalization\n"
 	"  -r, --orderOfPolynomial=<unsigned>, option to set degree of polynomial for normalization\n"
 	"  -h, --help  display help message\n"

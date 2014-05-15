@@ -560,12 +560,12 @@ int main(int argc, char *argv[])
                     aperture[k]->setFluxFraction(beamFluxFraction[k]);
                     
 					// DT May 14 2014, if we have no beam flux, we have no aperture...
-					if (beamFluxFraction[k] > 0) {
+//					if (beamFluxFraction[k] > 0) {
 						spectralOrder->setExtractionApertures(k,aperture[k]);
 						spectralOrder->sethasExtractionApertures(true);           
-					} else {
-						spectralOrder->sethasExtractionApertures(false);           
-					}
+//					} else {
+//						spectralOrder->sethasExtractionApertures(false);           
+//					}
                 }
                 
                 

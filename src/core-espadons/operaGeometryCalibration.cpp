@@ -388,7 +388,8 @@ int main(int argc, char *argv[])
 		
         double slit = aperture;
         unsigned uslit = (unsigned)slit;
-        double sigma = slit/4;   
+        double sigma = slit/4;
+        
         double threshold = DETECTTHRESHOLD;
         
 		operaSpectralOrderVector spectralOrders(MAXORDERS, ny, ny, 0);        
@@ -461,13 +462,14 @@ int main(int argc, char *argv[])
 		NumberOfySamples = (unsigned)ceil((float)(ny-y1)/(float)NumberofPointsToBinInYDirection); 
 
         int absoluteNumberForReference = -999;
-        float MinOrderSeparationDifference = +BIG;
+        float MinOrderSeparationDifference = float(slit)/4.0;
         
         /*
          * The first loop below is just to figure out the absolute number of first order
          */
         
 		for(unsigned k=0;k<NumberOfySamples;k++){
+        //for(unsigned k=NumberOfySamples/2;k<NumberOfySamples/2+1;k++){
 			unsigned firstY = y1 + NumberofPointsToBinInYDirection*(k);
 			unsigned lastY =  y1 + NumberofPointsToBinInYDirection*(k+1);
 			
@@ -502,7 +504,12 @@ int main(int argc, char *argv[])
 			if(detectionMethod == 1) {
                 nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,threshold,xmean,ymean);
 			} else if (detectionMethod == 2) {
-                nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
+                nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),threshold,xmean,ymean);
+                /*
+                 * The function below does not work on GRACES data. The one above should be better but
+                 * it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
+                 */
+                //nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
 			} else if (detectionMethod == 3) {
                 nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,threshold,xmean,ymean);
 			}
@@ -517,14 +524,16 @@ int main(int argc, char *argv[])
 			// this function also returns the absolute number for each order
             unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
             double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();
+            
 			newnords = operaCCDDetectMissingOrders(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev);
             
 			//print out the absolute number for each order and the corresponding centers for each row
 			for (unsigned i=0;i<newnords;i++) {
                 // pick sample to check for eventual shift based on reference order separation
                 if(referenceOrderSamplePosition >= firstY && referenceOrderSamplePosition < lastY && i>0) {
-                    if(fabs(fabs(xord[i] - xord[i-1]) - referenceOrderSeparation) < MinOrderSeparationDifference) {
-                        MinOrderSeparationDifference = fabs(fabs(xord[i] - xord[i-1]) - referenceOrderSeparation);
+                    double ordxcenter = (double)(xord[i] + xord[i-1])/2;
+                    float predictedSeparation = (float)PolynomialFunction(ordxcenter,par,npars);
+                    if(fabs(fabs(xord[i] - xord[i-1]) - predictedSeparation) < MinOrderSeparationDifference) {
                         absoluteNumberForReference = AbsOrdNumber[i];
                     }
                 }
@@ -550,10 +559,11 @@ int main(int argc, char *argv[])
         /*
          * Once first order is figured out, then it will save the data into each order. Note that 
          * the absolute order number is important to make sure the data are always associated
-         * to the right order number. 
+         * to the correct order number. 
          */
         
 		for(unsigned k=0;k<NumberOfySamples;k++){
+
 			unsigned firstY = y1 + NumberofPointsToBinInYDirection*(k);
 			unsigned lastY =  y1 + NumberofPointsToBinInYDirection*(k+1);
 			
@@ -604,7 +614,12 @@ int main(int argc, char *argv[])
 				if (witherrors) {
 					nords = operaCCDDetectPeaksWithErrorsUsingIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean,xmeanerr);
 				} else {
-					nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
+                    nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),threshold,xmean,ymean);
+                    /*
+                     * The function below does not work on GRACES data. The one above should be better but
+                     * it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
+                     */
+                    //					nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
 				}
 			} else if (detectionMethod == 3) {
 				if (witherrors) {
@@ -628,12 +643,11 @@ int main(int argc, char *argv[])
 			// Call function to find missing orders based on polynomial fit to spacing between orders
 			// this function also returns the absolute number for each order
 			
+            
             unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
             double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();            
 			newnords = operaCCDDetectMissingOrders(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev);
             
-			//			newnords = operaCCDDetectMissingOrders(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev);
-			
             if (fdata != NULL) {
                 for(unsigned i=0;i<newnords;i++) {
                     *fdata << k << " " <<  AbsOrdNumber[i] << " " << xord[i] << " " << y << " " << xerrord[i] << " " << fluxValue[i] << endl;
@@ -680,11 +694,12 @@ int main(int argc, char *argv[])
         // now calculate the polynomials for each order
 		
 		unsigned ordercount = 0;
-		for (unsigned i=0;i<newnords;i++) {	
+		for (unsigned i=0;i<maxorders;i++) {
 			double chisqr;	// NOTE: The chisqr is not used here, but it is saved in the polynomial itself
-			if ((unsigned)AbsOrdNumber[i] >= minordertouse 
-                && (unsigned)AbsOrdNumber[i] <= minordertouse + maxorders 
-                && spectralOrders.GetSpectralOrder(AbsOrdNumber[i])->getGeometry()->getNdatapoints() > orderOfTracingPolynomial) {	// i.e. we did add data to this order
+            
+            AbsOrdNumber[i] = minordertouse + (int)i;
+            
+			if (spectralOrders.GetSpectralOrder(AbsOrdNumber[i])->getGeometry()->getNdatapoints() > orderOfTracingPolynomial) {	// i.e. we did add data to this order
 				
                 spectralOrders.GetSpectralOrder(AbsOrdNumber[i])->getGeometry()->traceOrder(orderOfTracingPolynomial, chisqr, witherrors);		// i.e. fit polynomial to the data of a single order
 				spectralOrders.setMaxorder(AbsOrdNumber[i]);

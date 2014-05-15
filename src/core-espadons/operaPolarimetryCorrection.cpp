@@ -364,6 +364,8 @@ int main(int argc, char *argv[])
 		 * Down to business, read in all the source and calibration data.
 		 */
 		operaSpectralOrderVector spectralOrders(polar);
+        spectralOrders.ReadSpectralOrders(wavelengthCalibration);
+        
 		if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();
         }
@@ -393,6 +395,14 @@ int main(int argc, char *argv[])
 				spectralOrder->getSpectralElements()->CreateExtendedvectors(spectralOrder->getSpectralElements()->getnSpectralElements());
                 // Save the raw flux for later
                 spectralOrder->getSpectralElements()->copyTOrawFlux();
+                spectralOrder->getSpectralElements()->copyTOnormalizedFlux();
+                spectralOrder->getSpectralElements()->copyTOfcalFlux();
+                
+                if(spectralOrder->gethasWavelength()) {
+                    operaWavelength *Wavelength = spectralOrder->getWavelength();
+                    spectralOrder->getSpectralElements()->setwavelengthsFromCalibration(Wavelength);
+                    spectralOrder->getSpectralElements()->copyTOtell();
+                }
 			}
 		}
         
@@ -412,9 +422,9 @@ int main(int argc, char *argv[])
         // Flux Normalization and Flux Calibration Stuff
         exposureTime *= 4.0; // considering a 4x polar sequence.
         
-		if (!fluxCalibration.empty()) {
+		if (!fluxCalibration.empty() && !inputWavelengthMaskForUncalContinuum.empty()) {
             spectralOrders.normalizeAndCalibrateFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,fluxCalibration, exposureTime, AbsoluteCalibration,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, false);
-        } else {
+        } else if (!inputWavelengthMaskForUncalContinuum.empty()) {
             spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
         }
         

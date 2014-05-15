@@ -364,7 +364,7 @@ public:
     
     void applyFluxCalibration(double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], bool absoluteCalibration, ostream *poutspec);
         
-    void divideSpectralElementsBySEDElements(bool useThroughput, ostream *poutspec, bool StarPlusSky);
+    void divideSpectralElementsBySEDElements(bool useThroughput, ostream *poutspec, bool StarPlusSky, bool starplusskyInvertSkyFiber);
 
     void multiplySpectralElementsBySEDElements(bool useThroughput,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS], ostream *poutspec);
 
@@ -380,7 +380,7 @@ public:
     /*
      * Star+Sky Mode
      */
-    void calculateStarAndSkyElements(ostream *poutspec); 
+    void calculateStarAndSkyElements(bool starplusskyInvertSkyFiber,ostream *poutspec);
     
 	/*
 	 * Polar Mode, take the mean of the two beams

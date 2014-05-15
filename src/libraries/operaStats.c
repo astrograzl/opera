@@ -769,6 +769,47 @@ double operaCrossCorrelation(unsigned np, const double *array1, const double *ar
 }
 
 /*
+ * double operaCrossCorrelation_f(unsigned np, const float *array1, const float *array2)
+ * \brief Calculate cross-correlation between two arrays
+ * \param np is an unsigned for the number of elements in array
+ * \param array1 is a float pointer with data
+ * \param array2 is a float pointer with data
+ * \return float value for cross-correlation
+ */
+
+float operaCrossCorrelation_f(unsigned np, const float *array1, const float *array2) {
+    if (np) {
+        float mean1 = 0.0;
+        float mean2 = 0.0;
+        float numerator = 0;
+        float denominator1 = 0;
+        float denominator2 = 0;
+        
+        unsigned i=np;
+        
+        while (i--){
+            mean1 += *array1++;
+            mean2 += *array2++;
+        }
+        mean1 /= (float)np;
+        mean2 /= (float)np;
+        i=np;
+        while (i--){
+            array1--;
+            array2--;
+            numerator += (*array1 - mean1) * (*array2 - mean2);
+            denominator1 += (*array1 - mean1) * (*array1 - mean1);
+            denominator2 += (*array2 - mean2) * (*array2 - mean2);
+        }
+        
+        float crosscorrelation = numerator/(sqrt(denominator1)*sqrt(denominator2));
+        return crosscorrelation;
+    } else {
+        return EXIT_FAILURE;
+    }
+}
+
+/*
  * void operaHistogram(const float *inarray, unsigned int *outarray, float binsize, unsigned int nbins, float minvalue, float maxvalue)
  * \brief computes the density function of an array. The array values must be positive,
  *  minvalue and maxvalue must also be positive.

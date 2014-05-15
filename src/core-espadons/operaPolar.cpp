@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
             
             /* Correct flat-field */
             if (!inputFlatFluxCalibration.empty()) {
-                spectralOrdervector[i]->correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false);
+                spectralOrdervector[i]->correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false, false);
             }
         }
         
@@ -513,7 +513,7 @@ int main(int argc, char *argv[])
                 
                 operaSpectralOrder *outputspectralOrder = outputorderVector.GetSpectralOrder(order);
                 if (!inputFlatFluxCalibration.empty() && outputspectralOrder->gethasSpectralEnergyDistribution()) {
-                    outputspectralOrder->divideSpectralElementsBySEDElements(true, NULL, false);
+                    outputspectralOrder->divideSpectralElementsBySEDElements(true, NULL, false, false);
                 }
                 operaSpectralElements *outputspectralElements = outputspectralOrder->getSpectralElements();
                 operaWavelength *outputwavelength = NULL;

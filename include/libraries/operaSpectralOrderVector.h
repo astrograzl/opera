@@ -326,8 +326,8 @@ public:
 	
 	void readGainNoise(string filename);
 	
-    void fitOrderSpacingPolynomial(operaFITSImage &masterFlatImage, operaFITSImage &badpixImage, float slit, unsigned nsamples, unsigned sampleCenterPosition, int detectionMethod, bool FFTfilter, float gain, float noise, unsigned x1, unsigned x2, unsigned y1, unsigned y2, ostream *pout);
-
+    void fitOrderSpacingPolynomial(operaFITSImage &masterFlatImage, operaFITSImage &badpixImage, float slit, unsigned nsamples, unsigned sampleCenterPosition, int detectionMethod, bool FFTfilter, float gain, float noise, unsigned x1, unsigned x2, unsigned y1, unsigned y2, unsigned cleanbinsize, float nsigcut, ostream *pout);
+    
     void measureIPAlongRowsFromSamples(operaFITSImage &masterFlatImage, operaFITSImage &badpixImage, float slit, unsigned nsamples, bool FFTfilter, float gain, float noise, unsigned x1, unsigned x2, unsigned y1, unsigned y2,float *ipfunc, float *ipx, float *iperr);
     
     unsigned getElemIndexAndOrdersByWavelength(int *orderWithReferenceFluxForNormalization, unsigned *elemIndexWithReferenceFluxForNormalization, double wavelength);
@@ -351,6 +351,7 @@ public:
     void readTelluricWavelengthINTOExtendendSpectra(string telluriccorrection, int Minorder, int Maxorder);
     void readRVCorrectionINTOExtendendSpectra(string Radialvelocitycorrection, string WavelengthCalibration, int Minorder, int Maxorder);
     void correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky);
+    void correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky, bool starplusskyInvertSkyFiber);
     void saveExtendedRawFlux(int Minorder, int Maxorder);
     void normalizeFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams);
     void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);

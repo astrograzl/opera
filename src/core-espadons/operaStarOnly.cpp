@@ -329,6 +329,8 @@ int main(int argc, char *argv[])
 		 * Down to business, read in all the source and calibration data.
 		 */
 		operaSpectralOrderVector spectralOrders(input);
+        spectralOrders.ReadSpectralOrders(wavelengthCalibration);
+
 		if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();
         }
@@ -347,8 +349,9 @@ int main(int argc, char *argv[])
 			maxorder = ordernumber;
 		}
         
-        if (verbose)
+        if (verbose) {
 			cout << "operaStarOnly: minorder ="<< minorder << " maxorder=" << maxorder << endl;
+        }
         
         unsigned NumberofBeams = spectralOrders.getNumberofBeams(minorder, maxorder);
 
@@ -356,8 +359,17 @@ int main(int argc, char *argv[])
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 			if (spectralOrder->gethasSpectralElements()) {
 				spectralOrder->getSpectralElements()->CreateExtendedvectors(spectralOrder->getSpectralElements()->getnSpectralElements());
+                
                 // Save the raw flux for later
                 spectralOrder->getSpectralElements()->copyTOrawFlux();
+                spectralOrder->getSpectralElements()->copyTOnormalizedFlux();
+                spectralOrder->getSpectralElements()->copyTOfcalFlux();
+                
+                if(spectralOrder->gethasWavelength()) {
+                    operaWavelength *Wavelength = spectralOrder->getWavelength();
+                    spectralOrder->getSpectralElements()->setwavelengthsFromCalibration(Wavelength);
+                    spectralOrder->getSpectralElements()->copyTOtell();
+                }
 			}
 		}
         
@@ -376,15 +388,15 @@ int main(int argc, char *argv[])
         //---------------------------------
         // Correct flat-field
         if (!inputFlatFluxCalibration.empty()) {
-            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false);
+            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false, false);
             spectralOrders.saveExtendedRawFlux(minorder, maxorder);
         }
         
         //---------------------------------
         // Flux Normalization and Flux Calibration Stuff
-		if (!fluxCalibration.empty()) {
+		if (!fluxCalibration.empty() && !inputWavelengthMaskForUncalContinuum.empty()) {
             spectralOrders.normalizeAndCalibrateFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,fluxCalibration, exposureTime, AbsoluteCalibration,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, false);
-        } else {
+        } else if (!inputWavelengthMaskForUncalContinuum.empty()) {
             spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
         }
         

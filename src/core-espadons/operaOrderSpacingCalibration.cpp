@@ -326,7 +326,13 @@ int main(int argc, char *argv[])
 		if (verbose)
 			cout << "operaOrderSpacingCalibration: gain="<< gain << " noise=" << noise << endl;
         
-        spectralOrders.fitOrderSpacingPolynomial(flat, *badpix, slit, nsamples, sampleCenterPosition, detectionMethod, FFTfilter, (float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, fdata);
+        /*
+         * The values below are used to apply a sigma clipping to clean outliers.
+         */
+        unsigned cleanbinsize = 7;  // number of points in the bin
+        float nsigcut = 2.5;        // clipping region in units of sigma
+        
+        spectralOrders.fitOrderSpacingPolynomial(flat, *badpix, slit, nsamples, sampleCenterPosition, detectionMethod, FFTfilter, (float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, cleanbinsize, nsigcut, fdata);
 
         if (fdata != NULL) {
             fdata->close();

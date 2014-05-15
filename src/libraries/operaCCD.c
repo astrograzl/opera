@@ -172,28 +172,28 @@ void operaCCDGainNoise(unsigned npixels, unsigned nbias, float *biasdata[], unsi
 			npb++;
 		}
 	}	
-
+	
 	float *sigbiasdifarr = (float *) malloc (sizeof(float)*npb*nbias);
-      
+	
 	unsigned npsigbias = 0;
 	
 	float *xbin = (float *) malloc (sizeof(float)*npb);
 	float *ybin = (float *) malloc (sizeof(float)*npb);	
-
+	
 	float *meanbias1_tmp = (float *) malloc (sizeof(float)*npb);
 	float *meanbias2_tmp = (float *) malloc (sizeof(float)*npb);
 	float *sigbiasdif_tmp = (float *) malloc (sizeof(float)*npb);
 	float *meanflat1_tmp = (float *) malloc (sizeof(float)*npb);
 	float *meanflat2_tmp = (float *) malloc (sizeof(float)*npb);
 	float *sigflatdif_tmp = (float *) malloc (sizeof(float)*npb);
-
+	
 	float *meanbias1 = (float *) malloc (sizeof(float)*npb);
 	float *meanbias2 = (float *) malloc (sizeof(float)*npb);		
 	float *sigbiasdif = (float *) malloc (sizeof(float)*npb);
 	float *meanflat1 = (float *) malloc (sizeof(float)*npb);
 	float *meanflat2 = (float *) malloc (sizeof(float)*npb);
 	float *sigflatdif = (float *) malloc (sizeof(float)*npb);	
-
+	
 	memset(meanbias2, 0, sizeof(float)*npb);		
 	memset(meanbias1, 0, sizeof(float)*npb);
 	memset(sigbiasdif, 0, sizeof(float)*npb);
@@ -205,14 +205,14 @@ void operaCCDGainNoise(unsigned npixels, unsigned nbias, float *biasdata[], unsi
     
 	if(nbias > 1) {
 		for (unsigned ibias = 0; ibias < (nbias-1); ibias++) { 
-				
+			
 			memcpy(biasdif, biasdata[ibias],sizeof(float)*npixels);
 			operaImSubtractIm(npixels, biasdif, biasdata[ibias+1]);	// Note: this generates a lot of negative numbers...	
-				
+			
 			operaArrayIndexedMeanQuick(npixels, biasdata[ibias], indexmask, npb, meanbias1_tmp);
 			operaArrayIndexedMeanQuick(npixels, biasdata[ibias+1], indexmask, npb, meanbias2_tmp);
 			operaArrayIndexedSigmaQuick(npixels, biasdif, indexmask, npb, sigbiasdif_tmp);	
-		
+			
             biasinADU += operaArrayMedian(npixels, biasdata[ibias])/(float)nbias;
             
 			for (unsigned k = 0; k < npb ; k++) {
@@ -238,10 +238,10 @@ void operaCCDGainNoise(unsigned npixels, unsigned nbias, float *biasdata[], unsi
 	}	
 	
 	for (unsigned iflat = 0; iflat < (nflat-1); iflat++) {
-					
+		
 		memcpy(flatdif, flatdata[iflat], sizeof(float)*npixels);
 		operaImSubtractIm(npixels, flatdif, flatdata[iflat+1]);	// note that we have to index - 1 in the loop	
-					
+		
 		operaArrayIndexedMeanQuick(npixels, flatdata[iflat], indexmask, npb, meanflat1_tmp);
 		operaArrayIndexedMeanQuick(npixels, flatdata[iflat+1], indexmask, npb, meanflat2_tmp);
 		operaArrayIndexedSigmaQuick(npixels, flatdif, indexmask, npb, sigflatdif_tmp);
@@ -266,7 +266,7 @@ void operaCCDGainNoise(unsigned npixels, unsigned nbias, float *biasdata[], unsi
 	}
 	
 	float sigbiasdifcomb = (npsigbias>0?operaArrayMedianQuick(npsigbias, sigbiasdifarr):0.0); // destructive
-
+	
 	*bias = biasinADU;
     
 #ifndef LMFIT			
@@ -485,7 +485,7 @@ int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,fl
 					nhiord++;							
 					initord = i+1; //skip this order next time
 					break; //get out of the loop
-						   // if predicted order falls before next detected order then accept it as a missing order							
+					// if predicted order falls before next detected order then accept it as a missing order							
 				} else if (xmiss < xmean[i] - (float)PolynomialFunction((double)xmean[i],par,npar) + slit/2) {
 					// recalculate order position and mean flux. 
 					// if level is higher than noise then just take predicted value.
@@ -562,7 +562,7 @@ int operaCCDRecenterOrderUsingXCorrWithIP(unsigned np, float *x,float *y,unsigne
     
     float xmin = (float)floor(*xmean - (0.5*(fabs(ipx[0])+fabs(ipx[nip-1])) + scanrange/2)); // ipx[0] should be a negative number
     float xmax = (float)ceil(*xmean + (0.5*(fabs(ipx[0])+fabs(ipx[nip-1])) + scanrange/2));
-  
+	
     unsigned npin = 0;
     double *yin = (double *) malloc (np * sizeof(double));
     double *xin = (double *) malloc (np * sizeof(double));
@@ -573,10 +573,10 @@ int operaCCDRecenterOrderUsingXCorrWithIP(unsigned np, float *x,float *y,unsigne
             yin[npin] = (double)y[i];
             index[npin] = i;
             npin++;
-//            printf("%d\t%f\t%f\n",i,x[i],y[i]);
+			//            printf("%d\t%f\t%f\n",i,x[i],y[i]);
         }
 	}
-
+	
     if(npin==0) {
         return 0;
     }
@@ -589,7 +589,7 @@ int operaCCDRecenterOrderUsingXCorrWithIP(unsigned np, float *x,float *y,unsigne
         ipx_double[i] = (double)ipx[i];
         ipfunc_double[i] = (double)ipfunc[i];
     }
-
+	
     float trial_x_center = *xmean - scanrange/2;
     float trial_x_step = scanrange/(NUMBEROFSAMPLESTORECENTERORDER);
     
@@ -609,7 +609,7 @@ int operaCCDRecenterOrderUsingXCorrWithIP(unsigned np, float *x,float *y,unsigne
             newxcenter = trial_x_center;
         }
         
-//        printf("%f\t%f\t%lf\n",trial_x_center,trial_x_step,crosscorrelation);
+		//        printf("%f\t%f\t%lf\n",trial_x_center,trial_x_step,crosscorrelation);
         
         trial_x_center += trial_x_step;
     }
@@ -634,9 +634,9 @@ int operaCCDRecenterOrderUsingXCorrWithIP(unsigned np, float *x,float *y,unsigne
     free(y_withipsamp);
     free(ipx_double);
     free(ipfunc_double);
-
+	
 	int detectprob = 0;
-
+	
 	if(maxcorrelation > MINIMUMCROSSCORRELATIONTORECENTERORDER) {
 		detectprob = 1;
 	} else {
@@ -666,7 +666,7 @@ int operaCCDRecenterOrderWithIP(unsigned np, float *x,float *y,unsigned nip, flo
 			slit++;
 		}
 	}
-
+	
 	if(*xmean < x[slit/2] || *xmean > x[np - slit/2]){
 		return 0;
 	}
@@ -682,13 +682,13 @@ int operaCCDRecenterOrderWithIP(unsigned np, float *x,float *y,unsigned nip, flo
 	}
 	
 	//printf("%u\t%f\t%f\t%f\n",ix,dxmin,x[ix],*xmean);
-
+	
 	float my = 0;
 	float mx = 0;
 	float mxerr = 0;
 	
 	float intflux = 0;
-
+	
     float *yvar = (float *) malloc (slit * sizeof(float));
     float yvarsum = 0;
 	
@@ -700,14 +700,14 @@ int operaCCDRecenterOrderWithIP(unsigned np, float *x,float *y,unsigned nip, flo
 	}
 	
 	float avgx = 0;
-
+	
     for(j=0;j<slit;j++) {
 		mx += x[ix-slit/2+j]*y[ix-slit/2+j]/intflux;		
 		avgx += x[ix-slit/2+j]/(float)slit;
         mxerr += ((noise/gain)*(noise/gain) + fabs(y[ix-slit/2+j])/gain); // method 1
         //	mxerr += ((intflux-y[ix-slit/2+j])/(intflux*intflux))*((intflux-y[ix-slit/2+j])/(intflux*intflux))*yvar[j] + (y[ix-slit/2+j]/(intflux*intflux))*(y[ix-slit/2+j]/(intflux*intflux))*yvarsum;  // method 2	
     }		
-
+	
     float avgy = intflux/(float)slit;
     mxerr = sqrt(mxerr*(fabs(avgx - mx)/avgy));  // method 1
     //		mxerr = sqrt(mxerr); // method 2
@@ -743,7 +743,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingIP(unsigned np, float *x,float *y,uns
 	
 	float *mx = (float *) malloc (np * sizeof(float));	
 	memset(mx, 0, sizeof(float)*np);	
-
+	
 	float *mxerr = (float *) malloc (np * sizeof(float));	
 	memset(mxerr, 0, sizeof(float)*np);		
 	
@@ -777,20 +777,20 @@ unsigned operaCCDDetectPeaksWithErrorsUsingIP(unsigned np, float *x,float *y,uns
 		}
 		
 		float avgx = 0;
-	
+		
 		for(j=0;j<slit;j++) {
 			mx[i] += x[i-slit/2+j]*y[i-slit/2+j]/intflux;
 			avgx += x[i-slit/2+j]/(float)slit;
 			mxerr[i] += ((noise/gain)*(noise/gain) + fabs(y[i-slit/2+j])/gain); // method 1
-//			mxerr[i] += ((intflux-y[i-slit/2+j])/(intflux*intflux))*((intflux-y[i-slit/2+j])/(intflux*intflux))*yvar[j] + (y[i-slit/2+j]/(intflux*intflux))*(y[i-slit/2+j]/(intflux*intflux))*yvarsum; // method 2	
+			//			mxerr[i] += ((intflux-y[i-slit/2+j])/(intflux*intflux))*((intflux-y[i-slit/2+j])/(intflux*intflux))*yvar[j] + (y[i-slit/2+j]/(intflux*intflux))*(y[i-slit/2+j]/(intflux*intflux))*yvarsum; // method 2	
 		}		
-
+		
 		float avgy = intflux/(float)slit;
 		
         mxerr[i] = sqrt(mxerr[i]*(fabs(avgx - mx[i])/avgy));  // method 1
-//		mxerr[i] = sqrt(mxerr[i]); // method 2
-	
-//		printf("%d\t%f\t%f\t%f\t%f\t%f\n",i,x[i],y[i],mx[i],my[i],mxerr[i]);
+		//		mxerr[i] = sqrt(mxerr[i]); // method 2
+		
+		//		printf("%d\t%f\t%f\t%f\t%f\t%f\n",i,x[i],y[i],mx[i],my[i],mxerr[i]);
 	}
 	
 	unsigned npts=0, isitmax=1;
@@ -849,7 +849,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingIP(unsigned np, float *x,float *y,uns
 			ymean[nords] = my[i];
 			nords++;
 		}
-//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
+		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
 	}	
 	free(my);
 	free(mx);
@@ -896,13 +896,13 @@ unsigned operaCCDDetectPeaksWithErrorsUsingGaussian(unsigned np, float *x,float 
 			mx[i] += x[i-slit/2+j]*y[i-slit/2+j]/intflux;
 			avgx += x[i-slit/2+j]/(float)slit;
 			mxerr[i] += ((noise/gain)*(noise/gain) + fabs(y[i-slit/2+j])/gain); // method 1
-																				//			mxerr[i] += ((intflux-y[i-slit/2+j])/(intflux*intflux))*((intflux-y[i-slit/2+j])/(intflux*intflux))*yvar[j] + (y[i-slit/2+j]/(intflux*intflux))*(y[i-slit/2+j]/(intflux*intflux))*yvarsum; // method 2	
+			//			mxerr[i] += ((intflux-y[i-slit/2+j])/(intflux*intflux))*((intflux-y[i-slit/2+j])/(intflux*intflux))*yvar[j] + (y[i-slit/2+j]/(intflux*intflux))*(y[i-slit/2+j]/(intflux*intflux))*yvarsum; // method 2	
 		}		
         
 		float avgy = intflux/(float)slit;
 		
         mxerr[i] = sqrt(mxerr[i]*(fabs(avgx - mx[i])/avgy));  // method 1
-															  //		mxerr[i] = sqrt(mxerr[i]); // method 2
+		//		mxerr[i] = sqrt(mxerr[i]); // method 2
         
 		//		printf("%d\t%f\t%f\t%f\t%f\t%f\n",i,x[i],y[i],mx[i],my[i],mxerr[i]);
 		
@@ -1011,13 +1011,13 @@ unsigned operaCCDDetectPeaksWithErrorsUsingGaussianDouble(unsigned np, double *x
 			mx[i] += x[i-slit/2+j]*y[i-slit/2+j]/intflux;
 			avgx += x[i-slit/2+j]/(double)slit;
 			mxerr[i] += ((noise/gain)*(noise/gain) + fabs(y[i-slit/2+j])/gain); // method 1
-																				//			mxerr[i] += ((intflux-y[i-slit/2+j])/(intflux*intflux))*((intflux-y[i-slit/2+j])/(intflux*intflux))*yvar[j] + (y[i-slit/2+j]/(intflux*intflux))*(y[i-slit/2+j]/(intflux*intflux))*yvarsum; // method 2	
+			//			mxerr[i] += ((intflux-y[i-slit/2+j])/(intflux*intflux))*((intflux-y[i-slit/2+j])/(intflux*intflux))*yvar[j] + (y[i-slit/2+j]/(intflux*intflux))*(y[i-slit/2+j]/(intflux*intflux))*yvarsum; // method 2	
 		}		
         
 		double avgy = intflux/(double)slit;
 		
         mxerr[i] = sqrt(mxerr[i]*(fabs(avgx - mx[i])/avgy));  // method 1
-															  //		mxerr[i] = sqrt(mxerr[i]); // method 2
+		//		mxerr[i] = sqrt(mxerr[i]); // method 2
         
 		//		printf("%d\t%f\t%f\t%f\t%f\t%f\n",i,x[i],y[i],mx[i],my[i],mxerr[i]);
 		
@@ -1300,10 +1300,102 @@ unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, 
 			ymean[nords] = my[i];
 			nords++;
 		}
-		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
-	}	
+        //printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,x[i],y[i],mx[i],my[i],peakprob, depth, noise, npts, slit);
+	}
+	
 	free(my);
 	free(mx);
+	return nords;
+}
+
+/*** Algorithm to detect orders using an IP function ***/
+unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float threshold,float *xmean, float *ymean)
+{
+	/* the algorithm below detects the orders, their photocenter and mean values */
+	unsigned i,j,nords=0;
+    float intflux=0;
+	
+    float mx[MAXESPADONSX];
+    float my[MAXESPADONSX];
+    float xcorr[MAXESPADONSX];
+    float stdev[MAXESPADONSX];
+    
+    float datatmp[MAXIPPOINTS];
+	
+    unsigned firstj, lastj;
+    
+    for(i=0;i<np;i++) {
+        
+        if(i<nip/2) {
+            firstj = 0;
+            lastj = nip;
+        } else if (i-nip/2+nip >np) {
+            firstj = i-nip;
+            lastj = np;
+        } else {
+            firstj = i-nip/2;
+            lastj = firstj+nip;
+        }
+        
+        intflux=0;
+		
+        unsigned k=0;
+        my[i] = 0;
+        for(j=firstj;j<lastj;j++) {
+            datatmp[k] = y[j];
+            intflux += y[j];
+            my[i] += y[j]*ipfunc[k];
+            k++;
+        }
+		
+        stdev[i] = operaArraySigma(nip,datatmp);
+		
+        mx[i]=0;
+        for(j=firstj;j<lastj;j++) {
+			mx[i] += x[j]*y[j]/intflux;
+		}
+		
+        xcorr[i] = operaCrossCorrelation_f(nip,ipfunc,datatmp);
+        
+		// printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\n",i,x[i],y[i],mx[i],my[i],stdev[i],xcorr[i]);
+    }
+	
+    for(i=0;i<np;i++) {
+        
+        if(i<nip) {
+            firstj = 0;
+            lastj = i+nip;
+        } else if (i > np - nip) {
+            firstj = i-nip;
+            lastj = np;
+        } else {
+            firstj = i-2*nip/3;
+            lastj = firstj+2*2*nip/3;
+        }
+        
+        
+        float locmax = -BIG;
+        unsigned jmax = np+1;
+        for(j=firstj;j<lastj;j++) {
+            if(xcorr[j] > locmax) {
+                locmax = xcorr[j];
+                jmax = j;
+            }
+        }
+        
+        if(jmax==i && xcorr[i]>threshold && stdev[i] > noise) {
+            if(nords > MAXORDERS) { // run out of memory
+				return nords;  
+            }
+            xmean[nords] = mx[i];
+            ymean[nords] = my[i];
+            //printf("%d\t%lf\t%lf\n",i,xmean[nords],ymean[nords]);
+            nords++;
+        }
+        
+        //printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",i,x[i],y[i],mx[i],my[i],stdev[i]);
+    }
+	
 	return nords;
 }
 
@@ -1527,33 +1619,33 @@ void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *my
             }
         }
     }
-   /*
-    for(unsigned i=0;i<np;i++){
-        printf("%d\t%f\t%f\t%f\n",i,mx[i],my[i],myerr[i]);
-    }
-	for(unsigned j=0;j<nlines;j++) {
-        printf("%u\t%f\t%f\t%f\n",ii[j],xlines[j],ylines[j]);
-    }
+	/*
+	 for(unsigned i=0;i<np;i++){
+	 printf("%d\t%f\t%f\t%f\n",i,mx[i],my[i],myerr[i]);
+	 }
+	 for(unsigned j=0;j<nlines;j++) {
+	 printf("%u\t%f\t%f\t%f\n",ii[j],xlines[j],ylines[j]);
+	 }
      */
-      
-  /*  
-	float *bkg, *xbkg;
-	bkg = (float *) malloc (2*slit * sizeof(float));
-	xbkg = (float *) malloc (2*slit * sizeof(float));
-	float a,b,abdev;
 	
-	unsigned nbkg=0, nin=0;    
-    
-    
-    if((x[i] >= xmean[j] - (float)slit && x[i] <= xmean[j] - (float)slit/2) ||
-       (x[i] >= xmean[j] + (float)slit/2 && x[i] <= xmean[j] + (float)slit)) {
-        xbkg[nbkg] = x[i];
-        bkg[nbkg] = y[i];			
-        nbkg++;    
-    
-        ladfit(xbkg,bkg,nbkg,&a,&b,&abdev);
-        
-*/
+	/*  
+	 float *bkg, *xbkg;
+	 bkg = (float *) malloc (2*slit * sizeof(float));
+	 xbkg = (float *) malloc (2*slit * sizeof(float));
+	 float a,b,abdev;
+	 
+	 unsigned nbkg=0, nin=0;    
+	 
+	 
+	 if((x[i] >= xmean[j] - (float)slit && x[i] <= xmean[j] - (float)slit/2) ||
+	 (x[i] >= xmean[j] + (float)slit/2 && x[i] <= xmean[j] + (float)slit)) {
+	 xbkg[nbkg] = x[i];
+	 bkg[nbkg] = y[i];			
+	 nbkg++;    
+	 
+	 ladfit(xbkg,bkg,nbkg,&a,&b,&abdev);
+	 
+	 */
 	for(unsigned j=0;j<nlines;j++) {
         double a=ylines[j],x0=xlines[j],sig=(*medianWidth);
         double ea,ex0,esig;
@@ -1562,6 +1654,7 @@ void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *my
         unsigned imin = ii[j] - slit/2;
         unsigned imax = ii[j] + slit/2;
         
+        ////DT May 16 2014 NOTE: imin is unsigned so this always fails -- an unsigned cn't be less than zero: if(imin < 0) {imin = 0;}
         if(slit/2 > ii[j]) {imin = 0;}
         if(imax >= np) {imax = np;}
         
@@ -1598,8 +1691,8 @@ void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *my
             npts++;
 		}        
 	}    
- 
+	
 }
- 
+
 
 

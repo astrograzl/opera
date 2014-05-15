@@ -52,8 +52,13 @@ Below are the instructions on how to obtain and install OPERA:
    If you wish to use static libraries:
    ./configure --disable-shared
 
-   *** NOTE: xubuntu, ubuntu and Debian users you MUST:
+   *** NOTE: xubuntu, ubuntu users you MUST:
    ./configure --disable-shared
+   
+   ***NOTE: Debian user MUST:
+	aclocal
+	autoconf
+	./configure
      
 6. Build:
    make

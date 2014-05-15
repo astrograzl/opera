@@ -51,7 +51,7 @@ rm -f $HOME/${version}/src/libraries/*.a $HOME/${version}/src/libraries/*.la
 rm -f $HOME/${version}/config/masterfluxcalibration_*
 rm -f $HOME/${version}/src/tools/.ds9opera.tcl
 if [[ "$1" == "--nodoc" ]]
-then
+then 
 	shift
 else
 	echo "############################################################################################"

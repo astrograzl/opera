@@ -62,7 +62,7 @@
 #define NMORESIGMASTOSTARTOPTIMALEXTRACTION 1
 #endif
 #ifndef MINIMUMNUMBEROFLINESFORIPMEASUREMENTS
-#define MINIMUMNUMBEROFLINESFORIPMEASUREMENTS 20
+#define MINIMUMNUMBEROFLINESFORIPMEASUREMENTS 7
 #endif
 #ifndef DEFAULT_SNR_SMOOTHING
 #define DEFAULT_SNR_SMOOTHING 5
@@ -4301,7 +4301,7 @@ void operaSpectralOrder::normalizeSpectralElementsByConstant(double maxFluxForNo
     }
 }
 
-void operaSpectralOrder::divideSpectralElementsBySEDElements(bool useThroughput, ostream *poutspec, bool StarPlusSky) {
+void operaSpectralOrder::divideSpectralElementsBySEDElements(bool useThroughput, ostream *poutspec, bool StarPlusSky, bool starplusskyInvertSkyFiber) {
     
     if(!gethasSpectralEnergyDistribution()) {
         throw operaException("operaSpectralOrder::applyFluxCalibration: ",operaErrorHasNoSpectralElements, __FILE__, __FUNCTION__, __LINE__);
@@ -4343,7 +4343,7 @@ void operaSpectralOrder::divideSpectralElementsBySEDElements(bool useThroughput,
     }
 	
     if(StarPlusSky) {
-        calculateStarAndSkyElements(NULL);
+        calculateStarAndSkyElements(starplusskyInvertSkyFiber,NULL);
     }
     
     if (poutspec != NULL) {
@@ -4660,7 +4660,7 @@ void operaSpectralOrder::applyFlatResponse(double exposureTime, operaSpectralEle
 /*
  * Star+Sky Mode, subtract the sky beam
  */
-void operaSpectralOrder::calculateStarAndSkyElements(ostream *poutspec) {
+void operaSpectralOrder::calculateStarAndSkyElements(bool starplusskyInvertSkyFiber, ostream *poutspec) {
     
     // Test if number of beams is even.
     if(float(numberOfBeams)/2 - float(round(float(numberOfBeams)/2))) { 
@@ -4675,8 +4675,13 @@ void operaSpectralOrder::calculateStarAndSkyElements(ostream *poutspec) {
     operaFluxVector starPlusSkyFlux(nspecElem);
     
     // Below it assumes there is only two beams, beam=0 is star+sky and beam=1 is sky
-    starPlusSkyFlux = (*BeamElements[0]->getFluxVector());
-    skyFlux = (*BeamElements[1]->getFluxVector());
+    if(starplusskyInvertSkyFiber) {
+        skyFlux = (*BeamElements[0]->getFluxVector());
+        starPlusSkyFlux = (*BeamElements[1]->getFluxVector());
+    } else {
+        starPlusSkyFlux = (*BeamElements[0]->getFluxVector());
+        skyFlux = (*BeamElements[1]->getFluxVector());
+    }
     
     // Below it assumes that the first half of beams is object+sky 
     // and the second half is sky

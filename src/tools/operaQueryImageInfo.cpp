@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
 		
 		char qualival_from_FITS[MAXCONFIGVALUES][FLEN_VALUE],extractval_from_FITS[MAXCONFIGVALUES][FLEN_VALUE];
 		int FitStatus = 0, accept_quali;
-		//... not used DT May 14 2014 int notfits[MAXNFILES];
+		int notfits[MAXNFILES];
 		char comment[FLEN_COMMENT];  
 		fitsfile *fptr;
 		

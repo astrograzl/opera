@@ -1,5 +1,141 @@
-May 14 2014 - Teeple
-	- operaApertureCalibration, added check for positive flux before indicating
-	that an order has an aperture.
-	- removed many compiler warnings thanks to Lison
+May 16 2014 - Martioli
+
+Updates on operaOrderSpacingCalibration:
+
+* Implemented robust sigma cut algorith to clean outliers. This is mainly because the first orders in Graces have wider separation between slices than the separation between orders. This was causing the program to mix up the slices between two adjacent orders. The sigma clipping solves the problem, since it was happening only for the first orders and they are now considered outliers. 
+
+The files affected and updated are:
+
+operaOrderSpacingCalibration.cpp
+operaSpectralOrderVector.cpp / .h
+
+These changes should not affect ESPaDOnS data. 
+
+An example for the module call where it has been tested is given below:
+
+/Users/edermartioli/opera-1.0//bin//operaOrderSpacingCalibration --inputGainFile=20140505.gain.gz --plotfilename=spcplot.eps --datafilename=spcplot.dat --scriptfilename=spcplot.gnu --orderspacingoutput=20140505.ordp.gz --masterbias=20140505_masterbias.fits.gz --masterflat=20140505_masterflat.fits.gz --badpixelmask=/Users/edermartioli/opera-1.0//config/badpix_olapa-a.fits.fz --subformat="8 2040 3 4600" --aperture=31 --numberOfsamples=30 --sampleCenterPosition=2300 -v
+-------
+
+* Several bug fixes in operaGeometryCalibraiton. 
+
+First fix was in the order separtion tolerance which was based only in the separation at reference order. It uses now the polynomial model to calculate what the tolerance should be. This was affecting GRACES data because the order separation becomes smaller than the aperture for redder orders. 
+
+Second fix was in the last loop where Geometry calculates the tracing polynomials. Previously, it was using the absolute order number obtained in the last sample analyzed. This was bad since blue orders are faint at both ends of the detector, but they are sufficiently bright in the middle. This is fixed.  
+
+Below is an example of usage of Geometry for GRACES:
+
+/Users/edermartioli/opera-1.0//bin//operaGeometryCalibration --inputGainFile=20140505.gain.gz --plotfilename=geomplot.eps --datafilename=geomplot.dat --scriptfilename=geomplot.gnu --outputGeomFile=20140505.geom.gz --masterbias=20140505_masterbias.fits.gz --masterflat=20140505_masterflat.fits.gz --badpixelmask=/Users/edermartioli/opera-1.0//config/badpix_olapa-a.fits.fz --subformat="8 2040 3 4600" --aperture=34 --detectionMethod=2 --FFTfilter=0 --nsamples=40 --maxorders=39 --minordertouse=17 --orderOfTracingPolynomial=3 --binsize=10 --colDispersion=1 --invertOrders=1 --recenterIPUsingSliceSymmetry=1 --totalNumberOfSlices=4 --inputOrderSpacing=20140505.ordp.gz  --referenceOrderSeparation=56.8 --referenceOrderSamplePosition=2300 --referenceOrderNumber=53
+
+The files affected and updated are:
+
+operaOrderGeometryCalibration.cpp
+-------
+operaInstrumentProfileCalibration.cpp, operaSpectralOrders.cpp
+
+
+/Users/edermartioli/opera-1.0//bin//operaInstrumentProfileCalibration --plotfilename=profplot.eps --datafilename=profplot.dat --scriptfilename=profplot.gnu --outputProf=20140505.prof.gz --geometryfilename=20140505.geom.gz --masterbias=20140505_masterbias.fits.gz --masterflat=20140505_masterflat.fits.gz --mastercomparison=20140505_mastercomp.fits.gz --badpixelmask=/Users/edermartioli/opera-1.0//config/badpix_olapa-a.fits.fz --ipDimensions="34 5 7 5" --binsize=300 --ordernumber=-999 --method=2 --tilt=-3.0 --gain=20140505.gain.gz --referenceLineWidth=2.5 --spectralElementHeight=1.0 --maxthreads=4 -v
+
+
+----------
+operaExtraction.cpp
+operaSpectralOrder.h, operaSpectralOrder.cpp, operaPolar.cpp, operaStarOnly.cpp, operaSpectralOrderVector.cpp
+
+Added option starplusskyInvertSkyFiber, since GRACES can use either fiber for sky. I have also fixed a bug that was not reading wavelength in when an empty input for rvel was given. 
+----------
+
+Shell script to reduce GRACES data:
+graces_reduction.sh
+
+The script should be called as follows:
+
+For star+sky in fast readout mode:
+/opera-1.0/scripts/graces/graces_reduction.sh 20140506 2 1
+
+For star-only in fast readout mode:
+/opera-1.0/scripts/graces/graces_reduction.sh 20140506 1 1
+
+
+Also the scripts below were a preparation for the graces scripts. These can 
+be useful for people who are starting to learn OPERA, since they show the 
+sequence of execution of modules in a linear way. So, I would suggest to 
+keep them in the main distribution. 
+
+calibration_ESPaDOnS.sh
+full_reduction_ESPaDOnS.sh
+reduction_ESPaDOnS.sh
+
+-------
+
+The module operaMasterComparison.cpp was updated in my previous distribution and it has not been updated to the Opera distribution .
+
+-------
+Geometry fails for May/06 GRACES data.
+
+A big fix was needed. The fix includes changes in the following files: 
+ 
+ operaCCD.c/h
+ operaStats.c/h
+
+I made a function to detect orders using the IP method that is more reliable 
+than the previous one. I haven't removed the previous function since it was
+working for CFHT. However I don't think it will cause any problem for CFHT data. 
+
+-----
+
+StarOnly->	# Final tilt = -2.43129 +/- 0.232844
+S+S ->		# Final tilt = -1.51752 +/- 0.0221108
+
+Added files:
+
+/opera-1.0/config/standardstars/feige66.dat
+/opera-1.0/config/standardstars/feige66_operaFluxCal.dat
+
+wavelengthMaskForRefContinuumDetection.txt
+wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt
+wavelengthMaskForUncalContinuumDetection.txt
+
+These files added to the config directory. 
+
+masterfluxcalibration_EEV1_pol_Fast1.fcal.gz
+masterfluxcalibration_EEV1_pol_Fast2.fcal.gz
+masterfluxcalibration_EEV1_pol_Fast3.fcal.gz
+masterfluxcalibration_EEV1_pol_Fast4.fcal.gz
+masterfluxcalibration_EEV1_pol_Normal1.fcal.gz
+masterfluxcalibration_EEV1_pol_Normal2.fcal.gz
+masterfluxcalibration_EEV1_pol_Normal3.fcal.gz
+masterfluxcalibration_EEV1_pol_Normal4.fcal.gz
+masterfluxcalibration_EEV1_pol_Slow1.fcal.gz
+masterfluxcalibration_EEV1_pol_Slow2.fcal.gz
+masterfluxcalibration_EEV1_pol_Slow3.fcal.gz
+masterfluxcalibration_EEV1_pol_Slow4.fcal.gz
+masterfluxcalibration_EEV1_sp1_Fast.fcal.gz
+masterfluxcalibration_EEV1_sp1_Normal.fcal.gz
+masterfluxcalibration_EEV1_sp1_Slow.fcal.gz
+masterfluxcalibration_EEV1_sp2_Fast.fcal.gz
+masterfluxcalibration_EEV1_sp2_Normal.fcal.gz
+masterfluxcalibration_EEV1_sp2_Slow.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Fast1.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Fast2.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Fast3.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Fast4.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Normal1.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Normal2.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Normal3.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Normal4.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Slow1.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Slow2.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Slow3.fcal.gz
+masterfluxcalibration_OLAPAa_pol_Slow4.fcal.gz
+masterfluxcalibration_OLAPAa_sp1_Fast.fcal.gz
+masterfluxcalibration_OLAPAa_sp1_Normal.fcal.gz
+masterfluxcalibration_OLAPAa_sp1_Slow.fcal.gz
+masterfluxcalibration_OLAPAa_sp2_Fast.fcal.gz
+masterfluxcalibration_OLAPAa_sp2_Normal.fcal.gz
+masterfluxcalibration_OLAPAa_sp2_Slow.fcal.gz
+masterpolarfluxcalibration_OLAPAa_pol.fcal.gz
+
+
+- removed masterflatfieldfluxcalibration rfom Makefile.calaibration as it was never used.
+
+
 

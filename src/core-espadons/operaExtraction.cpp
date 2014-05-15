@@ -117,6 +117,7 @@ bool usePolynomialFit = false;
 bool removeBackground = false;
 
 bool starplusskymode = false;
+bool starplusskyInvertSkyFiber = false;
 
 operaSpectralOrder_t spectralOrderType = RawBeamSpectrum;
 
@@ -208,7 +209,7 @@ void *processOrder(void *argument) {
         }
         
         if(starplusskymode) {
-            spectralOrder->calculateStarAndSkyElements(NULL);
+            spectralOrder->calculateStarAndSkyElements(starplusskyInvertSkyFiber, NULL);
         }
     }
 	return NULL;
@@ -275,7 +276,8 @@ int main(int argc, char *argv[])
         {"usePolynomialFit",1, NULL, 'Y'},
         {"removeBackground",1, NULL, 'G'},
         {"starplusskymode",1, NULL, 'K'},
-        {"noCrossCorrelation",1, NULL, 'x'},         
+        {"starplusskyInvertSkyFiber",1, NULL, 'V'},
+        {"noCrossCorrelation",1, NULL, 'x'},
 		{"spectrumtype",1, NULL, 'T'},	
 		{"spectrumtypename",1, NULL, 'N'},	
 		{"plotfilename",1, NULL, 'P'},
@@ -291,7 +293,7 @@ int main(int argc, char *argv[])
 		{"help",0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "i:s:e:g:r:a:b:f:n:m:O:M:X:A:B:C:R:J:Y:G:K:x:T:N:P:F:S:I:y:v::d::p::t::h", 
+	while((opt = getopt_long(argc, argv, "i:s:e:g:r:a:b:f:n:m:O:M:X:A:B:C:R:J:Y:G:K:V:x:T:N:P:F:S:I:y:v::d::p::t::h", 
 							 longopts, NULL))  != -1)
 	{
 		switch(opt) 
@@ -360,6 +362,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'K':
 				starplusskymode = (atoi(optarg)?true:false);
+				break;
+			case 'V':
+				starplusskyInvertSkyFiber = (atoi(optarg)?true:false);
 				break;
 			case 'x':
 				noCrossCorrelation = (atoi(optarg)?true:false);
@@ -454,7 +459,8 @@ int main(int argc, char *argv[])
             cout << "operaExtraction: effectiveApertureFraction = " << effectiveApertureFraction << endl;
             cout << "operaExtraction: backgroundBinsize = " << backgroundBinsize << endl;
             cout << "operaExtraction: starplusskymode = " << starplusskymode << endl;
-			cout << "operaExtraction: sigmaclip = " << sigmaclip << endl;
+            cout << "operaExtraction: starplusskyInvertSkyFiber = " << starplusskyInvertSkyFiber << endl;
+            cout << "operaExtraction: sigmaclip = " << sigmaclip << endl;
 			cout << "operaExtraction: iterations = " << iterations << endl;
 			cout << "operaExtraction: onTargetProfile = " << onTargetProfile << endl;
 			cout << "operaExtraction: usePolynomialFit = " << usePolynomialFit << endl;
@@ -651,7 +657,8 @@ static void printUsageSyntax(char * modulename) {
     "  -J, --onTargetProfile=<BOOL>, Measure spatial profile on-target instead of using flat-field\n"
     "  -Y, --usePolynomialFit=<BOOL>, Use polynomial instead of median for first measurement of profile\n"
     "  -G, --removeBackground=<BOOL>, Remove background. May be turned Off if target is bright. \n"
-    "  -K, --starplusskymode=<BOOL>, Star+sky: main flux is the sum of right beams minus sum of left beams. \n"   
+    "  -K, --starplusskymode=<BOOL>, Star+sky: main flux is the sum of right beams minus sum of left beams. \n"
+    "  -V, --starplusskyInvertSkyFiber=<BOOL>, Star+sky: invert sky fiber (default is beam[0]=star and beam[1]=sky). \n"
     "  -x, --noCrossCorrelation=<BOOL>, Use this flag to turn-off the cross-correlation calculation\n"
 	"  -T, --spectrumtype=<UNS_VALUE>, Method for extraction\n"
     "                              Available options are = 5, 6, 7 or 8, where: \n"
