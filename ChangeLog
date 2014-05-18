@@ -2070,5 +2070,17 @@ masterfluxcalibration_OLAPAa_sp2_Slow.fcal.gz
 masterpolarfluxcalibration_OLAPAa_pol.fcal.gz
 
 
-- removed masterflatfieldfluxcalibration rfom Makefile.calibration as it was never used.
+- removed masterflatfieldfluxcalibration from Makefile.calibration as it was never used.
+
+May 19 2014 - Teeple
+
+- moved instrumentprofile paramters to the paramteres file:
+DetectionThreshold		:= 0.2
+#LocalMaxFilterWidth = 2.5*referenceLineWidth
+LocalMaxFilterWidth		:= 3.25
+#MinPeakDepth			:= 1.5*noise
+MinPeakDepth			:= 1.5
+  so that other instruments such as graces may have separate paramters. The graces
+  parameters were causing espadons data to fail.
+
 

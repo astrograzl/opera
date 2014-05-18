@@ -1097,6 +1097,9 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --tilt=$(IPtilt) \
 --gain=$(calibrationdir)$*.gain$(gzip) \
 --referenceLineWidth=$(referenceLineWidth) \
+--LocalMaxFilterWidth=$(LocalMaxFilterWidth) \
+--DetectionThreshold=$(DetectionThreshold) \
+--MinPeakDepth=$(MinPeakDepth) \
 $${pargs} \
 $${fabparm} \
 --spectralElementHeight=$(spectralElementHeight) \

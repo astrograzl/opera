@@ -114,9 +114,9 @@ float referenceLineWidth = 2.5;
 float gain = 1.12;
 float noise = 3.5;
 
-float LocalMaxFilterWidth = 0;
-float DetectionThreshold = 0;
-float MinPeakDepth = 0;
+float LocalMaxFilterWidth = 2.5*referenceLineWidth;
+float DetectionThreshold = 0.2;
+float MinPeakDepth = 1.5*noise;
 
 unsigned minorder = 22;
 bool minorderprovided = false;
@@ -323,7 +323,10 @@ int main(int argc, char *argv[])
 		{"method",1, NULL, 'M'},	
 		{"spectralElementHeight",1, NULL, 'H'},
 		{"referenceLineWidth",1, NULL, 'W'},
-        {"ordernumber",1, NULL, 'O'}, 
+		{"LocalMaxFilterWidth",1, NULL, 'L'},	// DT May 19 2014 movded to parameters
+		{"DetectionThreshold",1, NULL, 'R'},	// DT May 19 2014 movded to parameters
+		{"MinPeakDepth",1, NULL, 'E'},			// DT May 19 2014 movded to parameters
+        {"ordernumber",1, NULL, 'O'},
 		{"minorder",1, NULL, 'N'},
 		{"maxorder",1, NULL, 'X'},         
         {"binsize",1, NULL, 'B'},
@@ -334,7 +337,7 @@ int main(int argc, char *argv[])
 		{"datafilename",1, NULL, 'F'},
 		{"scriptfilename",1, NULL, 'S'},
 		{"interactive",0, NULL, 'I'},
-
+		
 		{"plot",		optional_argument, NULL, 'p'},       
 		{"verbose",		optional_argument, NULL, 'v'},
 		{"debug",		optional_argument, NULL, 'd'},
@@ -342,7 +345,7 @@ int main(int argc, char *argv[])
 		{"help",		no_argument, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "o:G:g:b:f:c:m:a:M:A:H:W:O:N:X:B:T:D:P:x:F:S:I:v::d::t::p::h", 
+	while((opt = getopt_long(argc, argv, "o:G:g:b:f:c:m:a:M:A:H:W:O:N:X:B:L:R:T:E:D:P:x:F:S:I:v::d::t::p::h", 
 							 longopts, NULL))  != -1)
 	{
 		switch(opt) 
@@ -379,6 +382,15 @@ int main(int argc, char *argv[])
 				break; 	
 			case 'W':		// line width for reference (in pixel units)
 				referenceLineWidth = atof(optarg);
+				break;                 
+			case 'L':
+				LocalMaxFilterWidth = atof(optarg);
+				break;                 
+			case 'R':
+				DetectionThreshold = atof(optarg);
+				break;                 
+			case 'E':
+				MinPeakDepth = atof(optarg) * noise;
 				break;                 
 			case 'T':		// tilt in degree
 				tilt = atof(optarg);
@@ -530,10 +542,14 @@ int main(int argc, char *argv[])
             IPysize = 6;
         if(!IPysampling)
             IPysampling = 5;
-        
+#if 0
+        //
+		// -- DT May 19 2014
+		// ... moved to parameters
         // -- E. Martioli 14 May 2014
         // Changed values below to increase sensitivity on fainter lines
         // in GRACES comparison spectra. Previous values were the following:
+		//
         // LocalMaxFilterWidth = 2.5*referenceLineWidth;
         // DetectionThreshold = 0.2;
         // MinPeakDepth = 1.5*noise;
@@ -546,7 +562,7 @@ int main(int argc, char *argv[])
             DetectionThreshold = 0.1;
         if(!MinPeakDepth)
             MinPeakDepth = 1.25*noise;
-        
+#endif        
         if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();
         }
