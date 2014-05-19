@@ -972,7 +972,7 @@ void operaSpectralOrder::extractRawSum(operaFITSImage &inputImage, operaFITSProd
 		SpectralElements->setFlux(sumFlux,indexElem);
 		distanceInPixelUnits = SpectralElements->getdistd(indexElem);
 		
-		float table[3] = {(float)getorder(), distanceInPixelUnits, SpectralElements->getFlux(indexElem)};
+		float table[3] = {(float)getorder(), distanceInPixelUnits, (float)SpectralElements->getFlux(indexElem)};
 		outputSpectrum.addRow(table, 3, 0);
 	}
 	setSpectrumType(RawSpectrum);
@@ -1039,8 +1039,6 @@ void operaSpectralOrder::extractRawSum(operaFITSImage &inputImage, ofstream &sou
 
 void operaSpectralOrder::extractRawSum(operaFITSImage &inputImage, float noise, float gain){
 	
-	float distanceInPixelUnits;
-	
 	for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
 		unsigned xlocalmin = (unsigned)floor(SpectralElements->getphotoCenterX(indexElem) - getGeometry()->getapertureWidth()/2);
 		unsigned xlocalmax = (unsigned)ceil(SpectralElements->getphotoCenterX(indexElem) + getGeometry()->getapertureWidth()/2);
@@ -1073,9 +1071,9 @@ void operaSpectralOrder::extractRawSum(operaFITSImage &inputImage, float noise, 
 		
 		SpectralElements->setFlux(sumFlux,indexElem);
 		SpectralElements->setFluxVariance(sumVar,indexElem);
-		distanceInPixelUnits = SpectralElements->getdistd(indexElem);	
 		
 #ifdef PRINT_DEBUG
+		float distanceInPixelUnits = SpectralElements->getdistd(indexElem);	
 		cout << orderNumber <<
 		"\t" << indexElem << 
 		"\t" << SpectralElements->getphotoCenterX(indexElem) << 
@@ -1471,8 +1469,12 @@ void operaSpectralOrder::setSpectralElementsByStitchingApertures(double effectiv
             ycenter_plus = (2*alpha)/(-beta + sqrt(beta*beta - 4*alpha*cc));
             ycenter_minus = (2*alpha)/(-beta - sqrt(beta*beta - 4*alpha*cc));
         } else {
-            throw operaException("operaSpectralOrder:",operaErrorDivideByZeroError, __FILE__, __FUNCTION__, __LINE__);
-        }
+            //throw operaException("operaSpectralOrder:",operaErrorDivideByZeroError, __FILE__, __FUNCTION__, __LINE__);
+			// DT May 20 2014 -- We are likely to run in to problems when indexing through MAXSPECTRALELEMENTSPERORDER
+			// so, just break rather than throwing an exception and thus aborting...
+			break;
+            //throw operaException("operaSpectralOrder:",operaErrorDivideByZeroError, __FILE__, __FUNCTION__, __LINE__);
+		}
 		//        cout << "ycenter_plus=" << ycenter_plus << " ycenter_minus=" << ycenter_minus << endl;
         
         // pick the branch with closest y to the previous point:
@@ -3848,7 +3850,8 @@ void operaSpectralOrder::measureContinuum(operaFluxVector &uncalibratedFlux,oper
         // select first maximum residual which does not exceed 5x(absolute deviation)         
         float dytop = 0;
         float continuumBinFraction = 0.5;
-        for(unsigned i=binsize-1; i>(unsigned)((float)binsize*(1.0 - continuumBinFraction)); i--) {
+		// DT May 20 2014 fixed segfault in case that i goes less than zero...
+        for(unsigned i=binsize-1; i>(unsigned)((float)binsize*(1.0 - continuumBinFraction)) && i >= 0; i--) {
             if (residuals_tmp[sindex[i]] < nsigcut*abdevm) {
                 dytop = residuals_tmp[sindex[i]];
                 break;
@@ -3863,7 +3866,10 @@ void operaSpectralOrder::measureContinuum(operaFluxVector &uncalibratedFlux,oper
         // evaluate max at left most edge
         if(k==0) {
             continuumElemSample[actualNumberOfSamples] = firstPoint;
-            continuumFluxSample[actualNumberOfSamples] = bm*continuumElemSample[actualNumberOfSamples] + am + dytop;            
+            continuumFluxSample[actualNumberOfSamples] = bm*continuumElemSample[actualNumberOfSamples] + am + dytop; 
+			// DT May 20 2014 check for out of bounds...
+			if (bm*continuumElemSample[actualNumberOfSamples] + am + dytop > SpectralElements->getnSpectralElements())
+				break;
             continuumWavelengthSample[actualNumberOfSamples] = SpectralElements->getwavelength((unsigned)continuumElemSample[actualNumberOfSamples]);
             
             spectralEnergyDistribution.setdistanceData(SpectralElements->getdistd((unsigned)continuumElemSample[actualNumberOfSamples]),actualNumberOfSamples);
@@ -3877,6 +3883,9 @@ void operaSpectralOrder::measureContinuum(operaFluxVector &uncalibratedFlux,oper
         if (k==NumberOfSamples-1) {
 			continuumElemSample[actualNumberOfSamples] = (double)lastPoint-1;
 			continuumFluxSample[actualNumberOfSamples] = bm*continuumElemSample[actualNumberOfSamples] + am + dytop;
+			// DT May 20 2014 check for out of bounds...
+			if (bm*continuumElemSample[actualNumberOfSamples] + am + dytop > SpectralElements->getnSpectralElements())
+				break;
             continuumWavelengthSample[actualNumberOfSamples] = SpectralElements->getwavelength((unsigned)continuumElemSample[actualNumberOfSamples]);
 			
             spectralEnergyDistribution.setdistanceData(SpectralElements->getdistd((unsigned)continuumElemSample[actualNumberOfSamples]),actualNumberOfSamples);

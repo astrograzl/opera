@@ -486,8 +486,11 @@ int main(int argc, char *argv[])
 			cout << "operaInstrumentProfileCalibration: masterfabperot = " << masterfabperot << endl; 			
 			cout << "operaInstrumentProfileCalibration: spectralElementHeight = " << spectralElementHeight << endl;            
 			cout << "operaInstrumentProfileCalibration: referenceLineWidth = " << referenceLineWidth << endl;
+			cout << "operaInstrumentProfileCalibration: MinPeakDepth = " << MinPeakDepth << endl;
+			cout << "operaInstrumentProfileCalibration: LocalMaxFilterWidth = " << LocalMaxFilterWidth << endl;
+			cout << "operaInstrumentProfileCalibration: DetectionThreshold = " << DetectionThreshold << endl;
 			cout << "operaInstrumentProfileCalibration: maxthreads = " << maxthreads << endl;
-            if(ordernumber != NOTPROVIDED) {
+			if(ordernumber != NOTPROVIDED) {
                 cout << "operaInstrumentProfileCalibration: ordernumber = " << ordernumber << endl;            
             }
             if(plot) {

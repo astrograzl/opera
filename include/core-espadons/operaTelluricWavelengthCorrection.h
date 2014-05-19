@@ -52,9 +52,6 @@
 #define TYPICAL_ATMOSPHERE_PATH_LENGTH  843500 // cm
 
 
-/* prototypes */
-static void printUsageSyntax(char *prgname);
-
 unsigned readTelluricLines(string telluric_database_file, int *telluricMoleculeNumber, double *telluricLinesWavelength, double *telluricLinesIntensity);
 
 unsigned getTelluricLinesRange(double wl0, double wlf, double **wl, double **intensity);

@@ -71,6 +71,7 @@
 #include "libraries/gzstream.h"							// for gzstream - read compressed reference spectra
 
 #define NOTPROVIDED -999
+#define MINELEMENTS 20
 
 /*! \file operaTelluricWavelengthCorrection.cpp */
 
@@ -92,6 +93,9 @@ static unsigned ntelluriclines = 0;
 static int telluricMoleculeNumber[MAXNUMBEROFLINESINTELLURICDATABASE];
 static double telluricLinesWavelength[MAXNUMBEROFLINESINTELLURICDATABASE];
 static double telluricLinesIntensity[MAXNUMBEROFLINESINTELLURICDATABASE];
+
+/* prototypes */
+static void printUsageSyntax(char *prgname);
 
 /*! 
  * operaTelluricWavelengthCorrection
@@ -463,6 +467,10 @@ int main(int argc, char *argv[])
                 Polynomial *wavelengthPolynomial =  wavelength->getWavelengthPolynomial();
                 
                 if (spectralOrder->gethasSpectralElements()) {
+					
+					// DT May 20 2014 don't try to process order if there are not enough spectral elements
+					if (spectralOrder->getSpectralElements()->getnSpectralElements() < MINELEMENTS)
+						continue;
 					
                     spectralOrder->applyNormalization(normalizationBinsize,0,FALSE,NULL,NULL,TRUE,0);
                     

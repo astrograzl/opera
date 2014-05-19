@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 		/*
 		 * Plotting support
 		 */
-        unsigned numberOfprintouts = 2; // for 3D plotting        
+        // DT May 20 2014 -- not used unsigned numberOfprintouts = 2; // for 3D plotting        
         ofstream *fspecdata = NULL;
         ofstream *fcontinuumdata = NULL;
         

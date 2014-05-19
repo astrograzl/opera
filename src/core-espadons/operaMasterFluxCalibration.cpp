@@ -55,6 +55,7 @@
 #define NOTPROVIDED -999
 #define MAXNUMBEROFFLUXCALIBRATIONFILES 500
 #define WAVELENGTH_PRECISION 0.01
+#define MINELEMENTS 20
 
 /*! \file operaMasterFluxCalibration.cpp */
 
@@ -403,7 +404,8 @@ int main(int argc, char *argv[])
                     
                     unsigned nElements = SpectralElements->getnSpectralElements();
                     
-                    if(nElements==0) {
+                    // DT May 20 2014 you can't do spline fitting without some reasobale number of elements... if(nElements==0) {
+					if(nElements < MINELEMENTS) {
                         cerr << "operaMasterFluxCalibration: skipping order " << order << " -> reference spectrum has nElements=0" << endl;
                         continue;
                     }

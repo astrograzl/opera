@@ -332,7 +332,6 @@ int main(int argc, char *argv[])
 		
 		char qualival_from_FITS[MAXCONFIGVALUES][FLEN_VALUE],extractval_from_FITS[MAXCONFIGVALUES][FLEN_VALUE];
 		int FitStatus = 0, accept_quali;
-		int notfits[MAXNFILES];
 		char comment[FLEN_COMMENT];  
 		fitsfile *fptr;
 		
@@ -376,11 +375,9 @@ int main(int argc, char *argv[])
 			if (debug)
 				cout << "operaQueryImageInfo: Trying to open file: " << fullpathname[i] << "\n";
 			
-			notfits[i] = 0; 
 			if (fits_open_file(&fptr, fullpathname[i], READONLY, &FitStatus)) {
 				if (debug && FitStatus)	
 					operaPError("operaQueryImageInfo", FitStatus); 
-				notfits[i] = 1;
 				continue;        
 			}
 			

@@ -314,13 +314,13 @@ int main(int argc, char *argv[])
 
         double *orderWlShift = new double[MAXORDERS];
         float *shift = new float[MAXORDERS];
-        unsigned referenceOrderIndex = NOTPROVIDED;
+        int referenceOrderIndex = NOTPROVIDED;
         unsigned np = 0;
                 
         for(unsigned ord=0; ord<nord; ord++) {
             orderWlShift[ord] = 0;
             if(orderIndex[ord] == orderOfReference) {
-                referenceOrderIndex = ord;
+                referenceOrderIndex = (int)ord;
            }
             if(wlShifts[0][ord] != 0) {
                 shift[np++] = wlShifts[0][ord];
@@ -343,16 +343,16 @@ int main(int argc, char *argv[])
             cout << "referenceOrderIndex = " << referenceOrderIndex << " refOrder = " << orderIndex[referenceOrderIndex] << endl;
 
         
-        for(int ord=(int)(referenceOrderIndex+1); ord<(int)nord; ord++) {
+        for(int ord=referenceOrderIndex+1; ord<(int)nord; ord++) {
             if(wlShifts[0][ord] > medianShift - medianShiftSigma &&
                wlShifts[0][ord] < medianShift + medianShiftSigma) {
-                for(int o = ord; o<nord; o++) {
+                for(int o = ord; o<(int)nord; o++) {
                     orderWlShift[o] += wlShifts[0][ord];
                 }
             }
         }
 
-        for(int ord=(int)(referenceOrderIndex-1); ord>=0; ord--) {
+        for(int ord=referenceOrderIndex-1; ord>=0; ord--) {
             if(wlShifts[1][ord] > medianShift - medianShiftSigma &&
                wlShifts[1][ord] < medianShift + medianShiftSigma) {
                 for(int o=ord; o>=0; o--) {
@@ -446,7 +446,7 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
     double *compSpectrumWavelength_mod = new double[compSpectrum->getnSpectralElements()];
     double *compSpectrumFlux_mod = new double[RefSpectrum->getnSpectralElements()];
 
-    unsigned nDataPoints = ceil( (DWavelengthRange / DWavelengthStep) + 1.0);
+    unsigned nDataPoints = (unsigned)ceil( (DWavelengthRange / DWavelengthStep) + 1.0);
     double DWavelength = -DWavelengthRange/2.0;
     
     unsigned jmax = 0;
