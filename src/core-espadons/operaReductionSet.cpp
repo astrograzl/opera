@@ -84,6 +84,9 @@ static void printUsageSyntax(){
  * \ingroup core
  * \return EXIT_STATUS
  */
+
+char *filepath = NULL;
+
 int main(int argc, char *argv[])
 {
 	int opt,i,j;
@@ -113,6 +116,7 @@ int main(int argc, char *argv[])
 			{"qualifiers",1, NULL, 'q'}, 
 			{"etype",1, NULL, 'e'},
 			{"splitkey",1,NULL,'s'},
+			{"path",1,NULL,'P'},
 			
 			{"plot",		optional_argument, NULL, 'p'},       
 			{"verbose",		optional_argument, NULL, 'v'},
@@ -123,7 +127,7 @@ int main(int argc, char *argv[])
 		
 		i = 1;
 		
-		while((opt = getopt_long(argc, argv, "i:o:r:q:e:s:v::d::t::p::h", 
+		while((opt = getopt_long(argc, argv, "i:o:r:q:e:s:P:v::d::t::p::h", 
 														 longopts, NULL))  != -1)
 		{
 			switch(opt) 
@@ -145,6 +149,9 @@ int main(int argc, char *argv[])
 					break;            
 				case 'e':
 					etype[ne++] = optarg;
+					break;   
+				case 'P':
+					filepath = optarg;
 					break;   
 					
 				case 'v':
@@ -654,6 +661,7 @@ unsigned operaReductionSetConfigurationAccess(char *par, char *values[], unsigne
 	unsigned npars = 0;
 	char *parvalues = NULL;
 	
+	operaConfigurationAccessSetConfigurationFilepath(filepath);
 	*errorcode = operaConfigurationAccessGet(par, &parvalues);
 	
 	if (*errorcode == operaErrorCodeOK) {	

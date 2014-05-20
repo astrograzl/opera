@@ -90,11 +90,11 @@ operaErrorCode operaConfigurationAccessSetConfigurationFilepath(const char *file
 	char *prefix = getenv("opera");
 	if (prefix == NULL) {	// means set the default
 		strncpy(configurationfilename, "..", sizeof(configurationfilename)-1);
-		strncat(configurationfilename, configurationfilebasename, sizeof(configurationfilename)-1);	
+		strncat(configurationfilename, filepath, sizeof(configurationfilename)-1);	
 		return operaErrorCodeEnvironmentnotset;
 	} else {
 		strncpy(configurationfilename, prefix, sizeof(configurationfilename)-1);
-		strncat(configurationfilename, configurationfilebasename, sizeof(configurationfilename)-1);
+		strncat(configurationfilename, filepath, sizeof(configurationfilename)-1);
 	}
 	return operaErrorCodeOK;
 }

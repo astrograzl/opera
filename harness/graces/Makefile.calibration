@@ -210,7 +210,7 @@ master.rlst: directoriescreated
 						mode=`echo $${reductionset} | awk -F_ '{print $$2}'`; \
 						speed=`echo $${reductionset} | awk -F_ '{print $$3} '`; \
 						amplifier=`echo $${reductionset} | awk -F_ ' {print $$1} ' | awk -F- '{print $$2}'`; \
-						$(ECHO) $(MAKE) -f $(makedir)Makefile $${detector}$${amplifier}_$${mode}_$${speed}.rlst DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory ; \
+						$(ECHO) $(MAKE) -f $(makedir)Makefile prefix=$(prefix) $${detector}$${amplifier}_$${mode}_$${speed}.rlst DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory ; \
 					done ; \
 					mv -f $(byproductsdir)master.tmp $(byproductsdir)master.rlst ; \
 					if [[ "$(VERBOSE)" == "1" ]] ; \
@@ -513,7 +513,7 @@ endif
 %.rlst: %.flst
 	@start=$$SECONDS; \
 	if [ ! -e $(byproductsdir)$@ ] ;  then \
-		$(bindir)operaReductionSet --splitkey=$(SPLITKEY) --input=$(byproductsdir)$< --output=$(byproductsdir)$@ --qualifiers="$(QUALIFIERNAMELIST)" $(word 1,$(QUALIFIERNAMELIST))=$(word 1,$(QUALIFIERNAMELIST))_$(DETECTOR) $(word 2,$(QUALIFIERNAMELIST))=$(word 2,$(QUALIFIERNAMELIST))_$(MODE) $(word 3,$(QUALIFIERNAMELIST))=$(word 3,$(QUALIFIERNAMELIST))_$(SPEED) $(word 4,$(QUALIFIERNAMELIST))=$(word 4,$(QUALIFIERNAMELIST))_$(AMPLIFIER) --etype=OBJECT --etype=FLAT --etype=BIAS --etype=COMPARISON --etype=ALIGN $(optargs) 2>>$(errfile) 2>&1 | tee -a $(logfile) ; \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaReductionSet --splitkey=$(SPLITKEY) --path=/harness/$(instrument)/Makefile.configuration --input=$(byproductsdir)$< --output=$(byproductsdir)$@ --qualifiers=\"$(QUALIFIERNAMELIST)\" $(word 1,$(QUALIFIERNAMELIST))=$(word 1,$(QUALIFIERNAMELIST))_$(DETECTOR) $(word 2,$(QUALIFIERNAMELIST))=$(word 2,$(QUALIFIERNAMELIST))_$(MODE) $(word 3,$(QUALIFIERNAMELIST))=$(word 3,$(QUALIFIERNAMELIST))_$(SPEED) $(word 4,$(QUALIFIERNAMELIST))=$(word 4,$(QUALIFIERNAMELIST))_$(AMPLIFIER) --etype=OBJECT --etype=FLAT --etype=BIAS --etype=COMPARISON --etype=ALIGN $(optargs)" 2>>$(errfile) 2>&1 | tee -a $(logfile) ; \
 		if [ -s $(byproductsdir)$@  ] ; then \
 			split=`$(bindir)operasplit $(byproductsdir)$@ $(tmpdir)$@` ; \
 			if (( split != 0 )) ; then \

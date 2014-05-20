@@ -3868,8 +3868,9 @@ void operaSpectralOrder::measureContinuum(operaFluxVector &uncalibratedFlux,oper
             continuumElemSample[actualNumberOfSamples] = firstPoint;
             continuumFluxSample[actualNumberOfSamples] = bm*continuumElemSample[actualNumberOfSamples] + am + dytop; 
 			// DT May 20 2014 check for out of bounds...
+			// DT May 21 2014 change break to continue...
 			if (bm*continuumElemSample[actualNumberOfSamples] + am + dytop > SpectralElements->getnSpectralElements())
-				break;
+				continue;
             continuumWavelengthSample[actualNumberOfSamples] = SpectralElements->getwavelength((unsigned)continuumElemSample[actualNumberOfSamples]);
             
             spectralEnergyDistribution.setdistanceData(SpectralElements->getdistd((unsigned)continuumElemSample[actualNumberOfSamples]),actualNumberOfSamples);
@@ -3884,8 +3885,9 @@ void operaSpectralOrder::measureContinuum(operaFluxVector &uncalibratedFlux,oper
 			continuumElemSample[actualNumberOfSamples] = (double)lastPoint-1;
 			continuumFluxSample[actualNumberOfSamples] = bm*continuumElemSample[actualNumberOfSamples] + am + dytop;
 			// DT May 20 2014 check for out of bounds...
+			// DT May 21 2014 change break to continue...
 			if (bm*continuumElemSample[actualNumberOfSamples] + am + dytop > SpectralElements->getnSpectralElements())
-				break;
+				continue;
             continuumWavelengthSample[actualNumberOfSamples] = SpectralElements->getwavelength((unsigned)continuumElemSample[actualNumberOfSamples]);
 			
             spectralEnergyDistribution.setdistanceData(SpectralElements->getdistd((unsigned)continuumElemSample[actualNumberOfSamples]),actualNumberOfSamples);

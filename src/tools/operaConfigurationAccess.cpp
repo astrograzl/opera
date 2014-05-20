@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 	string command = "get";
 	string filename;
 	string line;
-	const string configurationfilebasename = "/harness/Makefile.configuration";
+	const string configurationfilebasename = "/harness/espadons/Makefile.configuration";
 	
 	struct option longopts[] = {
 		{"add",			0, NULL, 'a'},
@@ -194,9 +194,10 @@ int main(int argc, char *argv[])
 		{"rem",			0, NULL, 'r'},
 		{"prefix",		1, NULL, 'P'},
 		{"list",		0, NULL, 'l'},
+		{"path",		0, NULL, 'A'},
 		
-		{"verbose",		0, NULL, 'p'},
-		{"plot",		0, NULL, 'v'},
+		{"verbose",		0, NULL, 'v'},
+		{"plot",		0, NULL, 'p'},
 		{"debug",		0, NULL, 'd'},
 		{"trace",		0, NULL, 't'},
 		{"help",		0, NULL, 'h'},
@@ -219,10 +220,10 @@ int main(int argc, char *argv[])
 			case 'P':
 				prefix = optarg;
 				break;
-			case 'l':
-				verbose = 1;
+			case 'A':
+				operaConfigurationAccessSetConfigurationFilepath(optarg);
 				break;
-				
+
 			case 'v':
 				verbose = 1;
 				break;

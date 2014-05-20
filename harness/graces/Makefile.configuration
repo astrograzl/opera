@@ -215,7 +215,7 @@ EEV1_AMPLIFIERS		:= a
 OLAPA_AMPLIFIERS	:= ab
 AMPLIFIERS			:= a ab
 OSETS				:= a b c
-SPLITKEY			:= INSTMODE
+SPLITKEY			:= GSLICER
 POL					:= 4
 
 #########################################################################################
@@ -298,7 +298,7 @@ QUALIFIERNAMELIST	:= DETECTOR MODE SPEED AMPLIFIER
 # the keys to look for
 DETECTOR_HEADERKEY	:= DETECTOR
 MODE_HEADERKEY		:= GSLICER
-SPEED_HEADERKEY		:= EREADSPD
+SPEED_HEADERKEY		:= RDTIME
 AMPLIFIER_HEADERKEY	:= AMPLIST
 # the values of the keyword in the FITS header
 DETECTOR_EEV1_HEADERVALUE	:= 'EEV1    '
@@ -312,10 +312,8 @@ MODE_sp1_HEADERVALUE		:= 'FOURSLICE'
 MODE_sp2_HEADERVALUE		:= 'TWOSLICE'
 # the values of the keyword in the FITS header
 # Note the % wildcard...
-SPEED_Fast_HEADERVALUE		:= 'Fast:%'
-SPEED_Normal_HEADERVALUE	:= 'Normal:%'
-SPEED_Slow_HEADERVALUE		:= 'Slow:%'
-SPEED_XSlow_HEADERVALUE		:= 'xSlow:%'
+SPEED_Fast_HEADERVALUE		:= 32.00
+SPEED_Normal_HEADERVALUE	:= 38.00
 
 #########################################################################################
 #

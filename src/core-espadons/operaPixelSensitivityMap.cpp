@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
         
         float maxvalue = -BIG;
         
-        for(unsigned pixIndex=0;pixIndex<npixels;pixIndex++) {
+        for(unsigned pixIndex=0;pixIndex<(unsigned)npixels;pixIndex++) {
             if(maxvalue < flatData[pixIndex] && badpixData[pixIndex]) {
                 maxvalue = flatData[pixIndex];
             }

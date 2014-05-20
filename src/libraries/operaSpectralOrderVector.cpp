@@ -6377,7 +6377,7 @@ void operaSpectralOrderVector::getContinuumFluxesForNormalization(double *uncali
     
     measureContinuumAcrossOrders(binsize,orderBin,nsigcut,nOrdersPicked,orderWithReferenceFluxForNormalization);
     
-    int orderpicked = 0;
+    // DT May 20 2014 -- notused --int orderpicked = 0;
     unsigned elemIndexPicked = 0;
     
     *uncalibratedContinuumFluxForNormalization = -BIG;
@@ -6393,7 +6393,7 @@ void operaSpectralOrderVector::getContinuumFluxesForNormalization(double *uncali
             
             if(*uncalibratedContinuumFluxForNormalization < tmp_uncalibratedContinuumFluxForNormalization) {
                 *uncalibratedContinuumFluxForNormalization = tmp_uncalibratedContinuumFluxForNormalization;
-                orderpicked = orderWithReferenceFluxForNormalization[i];
+                //orderpicked = orderWithReferenceFluxForNormalization[i];
                 elemIndexPicked = elemIndexWithReferenceFluxForNormalization[i];
                 for(unsigned beam=0; beam < NumberofBeams; beam++) {
                     operaSpectralEnergyDistribution *beamSED = spectralOrder->getBeamSED(beam);

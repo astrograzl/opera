@@ -386,7 +386,7 @@ $${pargs} \
 # flat field intensity spectrum.
 #########################################################################################
 
-ff_$(QUALIFIERS).e$(gzip): $(calibrationdir)$(QUALIFIERS).prof$(gzip) $(QUALIFIERS).geom$(gzip) $(QUALIFIERS).aper$(gzip) masterflat_$(QUALIFIERS).$(FITS)$(extension) masterbias_$(QUALIFIERS).$(FITS)$(extension) masterflat_$(QUALIFIERS).$(FITS)$(extension)
+ff_$(QUALIFIERS).e$(gzip): $(QUALIFIERS).aper$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting flat field spectral intensity generation for $@ using $(maxthreads) threads" ; \

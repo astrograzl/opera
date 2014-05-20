@@ -600,7 +600,7 @@ polarbinningsize	:= 750
 #
 #########################################################################################
 # approval email recipients
-recipients					:= teeple,manset,forshay,tburd,moutou
+recipients					:= teeple,manset,forshay,tburd,moutou,malo
 
 # is fluxcalibration requested
 upenawantfcal				:= 1
