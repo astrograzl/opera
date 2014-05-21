@@ -341,7 +341,9 @@ pol_IPDimensions		:= 30 5 6 5
 IPDimensions			:= $($(MODE)_IPDimensions)
 spectralElementHeight	:= 1.0
 DetectionThreshold		:= 0.5
-referenceLineWidth		:= 1.8
+referenceLineWidth		:= $(referenceLineWidth_$(MODE))
+referenceLineWidth_sp1	:= 2.5
+referenceLineWidth_sp2	:= 1.8
 IPtilt					:= -3.0
 IPBinsize				:= 100
 #methods of measuring instrument profile
