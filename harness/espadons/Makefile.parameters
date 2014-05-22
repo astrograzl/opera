@@ -520,7 +520,10 @@ starplusskymode				:= $(starplusskymode_$(MODE))
 
 extractor_normalizationBinsize			:= 750
 extractor_numberOfPointsInUniformSample	:= 150
-extractor_AbsoluteCalibration			:= 0
+extractor_AbsoluteCalibration_pol		:= 1
+extractor_AbsoluteCalibration_sp1		:= 0
+extractor_AbsoluteCalibration_sp2		:= 0
+extractor_AbsoluteCalibration			:= $(extractor_AbsoluteCalibration_$(MODE))
 extractor_WavelengthMaskForUncalContinuum := wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt
 
 #########################################################################################

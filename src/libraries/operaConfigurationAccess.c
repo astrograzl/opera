@@ -88,6 +88,9 @@ const char *configurationfilebasename = "/harness/espadons/Makefile.configuratio
  */
 operaErrorCode operaConfigurationAccessSetConfigurationFilepath(const char *filepath) {
 	char *prefix = getenv("opera");
+	if (filepath == NULL) {
+		filepath = configurationfilebasename;
+	}
 	if (prefix == NULL) {	// means set the default
 		strncpy(configurationfilename, "..", sizeof(configurationfilename)-1);
 		strncat(configurationfilename, filepath, sizeof(configurationfilename)-1);	
@@ -95,7 +98,7 @@ operaErrorCode operaConfigurationAccessSetConfigurationFilepath(const char *file
 	} else {
 		strncpy(configurationfilename, prefix, sizeof(configurationfilename)-1);
 		strncat(configurationfilename, filepath, sizeof(configurationfilename)-1);
-	}
+	}		
 	return operaErrorCodeOK;
 }
 

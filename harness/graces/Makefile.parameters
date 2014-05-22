@@ -491,8 +491,8 @@ LibreEspritSNR					:= 24		# wavelength calibrated / LE vectors of wl and SNR
 OperaSNR						:= 31		# wavelength calibrated / opera vectors of wl and SNR
 OperaCSV						:= 43		# wavelength calibrated / opera vectors of wl and Flux in CSV format
 
-DefaultSpectrumTypeName				:= OptimalBeamSpectrum
-DefaultCalibratedSpectrumTypeName	:= CalibratedExtendedBeamSpectrum
+DefaultSpectrumTypeName				:= LibreEspritSpectrum_$(MODE)
+DefaultCalibratedSpectrumTypeName	:= LibreEspritSpectrum_$(MODE)
 DefaultSpectrumType					:= $($(DefaultSpectrumTypeName))
 DefaultCalibratedSpectrumType		:= $($(DefaultCalibratedSpectrumTypeName))
 

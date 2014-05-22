@@ -2226,3 +2226,8 @@ May 21 2014 - Teeple
 - changed "break" to "continue" so further orders are processed in:
 	void operaSpectralOrder::measureContinuum(operaFluxVector &uncalibratedFlux,operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned nsigcut, unsigned orderOfPolynomial, bool usePolynomial) {
 - fixed bugs in operaReductionSet for graces
+
+May 23 2014 - Teeple
+
+- fixed bug in operaConfigurationAccess where a NULL filename was causing
+  the path to be incorrect

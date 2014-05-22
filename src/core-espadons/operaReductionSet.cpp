@@ -228,7 +228,7 @@ int main(int argc, char *argv[])
 		char etypes_config[MAX_ETYPES_CONFIG];
 		snprintf(etypes_config,sizeof(etypes_config),"ETYPES");
 		netypeopts = operaReductionSetConfigurationAccess(etypes_config, etypeopts_tmp, MAXCONFIGVALUES, &errorcode);
-		
+	
 		if (errorcode || netypeopts == 0) {
 			throw operaException("operaReductionSet: ", operaErrorReductionSetEtypeNotDefined, __FILE__, __FUNCTION__, __LINE__);	
 		}	

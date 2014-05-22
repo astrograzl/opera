@@ -506,7 +506,7 @@ endif
 %.rlst: %.flst
 	@start=$$SECONDS; \
 	if [ ! -e $(byproductsdir)$@ ] ;  then \
-		$(bindir)operaReductionSet --splitkey=$(SPLITKEY) --input=$(byproductsdir)$< --output=$(byproductsdir)$@ --qualifiers="$(QUALIFIERNAMELIST)" $(word 1,$(QUALIFIERNAMELIST))=$(word 1,$(QUALIFIERNAMELIST))_$(DETECTOR) $(word 2,$(QUALIFIERNAMELIST))=$(word 2,$(QUALIFIERNAMELIST))_$(MODE) $(word 3,$(QUALIFIERNAMELIST))=$(word 3,$(QUALIFIERNAMELIST))_$(SPEED) $(word 4,$(QUALIFIERNAMELIST))=$(word 4,$(QUALIFIERNAMELIST))_$(AMPLIFIER) --etype=OBJECT --etype=FLAT --etype=BIAS --etype=COMPARISON --etype=ALIGN $(optargs) 2>>$(errfile) 2>&1 | tee -a $(logfile) ; \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaReductionSet --splitkey=$(SPLITKEY) --input=$(byproductsdir)$< --output=$(byproductsdir)$@ --qualifiers=\"$(QUALIFIERNAMELIST)\" $(word 1,$(QUALIFIERNAMELIST))=$(word 1,$(QUALIFIERNAMELIST))_$(DETECTOR) $(word 2,$(QUALIFIERNAMELIST))=$(word 2,$(QUALIFIERNAMELIST))_$(MODE) $(word 3,$(QUALIFIERNAMELIST))=$(word 3,$(QUALIFIERNAMELIST))_$(SPEED) $(word 4,$(QUALIFIERNAMELIST))=$(word 4,$(QUALIFIERNAMELIST))_$(AMPLIFIER) --etype=OBJECT --etype=FLAT --etype=BIAS --etype=COMPARISON --etype=ALIGN $(optargs)" 2>>$(errfile) 2>&1 | tee -a $(logfile) ; \
 		if [ -s $(byproductsdir)$@  ] ; then \
 			split=`$(bindir)operasplit $(byproductsdir)$@ $(tmpdir)$@` ; \
 			if (( split != 0 )) ; then \
