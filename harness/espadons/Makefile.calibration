@@ -109,7 +109,7 @@ calibrationslog: master.rlst
 			else \
 				echo "$(NIGHT) locked by `whoami`" >$(outdir)Lock_$(NIGHT) ; \
 				echo "$(pref) Starting parallel calibration $(NIGHT) using $(maxthreads) threads." ; \
-				$(ECHO) $(MAKE) -f $(makedir)Makefile RECHO=$(RECHO) DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory parcal TARGET=disp$(gzip) --jobs --no-print-directory; \
+				$(ECHO) $(MAKE) -f $(makedir)Makefile RECHO=$(RECHO) DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory parcal TARGET=wcal$(gzip) --jobs --no-print-directory; \
 				$(ECHO) $(MAKE) -f $(makedir)Makefile RECHO=$(RECHO) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory cleantmp unlock --jobs --no-print-directory; \
 				echo "$(pref) parallel calibration for $(NIGHT) complete in $(deltat)" ; \
 				if [ -s $(errfile) ] ; then \
@@ -140,7 +140,7 @@ calibratelog: master.rlst
 			else \
 				echo "$(NIGHT) locked by `whoami`" >$(outdir)Lock_$(NIGHT) ; \
 				echo "$(pref) Starting serial calibration $(NIGHT) using $(maxthreads) threads." ; \
-				$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" dispersioncalibrations --jobs --no-print-directory ; \
+				$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" wavelengthcalibrations --jobs --no-print-directory ; \
 				$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" cleantmp unlock --jobs --no-print-directory ; \
 				echo "$(pref) serial calibration for $(NIGHT) complete in $(deltat)" ; \
 				if [ -s $(errfile) ] ; then \
@@ -315,14 +315,6 @@ wcals wavelengthcalibrations: master.rlst
 	@start=$$SECONDS; \
 	$(call doAllCalibrationModes,,wcal$(gzip)) ; \
 	echo "$(pref) wavelength calibrations for $(NIGHT) complete in $(deltat)"
-
-#########################################################################################
-# dispersioncalibrations
-#########################################################################################
-disps dispersioncalibrations: master.rlst
-	@start=$$SECONDS; \
-	$(call doAllCalibrationModes,,disp$(gzip)) ; \
-	echo "$(pref) dispersion calibrations for $(NIGHT) complete in $(deltat)"
 
 #########################################################################################
 # resolutions
@@ -1172,9 +1164,6 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting Wavelength refinement with operaStitchOrders for $(QUALIFIERS)" ;\
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--plotfilename=$(visualsdir)$*wcal.eps --datafilename=$(byproductsdir)$*wcal.pdat --scriptfilename=$(byproductsdir)$*wcal.gnu" ; \
-		fi ; \
 		wcar="$(configdir)wcal_ref.dat$(gzip)" ; \
 		if [ -e $(calibrationdir)$(QUALIFIERS).wcar$(gzip) ] ; then \
 			wcar=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) ; \
@@ -1191,31 +1180,6 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) Wavelength refinement with operaStitchOrders for $(QUALIFIERS) complete in $(deltat)" ; \
-	fi
-
-#########################################################################################
-# Calculate the Echelle Dispersion Polynomial
-#########################################################################################
-%.disp$(gzip): %.wcal$(gzip)
-	@start=$$SECONDS; \
-	if [ ! -e $(calibrationdir)$@ ] ; then \
-		echo "$(pref) Starting Echelle Dispersion Polynomial calibration for $(QUALIFIERS)" ;\
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--plotfilename=$(visualsdir)$*disp.eps --datafilename=$(byproductsdir)$*disp.pdat --scriptfilename=$(byproductsdir)$*disp.gnu" ; \
-		fi ; \
-		wcal="$(configdir)wcal_ref.dat$(gzip)" ; \
-		if [ -e $(calibrationdir)$(QUALIFIERS).wcal$(gzip) ] ; then \
-			wcal=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaEchelleDispersionCalibration \
---inputWaveFile=$${wcal} \
---outputDispFile=$(calibrationdir)$@ \
---minorderOfLaurentPolynomial=$(dispminorderOfLaurentPolynomial) \
---maxorderOfLaurentPolynomial=$(dispmaxorderOfLaurentPolynomial) \
---maxorderofpolynomial=$(wcalmaxorderofpolynomial) \
-$${pargs} \
-$(optargs)" 2>&1 | tee -a $(logfile) ; \
-		echo "$(pref) Echelle Dispersion Polynomial calibration for $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
 
 #########################################################################################

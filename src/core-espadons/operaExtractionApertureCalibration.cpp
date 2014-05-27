@@ -535,10 +535,11 @@ int main(int argc, char *argv[])
                     float beamYcenter = extractionLine.getYcoord(beamXcenter);            
                     
                     beamMidPoint.setPoint(beamXcenter,beamYcenter);
-                    Line beamExtractionLine((float)tan(tiltAngle[orderIndex]*M_PI/180),height,beamWidth,beamMidPoint);
+					// DT May 28 2014 this is set in to the aperture and must be a pointer and must not be deleted
+                    Line *beamExtractionLine = new Line((float)tan(tiltAngle[orderIndex]*M_PI/180),height,beamWidth,beamMidPoint);
                     
                     // NOTE: This should not be deleted as it is set into the spectralorder a a pointer
-                    aperture[k] = new operaExtractionAperture(&beamExtractionLine,instrumentProfile,ycenter);                          
+                    aperture[k] = new operaExtractionAperture(beamExtractionLine,instrumentProfile,ycenter);                          
                     
                     PixelSet *aperturePixels = aperture[k]->getSubpixels();   
                     

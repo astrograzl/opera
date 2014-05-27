@@ -2231,3 +2231,10 @@ May 23 2014 - Teeple
 
 - fixed bug in operaConfigurationAccess where a NULL filename was causing
   the path to be incorrect
+  
+May 28 2014 - Teeple
+
+- fixed segfault in extractionApertureCalibration reference to out of scope address:
+// DT May 28 2014 this is set in to the aperture and must be a pointer and must not be deleted
+Line *beamExtractionLine = new Line((float)tan(tiltAngle[orderIndex]*M_PI/180),height,beamWidth,beamMidPoint);
+
