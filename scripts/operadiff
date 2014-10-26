@@ -7,10 +7,10 @@
 # Author(s): CFHT OPERA team
 # Affiliation: Canada France Hawaii Telescope 
 # Location: Hawaii USA
-# Date: Mar/2012
-# Contact: teeple@cfht.hawaii.edu
+# Date: Oct/2014
+# Contact: kanoa@cfht.hawaii.edu
 # 
-# Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
+# Copyright (C) 2014  Opera Pipeline team, Canada France Hawaii Telescope
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,29 +34,22 @@
 #/// \ingroup scripts
 #
 #########################################################################################
-if [[ "$1" == "-h" || "$1" == "--help" ]]
+if [[ ! -e $1 || ! -e $2 ]]
 then
-	echo "usage: $(basename $0) <folder>"
+	echo "usage: $(basename $0) <source dir> <changed source dir>"
 	exit
 fi
-files=`ls $1`
-locs="$HOME/opera-1.0/test $HOME/opera-1.0/harness/espadons $HOME/opera-1.0/scripts $HOME/opera-1.0/include/ $HOME/opera-1.0/include/libraries/ $HOME/opera-1.0/include/core-espadons/  $HOME/opera-1.0/include/tools/ $HOME/opera-1.0/src/libraries/ $HOME/opera-1.0/src/core-espadons/  $HOME/opera-1.0/src/tools/"
-for file in $files
-do
-	for loc in $locs
-	do
-		master=`ls $loc/$file 2>/dev/null`
-		if [ "$master" != "" ]
-		then
-			if [ "`diff $master $1/$file`" != "" ]
-			then
-				echo "################## START OF $(basename $master) #################################"
-				diff $master $1/$file
-				echo "################## END OF $(basename $master) ###################################"
-			else
-				echo "################## $(basename $master) unchanged ################################"
-			fi
-		fi
-	done
+# subdirs to check
+dirs="config doc harness harness/graces harness/espadons include include/core-espadons include/analysis-espadons include/libraries include/tools scripts scripts/espadons scripts/graces sofa src src/analysis-espadons src/core-espadons src/libraries src/tools"
+#files that frequently change and can be ignored
+ignore="TIMESTAMP\|config.status\|config\|aclocal.m4\|libtool\|config.log\|Makefile.in\|\\.o\|\\.lo\|\\.la"
+#stuff to keep an eye on
+important="^Files\|^diff\|^Only"
+#changes in the top level directory
+diff --brief $1 $2 | grep $important | grep -v $ignore | grep -v "Makefile\ "
+#changes in subdirectories
+for dir in $dirs; do
+   echo "Checking subdirectory $dir..."
+   diff --brief $1/$dir $2/$dir | grep $important | grep -v $ignore | grep -v "Makefile\ "
 done
 exit

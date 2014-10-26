@@ -418,8 +418,111 @@ void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean,
 }
 
 
+int operaCCDDetectMissingOrdersNew(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,unsigned minordertouse,float minorderx0, unsigned maxorders)
+{
+    float xPredTmp[MAXORDERS], xPred[MAXORDERS];
+    float orderMap[MAXORDERS];
+    
+    xPredTmp[0] = minorderx0;
+    orderMap[0] = minordertouse;
+    
+    for (unsigned o=1;o<=maxorders;o++) {
+        orderMap[o] = minordertouse + o;
+        xPredTmp[o] = xPredTmp[o-1] + (float)PolynomialFunction((double)orderMap[o],par,npar);
+    }
+        
+    float minsum = BIG;
+    float bestDx = 0;
+    
+    float dxrange=(float)np/5;
+    float dxprecision = 1.0;
+    
+    if(minorderx0) {
+        dxrange = slit/6;
+        dxprecision = 0.2;
+    }
+    
+    
+    for(float dx=-dxrange; dx<dxrange; dx+=dxprecision) {
+        
+        float sum = 0;
+        
+        for(unsigned i=0; i< nords; i++) {
+            float mindelta = BIG;
+            float currentX = 0;
+            for (unsigned o=0;o<=maxorders;o++) {
+                if(fabs(xmean[i] - (xPredTmp[o] + dx)) < mindelta) {
+                    mindelta = fabs(xmean[i] - (xPredTmp[o] + dx));
+                    currentX = xPredTmp[o] + dx;
+                }
+            }
+            sum += fabs(xmean[i] - currentX);
+        }
+        
+        if(sum < minsum) {
+            minsum = sum;
+            bestDx = dx;
+        }
+        //printf("%lf\t%lf\n",dx,sum);
+    }
+    
+    for (unsigned o=0;o<=maxorders;o++) {
+        xPred[o] = xPredTmp[o] + bestDx;
+    }
+    
+    unsigned oIndex[MAXORDERS];
+    
+    for(unsigned i=0; i< nords; i++) {
+        
+        unsigned orderIndexWithMinDelta = 0;
+        float mindelta = BIG;
+        
+        for (unsigned o=0;o<=maxorders;o++) {
+            if(fabs(xmean[i] - xPred[o]) < mindelta) {
+                mindelta = fabs(xmean[i] - xPred[o]);
+                orderIndexWithMinDelta = o;
+            }
+        }
+        oIndex[i] = orderIndexWithMinDelta;
+    }
+    
+    float xerrorsqrd = 0;
+    for(unsigned i=0; i< nords; i++) {
+        xerrorsqrd = (xPred[oIndex[i]] - xmean[i])*(xPred[oIndex[i]] - xmean[i])/(float)nords;
+        //printf("%lf\t%lf\t%lf\t%lf\n",orderMap[oIndex[i]],xPred[oIndex[i]],xmean[i],ymean[i]);
+    }
+    float xerror = sqrt(xerrorsqrd);
+    
+    unsigned ordNumberinRow = 0;
+    
+    for (unsigned o=0;o<=maxorders;o++) {
+        if(xPred[o] > fx[0] + slit/2.0 && xPred[o] < fx[np-1] - slit/2.0) {
+            float xmtmp = xPred[o];
+            float xerrtmp = 0;
+            float ymtmp = 0;
+            
+            int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xmtmp,&ymtmp,&xerrtmp);
+
+            if(isItAboveNoise) {
+                xord[ordNumberinRow] = xmtmp;
+                xerrord[ordNumberinRow] = xerrtmp;
+                yord[ordNumberinRow] = ymtmp;
+            } else {
+                xord[ordNumberinRow] = xPred[o];
+                xerrord[ordNumberinRow] = xerror;
+                yord[ordNumberinRow] = noise;
+            }
+            
+            AbsOrdNumber[ordNumberinRow] = orderMap[o];
+            ordNumberinRow++;
+        }
+    }
+        
+ 	return ordNumberinRow;
+}
+
 int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,int AbsPrevOrdNumber,float x0prev)
-{	
+{
 	unsigned i;
 	float xloword[MAXORDERS],yloword[MAXORDERS],xerrloword[MAXORDERS];
 	float xhiord[MAXORDERS],yhiord[MAXORDERS],xerrhiord[MAXORDERS];	

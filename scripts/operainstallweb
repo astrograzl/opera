@@ -88,22 +88,22 @@ chmod 644 $zipname
 chmod 644 ${version}-xcodeproj.zip
 chmod 644 $gzipname
 chmod 644 ${version}-xcodeproj.tar.gz
-echo "scp $zipname akua.cfht.hawaii.edu:/data/world/doug/"
-scp $zipname akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "scp $gzipname akua.cfht.hawaii.edu:/data/world/doug/"
-scp $gzipname akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "scp $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/"
-scp $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "scp $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/"
-scp $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "scp $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/"
-scp $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "scp $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/"
-scp $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "scp ${version}-xcodeproj.zip akua.cfht.hawaii.edu:/data/world/doug/"
-scp ${version}-xcodeproj.zip akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "scp ${version}-xcodeproj.tar.gz akua.cfht.hawaii.edu:/data/world/doug/"
-scp ${version}-xcodeproj.tar.gz akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync $zipname akua.cfht.hawaii.edu:/data/world/doug/"
+rsync $zipname akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync $gzipname akua.cfht.hawaii.edu:/data/world/doug/"
+rsync $gzipname akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/"
+rsync $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/"
+rsync $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/"
+rsync $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/"
+rsync $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync ${version}-xcodeproj.zip akua.cfht.hawaii.edu:/data/world/doug/"
+rsync ${version}-xcodeproj.zip akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+echo "rsync ${version}-xcodeproj.tar.gz akua.cfht.hawaii.edu:/data/world/doug/"
+rsync ${version}-xcodeproj.tar.gz akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
 ssh akua.cfht.hawaii.edu rm -f /data/world/doug/${version}.zip
 ssh akua.cfht.hawaii.edu rm -f /data/world/doug/${version}.tar.gz
 echo "ssh akua.cfht.hawaii.edu ln -s /data/world/doug/$zipname /data/world/doug/${version}.zip"
@@ -114,19 +114,19 @@ echo "ssh akua.cfht.hawaii.edu rm -f /data/world/doug/INSTALL_OPERA-1.0"
 ssh akua.cfht.hawaii.edu rm -f /data/world/doug/INSTALL_OPERA-1.0
 echo "ssh akua.cfht.hawaii.edu ln -s /data/world/doug/INSTALL_OPERA-1.0.sh /data/world/doug/INSTALL_OPERA-1.0"
 ssh akua.cfht.hawaii.edu ln -s /data/world/doug/INSTALL_OPERA-1.0.sh /data/world/doug/INSTALL_OPERA-1.0
-echo "############################################################################################"
-echo "#    copying opera web docs"
-echo "############################################################################################"
-rm -f /Library/WebServer/Documents/Opera/*.zip
-cp -f $zipname /Library/WebServer/Documents/Opera/
-cd /Library/WebServer/Documents/Opera/
-rm -f drop
-ln -s $zipname drop
-cd -
-if [ "$1" == "--local" ]
-then
-	exit 0
-fi
+#echo "############################################################################################"
+#echo "#    copying opera web docs"
+#echo "############################################################################################"
+#rm -f /Library/WebServer/Documents/Opera/*.zip
+#cp -f $zipname /Library/WebServer/Documents/Opera/
+#cd /Library/WebServer/Documents/Opera/
+#rm -f drop
+#ln -s $zipname drop
+#cd -
+#if [ "$1" == "--local" ]
+#then
+#	exit 0
+#fi
 echo "############################################################################################"
 echo "#    copying the sourceforge $zipname $gzipname distribution"
 echo "############################################################################################"

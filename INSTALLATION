@@ -32,7 +32,7 @@ Below are the instructions on how to obtain and install OPERA:
 4a. OPERA builds with shared libraries. If you have never compiled shared libraries you may
    need to do these steps next:
    
-   glibtoolize
+   libtoolize (perhaps 'glibtoolize'?)
    aclocal
    autoconf
    
@@ -60,17 +60,25 @@ Below are the instructions on how to obtain and install OPERA:
 	autoconf
 	./configure
      
-6. Build:
+6. Clean: If you have previously compiled the software, first clean and remove any previously installed binaries:
+        make clean
+        make uninstall
+    * you will get an error about uninstalling sofa, a bug to fix
+	Alternatively you can manually uninstall anything previously installed in the source tree:
+	rm ~/opera-1.0/bin/*
+	rm ~/opera-1.0/lib/*
+
+7. Build:
    make
    make install
    . ./setup.sh
 
-7. Release:
+8. Release:
    Once yoou have debugging your modules, you can significantly reduce the
    module size by stripping debug info:
    make install-strip
 
-8. Installing for Sourceforge (build master):
+9. Installing for Sourceforge (build master):
    The main source of Opera is held at CFHT on the machine named opera. Integrations
    happen on this machine. After an integration and successful build, the entire
    opera distribution is sent to sourceforge and a copy is sent to CFHT servers

@@ -112,6 +112,8 @@ int main(int argc, char *argv[])
 	
     unsigned nsamples = 30;
     unsigned sampleCenterPosition = 1;  // This position is with respect to the dispersion direction (rows for Espadons)
+    unsigned referenceOrderNumber = 55;          // Number of reference order for order number identification
+    float referenceOrderSeparation =  67.0;         // Order separation in pixels for order number identification
     
     double gain = 1;
     double noise = 5;
@@ -137,6 +139,8 @@ int main(int argc, char *argv[])
 		{"aperture",1, NULL, 'A'},
         {"numberOfsamples",1, NULL, 'N'},
 		{"sampleCenterPosition",1, NULL, 'Y'},  // This position is with respect to the dispersion direction (rows for Espadons)
+		{"referenceOrderNumber",1, NULL, 'O'},          // Number of reference order for order number identification
+		{"referenceOrderSeparation",1, NULL, 'r'},      // Order separation in pixels for order number identification
         
 		{"plotfilename",1, NULL, 'P'},
 		{"datafilename",1, NULL, 'F'},
@@ -150,7 +154,7 @@ int main(int argc, char *argv[])
 		{"help",		no_argument, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "o:b:f:m:g:a:n:s:M:R:A:N:Y:P:F:S:I::p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "o:b:f:m:g:a:n:s:M:R:A:N:Y:O:r:P:F:S:I::p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		
@@ -195,6 +199,12 @@ int main(int argc, char *argv[])
 				break;
             case 'Y':
 				sampleCenterPosition = atoi(optarg);
+				break;
+			case 'O':
+				referenceOrderNumber = atoi(optarg);
+				break;
+            case 'r':
+				referenceOrderSeparation = atof(optarg);
 				break;
 			case 'P':
 				plotfilename = optarg;
@@ -254,6 +264,8 @@ int main(int argc, char *argv[])
 			cout << "operaOrderSpacingCalibration: FFTfilter = " << FFTfilter << endl;
 			cout << "operaOrderSpacingCalibration: aperture = " << aperture << endl;
 			cout << "operaOrderSpacingCalibration: nsamples = " << nsamples << endl;
+			cout << "operaOrderSpacingCalibration: referenceOrderNumber = " << referenceOrderNumber << endl;
+			cout << "operaOrderSpacingCalibration: referenceOrderSeparation = " << referenceOrderSeparation << endl;
             if(plot) {
                 cout << "operaOrderSpacingCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaOrderSpacingCalibration: datafilename = " << datafilename << endl;
@@ -332,8 +344,13 @@ int main(int argc, char *argv[])
         unsigned cleanbinsize = 7;  // number of points in the bin
         float nsigcut = 2.5;        // clipping region in units of sigma
         
-        spectralOrders.fitOrderSpacingPolynomial(flat, *badpix, slit, nsamples, sampleCenterPosition, detectionMethod, FFTfilter, (float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, cleanbinsize, nsigcut, fdata);
+        spectralOrders.fitOrderSpacingPolynomial(flat, *badpix, slit, nsamples, sampleCenterPosition, referenceOrderNumber, referenceOrderSeparation, detectionMethod, FFTfilter, (float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, cleanbinsize, nsigcut, fdata);
 
+        // spacing polynomial must be changed to order number versus order separation
+        // then one can project all separations as a map and identify orders later in
+        // in geometry. They way it works now it is relying on a single point to identify
+        // all orders and this has shown to be unreliable.
+        
         if (fdata != NULL) {
             fdata->close();
             if (!scriptfilename.empty()) {
@@ -383,7 +400,9 @@ static void printUsageSyntax(char * modulename) {
     " --FFTfilter=<BOOL>"
     " --aperture=<UNS_VALUE>"
     " --numberOfsamples=<UNS_VALUE>"
-    " --sampleCenterPosition=<UNS_VALUE>"    
+    " --sampleCenterPosition=<UNS_VALUE>"
+    " --referenceOrderNumber=<UNS_VALUE>"
+    " --referenceOrderSeparation=<FLT_VALUE>"
     " --plotfilename=<EPS_FILE>"
 	" --datafilename=<DATA_FILE>"
 	" --scriptfilename=<GNUPLOT_FILE>"
@@ -407,7 +426,9 @@ static void printUsageSyntax(char * modulename) {
     "  -R, --FFTfilter=<BOOL>, Activate Fourier smoothing filter\n"
     "  -A, --aperture=<UNS_VALUE>, Aperture size in pixel units\n"
     "  -N, --numberOfsamples=<UNS_VALUE>, Number of row samples for detecting orders\n"
-    "  -Y, --sampleCenterPosition=<UNS_VALUE>, Detector position to center samples. Position along the dispersion direction (rows for Espadons)\n"    
+    "  -Y, --sampleCenterPosition=<UNS_VALUE>, Detector position to center samples. Position along the dispersion direction (rows for Espadons)\n"
+    "  -O, --referenceOrderNumber=<UNS_VALUE>, Number of reference order for order number identification\n"
+    "  -r, --referenceOrderSeparation=<FLT_VALUE>, Order separation in pixels for order number identification\n"
 	"  -P, --plotfilename=<EPS_FILE>\n"
 	"  -F, --datafilename=<DATA_FILE>\n"
 	"  -S, --scriptfilename=<GNUPLOT_FILE>\n"

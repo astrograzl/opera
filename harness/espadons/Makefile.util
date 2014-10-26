@@ -150,12 +150,13 @@ status:
 	@echo "$(pref)FCAL        `ls $(calibrationdir)*.fcal* 2>/dev/null | sed -e s:.*/:: | tr '\n' ' ' | wc -w`" 
 	@echo "$(pref)PROF        `ls $(calibrationdir)*.prof* 2>/dev/null | sed -e s:.*/:: | tr '\n' ' ' | wc -w`" 
 	@echo "$(pref)APER        `ls $(calibrationdir)*.aper* 2>/dev/null | sed -e s:.*/:: | tr '\n' ' ' | wc -w`" 
+	@echo "$(pref)DISP        `ls $(calibrationdir)*.disp* 2>/dev/null | sed -e s:.*/:: | tr '\n' ' ' | wc -w`" 
 	@if [ -s $(logdir)errlog ] ; then \
 		echo "$(epref)There are errors, see $(logdir)errlog." ; \
 	else \
 		echo "$(pref)There are no errors." ; \
 	fi
-	@if [[ "`ls $(calibrationdir)*.wcal* 2>/dev/null`" == "" ]] ; then \
+	@if [[ "`ls $(calibrationdir)*.disp* 2>/dev/null`" == "" ]] ; then \
 		echo "$(pref)Calibration is not complete." ; \
 	else \
 		echo "$(pref)Calibration is complete." ; \
@@ -598,6 +599,7 @@ ifdef WHAT
 				biase) what=bias;; \
 				fcal)  what=fcal;; \
 				line)  what=l;; \
+				disp)  what=disp;; \
 				visual) rm -f $(visualsdir)*.*; what="";; \
 				pol|pols|polars|polarimetry) $(MAKE) -f $(makedir)Makefile cleanpol DATADIR=$(DATADIR) --no-print-directory; what="";; \
 				spectra|int|nts|intensities|intensity) $(MAKE) -f $(makedir)Makefile cleanint DATADIR=$(DATADIR) --no-print-directory; what="";; \
@@ -766,6 +768,9 @@ cleanprof:
 cleangeom:
 	@if [ -d $(calibrationdir) ] ; then echo "$(pref) cleaning geoms and ords in $(calibrationdir)..." ; rm -f $(calibrationdir)*.geom ; rm -f $(calibrationdir)*.ordp ; fi
 
+cleandisp:
+	@if [ -d $(calibrationdir) ] ; then echo "$(pref) cleaning disps in $(calibrationdir)..." ; rm -f $(calibrationdir)*.disp$(gzip) ; fi
+
 cleanwcal:
 	@if [ -d $(calibrationdir) ] ; then echo "$(pref) cleaning wcals in $(calibrationdir)..." ; rm -f $(calibrationdir)*.wcal$(gzip) ; rm -f $(calibrationdir)*.wcar$(gzip) ; fi
 
@@ -807,7 +812,7 @@ clean%:
 	@echo "$(epref)Unknown clean target \"$@\"."
 	@echo "$(pref)The clean targets are:"
 	@echo "$(pref) clean cleancals cleanrlist(s) cleanalltargets cleantmp cleanapproved cleanprocessed cleanvisuals cleanbyproducts cleanallproducts cleanquicklook cleananalyses"
-	@echo "$(pref) cleanbadpix cleanlogs cleansnr cleanlines cleanaper cleangeom cleanwcal cleanprof cleantell cleanrvel cleanfcal"
+	@echo "$(pref) cleanbadpix cleanlogs cleansnr cleanlines cleanaper cleangeom cleanwcal cleandisp cleanprof cleantell cleanrvel cleanfcal"
 	@echo "$(pref) cleansemester SEMESTER=<semester>"
 	@echo "$(pref) cleanit WHAT=<suffix>"
 

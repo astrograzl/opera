@@ -631,6 +631,12 @@ distributelog:
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
+					list=`ls $(calibrationdir)*.disp$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					for f in $$list; do \
+						rm -f $(processeddir)$$r/$$f; \
+						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
+						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
+					done ; \
 					list=`ls $(calibrationdir)*.wcal$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
@@ -817,6 +823,16 @@ approvelog:
 						fi ; \
 					done ; \
 					list=`ls $(calibrationdir)*.prof$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					for f in $$list; do \
+						rm -f $(approveddir)$$r/calibrations/$$f; \
+						if [ -e $(processeddir)$$r/$$f ] ; then \
+							cp -L $(calibrationdir)$$f $(approveddir)$$r/calibrations/$$f ; \
+							echo "$(pref) $$r $$f --> $(approveddir)$$r/calibrations/$$f" ; \
+						else \
+							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
+						fi ; \
+					done ; \
+					list=`ls $(calibrationdir)*.disp$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \

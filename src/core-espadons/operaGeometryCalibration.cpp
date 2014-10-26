@@ -62,6 +62,9 @@
 #include "libraries/operaFFT.h"
 #include "libraries/operaParameterAccess.h"
 #include "libraries/operaConfigurationAccess.h"
+#include "libraries/ladfit.h" // for ladfit_d
+
+#define MINIMUMORDERTOCONSIDER 15
 
 /*! \file operaGeometryCalibration..cpp */
 
@@ -101,8 +104,8 @@ int main(int argc, char *argv[])
 	int opt;
     
 	string outputGeomFile;
-	string masterbias; 
-	string masterflat; 
+	string masterbias;
+	string masterflat;
 	string badpixelmask;
 	string inputGainFile;
 	string inputOrderSpacing;
@@ -112,10 +115,8 @@ int main(int argc, char *argv[])
 		unsigned y1, y2;
 	} subformat = {8, 2040, 3, 4600 };
     
-    unsigned referenceOrderNumber = 55;          // Number of reference order for order number identification
-    float referenceOrderSeparation =  67.0;         // Order separation in pixels for order number identification
     unsigned referenceOrderSamplePosition = 1;  // This position is with respect to the dispersion direction (rows for Espadons)
-
+    
 	unsigned minordertouse = 0;
 	unsigned maxorders = MAXORDERS;
 	unsigned orderOfTracingPolynomial = 4;
@@ -127,7 +128,7 @@ int main(int argc, char *argv[])
 	bool invertOrders = true;
 	bool FFTfilter = false;
 	bool witherrors = false;
-	int aperture = 20;	
+	int aperture = 20;
 	int detectionMethod = 1; // 1. Gaussian, 2. IP, 3. Top-hat
 	unsigned binsize = 1;
     double gain = 1;
@@ -146,11 +147,9 @@ int main(int argc, char *argv[])
 		{"masterflat",1, NULL, 'f'},
 		{"badpixelmask",1, NULL, 'm'},
         {"inputGainFile",1, NULL, 'g'},
-		{"inputOrderSpacing",1, NULL, 'c'},        
-
+		{"inputOrderSpacing",1, NULL, 'c'},
+        
 		{"subformat",1, NULL, 's'},
-		{"referenceOrderNumber",1, NULL, 'O'},          // Number of reference order for order number identification
-		{"referenceOrderSeparation",1, NULL, 'r'},      // Order separation in pixels for order number identification
 		{"referenceOrderSamplePosition",1, NULL, 'Y'},  // This position is with respect to the dispersion direction (rows for Espadons)
         {"minordertouse",1, NULL, 'i'},
 		{"maxorders",1, NULL, 'X'},
@@ -158,7 +157,7 @@ int main(int argc, char *argv[])
 		{"recenterIPUsingSliceSymmetry",1, NULL, 'y'},
 		{"totalNumberOfSlices",1, NULL, 'C'},
         {"detectionMethod",1, NULL, 'M'},
-		{"FFTfilter",1, NULL, 'R'},			
+		{"FFTfilter",1, NULL, 'R'},
 		{"colDispersion",1, NULL, 'D'},
 		{"aperture",1, NULL, 'A'},
 		{"invertOrders",1, NULL, 'V'},
@@ -171,18 +170,18 @@ int main(int argc, char *argv[])
 		{"scriptfilename",1, NULL, 'S'},
         
 		{"interactive",	optional_argument, NULL, 'I'},
-		{"plot",		optional_argument, NULL, 'p'},       
+		{"plot",		optional_argument, NULL, 'p'},
 		{"verbose",		optional_argument, NULL, 'v'},
 		{"debug",		optional_argument, NULL, 'd'},
 		{"trace",		optional_argument, NULL, 't'},
 		{"help",		no_argument, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "o:b:f:m:g:c:s:O:r:Y:i:X:N:y:C:M:R:D:A:V:B:E:a:P:F:S:I::p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "o:b:f:m:g:c:s:Y:i:X:N:y:C:M:R:D:A:V:B:E:a:P:F:S:I::p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		
-		switch(opt) 
+		switch(opt)
 		{
 			case 'o':		// outputGeomFile
 				outputGeomFile = optarg;
@@ -195,34 +194,28 @@ int main(int argc, char *argv[])
 				break;
 			case 'm':		// badpixelmask
 				badpixelmask = optarg;
-				break;            
+				break;
 			case 'g':		// gain / noise / bias
 				inputGainFile = optarg;
-				break;            
+				break;
 			case 'c':
 				inputOrderSpacing = optarg; // input order spacing calibration file
-				break; 
+				break;
 			case 's':		// image subformat
 				if (strlen(optarg))
 					sscanf(optarg, "%u %u %u %u", &subformat.x1, &subformat.x2, &subformat.y1, &subformat.y2);
-				break;
-			case 'O':
-				referenceOrderNumber = atoi(optarg);
-				break;
-            case 'r':
-				referenceOrderSeparation = atof(optarg);
 				break;
             case 'Y':
 				referenceOrderSamplePosition = atoi(optarg);
 				break;
 			case 'i':
 				minordertouse = atoi(optarg);
-				break;            
+				break;
 			case 'X':
 				maxorders = atoi(optarg);
 				break;
             case 'N':
-				orderOfTracingPolynomial = atoi(optarg); 
+				orderOfTracingPolynomial = atoi(optarg);
 				break;
             case 'y':
 				recenterIPUsingSliceSymmetry = (atoi(optarg)?true:false);
@@ -231,27 +224,27 @@ int main(int argc, char *argv[])
 				totalNumberOfSlices = atoi(optarg);
 				break;
 			case 'M':
-				detectionMethod = atoi(optarg); // 1. Gaussian, 2. IP, 3. Top-hat	
-				break;            
+				detectionMethod = atoi(optarg); // 1. Gaussian, 2. IP, 3. Top-hat
+				break;
 			case 'R':
-				FFTfilter = (atoi(optarg)?true:false); 
-				break;				
+				FFTfilter = (atoi(optarg)?true:false);
+				break;
 			case 'D':
 				colDispersion = (atoi(optarg)?up:down);
-				break;            
+				break;
 			case 'A':		// aperture in pixels
 				aperture = atoi(optarg);
 				break;
 			case 'V':
 				invertOrders = (atoi(optarg)?true:false);
-				break; 
+				break;
 			case 'B':
 				binsize = atoi(optarg);
 				break;
 			case 'E':
 				witherrors = (atoi(optarg)?true:false);
 				break;
-			case 'a':		
+			case 'a':
 				nsamples = atoi(optarg);
 				break;
 			case 'P':
@@ -278,7 +271,7 @@ int main(int argc, char *argv[])
 				break;
 			case 't':
 				trace = 1;
-				break;         
+				break;
 			case 'h':
 				printUsageSyntax(argv[0]);
 				exit(EXIT_SUCCESS);
@@ -288,17 +281,17 @@ int main(int argc, char *argv[])
 				exit(EXIT_SUCCESS);
 				break;
 		}
-	}	
+	}
 	
 	try {
-
+        
 		// we need a masterflat...
 		if (masterflat.empty()) {
-			throw operaException("operaGeometryCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
+			throw operaException("operaGeometryCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
 		// we need some place to put data...
 		if (outputGeomFile.empty()) {
-			throw operaException("operaGeometryCalibration: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
+			throw operaException("operaGeometryCalibration: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
 		}
 		// we need an input order spacing calibration file
 		if (inputOrderSpacing.empty()) {
@@ -313,20 +306,18 @@ int main(int argc, char *argv[])
 			cout << "operaGeometryCalibration: inputGainFile = " << inputGainFile << endl;
 			cout << "operaGeometryCalibration: inputOrderSpacing = " << inputOrderSpacing << endl;
 			cout << "operaGeometryCalibration: subformat = " << subformat.x1 << " " << subformat.x2 << " "<< subformat.y1  << " "<< subformat.y2 << "\n";
-			cout << "operaGeometryCalibration: referenceOrderNumber = " << referenceOrderNumber << endl;
-			cout << "operaGeometryCalibration: referenceOrderSeparation = " << referenceOrderSeparation << endl;
 			cout << "operaGeometryCalibration: referenceOrderSamplePosition = " << referenceOrderSamplePosition << endl;
 			cout << "operaGeometryCalibration: minordertouse = " << minordertouse << endl;
 			cout << "operaGeometryCalibration: maxorders = " << maxorders << endl;
 			cout << "operaGeometryCalibration: orderOfTracingPolynomial = " << orderOfTracingPolynomial << endl;
 			cout << "operaGeometryCalibration: recenterIPUsingSliceSymmetry = " << recenterIPUsingSliceSymmetry << endl;
 			cout << "operaGeometryCalibration: totalNumberOfSlices = " << totalNumberOfSlices << endl;
-			cout << "operaGeometryCalibration: detectionMethod = " << detectionMethod << endl; 
-			cout << "operaGeometryCalibration: FFTfilter = " << FFTfilter << endl; 		
+			cout << "operaGeometryCalibration: detectionMethod = " << detectionMethod << endl;
+			cout << "operaGeometryCalibration: FFTfilter = " << FFTfilter << endl;
 			cout << "operaGeometryCalibration: colDispersion = " << colDispersion << endl;
-			cout << "operaGeometryCalibration: aperture = " << aperture << endl;            
+			cout << "operaGeometryCalibration: aperture = " << aperture << endl;
 			cout << "operaGeometryCalibration: invertOrders = " << invertOrders << endl;
-			cout << "operaGeometryCalibration: binsize = " << binsize << endl; 		
+			cout << "operaGeometryCalibration: binsize = " << binsize << endl;
 			cout << "operaGeometryCalibration: witherrors = " << witherrors << endl;
 			cout << "operaGeometryCalibration: nsamples = " << nsamples << endl;
             if(plot) {
@@ -358,7 +349,7 @@ int main(int argc, char *argv[])
 		unsigned nx = subformat.x2 - subformat.x1;
 		unsigned ny = subformat.y2 - subformat.y1;
         
-        operaFITSImage flat(masterflat, tfloat, READONLY);        
+        operaFITSImage flat(masterflat, tfloat, READONLY);
         
         operaFITSImage *bias = NULL;
         
@@ -383,7 +374,7 @@ int main(int argc, char *argv[])
         }
 		
 		if (verbose) {
-			cout << "operaGeometryCalibration: x1,y1,nx,ny = " << x1 << ' ' << y1 << ' ' << nx  << ' ' << ny << '\n'; 
+			cout << "operaGeometryCalibration: x1,y1,nx,ny = " << x1 << ' ' << y1 << ' ' << nx  << ' ' << ny << '\n';
 		}
 		
         double slit = aperture;
@@ -392,7 +383,7 @@ int main(int argc, char *argv[])
         
         double threshold = DETECTTHRESHOLD;
         
-		operaSpectralOrderVector spectralOrders(MAXORDERS, ny, ny, 0);        
+		operaSpectralOrderVector spectralOrders(MAXORDERS, ny, ny, 0);
 		spectralOrders.readOrderSpacingPolynomial(inputOrderSpacing);
 		/*
 		 * read gain and noise
@@ -405,25 +396,25 @@ int main(int argc, char *argv[])
 		}
 		if (verbose)
 			cout << "operaGeometryCalibration: gain="<< gain << " noise=" << noise << endl;
-		        
+        
 		unsigned newnords=0;
+        
 		float xord[MAXORDERS],fluxValue[MAXORDERS],xerrord[MAXORDERS];
 		float x0prev=0;
 		int AbsOrdNumber[MAXORDERS], AbsPrevOrdNumber;
-		//int minimalordernumber = -5;
-		
-        for (unsigned order=0; order<MAXORDERS; order++) {            
+        
+        for (unsigned order=0; order<MAXORDERS; order++) {
 			spectralOrders.GetSpectralOrder(order)->getGeometry()->setapertureWidth(aperture);
 			spectralOrders.GetSpectralOrder(order)->getGeometry()->setdispersionDirection(colDispersion);
 			spectralOrders.GetSpectralOrder(order)->getGeometry()->setNumberofPointsToBinInYDirection(binsize);
             spectralOrders.GetSpectralOrder(order)->getGeometry()->setYmin(subformat.y1);
-            spectralOrders.GetSpectralOrder(order)->getGeometry()->setYmax(subformat.y2);            
+            spectralOrders.GetSpectralOrder(order)->getGeometry()->setYmax(subformat.y2);
 			AbsOrdNumber[order] = 0;
 		}
 		
         float *ipfunc = new float[uslit];
         float *ipx = new float[uslit];
-        float *iperr = new float[uslit];  
+        float *iperr = new float[uslit];
 		
         spectralOrders.measureIPAlongRowsFromSamples(flat, *badpix, slit, nsamples, FFTfilter,(float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, ipfunc, ipx, iperr);
 		
@@ -444,7 +435,7 @@ int main(int argc, char *argv[])
             }
 #endif
         }
-
+        
 		/*
 		 * The loop below scans the entire image passing each row y to detect orders
 		 */
@@ -460,93 +451,101 @@ int main(int argc, char *argv[])
 		float ysample = 0.0;
 
 		NumberOfySamples = (unsigned)ceil((float)(ny-y1)/(float)NumberofPointsToBinInYDirection); 
-
-        int absoluteNumberForReference = -999;
-        float MinOrderSeparationDifference = float(slit)/4.0;
         
         /*
          * The first loop below is just to figure out the absolute number of first order
          */
         
-		for(unsigned k=0;k<NumberOfySamples;k++){
-        //for(unsigned k=NumberOfySamples/2;k<NumberOfySamples/2+1;k++){
-			unsigned firstY = y1 + NumberofPointsToBinInYDirection*(k);
-			unsigned lastY =  y1 + NumberofPointsToBinInYDirection*(k+1);
-			
-			if(lastY >= ny) break;
-			
-			unsigned np=0;
-			for (unsigned xx=x1; xx<nx; xx++) {
-				unsigned ns=0;
-				ysample=0.0;
-				
-				for (unsigned yy=firstY; yy<lastY ; yy++) {
-					fysample[ns++] = flat[yy][xx];
-					ysample += (float)yy + 0.5;
-				}
-				ysample /= (float)ns;
-				fx[np] = (float)xx + 0.5;
-				
-				if(FFTfilter){
-					fytmp[np] = operaArrayMedian(ns,fysample);
-				} else {
-					fy[np] = operaArrayMedian(ns,fysample);
-				}
-				np++;
-			}
-			
-			if(FFTfilter){
-				operaFFTLowPass(np,fytmp,fy,0.1);
-			}
-			
-            unsigned nords = 0;
-            
-			if(detectionMethod == 1) {
-                nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,threshold,xmean,ymean);
-			} else if (detectionMethod == 2) {
-                nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),threshold,xmean,ymean);
-                /*
-                 * The function below does not work on GRACES data. The one above should be better but
-                 * it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
-                 */
-                //nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
-			} else if (detectionMethod == 3) {
-                nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,threshold,xmean,ymean);
-			}
-
-			if(x0prev == 0) { // if this is the first pass, then set prev row 1st order number as zero
-				AbsPrevOrdNumber = 0;
-			} else {					// else use 1st order number from previous row
-				AbsPrevOrdNumber = AbsOrdNumber[0];
-			}
-			
-			// Call function to find missing orders based on polynomial fit to spacing between orders
-			// this function also returns the absolute number for each order
-            unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
-            double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();
-            
-			newnords = operaCCDDetectMissingOrders(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev);
-            
-			//print out the absolute number for each order and the corresponding centers for each row
-			for (unsigned i=0;i<newnords;i++) {
-                // pick sample to check for eventual shift based on reference order separation
-                if(referenceOrderSamplePosition >= firstY && referenceOrderSamplePosition < lastY && i>0) {
-                    double ordxcenter = (double)(xord[i] + xord[i-1])/2;
-                    float predictedSeparation = (float)PolynomialFunction(ordxcenter,par,npars);
-                    if(fabs(fabs(xord[i] - xord[i-1]) - predictedSeparation) < MinOrderSeparationDifference) {
-                        absoluteNumberForReference = AbsOrdNumber[i];
-                    }
-                }
-			}
-			// save first order position as reference for numbering orders in following rows
-			x0prev = xord[0];
-		}
+        // for reference we use twice more points to obain higher SNR
+        unsigned NumberofPointsToBinInYForReference = 2*NumberofPointsToBinInYDirection;
+        unsigned firstY = y1;
+        unsigned lastY = ny;
+        if(referenceOrderSamplePosition >= NumberofPointsToBinInYForReference/2) {
+            firstY = referenceOrderSamplePosition - NumberofPointsToBinInYForReference/2;
+        }
+        if(referenceOrderSamplePosition + NumberofPointsToBinInYForReference/2 < ny) {
+            lastY = referenceOrderSamplePosition + NumberofPointsToBinInYForReference/2;
+        }
         
-        int firstOrder = referenceOrderNumber - absoluteNumberForReference;
+        unsigned np=0;
+        for (unsigned xx=x1; xx<nx; xx++) {
+            unsigned ns=0;
+            ysample=0.0;
+            for (unsigned yy=firstY; yy<lastY ; yy++) {
+                fysample[ns++] = flat[yy][xx];
+                ysample += (float)yy + 0.5;
+            }
+            ysample /= (float)ns;
+            fx[np] = (float)xx + 0.5;
+            
+            if(FFTfilter){
+                fytmp[np] = operaArrayMedian(ns,fysample);
+            } else {
+                fy[np] = operaArrayMedian(ns,fysample);
+            }
+            // printf("%lf\t%lf\n",fx[np],fy[np]);
+            np++;
+        }
         
-        if(verbose)
-            cout << "operaGeometryCalibration: firstOrder=" << firstOrder << ", referenceOrderNumber = " << referenceOrderNumber << ", absoluteNumberForReference = " << absoluteNumberForReference << endl;
+        if(FFTfilter){
+            operaFFTLowPass(np,fytmp,fy,0.1);
+        }
         
+        unsigned nords = 0;
+        
+        if(detectionMethod == 1) {
+            nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,threshold,xmean,ymean);
+        } else if (detectionMethod == 2) {
+            nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),threshold,xmean,ymean);
+            // The function below does not work on GRACES data. The one above should be better but
+            // it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
+            
+            //nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
+        } else if (detectionMethod == 3) {
+            nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,threshold,xmean,ymean);
+        }
+        
+        // Call function to find missing orders based on polynomial fit to spacing between orders
+        // this function also returns the absolute number for each order
+        unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
+        double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();
+        
+        newnords = operaCCDDetectMissingOrdersNew(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,MINIMUMORDERTOCONSIDER,x0prev,maxorders);
+        
+      /*  for (unsigned i=0;i<newnords;i++) {
+            cout << AbsOrdNumber[i] << " "
+            << xord[i] << " "
+            << fluxValue[i] << " "
+            << xerrord[i] << endl;
+        }*/
+        
+        float *OrderPosition = new float[MAXORDERS];
+        float *OrderSeparation = new float[MAXORDERS];
+        unsigned npts=0;
+        for(unsigned i=0; i<newnords-1; i++) {
+            //if(AbsOrdNumber[i] > minordertouse + 5 && AbsOrdNumber[i] < minordertouse + maxorders - 5){
+                OrderPosition[npts] = float(xord[i] + (xord[i+1] - xord[i]) / 2.0);
+                OrderSeparation[npts] = float(xord[i+1] - xord[i]);
+                
+               // cout <<  OrderPosition[npts] << ' ' << OrderSeparation[npts] << endl;
+                
+                npts++;
+            //}
+           
+        }
+        float am,bm,abdevm;
+        //--- Robust linear fit
+        ladfit(OrderPosition,OrderSeparation,npts,&am,&bm,&abdevm); /* robust linear fit: f(x) =  a + b*x */
+        
+        par[0] = (double)am;
+        par[1] = (double)bm;
+        npars = 2;
+        
+       /* for(unsigned i=0;i<npts;i++) {
+            cout <<  OrderPosition[i] << ' ' << OrderSeparation[i] << ' ' << PolynomialFunction(OrderPosition[i],par,npars) << endl;
+        }*/
+        
+        int firstOrder = AbsOrdNumber[0];
         
         /* 
          * Reset absolute order number, newords and x0prev
@@ -556,6 +555,8 @@ int main(int argc, char *argv[])
 		}
 		newnords=0;
 		x0prev=0;
+        
+
         /*
          * Once first order is figured out, then it will save the data into each order. Note that 
          * the absolute order number is important to make sure the data are always associated
@@ -643,10 +644,8 @@ int main(int argc, char *argv[])
 			// Call function to find missing orders based on polynomial fit to spacing between orders
 			// this function also returns the absolute number for each order
 			
-            
-            unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
-            double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();            
 			newnords = operaCCDDetectMissingOrders(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev);
+//            newnords = operaCCDDetectMissingOrdersNew(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev,maxorders);
             
             if (fdata != NULL) {
                 for(unsigned i=0;i<newnords;i++) {

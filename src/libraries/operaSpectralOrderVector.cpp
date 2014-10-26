@@ -5049,7 +5049,7 @@ void operaSpectralOrderVector::readRadialVelocityCorrection(string filename) {
 	}		
 }
 
-void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterFlatImage, operaFITSImage &badpixImage, float slit, unsigned nsamples, unsigned sampleCenterPosition, int detectionMethod, bool FFTfilter, float gain, float noise, unsigned x1, unsigned x2, unsigned y1, unsigned y2, unsigned cleanbinsize, float nsigcut, ostream *pout) {
+void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterFlatImage, operaFITSImage &badpixImage, float slit, unsigned nsamples, unsigned sampleCenterPosition, unsigned referenceOrderNumber, float referenceOrderSeparation, int detectionMethod, bool FFTfilter, float gain, float noise, unsigned x1, unsigned x2, unsigned y1, unsigned y2, unsigned cleanbinsize, float nsigcut, ostream *pout) {
     
     unsigned nx = x2 - x1;
     unsigned ny = y2 - y1;
@@ -5154,14 +5154,14 @@ void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterF
     for(unsigned i=1;i<nords;i++) {
         TemporaryOrderSeparation[npspc] = fabs(xmean[i] - xmean[i-1]);
         TemporaryOrderSeparationError[npspc] = sqrt(xmeanerr[i]*xmeanerr[i] + xmeanerr[i-1]*xmeanerr[i-1]);
-        TemporaryOrderPosition[npspc] = (xmean[i] + xmean[i-1])/2;
+        TemporaryOrderPosition[npspc] = xmean[i-1] + (xmean[i] + xmean[i-1])/2;
         
         if(i > 1) {
             float ratio = TemporaryOrderSeparation[npspc]/TemporaryOrderSeparation[npspc - 1];
             int roundedRatio = (int)round(ratio);
             
             // If ratio>1 it means the current separation is at least twice larger than the size of
-            // previous separation. Therefore current skipped one (or more) order(s).
+            // previous separation. Therefore the current has skipped one (or more) order(s).
             if(roundedRatio > 1
                && TemporaryOrderSeparationError[npspc] < 0.5*TemporaryOrderSeparation[npspc]
                && TemporaryOrderSeparationError[npspc] < 0.5*TemporaryOrderSeparation[npspc - 1]) {
@@ -5200,10 +5200,26 @@ void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterF
     double OrderPosition[MAXORDERS];
     double OrderSeparation[MAXORDERS],OrderSeparationError[MAXORDERS];
     
+    // identify reference order, which will be the order for which OrderSeparation ~ referenceOrderSeparation
+    float minResidualSeparation = BIG;
+    unsigned minj = 0;
+    
     for(unsigned j=0; j<npspc; j++) {
-        OrderPosition[j] = (double)TemporaryOrderPosition[SortIndex[j]];
+        if(fabs(TemporaryOrderSeparation[SortIndex[j]] - referenceOrderSeparation) < minResidualSeparation) {
+            minResidualSeparation = fabs(TemporaryOrderSeparation[SortIndex[j]] - referenceOrderSeparation);
+            minj = j;
+        }
+        
+        //OrderPosition[j] = (double)TemporaryOrderPosition[SortIndex[j]];
         OrderSeparation[j] = (double)TemporaryOrderSeparation[SortIndex[j]];
         OrderSeparationError[j] = (double)TemporaryOrderSeparationError[SortIndex[j]];
+    }
+    
+    // Below we are replacing the variable detector position to order number, which
+    // is based on the reference order provided by user -> referenceOrderNumber
+    
+    for(unsigned j=0; j<npspc; j++) {
+        OrderPosition[j] = double(referenceOrderNumber + j - minj);
     }
 	
     // here is the polynomial fit of spacing between orders across the array in the x direction
@@ -6838,7 +6854,6 @@ void operaSpectralOrderVector::saveExtendedRawFlux(int Minorder, int Maxorder) {
     for (int order=Minorder; order<=Maxorder; order++) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
         if (spectralOrder->gethasSpectralElements()) {
-            spectralOrder->getSpectralElements()->copyTOrawFlux();
             spectralOrder->getSpectralElements()->copyTOnormalizedFlux();
             spectralOrder->getSpectralElements()->copyTOfcalFlux();
         }

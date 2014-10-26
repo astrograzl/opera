@@ -87,6 +87,8 @@ void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *my
     
     unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float threshold,float *xmean, float *ymean);
     
+    int operaCCDDetectMissingOrdersNew(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,unsigned minordertouse,float minorderx0, unsigned maxorders);
+
     
 #ifdef __cplusplus
 }

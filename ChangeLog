@@ -2238,3 +2238,22 @@ May 28 2014 - Teeple
 // DT May 28 2014 this is set in to the aperture and must be a pointer and must not be deleted
 Line *beamExtractionLine = new Line((float)tan(tiltAngle[orderIndex]*M_PI/180),height,beamWidth,beamMidPoint);
 
+July 30 2014 - Martioli
+
+- Major changes in Geometry to fix problems in detecting orders for GRACES data. These changes 
+propagated to the following files:
+
+- operaExtractionApertureCalibration.cpp
+- operaOrderSpacingCalibration.cpp
+- operaGeometryCalibration.cpp
+- operaSpectralOrderVector.cpp/h
+- operaSpectralOrder.cpp
+- operaCCD.c/h
+- graces_reduction.sh
+
+Oct 27 2014 - Usher
+
+- Changes to Makefile.am to support newer GCC
+- src/core-espadons/Makefile.am
+- test/Makefile.am
+- updated INSTALLATION notes
