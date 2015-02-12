@@ -271,8 +271,6 @@ public:
 	
 	float getPeakSmoothedSNR(int upperlowerbound);
 
-	float getLECompatibleSNR(void);
-
 	void NormalizeFlat(operaFITSImage &flatMatrix, operaFITSImage &outputMatrix, unsigned nx, unsigned ny, unsigned binsize);
 	
 	void extractRawSum(operaFITSImage &inputImage, ofstream &sout);
@@ -389,8 +387,8 @@ public:
 	/*
 	 * Barycentric Wavelength Correction
 	 */
-    void applyBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond);
-	void setExtendedBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond);
+    void applyBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond);
+	void setExtendedBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond);
     void applyBarycentricWavelengthCorrectionFromExtendedRvel(void);
 };
 

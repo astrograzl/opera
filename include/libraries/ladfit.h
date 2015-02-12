@@ -10,7 +10,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -51,9 +51,9 @@ extern "C" {
 #include "libraries/operaStats.h"
 
 	/*! 
-	 * STATIC inline float MedianFunction(float *d, float *dm, double b, float x[], float y[], double *a, float *absdev, int size, float eps)
+	 * static inline float MedianFunction(float *d, float *dm, double b, float x[], float y[], double *a, float *absdev, int size, float eps)
 	 */
-	STATIC inline float MedianFunction(float *d, float *dm, double b, float x[], float y[], double *a, float *absdev, int size, float eps)
+	static inline float MedianFunction(float *d, float *dm, double b, float x[], float y[], double *a, float *absdev, int size, float eps)
 	{
 		float sum = 0.0, adev = 0.0;
 		int i, j = 0;
@@ -78,9 +78,9 @@ extern "C" {
 	}
 	
 	/*! 
-	 * STATIC inline float MedianFunction_d(double *d, double *dm, double b, double x[], double y[], double *a, double *absdev, int size, double eps)
+	 * static inline float MedianFunction_d(double *d, double *dm, double b, double x[], double y[], double *a, double *absdev, int size, double eps)
 	 */
-	STATIC inline float MedianFunction_d(double *d, double *dm, double b, double x[], double y[], double *a, double *absdev, int size, double eps)
+	static inline float MedianFunction_d(double *d, double *dm, double b, double x[], double y[], double *a, double *absdev, int size, double eps)
 	{
 		double sum = 0.0, adev = 0.0;
 		int i, j = 0;

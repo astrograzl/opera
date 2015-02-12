@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -130,6 +130,202 @@ static void printUsageSyntax(char * modulename) {
  * if MEF we need the extension index
  */
 
+// Returns the number of rows from a Libre-Esprit spectrum file (.s).
+unsigned int GetRowCountFromLESpectrumFile(const string spectrumfile) {
+	unsigned int rows = 0;
+	operaistream fin(spectrumfile.c_str());
+	if (fin.is_open()) {
+		string dataline;
+		getline(fin, dataline);
+		getline(fin, dataline);
+		stringstream ss (dataline);
+		ss >> rows;
+		fin.close();
+	}
+	return rows;
+}
+
+// Returns the number of rows from an extended spectrum file (.es).
+unsigned int GetRowCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode) {
+	operaSpectralOrderVector spectralOrders(spectrumfile);
+	const unsigned int minorder = spectralOrders.getMinorder();
+	const unsigned int maxorder = spectralOrders.getMaxorder();
+	unsigned totaldatapoints = 0;
+	for (unsigned int order = minorder; order <= maxorder; order++) {
+		operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+		if (instrumentmode == MODE_POLAR && spectralOrder->gethasPolarimetry() && spectralOrder->gethasWavelength()) {
+			totaldatapoints += spectralOrder->getPolarimetry()->getLength();
+		}
+		else if (instrumentmode != MODE_POLAR && spectralOrder->gethasSpectralElements()) {
+			operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+			totaldatapoints += spectralelements->getnSpectralElements();
+		}
+	}
+	return totaldatapoints;
+}
+
+/* Updates the specified columns of a FITS product using the values from a Libre-Esprit spectrum file (.s).
+   colgroup - which group of columns (index from 0 to 3) will be updated 
+   groupsize - the number of columns in this group */
+void UpdateProductFromLESpectrumFile(operaFITSProduct& Product, const string spectrumfile, const unsigned groupsize, const unsigned int colgroup, const unsigned int rowcount) {
+	operaistream fin(spectrumfile.c_str());
+	if (fin.is_open()) {
+		string dataline;
+		getline(fin, dataline);
+		getline(fin, dataline);
+		unsigned row = 0;
+		while (fin.good() && row < rowcount) {
+			getline(fin, dataline);
+			if (!dataline.empty()) {
+				stringstream ss (dataline);
+				for (int col = colgroup * groupsize; col < (colgroup + 1) * groupsize; col++) {
+					Float NanTolerantFloat = 0.0;
+					ss >> NanTolerantFloat;
+					Product[col][row] = NanTolerantFloat.f;
+				}
+				row++;
+			}
+		}
+		fin.close();
+	}	
+}
+
+/* Updates the specified columns of a FITS product using the values from an extended spectrum file (.es).
+   colgroup - which group of columns (index from 0 to 3) will be updated */
+void UpdateProductFromExtendedSpectrumFile(operaFITSProduct& Product, const string spectrumfile, const instrumentmode_t instrumentmode, const unsigned int colgroup) {
+	operaSpectralOrderVector spectralOrders(spectrumfile);
+	const unsigned int minorder = spectralOrders.getMinorder();
+	const unsigned int maxorder = spectralOrders.getMaxorder();
+	unsigned int startcol = 0;
+	unsigned int datapoint = 0;
+	switch (instrumentmode) {
+		case MODE_POLAR:
+			startcol = colgroup * MODE_POLAR_COLS / 4;
+			for (unsigned order = minorder; order <= maxorder; order++) {
+				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+				if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasPolarimetry() && spectralOrder->gethasWavelength()) {
+					operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
+					operaPolarimetry *Polarimetry = spectralOrder->getPolarimetry();
+					unsigned length = Polarimetry->getLength();
+					stokes_parameter_t stokesParameter = StokesI;
+					if (Polarimetry->getHasStokesV()) stokesParameter = StokesV;
+					else if (Polarimetry->getHasStokesQ()) stokesParameter = StokesQ;
+					else if (Polarimetry->getHasStokesU()) stokesParameter = StokesU;
+					else if (Polarimetry->getHasStokesI()) stokesParameter = StokesI; //this is currently the default value anyway
+					for (unsigned index = 0; index < length; index++) {
+						Product[startcol+0][datapoint] = SpectralElements->getwavelength(index);
+						Product[startcol+1][datapoint] = Polarimetry->getStokesParameter(stokesParameter)->getflux(index); //Polarization
+						Product[startcol+2][datapoint] = stokesParameter;
+						Product[startcol+3][datapoint] = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index); //Null Spectrum 1
+						Product[startcol+4][datapoint] = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index); //Null Spectrum 2
+						Product[startcol+5][datapoint] = sqrt(Polarimetry->getStokesParameter(stokesParameter)->getvariance(index)); //Polarization Error
+						datapoint++;
+					}
+				}
+			}
+			break;
+		case MODE_STAR_ONLY:
+			startcol = colgroup * MODE_STAR_ONLY_COLS / 4;
+			for (unsigned int order = minorder; order <= maxorder; order++) {
+				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+				if (spectralOrder->gethasSpectralElements()) {
+					operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+					for (unsigned int i = 0; i < spectralelements->getnSpectralElements(); i++) {
+						Product[startcol+0][datapoint] = spectralelements->getwavelength(i);
+						Product[startcol+1][datapoint] = spectralelements->getFlux(i);
+						Product[startcol+2][datapoint] = sqrt(spectralelements->getFluxVariance(i));
+						datapoint++;
+					}
+				}
+			}
+			break;
+		case MODE_STAR_PLUS_SKY:
+			startcol = colgroup * MODE_STAR_PLUS_SKY_COLS / 4;
+			for (unsigned order = minorder; order <= maxorder; order++) {
+				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+				if (spectralOrder->gethasSpectralElements()) {
+					operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+					operaSpectralElements *beamElements0 = spectralOrder->getBeamElements(0);
+					operaSpectralElements *beamElements1 = spectralOrder->getBeamElements(1);
+					for (unsigned int i = 0; i < spectralelements->getnSpectralElements(); i++) {
+						Product[startcol+0][datapoint] = spectralelements->getwavelength(i);
+						Product[startcol+1][datapoint] = beamElements0->getFlux(i);
+						Product[startcol+2][datapoint] = beamElements0->getFlux(i) + beamElements1->getFlux(i);
+						Product[startcol+3][datapoint] = beamElements1->getFlux(i);
+						Product[startcol+4][datapoint] = sqrt(beamElements0->getFluxVariance(i));
+						Product[startcol+5][datapoint] = sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i)); ////I don't think this is the correct way to calculate error...
+						Product[startcol+6][datapoint] = sqrt(beamElements1->getFluxVariance(i));
+						datapoint++;
+					}
+				}
+			}
+			break;
+	}
+}
+
+// Adds various information to the header of the FITS product.
+void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename) {
+	Product.operaFITSDeleteHeaderKey("DATASEC");
+	Product.operaFITSDeleteHeaderKey("DETSEC");
+	Product.operaFITSAddComment("----------------------------------------------------");
+	Product.operaFITSAddComment("| Processed by the CFHT OPERA Open Source Pipeline |");
+	Product.operaFITSAddComment("----------------------------------------------------");
+	Product.operaFITSAddComment(version);
+	Product.operaFITSAddComment("Processing Date");
+	Product.operaFITSAddComment("---------------");
+	Product.operaFITSAddComment(date);
+	Product.operaFITSAddComment("------------------------------------------------------------------------");
+	Product.operaFITSAddComment("upena-compatible headers for column names in primary extension:");
+	Product.operaFITSAddComment("(1) Spectroscopy Star only mode");
+	Product.operaFITSAddComment("    First column = wavelength in nanometres");
+	Product.operaFITSAddComment("    Second column = intensity");
+	Product.operaFITSAddComment("    Third column = error bar");
+	Product.operaFITSAddComment("(2) Polarimetry");
+	Product.operaFITSAddComment("    1st col = wavelength in nanometres");
+	Product.operaFITSAddComment("    2d  col = intensity");
+	Product.operaFITSAddComment("    3rd col = polarisation (Q or U or V or W)");
+	Product.operaFITSAddComment("    4th col = Check Spectra #1");
+	Product.operaFITSAddComment("    5th col = Check Spectra #2");
+	Product.operaFITSAddComment("     6th col = error bar");
+	Product.operaFITSAddComment("(3) Spectroscopy Star + Sky");
+	Product.operaFITSAddComment("    1st col = wavelength");
+	Product.operaFITSAddComment("    2d  col = star spectra (sky subtracted)");
+	Product.operaFITSAddComment("    3rd col = star + sky spectra");
+	Product.operaFITSAddComment("    4th col = sky spectra");
+	Product.operaFITSAddComment("    5, 6, 7 = error bars for each column 2, 3, 4");
+	Product.operaFITSAddComment("------------------------------------------------------------------------");
+	Product.operaFITSAddComment(spectralOrderType);
+	Product.operaFITSAddComment("OPERA Processing Parameters");
+	Product.operaFITSAddComment("---------------------------");
+	if (!parametersfilename.empty()) {
+		if (verbose) cout << "operaCreateProduct: adding parameters " << endl;
+		ifstream parameters(parametersfilename.c_str());
+		while (parameters.good()) {
+			string dataline;
+			getline(parameters, dataline);
+			if (strlen(dataline.c_str())) Product.operaFITSAddComment(dataline);
+		}
+	}
+	//To do: replace this with more useful SNR information (i.e. peak SNR)
+	if (!snrfilename.empty()) {
+		if (verbose) cout << "operaCreateProduct: adding SNR comments " << endl;
+		operaSpectralOrderVector spectralOrders(snrfilename);
+		int minorder = spectralOrders.getMinorder();
+		int maxorder = spectralOrders.getMaxorder();
+		Product.operaFITSAddComment("SNR Table");
+		Product.operaFITSAddComment("---------");
+		Product.operaFITSAddComment("Format: <order number><center SNR><center wavelength><SNR>");
+		for (unsigned order=minorder; order<=maxorder; order++) {
+			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+			if (spectralOrder->gethasSpectralElements()) {
+				operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+				string out = itos(spectralOrder->getorder()) + ' ' + ftos(spectralOrder->getCenterSNR()) + ' ' + ftos(spectralelements->getwavelength(spectralelements->getnSpectralElements()/2)) + ' ' + ftos(spectralelements->getFluxSNR(spectralelements->getnSpectralElements()/2));
+				Product.operaFITSAddComment(out.c_str());
+			}
+		}
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	int opt;
@@ -212,146 +408,144 @@ int main(int argc, char *argv[])
 		{"debug",	optional_argument, NULL, 'd'},
 		{"trace",	optional_argument, NULL, 't'},
 		{"help",	no_argument, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "A:B:C:D:E:F:G:H:J:S:R:O:i:o:V:T:I:q:Z:g:k:w:r:f:y:e:n:s:c:P:a:1:2:3:4:5:6:v::d::t::p::h",  longopts, NULL))  != -1)
-        {
-		switch(opt)
-            {
-                case 'A':
+		{0,0,0,0}
+	};
+	while((opt = getopt_long(argc, argv, "A:B:C:D:E:F:G:H:J:S:R:O:i:o:V:T:I:q:Z:g:k:w:r:f:y:e:n:s:c:P:a:1:2:3:4:5:6:v::d::t::p::h",  longopts, NULL)) != -1) {
+		switch(opt) {
+			case 'A':
 				iu = optarg;
 				break;
-                case 'B':
+			case 'B':
 				in = optarg;
 				break;
-                case 'C':
+			case 'C':
 				iuw = optarg;
 				break;
-                case 'D':
+			case 'D':
 				inw = optarg;
 				break;
-                case 'E':
+			case 'E':
 				pu = optarg;
 				break;
-                case 'F':
+			case 'F':
 				pn = optarg;
 				break;
-                case 'G':
+			case 'G':
 				puw = optarg;
 				break;
-                case 'H':
+			case 'H':
 				pnw = optarg;
 				break;
-                case 'J':
+			case 'J':
 				ifilename = optarg;
 				break;
-                case 'S':
+			case 'S':
 				snrfilename = optarg;
 				break;
-                case '5':
+			case '5':
 				csvfilename = optarg;
 				break;
-                case '6':
+			case '6':
 				esfilename = optarg;
 				break;
-                case 'Z':
+			case 'Z':
 				centralsnr = atoi(optarg) == 1;
 				break;
-                case 'O':
+			case 'O':
 				object = optarg;
 				break;
-                case 'V':
+			case 'V':
 				version = optarg;
 				break;
-                case 'I':
+			case 'I':
 				compression = (eCompression)atoi(optarg);
 				break;
-                case 'q':
+			case 'q':
 				sequence = atoi(optarg);
 				break;
-                case 'a':
+			case 'a':
 				date = optarg;
 				break;
-                case 'o':		// output
+			case 'o':		// output
 				outputfilename = optarg;
 				break;
-                case 'i':		// input
+			case 'i':		// input
 				inputfilename = optarg;
 				break;
-                case 'T':		// spectrum type
+			case 'T':		// spectrum type
 				spectralOrderType = optarg;
 				break;
-                case 'P':
+			case 'P':
 				parametersfilename = optarg;
 				break;
-                case 'g':
+			case 'g':
 				geomfilename = optarg;
 				break;
-                case 'w':
+			case 'w':
 				wavefilename = optarg;
 				break;
-                case 'r':
+			case 'r':
 				aperfilename = optarg;
 				break;
-                case 'f':
+			case 'f':
 				proffilename = optarg;
 				break;
-                case 'y':
+			case 'y':
 				ordpfilename = optarg;
 				break;
-                case 'e':
+			case 'e':
 				beamfilename = optarg;
 				break;
-                case 'R':
+			case 'R':
 				polarfilename = optarg;
 				break;
-                case 'n':
+			case 'n':
 				gainfilename = optarg;
 				break;
-                case 's':
+			case 's':
 				biasfilename = optarg;
 				break;
-                case 'c':
+			case 'c':
 				fcalfilename = optarg;
 				break;
-                case 'k':
+			case 'k':
 				dispfilename = optarg;
 				break;
-                case '1':
+			case '1':
 				rvelfilename = optarg;
 				break;
-                case '2':
+			case '2':
 				tellfilename = optarg;
 				break;
-                case '3':
+			case '3':
 				prvelfilename = optarg;
 				break;
-                case '4':
+			case '4':
 				ptellfilename = optarg;
 				break;
 				
-                case 'v':
+			case 'v':
 				verbose = 1;
 				break;
-                case 'p':
+			case 'p':
 				plot = 1;
 				break;
-                case 'd':
+			case 'd':
 				debug = 1;
 				break;
-                case 't':
+			case 't':
 				trace = 1;
 				break;
-                case 'h':
+			case 'h':
 				printUsageSyntax(argv[0]);
 				exit(EXIT_SUCCESS);
 				break;
-                case '?':
+			case '?':
 				printUsageSyntax(argv[0]);
 				exit(EXIT_SUCCESS);
 				break;
-            }
-        }
+		}
+	}
 	
 	try {
 		// we need an input...
@@ -362,51 +556,21 @@ int main(int argc, char *argv[])
 		if (outputfilename.empty() && csvfilename.empty()) {
 			throw operaException("operaCreateProduct: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
 		}
-		if (!beamfilename.empty()) {
-			extensions++;
-		}
-		if (!polarfilename.empty()) {
-			extensions++;
-		}
-		if (!geomfilename.empty()) {
-			extensions++;
-		}
-		if (!wavefilename.empty()) {
-			extensions++;
-		}
-		if (!aperfilename.empty()) {
-			extensions++;
-		}
-		if (!proffilename.empty()) {
-			extensions++;
-		}
-		if (!ordpfilename.empty()) {
-			extensions++;
-		}
-		if (!gainfilename.empty()) {
-			extensions++;
-		}
-		if (!biasfilename.empty()) {
-			extensions++;
-		}
-		if (!fcalfilename.empty()) {
-			extensions++;
-		}
-		if (!dispfilename.empty()) {
-			extensions++;
-		}
-		if (!rvelfilename.empty()) {
-			extensions++;
-		}
-		if (!tellfilename.empty()) {
-			extensions++;
-		}
-		if (!prvelfilename.empty()) {
-			extensions++;
-		}
-		if (!ptellfilename.empty()) {
-			extensions++;
-		}
+		if (!beamfilename.empty()) extensions++;
+		if (!polarfilename.empty()) extensions++;
+		if (!geomfilename.empty()) extensions++;
+		if (!wavefilename.empty()) extensions++;
+		if (!aperfilename.empty()) extensions++;
+		if (!proffilename.empty()) extensions++;
+		if (!ordpfilename.empty()) extensions++;
+		if (!gainfilename.empty()) extensions++;
+		if (!biasfilename.empty()) extensions++;
+		if (!fcalfilename.empty()) extensions++;
+		if (!dispfilename.empty()) extensions++;
+		if (!rvelfilename.empty()) extensions++;
+		if (!tellfilename.empty()) extensions++;
+		if (!prvelfilename.empty()) extensions++;
+		if (!ptellfilename.empty()) extensions++;
 		if (verbose) {
 			cout << "operaCreateProduct: ifilename= " << ifilename << endl;
 			cout << "operaCreateProduct: iu= " << iu << endl;
@@ -443,8 +607,8 @@ int main(int argc, char *argv[])
 			cout << "operaCreateProduct: compression= " << compression << endl;
 			cout << "operaCreateProduct: spectralOrderType= " << spectralOrderType << endl;
 			cout << "operaCreateProduct: extensions= " << (extensions+1) << endl;
-			
 		}
+		
 		operaFITSImage input(inputfilename, tfloat, READONLY, cNone, true);
 		string mode = input.operaFITSGetHeaderValue("INSTMODE");
 		input.operaFITSImageClose();
@@ -452,16 +616,21 @@ int main(int argc, char *argv[])
 			cout << "operaCreateProduct: " << mode << endl;
 		}
 		instrumentmode_t instrumentmode;
-		unsigned cols = 0;
+		unsigned int numcols = 0;
+		string ufile = iu, nfile = in, uwfile = iuw, nwfile = inw;
 		if (mode.find("Polarimetry") != string::npos) {
 			instrumentmode = MODE_POLAR;
-			cols = MODE_STAR_PLUS_SKY_COLS;
+			numcols = MODE_POLAR_COLS;
+			ufile = pu;
+			nfile = pn;
+			uwfile = puw;
+			nwfile = pnw;
 		} else if (mode.find("Spectroscopy, star+sky") != string::npos) {
 			instrumentmode = MODE_STAR_PLUS_SKY;
-			cols = MODE_STAR_PLUS_SKY_COLS;
+			numcols = MODE_STAR_PLUS_SKY_COLS;
 		} else if (mode.find("Spectroscopy, star only") != string::npos) {
 			instrumentmode = MODE_STAR_ONLY;
-			cols = MODE_STAR_ONLY_COLS;
+			numcols = MODE_STAR_ONLY_COLS;
 		} else {
 			throw operaException("operaCreateProduct: "+mode+" ", operaErrorCodeBadInstrumentModeError, __FILE__, __FUNCTION__, __LINE__);
 		}
@@ -541,7 +710,7 @@ int main(int argc, char *argv[])
 			fout.close();
 			exit(0);
 		}
-		if (!polarfilename.empty() && outputfilename.find("m.fits") == string::npos) {
+		else if (!polarfilename.empty() && outputfilename.find("m.fits") == string::npos) {
 			operaostream fout;
 			fout.open(outputfilename.c_str());
 			if (verbose) {
@@ -608,1063 +777,37 @@ int main(int argc, char *argv[])
 			fout.close();
 			exit(0);
 		}
+
 		/***********************************************************************************************
-		 * PART I - Do the Intensity product i.fits
-         * There are two cases now, the .es and the .s
+		 * PARTS I & II - Create the Intensity product i.fits or the Polarimetry product p.fits
 		 ***********************************************************************************************/
-		if (!iu.empty() && !in.empty() && ! iuw.empty() && !inw.empty()) {
-            if (iu.find(".es") != string::npos) {    // the extended spectrum
-                operaSpectralOrderVector spectralOrders(iu);
-                minorder = spectralOrders.getMinorder();
-                maxorder = spectralOrders.getMaxorder();
-                unsigned totaldatapoints = 0;
-                unsigned datapoint = 0;
-                for (unsigned order=minorder; order<=maxorder; order++) {
-                    operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                    if (spectralOrder->gethasSpectralElements()) {
-                        operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                        totaldatapoints += spectralelements->getnSpectralElements();
-                    }
-                }
-                operaFITSProduct Product(outputfilename, inputfilename, instrumentmode, cols, totaldatapoints, compression);
-                /*
-                 * iu
-                 */
-                switch (instrumentmode) {
-                    case MODE_POLAR:
-                    case MODE_STAR_ONLY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][9] = spectralelements->getwavelength(i);
-                                    Product[datapoint][10] = spectralelements->getFlux(i);
-                                    Product[datapoint][11] = sqrt(spectralelements->getFluxVariance(i));
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    case MODE_STAR_PLUS_SKY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            operaSpectralElements *beamElements0 = spectralOrder->getBeamElements(0);
-                            operaSpectralElements *beamElements1 = spectralOrder->getBeamElements(1);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][21] = spectralelements->getwavelength(i);
-                                    Product[datapoint][22] = beamElements0->getFlux(i);
-                                    Product[datapoint][23] = beamElements0->getFlux(i) + beamElements1->getFlux(i);
-                                    Product[datapoint][24] = beamElements1->getFlux(i);
-                                    Product[datapoint][25] = sqrt(beamElements0->getFluxVariance(i));
-                                    Product[datapoint][26] = sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i));
-                                    Product[datapoint][27] = sqrt(beamElements1->getFluxVariance(i));
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                /*
-                 * in
-                 */
-                spectralOrders.ReadSpectralOrders(in);
-                datapoint = 0;
-                switch (instrumentmode) {
-                    case MODE_POLAR:
-                    case MODE_STAR_ONLY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][6] = spectralelements->getwavelength(i);
-                                    Product[datapoint][7] = sqrt(spectralelements->getFluxVariance(i));
-                                    Product[datapoint][8] = spectralelements->getFlux(i);
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    case MODE_STAR_PLUS_SKY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            operaSpectralElements *beamElements0 = spectralOrder->getBeamElements(0);
-                            operaSpectralElements *beamElements1 = spectralOrder->getBeamElements(1);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][14] = spectralelements->getwavelength(i);
-                                    Product[datapoint][15] = beamElements0->getFlux(i);
-                                    Product[datapoint][16] = beamElements0->getFlux(i) + beamElements1->getFlux(i);
-                                    Product[datapoint][17] = beamElements1->getFlux(i);
-                                    Product[datapoint][18] = sqrt(beamElements0->getFluxVariance(i));
-                                    Product[datapoint][19] = sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i));
-                                    Product[datapoint][20] = sqrt(beamElements1->getFluxVariance(i));
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                /*
-                 * iuw
-                 */
-                spectralOrders.ReadSpectralOrders(iuw);
-                datapoint = 0;
-                switch (instrumentmode) {
-                    case MODE_POLAR:
-                    case MODE_STAR_ONLY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][3] = spectralelements->getwavelength(i);
-                                    Product[datapoint][4] = sqrt(spectralelements->getFluxVariance(i));
-                                    Product[datapoint][5] = spectralelements->getFlux(i);
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    case MODE_STAR_PLUS_SKY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            operaSpectralElements *beamElements0 = spectralOrder->getBeamElements(0);
-                            operaSpectralElements *beamElements1 = spectralOrder->getBeamElements(1);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][7] = spectralelements->getwavelength(i);
-                                    Product[datapoint][8] = beamElements0->getFlux(i);
-                                    Product[datapoint][9] = beamElements0->getFlux(i) + beamElements1->getFlux(i);
-                                    Product[datapoint][10] = beamElements1->getFlux(i);
-                                    Product[datapoint][11] = sqrt(beamElements0->getFluxVariance(i));
-                                    Product[datapoint][12] = sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i));
-                                    Product[datapoint][13] = sqrt(beamElements1->getFluxVariance(i));
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                /*
-                 * inw
-                 */
-                spectralOrders.ReadSpectralOrders(inw);
-                datapoint = 0;
-                switch (instrumentmode) {
-                    case MODE_POLAR:
-                    case MODE_STAR_ONLY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][0] = spectralelements->getwavelength(i);
-                                    Product[datapoint][1] = spectralelements->getFluxVariance(i);
-                                    Product[datapoint][2] = spectralelements->getFlux(i);
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    case MODE_STAR_PLUS_SKY:
-                        for (unsigned order=minorder; order<=maxorder; order++) {
-                            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                            operaSpectralElements *beamElements0 = spectralOrder->getBeamElements(0);
-                            operaSpectralElements *beamElements1 = spectralOrder->getBeamElements(1);
-                            if (spectralOrder->gethasSpectralElements()) {
-                                operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-                                for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-                                    Product[datapoint][0] = spectralelements->getwavelength(i);
-                                    Product[datapoint][1] = beamElements0->getFlux(i);
-                                    Product[datapoint][2] = beamElements0->getFlux(i) + beamElements1->getFlux(i);
-                                    Product[datapoint][3] = beamElements1->getFlux(i);
-                                    Product[datapoint][4] = sqrt(beamElements0->getFluxVariance(i));
-                                    Product[datapoint][5] = sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i));
-                                    Product[datapoint][6] = sqrt(beamElements1->getFluxVariance(i));
-                                    datapoint++;
-                                }
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                Product.operaFITSDeleteHeaderKey("DATASEC");
-                Product.operaFITSDeleteHeaderKey("DETSEC");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment("| Processed by the CFHT OPERA Open Source Pipeline |");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment(version);
-                Product.operaFITSAddComment("Processing Date");
-                Product.operaFITSAddComment("---------------");
-                Product.operaFITSAddComment(date);
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment("upena-compatible headers for column names in primary extension:");
-                Product.operaFITSAddComment("(1) Spectroscopy Star only mode");
-                Product.operaFITSAddComment("    First column = wavelength in nanometres");
-                Product.operaFITSAddComment("    Second column = intensity");
-                Product.operaFITSAddComment("    Third column = error bar");
-                Product.operaFITSAddComment("(2) Polarimetry");
-                Product.operaFITSAddComment("    1st col = wavelength in nanometres");
-                Product.operaFITSAddComment("    2d  col = intensity");
-                Product.operaFITSAddComment("    3rd col = polarisation (Q or U or V or W)");
-                Product.operaFITSAddComment("    4th col = Check Spectra #1");
-                Product.operaFITSAddComment("    5th col = Check Spectra #2");
-                Product.operaFITSAddComment("     6th col = error bar");
-                Product.operaFITSAddComment("(3) Spectroscopy Star + Sky");
-                Product.operaFITSAddComment("    1st col = wavelength");
-                Product.operaFITSAddComment("    2d  col = star spectra (sky subtracted)");
-                Product.operaFITSAddComment("    3rd col = star + sky spectra");
-                Product.operaFITSAddComment("    4th col = sky spectra");
-                Product.operaFITSAddComment("    5, 6, 7 = error bars for each column 2, 3, 4");
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment(spectralOrderType);
-                Product.operaFITSAddComment("OPERA Processing Parameters");
-                Product.operaFITSAddComment("---------------------------");
-                if (!parametersfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding parameters " << endl;
-                    }
-                    ifstream parameters(parametersfilename.c_str());
-                    string dataline;
-                    while (parameters.good()) {
-                        getline(parameters, dataline);
-                        if (strlen(dataline.c_str())) {
-                            Product.operaFITSAddComment(dataline);
-                        }
-                    }
-                }
-                if (!snrfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding SNR comments " << endl;
-                    }
-                    operaSpectralOrderVector spectralOrders(snrfilename);
-                    minorder = spectralOrders.getMinorder();
-                    maxorder = spectralOrders.getMaxorder();
-                    Product.operaFITSAddComment("SNR Table");
-                    Product.operaFITSAddComment("---------");
-                    Product.operaFITSAddComment("Format: <order number><Center SNR><center wavelength><SNR>");
-                    for (unsigned order=minorder; order<=maxorder; order++) {
-                        operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                        if (spectralOrder->gethasSpectralElements()) {
-                            operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-							string out = itos(spectralOrder->getorder()) + ' ' + ftos(spectralOrder->getCenterSNR()) + ' ' + ftos(spectralelements->getwavelength(spectralelements->getnSpectralElements()/2)) + ' ' + ftos(spectralelements->getFluxSNR(spectralelements->getnSpectralElements()/2));
-							Product.operaFITSAddComment(out.c_str());
-                        }
-                    }
-                }
-                if (verbose) {
-                    cout << "operaCreateProduct: done intensity " << endl;
-                }
-                Product.operaFITSImageSave();
-                Product.operaFITSImageClose();
-            } else {    // the .s Libre-Esprit spectrum (has no order information)
-                /*
-                 * iu
-                 */
-                unsigned cols = MODE_STAR_PLUS_SKY_COLS;
-                unsigned rows = 0;
-                {
-					operaistream fin(iu.c_str());
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-									ss >> rows;
-								} else
-									break;
-							}
-							line++;
-						}
-						fin.close();
-					}
-                }
-                operaFITSProduct Product(outputfilename, inputfilename, instrumentmode, cols, rows, compression);
-                {
-					operaistream fin(iu.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									switch (instrumentmode) {
-										case MODE_POLAR:
-										case MODE_STAR_ONLY:
-											ss >> NanTolerantFloat; Product[row][9] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][10] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][11] = NanTolerantFloat.f;
-											break;
-										case MODE_STAR_PLUS_SKY:
-											ss >> NanTolerantFloat; Product[row][21] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][22] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][23] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][24] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][25] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][26] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][27] = NanTolerantFloat.f;
-											break;
-										default:
-											break;
-									}
-									row++;
-									if (row >= rows)
-										break;
-								}
-								line++;
-							}
-						}
-						fin.close();
-					}
-                }
-                /*
-                 * in
-                 */
-                {
-					operaistream fin(in.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									switch (instrumentmode) {
-										case MODE_POLAR:
-										case MODE_STAR_ONLY:
-											ss >> NanTolerantFloat; Product[row][6] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][7] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][8] = NanTolerantFloat.f;
-											break;
-										case MODE_STAR_PLUS_SKY:
-											ss >> NanTolerantFloat; Product[row][14] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][15] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][16] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][17] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][18] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][19] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][20] = NanTolerantFloat.f;
-											break;
-										default:
-											break;
-									}
-									row++;
-									if (row >= rows)
-										break;
-								}
-								line++;
-							}
-						}
-						fin.close();
-					}
-                }
-                /*
-                 * iuw
-                 */
-                {
-					operaistream fin(iuw.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									switch (instrumentmode) {
-										case MODE_POLAR:
-										case MODE_STAR_ONLY:
-											ss >> NanTolerantFloat; Product[row][3] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][4] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][5] = NanTolerantFloat.f;
-											break;
-										case MODE_STAR_PLUS_SKY:
-											ss >> NanTolerantFloat; Product[row][7] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][8] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][9] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][10] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][11] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][12] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][13] = NanTolerantFloat.f;
-											break;
-										default:
-											break;
-									}
-									row++;
-									if (row >= rows)
-										break;
-								}
-								line++;
-							}
-						}
-						fin.close();
-					}
-                }
-                /*
-                 * inw
-                 */
-                {
-					operaistream fin(inw.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									switch (instrumentmode) {
-										case MODE_POLAR:
-										case MODE_STAR_ONLY:
-											ss >> NanTolerantFloat; Product[row][0] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][1] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][2] = NanTolerantFloat.f;
-											break;
-										case MODE_STAR_PLUS_SKY:
-											ss >> NanTolerantFloat; Product[row][0] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][1] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][2] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][3] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][4] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][5] = NanTolerantFloat.f;
-											ss >> NanTolerantFloat; Product[row][6] = NanTolerantFloat.f;
-											break;
-										default:
-											break;
-									}
-									row++;
-									if (row >= rows)
-										break;
-								}
-								line++;
-							}
-						}
-						fin.close();
-					}
-                }
-                Product.operaFITSDeleteHeaderKey("DATASEC");
-                Product.operaFITSDeleteHeaderKey("DETSEC");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment("| Processed by the CFHT OPERA Open Source Pipeline |");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment(version);
-                Product.operaFITSAddComment("Processing Date");
-                Product.operaFITSAddComment("---------------");
-                Product.operaFITSAddComment(date);
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment("upena-compatible headers for column names in primary extension:");
-                Product.operaFITSAddComment("(1) Spectroscopy Star only mode");
-                Product.operaFITSAddComment("    First column = wavelength in nanometres");
-                Product.operaFITSAddComment("    Second column = intensity");
-                Product.operaFITSAddComment("    Third column = error bar");
-                Product.operaFITSAddComment("(2) Polarimetry");
-                Product.operaFITSAddComment("    1st col = wavelength in nanometres");
-                Product.operaFITSAddComment("    2d  col = intensity");
-                Product.operaFITSAddComment("    3rd col = polarisation (Q or U or V or W)");
-                Product.operaFITSAddComment("    4th col = Check Spectra #1");
-                Product.operaFITSAddComment("    5th col = Check Spectra #2");
-                Product.operaFITSAddComment("     6th col = error bar");
-                Product.operaFITSAddComment("(3) Spectroscopy Star + Sky");
-                Product.operaFITSAddComment("    1st col = wavelength");
-                Product.operaFITSAddComment("    2d  col = star spectra (sky subtracted)");
-                Product.operaFITSAddComment("    3rd col = star + sky spectra");
-                Product.operaFITSAddComment("    4th col = sky spectra");
-                Product.operaFITSAddComment("    5, 6, 7 = error bars for each column 2, 3, 4");
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment(spectralOrderType);
-                Product.operaFITSAddComment("OPERA Processing Parameters");
-                Product.operaFITSAddComment("---------------------------");
-                if (!parametersfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding parameters " << endl;
-                    }
-                    ifstream parameters(parametersfilename.c_str());
-                    string dataline;
-                    while (parameters.good()) {
-                        getline(parameters, dataline);
-                        if (strlen(dataline.c_str())) {
-                            Product.operaFITSAddComment(dataline);
-                        }
-                    }
-                }
-                if (!snrfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding SNR comments " << endl;
-                    }
-                    operaSpectralOrderVector spectralOrders(snrfilename);
-                    minorder = spectralOrders.getMinorder();
-                    maxorder = spectralOrders.getMaxorder();
-                    Product.operaFITSAddComment("SNR Table");
-                    Product.operaFITSAddComment("---------");
-                    Product.operaFITSAddComment("Format: <order number><Center SNR><center wavelength><SNR>");
-                    for (unsigned order=minorder; order<=maxorder; order++) {
-                        operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                        if (spectralOrder->gethasSpectralElements()) {
-                            operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-							string out = itos(spectralOrder->getorder()) + ' ' + ftos(spectralOrder->getCenterSNR()) + ' ' + ftos(spectralelements->getwavelength(spectralelements->getnSpectralElements()/2)) + ' ' + ftos(spectralelements->getFluxSNR(spectralelements->getnSpectralElements()/2));
-							Product.operaFITSAddComment(out.c_str());
-                        }
-                    }
-                }
-                if (verbose) {
-                    cout << "operaCreateProduct: done intensity " << endl;
-                }
-                Product.operaFITSImageSave();
-                Product.operaFITSImageClose();
-            }
-			exit(0);
+		else if (!ufile.empty() && !nfile.empty() && ! uwfile.empty() && !nwfile.empty()) {
+			const bool extended = (ufile.find(".es") != string::npos); // Check if using extended spectrum
+			const unsigned int datapoints = (extended ? GetRowCountFromExtendedSpectrumFile(ufile, instrumentmode) : GetRowCountFromLESpectrumFile(ufile));
+			operaFITSProduct Product(outputfilename, inputfilename, instrumentmode, datapoints, numcols, compression);
+			if(extended) { //Using .es extended spectrum
+				UpdateProductFromExtendedSpectrumFile(Product, ufile, instrumentmode, 3);
+				UpdateProductFromExtendedSpectrumFile(Product, nfile, instrumentmode, 2);
+				UpdateProductFromExtendedSpectrumFile(Product, uwfile, instrumentmode, 1);
+				UpdateProductFromExtendedSpectrumFile(Product, nwfile, instrumentmode, 0);
+			}
+			else { //Using .s Libre-Esprit spectrum (has no order information)
+				UpdateProductFromLESpectrumFile(Product, ufile, numcols/4, 3, datapoints);
+				UpdateProductFromLESpectrumFile(Product, nfile, numcols/4, 2, datapoints);
+				UpdateProductFromLESpectrumFile(Product, uwfile, numcols/4, 1, datapoints);
+				UpdateProductFromLESpectrumFile(Product, nwfile, numcols/4, 0, datapoints);
+			}
+			AddFITSHeaderToProduct(Product, version, date, spectralOrderType, parametersfilename, snrfilename);
+			Product.operaFITSImageSave();
+			Product.operaFITSImageClose();
+			if (verbose && instrumentmode == MODE_POLAR) cout << "operaCreateProduct: done polarimetry " << endl;
+			else if (verbose) cout << "operaCreateProduct: done intensity " << endl;
         }
-        /***********************************************************************************************
-         * PART II - Do the Polarimetry product p.fits
-         ***********************************************************************************************/
-        if (!pu.empty() && !pn.empty() && !puw.empty() && !pnw.empty()) {
-            if (iu.find(".es") != string::npos) {    // the extended spectrum
-                cols = MODE_POLAR_COLS;
-                /*
-                 * pu
-                 */
-                operaSpectralOrderVector spectralOrders(pu);
-                operaPolarimetry *Polarimetry = NULL;
-                unsigned totaldatapoints = 0;
-                unsigned datapoint = 0;
-                for (unsigned order=minorder; order<=maxorder; order++) {
-                    operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                    if (spectralOrder->gethasPolarimetry() && spectralOrder->gethasWavelength()) {
-                        totaldatapoints += spectralOrder->getPolarimetry()->getLength();
-                    }
-                }
-                operaFITSProduct Product(outputfilename, inputfilename, MODE_POLAR, cols, totaldatapoints, compression);
-                double PolarizationVariance, DegreeOfPolarization, DegreeOfPolarizationVariance, NullSpectrum1Variance, NullSpectrum2Variance;
-                double Intensity, Variance, Polarization, NullSpectrum1, NullSpectrum2;
-                
-                for (unsigned order=minorder; order<=maxorder; order++) {
-                    operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                    if (spectralOrder->gethasPolarimetry() && spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
-                        Polarimetry = spectralOrder->getPolarimetry();
-						operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-                        unsigned length = spectralOrder->getPolarimetry()->getLength();
-                        stokes_parameter_t stokesParameter = StokesI;
-                        if (Polarimetry->getHasStokesV()) {
-                            stokesParameter = StokesV;
-                        } else if (Polarimetry->getHasStokesQ()) {
-                            stokesParameter = StokesQ;
-                        } else if (Polarimetry->getHasStokesU()) {
-                            stokesParameter = StokesU;
-                        } else if (Polarimetry->getHasStokesI()) {
-                            stokesParameter = StokesI;
-                        }
-                        for (unsigned index = 0 ; index < length ; index++) {
-                            Intensity = Polarimetry->getStokesParameter(StokesI)->getflux(index);
-                            Variance = Polarimetry->getStokesParameter(StokesI)->getvariance(index);
-                            Polarization = Polarimetry->getStokesParameter(stokesParameter)->getflux(index);
-                            PolarizationVariance = Polarimetry->getStokesParameter(stokesParameter)->getvariance(index);
-                            DegreeOfPolarization = Polarimetry->getDegreeOfPolarization(stokesParameter)->getflux(index);
-                            DegreeOfPolarizationVariance = Polarimetry->getDegreeOfPolarization(stokesParameter)->getvariance(index);
-                            NullSpectrum1 = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index);
-                            NullSpectrum1Variance = Polarimetry->getFirstNullPolarization(stokesParameter)->getvariance(index);
-                            NullSpectrum2 = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index);
-                            NullSpectrum2Variance = Polarimetry->getSecondNullPolarization(stokesParameter)->getvariance(index);
-                            Product[datapoint][18] = SpectralElements->getwavelength(index);
-                            Product[datapoint][19] = Polarization;
-                            Product[datapoint][20] = stokesParameter;
-                            Product[datapoint][21] = NullSpectrum1;
-                            Product[datapoint][22] = NullSpectrum2;
-                            Product[datapoint][23] = sqrt(PolarizationVariance);
-                            datapoint++;
-                        }
-                    }
-                }
-                /*
-                 * pn
-                 */
-                spectralOrders.ReadSpectralOrders(pn);
-                datapoint = 0;
-                for (unsigned order=minorder; order<=maxorder; order++) {
-                    operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                    if (spectralOrder->gethasPolarimetry() && spectralOrder->gethasSpectralElements()) {
-                        Polarimetry = spectralOrder->getPolarimetry();
-						operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-						if (spectralOrder->gethasWavelength()) {
-							unsigned length = spectralOrder->getPolarimetry()->getLength();
-							stokes_parameter_t stokesParameter = StokesI;
-							if (Polarimetry->getHasStokesV()) {
-								stokesParameter = StokesV;
-							} else if (Polarimetry->getHasStokesQ()) {
-								stokesParameter = StokesQ;
-							} else if (Polarimetry->getHasStokesU()) {
-								stokesParameter = StokesU;
-							} else if (Polarimetry->getHasStokesI()) {
-								stokesParameter = StokesI;
-							}
-							for (unsigned index = 0 ; index < length ; index++) {
-								Intensity = Polarimetry->getStokesParameter(StokesI)->getflux(index);
-								Variance = Polarimetry->getStokesParameter(StokesI)->getvariance(index);
-								Polarization = Polarimetry->getStokesParameter(stokesParameter)->getflux(index);
-								PolarizationVariance = Polarimetry->getStokesParameter(stokesParameter)->getvariance(index);
-								DegreeOfPolarization = Polarimetry->getDegreeOfPolarization(stokesParameter)->getflux(index);
-								DegreeOfPolarizationVariance = Polarimetry->getDegreeOfPolarization(stokesParameter)->getvariance(index);
-								NullSpectrum1 = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index);
-								NullSpectrum1Variance = Polarimetry->getFirstNullPolarization(stokesParameter)->getvariance(index);
-								NullSpectrum2 = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index);
-								NullSpectrum2Variance = Polarimetry->getSecondNullPolarization(stokesParameter)->getvariance(index);
-								Product[datapoint][12] = SpectralElements->getwavelength(index);
-								Product[datapoint][13] = Polarization;
-								Product[datapoint][14] = stokesParameter;
-								Product[datapoint][15] = NullSpectrum1;
-								Product[datapoint][16] = NullSpectrum2;
-								Product[datapoint][17] = sqrt(PolarizationVariance);
-								datapoint++;
-							}
-                        }
-                    }
-                }
-                /*
-                 * puw
-                 */
-                spectralOrders.ReadSpectralOrders(puw);
-                datapoint = 0;
-                for (unsigned order=minorder; order<=maxorder; order++) {
-                    operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                    if (spectralOrder->gethasPolarimetry() && spectralOrder->gethasSpectralElements()) {
-                        Polarimetry = spectralOrder->getPolarimetry();
-						operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-						if (spectralOrder->gethasWavelength()) {
-							unsigned length = spectralOrder->getPolarimetry()->getLength();
-							stokes_parameter_t stokesParameter = StokesI;
-							if (Polarimetry->getHasStokesV()) {
-								stokesParameter = StokesV;
-							} else if (Polarimetry->getHasStokesQ()) {
-								stokesParameter = StokesQ;
-							} else if (Polarimetry->getHasStokesU()) {
-								stokesParameter = StokesU;
-							} else if (Polarimetry->getHasStokesI()) {
-								stokesParameter = StokesI;
-							}
-							for (unsigned index = 0 ; index < length ; index++) {
-								Intensity = Polarimetry->getStokesParameter(StokesI)->getflux(index);
-								Variance = Polarimetry->getStokesParameter(StokesI)->getvariance(index);
-								Polarization = Polarimetry->getStokesParameter(stokesParameter)->getflux(index);
-								PolarizationVariance = Polarimetry->getStokesParameter(stokesParameter)->getvariance(index);
-								DegreeOfPolarization = Polarimetry->getDegreeOfPolarization(stokesParameter)->getflux(index);
-								DegreeOfPolarizationVariance = Polarimetry->getDegreeOfPolarization(stokesParameter)->getvariance(index);
-								NullSpectrum1 = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index);
-								NullSpectrum1Variance = Polarimetry->getFirstNullPolarization(stokesParameter)->getvariance(index);
-								NullSpectrum2 = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index);
-								NullSpectrum2Variance = Polarimetry->getSecondNullPolarization(stokesParameter)->getvariance(index);
-								Product[datapoint][6] = SpectralElements->getwavelength(index);
-								Product[datapoint][7] = Polarization;
-								Product[datapoint][8] = stokesParameter;
-								Product[datapoint][9] = NullSpectrum1;
-								Product[datapoint][10] = NullSpectrum2;
-								Product[datapoint][11] = sqrt(PolarizationVariance);
-								datapoint++;
-							}
-						}
-                    }
-                }
-                /*
-                 * pnw
-                 */
-                spectralOrders.ReadSpectralOrders(pnw);
-                datapoint = 0;
-                for (unsigned order=minorder; order<=maxorder; order++) {
-                    operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                    if (spectralOrder->gethasPolarimetry() && spectralOrder->gethasSpectralElements()) {
-                        Polarimetry = spectralOrder->getPolarimetry();
-						operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-						if (spectralOrder->gethasWavelength()) {
-							unsigned length = spectralOrder->getPolarimetry()->getLength();
-							stokes_parameter_t stokesParameter = StokesI;
-							if (Polarimetry->getHasStokesV()) {
-								stokesParameter = StokesV;
-							} else if (Polarimetry->getHasStokesQ()) {
-								stokesParameter = StokesQ;
-							} else if (Polarimetry->getHasStokesU()) {
-								stokesParameter = StokesU;
-							} else if (Polarimetry->getHasStokesI()) {
-								stokesParameter = StokesI;
-							}
-							for (unsigned index = 0 ; index < length ; index++) {
-								Intensity = Polarimetry->getStokesParameter(StokesI)->getflux(index);
-								Variance = Polarimetry->getStokesParameter(StokesI)->getvariance(index);
-								Polarization = Polarimetry->getStokesParameter(stokesParameter)->getflux(index);
-								PolarizationVariance = Polarimetry->getStokesParameter(stokesParameter)->getvariance(index);
-								DegreeOfPolarization = Polarimetry->getDegreeOfPolarization(stokesParameter)->getflux(index);
-								DegreeOfPolarizationVariance = Polarimetry->getDegreeOfPolarization(stokesParameter)->getvariance(index);
-								NullSpectrum1 = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index);
-								NullSpectrum1Variance = Polarimetry->getFirstNullPolarization(stokesParameter)->getvariance(index);
-								NullSpectrum2 = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index);
-								NullSpectrum2Variance = Polarimetry->getSecondNullPolarization(stokesParameter)->getvariance(index);
-								Product[datapoint][0] = SpectralElements->getwavelength(index);
-								Product[datapoint][1] = Polarization;
-								Product[datapoint][2] = stokesParameter;
-								Product[datapoint][3] = NullSpectrum1;
-								Product[datapoint][4] = NullSpectrum2;
-								Product[datapoint][5] = sqrt(PolarizationVariance);
-								datapoint++;
-							}
-						}
-                    }
-                }
-                /*
-                 * Now populate headers as comments
-                 */
-                Product.operaFITSDeleteHeaderKey("DATASEC");
-                Product.operaFITSDeleteHeaderKey("DETSEC");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment("| Processed by the CFHT OPERA Open Source Pipeline |");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment(version);
-                Product.operaFITSAddComment("Processing Date");
-                Product.operaFITSAddComment("---------------");
-                Product.operaFITSAddComment(date);
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment("upena-compatible headers for column names in primary extension:");
-                Product.operaFITSAddComment("(1) Spectroscopy Star only mode");
-                Product.operaFITSAddComment("    First column = wavelength in nanometres");
-                Product.operaFITSAddComment("    Second column = intensity");
-                Product.operaFITSAddComment("    Third column = error bar");
-                Product.operaFITSAddComment("(2) Polarimetry");
-                Product.operaFITSAddComment("    1st col = wavelength in nanometres");
-                Product.operaFITSAddComment("    2d  col = intensity");
-                Product.operaFITSAddComment("    3rd col = polarisation (Q or U or V or W)");
-                Product.operaFITSAddComment("    4th col = Check Spectra #1");
-                Product.operaFITSAddComment("    5th col = Check Spectra #2");
-                Product.operaFITSAddComment("     6th col = error bar");
-                Product.operaFITSAddComment("(3) Spectroscopy Star + Sky");
-                Product.operaFITSAddComment("    1st col = wavelength");
-                Product.operaFITSAddComment("    2d  col = star spectra (sky subtracted)");
-                Product.operaFITSAddComment("    3rd col = star + sky spectra");
-                Product.operaFITSAddComment("    4th col = sky spectra");
-                Product.operaFITSAddComment("    5, 6, 7 = error bars for each column 2, 3, 4");
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment(spectralOrderType);
-                Product.operaFITSAddComment("OPERA Processing Parameters");
-                Product.operaFITSAddComment("---------------------------");
-                /*
-                 * Add in the reduction parameters
-                 */
-                if (!parametersfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding parameters " << endl;
-                    }
-                    ifstream parameters(parametersfilename.c_str());
-                    string dataline;
-                    while (parameters.good()) {
-                        getline(parameters, dataline);
-                        if (strlen(dataline.c_str())) {
-                            Product.operaFITSAddComment(dataline);
-                        }
-                    }
-                }
-                if (!snrfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding SNR comments" << endl;
-                    }
-                    operaSpectralOrderVector spectralOrders(snrfilename);
-                    minorder = spectralOrders.getMinorder();
-                    maxorder = spectralOrders.getMaxorder();
-                    Product.operaFITSAddComment("SNR Table");
-                    Product.operaFITSAddComment("---------");
-                    Product.operaFITSAddComment("Format: <order number><Center SNR><wavelength><SNR>");
-                    for (unsigned order=minorder; order<=maxorder; order++) {
-                        operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                        if (spectralOrder->gethasSpectralElements()) {
-                            operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-							string out = itos(spectralOrder->getorder()) + ' ' + ftos(spectralOrder->getCenterSNR()) + ' ' + ftos(spectralelements->getwavelength(spectralelements->getnSpectralElements()/2)) + ' ' + ftos(spectralelements->getFluxSNR(spectralelements->getnSpectralElements()/2));
-							Product.operaFITSAddComment(out.c_str());
-                        }
-                    }
-                }
-                if (verbose) {
-                    cout << "operaCreateProduct: done polarimetry " << endl;
-                }
-                Product.operaFITSImageSave();
-                Product.operaFITSImageClose();
-            } else {    // the .s Libre-Esprit spectrum (has no order information)
-                unsigned cols = MODE_POLAR_COLS;
-                unsigned rows = 0;
-                {
-					operaistream fin(pu.c_str());
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-									ss >> rows;
-								} else
-									break;
-							}
-							line++;
-						}
-						fin.close();
-					}
-                }
-                operaFITSProduct Product(outputfilename, inputfilename, MODE_POLAR, cols, rows, compression);
-                /*
-                 * pu
-                 */
-                {
-					operaistream fin(pu.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									ss >> NanTolerantFloat; Product[row][18] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][19] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][20] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][21] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][22] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][23] = NanTolerantFloat.f;
-									row++;
-									if (row >= rows)
-										break;
-								}
-								line++;
-							}
-						}
-						fin.close();
-					}
-                }
-                /*
-                 * pn
-                 */
-                {
-					operaistream fin(pn.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									ss >> NanTolerantFloat; Product[row][12] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][13] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][14] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][15] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][16] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][17] = NanTolerantFloat.f;
-									row++;
-									if (row >= rows)
-										break;
-								}
-								line++;
-							}
-						}
-						fin.close();
-					}
-                }
-                /*
-                 * puw
-                 */
-                {
-					operaistream fin(puw.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									ss >> NanTolerantFloat; Product[row][6] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][7] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][8] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][9] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][10] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][11] = NanTolerantFloat.f;
-									row++;
-									if (row >= rows)
-										break;
-								}
-								line++;
-							}
-						}
-						fin.close();
-					}
-                }
-                /*
-                 * pnw
-                 */
-                {
-					operaistream fin(pnw.c_str());
-					unsigned row = 0;
-					unsigned line = 0;
-					if (fin.is_open()) {
-						string dataline;
-						while (fin.good()) {
-							getline(fin, dataline);
-							if (strlen(dataline.c_str())) {
-								stringstream ss (stringstream::in | stringstream::out);
-								ss << dataline.c_str();
-								if (line == 0) {
-								} else if (line == 1) {
-								} else  {
-									Float NanTolerantFloat = 0.0;
-									ss >> NanTolerantFloat; Product[row][0] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][1] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][2] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][3] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][4] = NanTolerantFloat.f;
-									ss >> NanTolerantFloat; Product[row][5] = NanTolerantFloat.f;
-									row++;
-									if (row >= rows)
-										break;
-								}
-							}
-							line++;
-						}
-						fin.close();
-					}
-                }
-                /*
-                 * Now populate headers as comments
-                 */
-                Product.operaFITSDeleteHeaderKey("DATASEC");
-                Product.operaFITSDeleteHeaderKey("DETSEC");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment("| Processed by the CFHT OPERA Open Source Pipeline |");
-                Product.operaFITSAddComment("----------------------------------------------------");
-                Product.operaFITSAddComment(version);
-                Product.operaFITSAddComment("Processing Date");
-                Product.operaFITSAddComment("---------------");
-                Product.operaFITSAddComment(date);
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment("upena-compatible headers for column names in primary extension:");
-                Product.operaFITSAddComment("(1) Spectroscopy Star only mode");
-                Product.operaFITSAddComment("    First column = wavelength in nanometres");
-                Product.operaFITSAddComment("    Second column = intensity");
-                Product.operaFITSAddComment("    Third column = error bar");
-                Product.operaFITSAddComment("(2) Polarimetry");
-                Product.operaFITSAddComment("    1st col = wavelength in nanometres");
-                Product.operaFITSAddComment("    2d  col = intensity");
-                Product.operaFITSAddComment("    3rd col = polarisation (Q or U or V or W)");
-                Product.operaFITSAddComment("    4th col = Check Spectra #1");
-                Product.operaFITSAddComment("    5th col = Check Spectra #2");
-                Product.operaFITSAddComment("     6th col = error bar");
-                Product.operaFITSAddComment("(3) Spectroscopy Star + Sky");
-                Product.operaFITSAddComment("    1st col = wavelength");
-                Product.operaFITSAddComment("    2d  col = star spectra (sky subtracted)");
-                Product.operaFITSAddComment("    3rd col = star + sky spectra");
-                Product.operaFITSAddComment("    4th col = sky spectra");
-                Product.operaFITSAddComment("    5, 6, 7 = error bars for each column 2, 3, 4");
-                Product.operaFITSAddComment("------------------------------------------------------------------------");
-                Product.operaFITSAddComment(spectralOrderType);
-                Product.operaFITSAddComment("OPERA Processing Parameters");
-                Product.operaFITSAddComment("---------------------------");
-                /*
-                 * Add in the reduction parameters
-                 */
-                if (!parametersfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding parameters " << endl;
-                    }
-                    ifstream parameters(parametersfilename.c_str());
-                    string dataline;
-                    while (parameters.good()) {
-                        getline(parameters, dataline);
-                        if (strlen(dataline.c_str())) {
-                            Product.operaFITSAddComment(dataline);
-                        }
-                    }
-                }
-                if (!snrfilename.empty()) {
-                    if (verbose) {
-                        cout << "operaCreateProduct: adding SNR comments" << endl;
-                    }
-                    operaSpectralOrderVector spectralOrders(snrfilename);
-                    minorder = spectralOrders.getMinorder();
-                    maxorder = spectralOrders.getMaxorder();
-                    Product.operaFITSAddComment("SNR Table");
-                    Product.operaFITSAddComment("---------");
-                    Product.operaFITSAddComment("Format: <order number><Center SNR><wavelength><SNR>");
-                    for (unsigned order=minorder; order<=maxorder; order++) {
-                        operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-                        if (spectralOrder->gethasSpectralElements()) {
-                            operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-							string out = itos(spectralOrder->getorder()) + ' ' + ftos(spectralOrder->getCenterSNR()) + ' ' + ftos(spectralelements->getwavelength(spectralelements->getnSpectralElements()/2)) + ' ' + ftos(spectralelements->getFluxSNR(spectralelements->getnSpectralElements()/2));
-							Product.operaFITSAddComment(out.c_str());
-                        }
-                    }
-                }
-                if (verbose) {
-                    cout << "operaCreateProduct: done polarimetry " << endl;
-                }
-                Product.operaFITSImageSave();
-                Product.operaFITSImageClose();
-            }
-			exit(0);
-        }
+		
         /***********************************************************************************************
          * PART III - Do the CSV
          ***********************************************************************************************/
-		if (!csvfilename.empty() && !esfilename.empty()) {
+		else if (!csvfilename.empty() && !esfilename.empty()) {
 			if (verbose) {
 				cout << "operaCreateProduct: mode=" << instrumentmode << endl;
 				cout << "operaCreateProduct: object='" << object << "'"<< endl;
@@ -1676,12 +819,11 @@ int main(int argc, char *argv[])
 			spectralOrders.setInstrumentmode(instrumentmode);
 			spectralOrders.setObject(object);
 			spectralOrders.WriteSpectralOrders(csvfilename, CSV);
-			exit(0);
 		}
 		/***********************************************************************************************
          * PART IV - Do the calibration MEF
          ***********************************************************************************************/
-        if (extensions) {
+        else if (extensions) {
 			unsigned extension = 0;
 			compression = cNone;	// cfitsio creates bintables for compressed MEFS, so we can't compress
 			operaMEFFITSProduct *product = NULL;
@@ -2664,4 +1806,3 @@ int main(int argc, char *argv[])
     
     return EXIT_SUCCESS;
 }
-

@@ -59,17 +59,16 @@ bin_PROGRAMS = operaConfigurationAccess$(EXEEXT) \
 	operaExtractRawSum$(EXEEXT) operaimarith$(EXEEXT) \
 	operaQueryImageInfo$(EXEEXT) operasetheader$(EXEEXT) \
 	operacompress$(EXEEXT) operabiasinjector$(EXEEXT) \
-	operaPlotInstrumentProfile$(EXEEXT) wircolorcomposite$(EXEEXT) \
-	operaStatistics$(EXEEXT) espqlh$(EXEEXT) catz$(EXEEXT) \
-	operaFITSDisplayImage$(EXEEXT) operaimagestats$(EXEEXT) \
-	operaExtractProducts$(EXEEXT) operads9thumbs$(EXEEXT) \
-	operaRotate$(EXEEXT) operaApplyTransform$(EXEEXT) \
-	operaEspadonsETC$(EXEEXT) operaExtractImage$(EXEEXT) \
-	operaPlotOut$(EXEEXT) wirCreateDefaultSky$(EXEEXT) \
-	wirdarkanalysis$(EXEEXT) $(am__EXEEXT_1)
+	operaPlotInstrumentProfile$(EXEEXT) operaStatistics$(EXEEXT) \
+	espqlh$(EXEEXT) catz$(EXEEXT) operaFITSDisplayImage$(EXEEXT) \
+	operaimagestats$(EXEEXT) operaExtractProducts$(EXEEXT) \
+	operads9thumbs$(EXEEXT) operaRotate$(EXEEXT) \
+	operaApplyTransform$(EXEEXT) operaEspadonsETC$(EXEEXT) \
+	operaExtractImage$(EXEEXT) operaPlotOut$(EXEEXT) \
+	$(am__EXEEXT_1)
 @LIBPNG_TRUE@am__append_1 = $(FT_ARG) 
 @LIBPNG_TRUE@am__append_2 = $(FT_ARG) 
-@LIBPNG_TRUE@am__append_3 = operaFITStoPNG operaPlotGeom operaPlotWave operaPlot wirpreview
+@LIBPNG_TRUE@am__append_3 = operaFITStoPNG operaPlotGeom operaPlotWave operaPlot
 @LIBPNG_TRUE@am__append_4 = -loperaPNG -lpng -lz -lfreetype
 @LIBPNG_TRUE@am__append_5 = -loperaPNG -lpng -lz -lfreetype
 
@@ -81,7 +80,10 @@ bin_PROGRAMS = operaConfigurationAccess$(EXEEXT) \
 subdir = src/tools
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -89,7 +91,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @LIBPNG_TRUE@am__EXEEXT_1 = operaFITStoPNG$(EXEEXT) \
 @LIBPNG_TRUE@	operaPlotGeom$(EXEEXT) operaPlotWave$(EXEEXT) \
-@LIBPNG_TRUE@	operaPlot$(EXEEXT) wirpreview$(EXEEXT)
+@LIBPNG_TRUE@	operaPlot$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_catz_OBJECTS = catz.$(OBJEXT)
@@ -196,19 +198,6 @@ operasaturated_LDADD = $(LDADD)
 am_operasetheader_OBJECTS = operasetheader.$(OBJEXT)
 operasetheader_OBJECTS = $(am_operasetheader_OBJECTS)
 operasetheader_LDADD = $(LDADD)
-am_wirCreateDefaultSky_OBJECTS = wirCreateDefaultSky.$(OBJEXT)
-wirCreateDefaultSky_OBJECTS = $(am_wirCreateDefaultSky_OBJECTS)
-wirCreateDefaultSky_LDADD = $(LDADD)
-am_wircolorcomposite_OBJECTS = wircolorcomposite.$(OBJEXT)
-wircolorcomposite_OBJECTS = $(am_wircolorcomposite_OBJECTS)
-wircolorcomposite_LDADD = $(LDADD)
-am_wirdarkanalysis_OBJECTS = wirdarkanalysis.$(OBJEXT)
-wirdarkanalysis_OBJECTS = $(am_wirdarkanalysis_OBJECTS)
-wirdarkanalysis_LDADD = $(LDADD)
-am__wirpreview_SOURCES_DIST = wirpreview.cpp
-@LIBPNG_TRUE@am_wirpreview_OBJECTS = wirpreview.$(OBJEXT)
-wirpreview_OBJECTS = $(am_wirpreview_OBJECTS)
-wirpreview_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -247,9 +236,7 @@ SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operabiasinjector_SOURCES) $(operacompress_SOURCES) \
 	$(operads9thumbs_SOURCES) $(operagetheader_SOURCES) \
 	$(operaimagestats_SOURCES) $(operaimarith_SOURCES) \
-	$(operasaturated_SOURCES) $(operasetheader_SOURCES) \
-	$(wirCreateDefaultSky_SOURCES) $(wircolorcomposite_SOURCES) \
-	$(wirdarkanalysis_SOURCES) $(wirpreview_SOURCES)
+	$(operasaturated_SOURCES) $(operasetheader_SOURCES)
 DIST_SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operaApplyTransform_SOURCES) \
 	$(operaConfigurationAccess_SOURCES) \
@@ -268,9 +255,7 @@ DIST_SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operacompress_SOURCES) $(operads9thumbs_SOURCES) \
 	$(operagetheader_SOURCES) $(operaimagestats_SOURCES) \
 	$(operaimarith_SOURCES) $(operasaturated_SOURCES) \
-	$(operasetheader_SOURCES) $(wirCreateDefaultSky_SOURCES) \
-	$(wircolorcomposite_SOURCES) $(wirdarkanalysis_SOURCES) \
-	$(am__wirpreview_SOURCES_DIST)
+	$(operasetheader_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -328,19 +313,18 @@ LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaFluxVector -lGaussian -loperaInstrumentProfile \
 	-loperaGeometry -loperaWavelength -loperaEspadonsSubImage \
 	-loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage \
-	-loperaEspadonsImage -loperaWIRCamImage \
-	-loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage \
-	-loperaFITSCube -loperaPolarimetry -loperaException \
-	-lGainBiasNoise -loperaFFT -loperaMuellerMatrix \
-	-loperaStokesVector -loperaFluxVector -loperaImageVector \
-	-loperaFITSSubImage -loperaImageVector -loperaGeometricShapes \
-	-loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath \
-	-loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage \
-	-loperaLMFit -loperaConfigurationAccess -loperaParameterAccess \
-	-lPixelSet -loperaSpectralEnergyDistribution \
-	-loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 \
-	-lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm \
-	$(am__append_5) $(am__append_7)
+	-loperaEspadonsImage -loperaMultiExtensionFITSCube \
+	-loperaMultiExtensionFITSImage -loperaFITSCube \
+	-loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT \
+	-loperaMuellerMatrix -loperaStokesVector -loperaFluxVector \
+	-loperaImageVector -loperaFITSSubImage -loperaImageVector \
+	-loperaGeometricShapes -loperaMatrix -lPolynomial \
+	-lLaurentPolynomial -loperaMath -loperaJD -loperaHelio \
+	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-loperaConfigurationAccess -loperaParameterAccess -lPixelSet \
+	-loperaSpectralEnergyDistribution -loperaSpectrumSimulation \
+	-loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c \
+	-lz -lpthread -lm $(am__append_5) $(am__append_7)
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -426,12 +410,11 @@ top_srcdir = @top_srcdir@
 AM_CFLAGS = --pedantic -Wall -std=c99 -g -O1 \
 	-L$(PREFIX)/src/libraries/ -L../../lib -L/usr/lib/ \
 	-L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/ \
-	-I../../include/ -I/usr/local/include/ -DSTATIC=static \
-	$(am__append_2)
+	-I../../include/ -I/usr/local/include/ $(am__append_2)
 AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ \
 	-L../../lib -I../../include/ -I/usr/include/ \
 	-I/usr/local/include/ -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ \
-	-L/usr/local/lib/ -DSTATIC=static $(am__append_1)
+	-L/usr/local/lib/ $(am__append_1)
 AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 	-loperaObservingConditions -loperaObjectInTheSky \
 	-loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation \
@@ -445,15 +428,14 @@ AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 	-loperaConfigurationAccess -loperaParameterAccess \
 	-loperaFITSSubImage -loperaEspadonsSubImage -loperaPolarimetry \
 	-loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage \
-	-loperaEspadonsImage -loperaWIRCamImage \
-	-loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage \
-	-loperaFITSCube -loperaException -lGainBiasNoise \
-	-loperaMuellerMatrix -loperaStokesVector -loperaFFT \
-	-loperaImageVector -loperaGeometricShapes -loperaMatrix \
-	-lPixelSet -loperaSpectralEnergyDistribution \
-	-loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 \
-	-lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm \
-	$(am__append_4) $(am__append_6)
+	-loperaEspadonsImage -loperaMultiExtensionFITSCube \
+	-loperaMultiExtensionFITSImage -loperaFITSCube \
+	-loperaException -lGainBiasNoise -loperaMuellerMatrix \
+	-loperaStokesVector -loperaFFT -loperaImageVector \
+	-loperaGeometricShapes -loperaMatrix -lPixelSet \
+	-loperaSpectralEnergyDistribution -loperaSpectrumSimulation \
+	-loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c \
+	-lz -lpthread -lm $(am__append_4) $(am__append_6)
 #
 # if we want png plotting support, bring in the png libs and freetype
 #				
@@ -462,9 +444,6 @@ AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 @LIBPNG_TRUE@operaPlotGeom_SOURCES = operaPlotGeom.cpp operaPlotGeom.h
 @LIBPNG_TRUE@operaPlotWave_SOURCES = operaPlotWave.cpp operaPlotWave.h
 @LIBPNG_TRUE@operaPlot_SOURCES = operaPlot.cpp operaPlot.h
-@LIBPNG_TRUE@wirpreview_SOURCES = wirpreview.cpp
-wirdarkanalysis_SOURCES = wirdarkanalysis.cpp
-wirCreateDefaultSky_SOURCES = wirCreateDefaultSky.cpp
 operaPlotOut_SOURCES = operaPlotOut.cpp
 operaExtractImage_SOURCES = operaExtractImage.cpp
 operaEspadonsETC_SOURCES = operaEspadonsETC.cpp operaEspadonsETC.h
@@ -477,7 +456,6 @@ operaFITSDisplayImage_SOURCES = operaFITSDisplayImage.cpp
 espqlh_SOURCES = espqlh.cpp
 catz_SOURCES = catz.cpp
 operaStatistics_SOURCES = operaStatistics.cpp
-wircolorcomposite_SOURCES = wircolorcomposite.cpp
 operaPlotInstrumentProfile_SOURCES = operaPlotInstrumentProfile.cpp
 operabiasinjector_SOURCES = operabiasinjector.cpp
 operaExtractRawSum_SOURCES = operaExtractRawSum.cpp operaExtractRawSum.h
@@ -670,18 +648,6 @@ operasaturated$(EXEEXT): $(operasaturated_OBJECTS) $(operasaturated_DEPENDENCIES
 operasetheader$(EXEEXT): $(operasetheader_OBJECTS) $(operasetheader_DEPENDENCIES) $(EXTRA_operasetheader_DEPENDENCIES) 
 	@rm -f operasetheader$(EXEEXT)
 	$(CXXLINK) $(operasetheader_OBJECTS) $(operasetheader_LDADD) $(LIBS)
-wirCreateDefaultSky$(EXEEXT): $(wirCreateDefaultSky_OBJECTS) $(wirCreateDefaultSky_DEPENDENCIES) $(EXTRA_wirCreateDefaultSky_DEPENDENCIES) 
-	@rm -f wirCreateDefaultSky$(EXEEXT)
-	$(CXXLINK) $(wirCreateDefaultSky_OBJECTS) $(wirCreateDefaultSky_LDADD) $(LIBS)
-wircolorcomposite$(EXEEXT): $(wircolorcomposite_OBJECTS) $(wircolorcomposite_DEPENDENCIES) $(EXTRA_wircolorcomposite_DEPENDENCIES) 
-	@rm -f wircolorcomposite$(EXEEXT)
-	$(CXXLINK) $(wircolorcomposite_OBJECTS) $(wircolorcomposite_LDADD) $(LIBS)
-wirdarkanalysis$(EXEEXT): $(wirdarkanalysis_OBJECTS) $(wirdarkanalysis_DEPENDENCIES) $(EXTRA_wirdarkanalysis_DEPENDENCIES) 
-	@rm -f wirdarkanalysis$(EXEEXT)
-	$(CXXLINK) $(wirdarkanalysis_OBJECTS) $(wirdarkanalysis_LDADD) $(LIBS)
-wirpreview$(EXEEXT): $(wirpreview_OBJECTS) $(wirpreview_DEPENDENCIES) $(EXTRA_wirpreview_DEPENDENCIES) 
-	@rm -f wirpreview$(EXEEXT)
-	$(CXXLINK) $(wirpreview_OBJECTS) $(wirpreview_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -721,10 +687,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaimarith.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operasaturated.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operasetheader.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wirCreateDefaultSky.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wircolorcomposite.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wirdarkanalysis.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wirpreview.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

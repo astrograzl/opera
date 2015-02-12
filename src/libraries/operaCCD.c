@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -510,7 +510,7 @@ int operaCCDDetectMissingOrdersNew(unsigned np,float *fx,float *fy,unsigned npip
             } else {
                 xord[ordNumberinRow] = xPred[o];
                 xerrord[ordNumberinRow] = xerror;
-                yord[ordNumberinRow] = noise;
+                yord[ordNumberinRow] = noise/gain;
             }
             
             AbsOrdNumber[ordNumberinRow] = orderMap[o];
@@ -555,7 +555,7 @@ int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,fl
 			nloword++;
 		} else {
 			xloword[nloword] = xmmin;
-			yloword[nloword] = noise;
+			yloword[nloword] = noise/gain;
 			xerrloword[nloword] = slit/4;
 			nloword++;
 		}
@@ -601,7 +601,7 @@ int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,fl
 						nhiord++;
 					} else {
 						xhiord[nhiord] = xmiss;
-						yhiord[nhiord] = noise;
+						yhiord[nhiord] = noise/gain;
 						xerrhiord[nhiord] = slit/4;
 						nhiord++;
 					}
@@ -619,7 +619,7 @@ int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,fl
 				nhiord++;
 			} else {
 				xhiord[nhiord] = xmiss;
-				yhiord[nhiord] = noise;
+				yhiord[nhiord] = noise/gain;
 				xerrhiord[nhiord] = slit/4;
 				nhiord++;
 			}
@@ -820,7 +820,7 @@ int operaCCDRecenterOrderWithIP(unsigned np, float *x,float *y,unsigned nip, flo
 	
 	depth = my - (y[ix+slit/2] + y[ix-slit/2])/2;
 	
-	if(depth > noise) {
+	if(depth > noise/gain) {
 		detectprob = 1;
 	} else {
 		detectprob = 0;
@@ -938,7 +938,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingIP(unsigned np, float *x,float *y,uns
 		
 		depth = my[i] - ((my[i+slit/2] + my[i-slit/2])/2);
 		
-		if(depth > noise) {
+		if(depth > noise/gain) {
 			detectprob = 1;
 		} else {
 			detectprob = 0;
@@ -952,7 +952,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingIP(unsigned np, float *x,float *y,uns
 			ymean[nords] = my[i];
 			nords++;
 		}
-		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
+		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise/gain, npts, slit);
 	}	
 	free(my);
 	free(mx);
@@ -1054,7 +1054,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingGaussian(unsigned np, float *x,float 
 		
 		depth = my[i] - ((my[i+slit/2] + my[i-slit/2])/2);
 		
-		if(depth > noise) {
+		if(depth > noise/gain) {
 			detectprob = 1;
 		} else {
 			detectprob = 0;
@@ -1068,7 +1068,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingGaussian(unsigned np, float *x,float 
 			ymean[nords] = my[i];
 			nords++;
 		}
-		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
+		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise/gain, npts, slit);
 	}	
 	free(my);
 	free(mx);
@@ -1169,7 +1169,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingGaussianDouble(unsigned np, double *x
 		
 		depth = my[i] - ((my[i+slit/2] + my[i-slit/2])/2);
 		
-		if(depth > noise) {
+		if(depth > noise/gain) {
 			detectprob = 1;
 		} else {
 			detectprob = 0;
@@ -1183,7 +1183,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingGaussianDouble(unsigned np, double *x
 			ymean[nords] = my[i];
 			nords++;
 		}
-		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
+		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise/gain, npts, slit);
 	}	
 	free(my);
 	free(mx);
@@ -1283,7 +1283,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingTopHat(unsigned np, float *x,float *y
 		
 		depth = my[i] - ((my[i+slit/2] + my[i-slit/2])/2);
 		
-		if(depth > noise) {
+		if(depth > noise/gain) {
 			detectprob = 1;
 		} else {
 			detectprob = 0;
@@ -1297,7 +1297,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingTopHat(unsigned np, float *x,float *y
 			ymean[nords] = my[i];
 			nords++;
 		}
-		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
+		//		printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise/gain, npts, slit);
 	}	
 	free(my);
 	free(mx);
@@ -1306,7 +1306,7 @@ unsigned operaCCDDetectPeaksWithErrorsUsingTopHat(unsigned np, float *x,float *y
 }
 
 /*** Algorithm to detect orders using an IP function ***/
-unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float threshold,float *xmean, float *ymean)
+unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float gain, float threshold,float *xmean, float *ymean)
 {
 	/* the algorithm below detects the orders, their photocenter and mean values */
 	unsigned i,j,nords=0;
@@ -1345,7 +1345,7 @@ unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, 
 			mx[i] += x[i-slit/2+j]*y[i-slit/2+j]/intflux; 
 		}		
 		
-		//printf("%d\t%f\t%f\t%f\t%f\n",i,x[i],y[i],mx[i],my[i]);
+//		printf("%d\t%f\t%f\t%f\t%f\n",i,x[i],y[i],mx[i],my[i]);
 	}
 	
 	unsigned npts=0, isitmax=1;
@@ -1389,8 +1389,8 @@ unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, 
 		}	
 		
 		depth = my[i] - ((my[i+slit/2] + my[i-slit/2])/2);
-		
-		if(depth > noise) {
+
+		if(depth > noise/gain) {
 			detectprob = 1;
 		} else {
 			detectprob = 0;
@@ -1403,16 +1403,15 @@ unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, 
 			ymean[nords] = my[i];
 			nords++;
 		}
-        //printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,x[i],y[i],mx[i],my[i],peakprob, depth, noise, npts, slit);
+        //printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,x[i],y[i],mx[i],my[i],peakprob, depth, noise/gain, npts, slit);
 	}
-	
 	free(my);
 	free(mx);
 	return nords;
 }
 
 /*** Algorithm to detect orders using an IP function ***/
-unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float threshold,float *xmean, float *ymean)
+unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float gain, float threshold,float *xmean, float *ymean)
 {
 	/* the algorithm below detects the orders, their photocenter and mean values */
 	unsigned i,j,nords=0;
@@ -1486,7 +1485,7 @@ unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigne
             }
         }
         
-        if(jmax==i && xcorr[i]>threshold && stdev[i] > noise) {
+        if(jmax==i && xcorr[i]>threshold && stdev[i] > noise/gain) {
             if(nords > MAXORDERS) { // run out of memory
 				return nords;  
             }
@@ -1503,7 +1502,7 @@ unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigne
 }
 
 /*** Algorithm to detect orders using a Gaussian function ***/
-unsigned operaCCDDetectPeaksWithGaussian(unsigned np, float *x,float *y,float sigma, float noise, float threshold,float *xmean, float *ymean)
+unsigned operaCCDDetectPeaksWithGaussian(unsigned np, float *x,float *y,float sigma, float noise, float gain, float threshold,float *xmean, float *ymean)
 {
 	/* the algorithm below detects the orders, their photocenter and mean values */
 	unsigned i,j,nords=0;
@@ -1577,7 +1576,7 @@ unsigned operaCCDDetectPeaksWithGaussian(unsigned np, float *x,float *y,float si
 		
 		depth = my[i] - ((my[i+slit/2] + my[i-slit/2])/2);
 		
-		if(depth > noise) {
+		if(depth > noise/gain) {
 			detectprob = 1;
 		} else {
 			detectprob = 0;
@@ -1590,7 +1589,7 @@ unsigned operaCCDDetectPeaksWithGaussian(unsigned np, float *x,float *y,float si
 			ymean[nords] = my[i];
 			nords++;
 		}
-		//	printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
+		//	printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise/gain, npts, slit);
 	}	
 	free(my);
 	free(mx);
@@ -1598,7 +1597,7 @@ unsigned operaCCDDetectPeaksWithGaussian(unsigned np, float *x,float *y,float si
 }
 
 /*** Algorithm to detect orders using a flat top hat function ***/
-unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned width, float noise, float threshold,float *xmean, float *ymean)
+unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned width, float noise, float gain, float threshold,float *xmean, float *ymean)
 {
 	/* the algorithm below detects the orders, their photocenter and mean values */
 	unsigned i,j,nords=0;
@@ -1671,7 +1670,7 @@ unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned w
 		
 		depth = my[i] - ((my[i+slit/2] + my[i-slit/2])/2);
 		
-		if(depth > noise) {
+		if(depth > noise/gain) {
 			detectprob = 1;
 		} else {
 			detectprob = 0;
@@ -1684,7 +1683,7 @@ unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned w
 			ymean[nords] = my[i];
 			nords++;
 		}
-		//	printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise, npts, slit);
+		//	printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%u\t%u\n",i,mx[i],my[i],peakprob, depth, noise/gain, npts, slit);
 	}	
 	free(my);
 	free(mx);

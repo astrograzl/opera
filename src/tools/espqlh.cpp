@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -109,7 +109,6 @@ int main(int argc, char *argv[])
 	bool isPolar = false;
 	float polarAccumulatedSNR = 0.0;
 	//const float apertureheight = 0.8;
-	bool LECompatible = false;
 	float ccdbin = 1.0;	
 	// SNR (e-/ccd pixel) = SNR (e-/spec elem) x [ 1.0 / sqrt(Np . As) ],  where
 	// Np = extractionAperture->getSubpixels()->getNPixels()
@@ -131,7 +130,6 @@ int main(int argc, char *argv[])
 		{"wait",			1, NULL, 'w'},	// how long to sleep between images		
 		{"updatelogbook",	0, NULL, 'l'},	// update the CFHT logbook with peak SNR		
 		{"upperlowerbounds",1, NULL, 'b'},	// upper lower bounds for smoothing		
-		{"lecompatible",	0, NULL, 'e'},	// LE Compatible SNR		
 		{"ccdbin",			0, NULL, 'i'},	// ccd bin stats		
 		
 		{"plot",			0, NULL, 'p'},
@@ -141,7 +139,7 @@ int main(int argc, char *argv[])
 		{"help",			0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while ((opt = getopt_long(argc, argv, "c:u:ro:s:y:n:m:w:lbi:ez:pvdth", longopts, NULL))  != -1) {
+	while ((opt = getopt_long(argc, argv, "c:u:ro:s:y:n:m:w:lbi:z:pvdth", longopts, NULL))  != -1) {
 		switch (opt) {
 			case 'c':
 			case 'y':
@@ -178,9 +176,6 @@ int main(int argc, char *argv[])
 				break;						
 			case 'b':
 				upperlowerbounds = atoi(optarg);
-				break;						
-			case 'e':
-				LECompatible = true;
 				break;						
 			case 'i':
 				ccdbin = sqrt(2.6/1.8);
@@ -324,24 +319,13 @@ int main(int argc, char *argv[])
 												operaSpectralOrder *spectralOrder = spectralOrderVector.GetSpectralOrder(order);
 												operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
 												if (spectralElements->getHasFluxSNR()) {
-													if ( LECompatible ) {
-														float LESNR = spectralOrder->getLECompatibleSNR();
-														if (peak < LESNR) {
-															peak = LESNR;
-															orderofmax = order;
-														}
-														if (verbose) {
-															cout << (director?logonly:"") << "Order " << orderofmax << " : LE Peak SNR for  " << basefilename << " order " << order << " : " << LESNR << " / " << ftos(LESNR*ccdbin) << endl;
-														}
-													} else {
-														float smoothed = spectralOrder->getCentralSmoothedSNR(upperlowerbounds);
-														if (peak < smoothed) {
-															peak = smoothed;
-															orderofmax = order;
-														}
-														if (verbose) {
-															cout << (director?logonly:"") << "Order " << orderofmax << " : Peak SNR for  " << basefilename << " order " << order << " : " << smoothed << " / " << ftos(smoothed*ccdbin) << endl;
-														}
+													float smoothed = spectralOrder->getCentralSmoothedSNR(upperlowerbounds);
+													if (peak < smoothed) {
+														peak = smoothed;
+														orderofmax = order;
+													}
+													if (verbose) {
+														cout << (director?logonly:"") << "Order " << orderofmax << " : Peak SNR for  " << basefilename << " order " << order << " : " << smoothed << " / " << ftos(smoothed*ccdbin) << endl;
 													}
 												}
 											}

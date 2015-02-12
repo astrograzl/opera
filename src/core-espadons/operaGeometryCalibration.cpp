@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -84,8 +84,6 @@ using namespace std;
  * \note --aperture=...
  * \note --detectionMethod=...
  * \note --FFTfilter=...
- * \note --referenceOrderNumber=...
- * \note --referenceOrderSeparation=...
  * \note --referenceOrderSamplePosition=...
  * \note --minordertouse=...
  * \note --orderOfTracingPolynomial=...
@@ -128,6 +126,7 @@ int main(int argc, char *argv[])
 	bool invertOrders = true;
 	bool FFTfilter = false;
 	bool witherrors = false;
+    bool graces = false;
 	int aperture = 20;
 	int detectionMethod = 1; // 1. Gaussian, 2. IP, 3. Top-hat
 	unsigned binsize = 1;
@@ -158,6 +157,7 @@ int main(int argc, char *argv[])
 		{"totalNumberOfSlices",1, NULL, 'C'},
         {"detectionMethod",1, NULL, 'M'},
 		{"FFTfilter",1, NULL, 'R'},
+		{"graces",1, NULL, 'G'},
 		{"colDispersion",1, NULL, 'D'},
 		{"aperture",1, NULL, 'A'},
 		{"invertOrders",1, NULL, 'V'},
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 		{"help",		no_argument, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "o:b:f:m:g:c:s:Y:i:X:N:y:C:M:R:D:A:V:B:E:a:P:F:S:I::p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "o:b:f:m:g:c:s:Y:i:X:N:y:C:M:R:G:D:A:V:B:E:a:P:F:S:I::p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		
@@ -228,6 +228,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'R':
 				FFTfilter = (atoi(optarg)?true:false);
+				break;
+			case 'G':
+				graces = (atoi(optarg)?true:false);
 				break;
 			case 'D':
 				colDispersion = (atoi(optarg)?up:down);
@@ -314,6 +317,7 @@ int main(int argc, char *argv[])
 			cout << "operaGeometryCalibration: totalNumberOfSlices = " << totalNumberOfSlices << endl;
 			cout << "operaGeometryCalibration: detectionMethod = " << detectionMethod << endl;
 			cout << "operaGeometryCalibration: FFTfilter = " << FFTfilter << endl;
+			cout << "operaGeometryCalibration: graces = " << graces << endl;
 			cout << "operaGeometryCalibration: colDispersion = " << colDispersion << endl;
 			cout << "operaGeometryCalibration: aperture = " << aperture << endl;
 			cout << "operaGeometryCalibration: invertOrders = " << invertOrders << endl;
@@ -379,7 +383,7 @@ int main(int argc, char *argv[])
 		
         double slit = aperture;
         unsigned uslit = (unsigned)slit;
-        double sigma = slit/4;
+        double sigma = slit/2;
         
         double threshold = DETECTTHRESHOLD;
         
@@ -442,11 +446,12 @@ int main(int argc, char *argv[])
         
 		unsigned NumberOfySamples;
 		unsigned NumberofPointsToBinInYDirection = binsize;
-		
+        unsigned NumberofPointsToBinInYForReference = 2*NumberofPointsToBinInYDirection;
+
         float *fx = new float[nx];
         float *fy = new float[ny];
         float *fytmp = new float[ny];
-		float *fysample = new float[NumberofPointsToBinInYDirection];         
+		float *fysample = new float[NumberofPointsToBinInYForReference];
         float xmean[MAXORDERS],xmeanerr[MAXORDERS],ymean[MAXORDERS];  		
 		float ysample = 0.0;
 
@@ -457,7 +462,6 @@ int main(int argc, char *argv[])
          */
         
         // for reference we use twice more points to obain higher SNR
-        unsigned NumberofPointsToBinInYForReference = 2*NumberofPointsToBinInYDirection;
         unsigned firstY = y1;
         unsigned lastY = ny;
         if(referenceOrderSamplePosition >= NumberofPointsToBinInYForReference/2) {
@@ -494,15 +498,17 @@ int main(int argc, char *argv[])
         unsigned nords = 0;
         
         if(detectionMethod == 1) {
-            nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,threshold,xmean,ymean);
+            nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean);
         } else if (detectionMethod == 2) {
-            nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),threshold,xmean,ymean);
+            if (graces) {
+                nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),(float)gain,threshold,xmean,ymean);
+            } else {
             // The function below does not work on GRACES data. The one above should be better but
             // it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
-            
-            //nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
+                nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean);
+            }
         } else if (detectionMethod == 3) {
-            nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,threshold,xmean,ymean);
+            nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean);
         }
         
         // Call function to find missing orders based on polynomial fit to spacing between orders
@@ -564,7 +570,8 @@ int main(int argc, char *argv[])
          */
         
 		for(unsigned k=0;k<NumberOfySamples;k++){
-
+//		for(unsigned k=NumberOfySamples/2;k<NumberOfySamples/2+1;k++){
+            
 			unsigned firstY = y1 + NumberofPointsToBinInYDirection*(k);
 			unsigned lastY =  y1 + NumberofPointsToBinInYDirection*(k+1);
 			
@@ -609,24 +616,27 @@ int main(int argc, char *argv[])
 				if (witherrors) {
 					nords = operaCCDDetectPeaksWithErrorsUsingGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean,xmeanerr);
 				} else {
-					nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,threshold,xmean,ymean);
+					nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean);
 				}
 			} else if (detectionMethod == 2) {	
 				if (witherrors) {
 					nords = operaCCDDetectPeaksWithErrorsUsingIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean,xmeanerr);
 				} else {
-                    nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),threshold,xmean,ymean);
-                    /*
+                    if(graces) {
+                        nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),(float)gain,threshold,xmean,ymean);
+                    } else {
+                        /*
                      * The function below does not work on GRACES data. The one above should be better but
                      * it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
                      */
-                    //					nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,threshold/2,xmean,ymean);
+                        nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean);
+                    }
 				}
 			} else if (detectionMethod == 3) {
 				if (witherrors) {
 					nords = operaCCDDetectPeaksWithErrorsUsingTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean,xmeanerr);
 				} else {
-					nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,threshold,xmean,ymean);
+					nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean);
 				}
 			}
 			
@@ -769,8 +779,6 @@ static void printUsageSyntax(char * modulename) {
     " --inputGainFile=<GAIN_FILE>"
 	" --inputOrderSpacing=<ORDP_FILE>"
     " --subformat=<\"UNS_VALUE UNS_VALUE UNS_VALUE UNS_VALUE\">"
-    " --referenceOrderNumber=<UNS_VALUE>"
-    " --referenceOrderSeparation=<FLT_VALUE>"
     " --referenceOrderSamplePosition=<UNS_VALUE>"
     " --minordertouse=<UNS_VALUE>"
     " --maxorders=<UNS_VALUE>"
@@ -789,7 +797,7 @@ static void printUsageSyntax(char * modulename) {
 	" --datafilename=<DATA_FILE>"
 	" --scriptfilename=<GNUPLOT_FILE>"
 	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --masterbias=/Users/edermartioli//opera//calibrations/PolarData/masterbias_OLAPAa_pol_Normal.fits.fz --masterflat=/Users/edermartioli//opera//calibrations/PolarData/masterflat_OLAPAa_pol_Normal.fits.fz --badpixelmask=/Users/edermartioli/opera-1.0//config/badpix_olapa-a.fits.fz --inputGainFile=/Users/edermartioli//opera//calibrations/PolarData/OLAPAa_pol_Normal.gain.gz --inputOrderSpacing=/Users/edermartioli//opera//calibrations/PolarData/OLAPAa_pol_Normal.ordp.gz --subformat=\"8 2040 3 4600\" --aperture=26 --detectionMethod=2 --FFTfilter=0 --referenceOrderNumber=55 --referenceOrderSeparation=67.0 --referenceOrderSamplePosition=2300 --nsamples=3 --maxorders=44 --minordertouse=17  --orderOfTracingPolynomial=4 --binsize=20 --colDispersion=1 --invertOrders=1  --outputGeomFile=OLAPAa_pol_Normal.geom.gz --scriptfilename=geom.gnu --datafilename=geom.dat --plotfilename=geom.eps\n\n"
+	" Example: "+string(modulename)+" --masterbias=/Users/edermartioli//opera//calibrations/PolarData/masterbias_OLAPAa_pol_Normal.fits.fz --masterflat=/Users/edermartioli//opera//calibrations/PolarData/masterflat_OLAPAa_pol_Normal.fits.fz --badpixelmask=/Users/edermartioli/opera-1.0//config/badpix_olapa-a.fits.fz --inputGainFile=/Users/edermartioli//opera//calibrations/PolarData/OLAPAa_pol_Normal.gain.gz --inputOrderSpacing=/Users/edermartioli//opera//calibrations/PolarData/OLAPAa_pol_Normal.ordp.gz --subformat=\"8 2040 3 4600\" --aperture=26 --detectionMethod=2 --FFTfilter=0 --referenceOrderSamplePosition=2300 --nsamples=3 --maxorders=44 --minordertouse=17  --orderOfTracingPolynomial=4 --binsize=20 --colDispersion=1 --invertOrders=1  --outputGeomFile=OLAPAa_pol_Normal.geom.gz --scriptfilename=geom.gnu --datafilename=geom.dat --plotfilename=geom.eps\n\n"
 	"  -h, --help  display help message\n"
 	"  -v, --verbose,  Turn on message sending\n"
 	"  -d, --debug,  Turn on debug messages\n"
@@ -801,8 +809,6 @@ static void printUsageSyntax(char * modulename) {
 	"  -g, --inputGainFile=<GAIN_FILE>, Input noise/gain/bias file\n"
 	"  -c, --inputOrderSpacing=<ORDP_FILE>, Order spacing input file name\n"
     "  -s, --subformat=<\"UNS_VALUE UNS_VALUE UNS_VALUE UNS_VALUE\">, Image subformat to be inspected\n"    
-    "  -O, --referenceOrderNumber=<UNS_VALUE>, Number of reference order for order number identification\n"
-    "  -r, --referenceOrderSeparation=<FLT_VALUE>, Order separation in pixels for order number identification\n"
     "  -Y, --referenceOrderSamplePosition=<UNS_VALUE>, Detector position to pick samples. Position along the dispersion direction (rows for Espadons)\n"
     "  -i, --minordertouse=<UNS_VALUE>, Number of first useful order\n"
     "  -X, --maxorders=<UNS_VALUE>, Maximum number of orders to use\n"

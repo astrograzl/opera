@@ -180,7 +180,7 @@ public:
  * \note x is a double input value for which the given polynomial is evaluated
  * \return double value of evaluation of the polynomial
  */
-STATIC inline double EvaluatePolynomialQuick(const double x, Polynomial &poly) {
+static inline double EvaluatePolynomialQuick(const double x, Polynomial &poly) {
 	double *polynomialVector = poly.getVector();
 	double fpoly = polynomialVector[0];
 	for (unsigned i=1; i<poly.getOrderOfPolynomial(); i++) {

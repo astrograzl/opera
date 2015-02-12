@@ -104,7 +104,7 @@ void robust_mean(unsigned n, float *vector, float *sig, float *robmean, float *r
  * \param weigh is a const float pointer that ..,
  * \return float
  */
-STATIC inline void operaArrayIndexedMeanQuick(unsigned np, const float *array, const float *indexmask, unsigned nb, float *meanbin) {
+static inline void operaArrayIndexedMeanQuick(unsigned np, const float *array, const float *indexmask, unsigned nb, float *meanbin) {
 	
 	float *sumbin = (float *)malloc(sizeof(float)*nb);
 	
@@ -132,7 +132,7 @@ STATIC inline void operaArrayIndexedMeanQuick(unsigned np, const float *array, c
  * \param weigh is a const float pointer that ..,
  * \return float
  */
-STATIC inline void operaArrayIndexedSigmaQuick(unsigned np, const float *array, const float *indexmask, unsigned nb, float *sigbin) {
+static inline void operaArrayIndexedSigmaQuick(unsigned np, const float *array, const float *indexmask, unsigned nb, float *sigbin) {
 	
 	float *sumbin = (float *)malloc(sizeof(float)*nb);
 	float *meanbin = (float *)malloc(sizeof(float)*nb);	
@@ -184,7 +184,7 @@ STATIC inline void operaArrayIndexedSigmaQuick(unsigned np, const float *array, 
  * \param array is a const float pointer that ..,
  * \return float
  */
-STATIC inline float operaArrayMeanQuick(unsigned np, const float *array) {
+static inline float operaArrayMeanQuick(unsigned np, const float *array) {
 	float xmean = 0.0;
 	unsigned i=np;
 	while (i--) xmean += *array++;
@@ -202,7 +202,7 @@ STATIC inline float operaArrayMeanQuick(unsigned np, const float *array) {
  * \param weigh is a const float pointer that ..,
  * \return float
  */
-STATIC inline float operaArrayWeightedMeanQuick(unsigned np, const float *array, const float *weigh) {
+static inline float operaArrayWeightedMeanQuick(unsigned np, const float *array, const float *weigh) {
 	float xmean = 0.0;
 	float npf = 0.0;	
 	
@@ -223,7 +223,7 @@ STATIC inline float operaArrayWeightedMeanQuick(unsigned np, const float *array,
  * \param array is a const float pointer that ..,
  * \return float
  */
-STATIC inline float operaArraySigmaQuick(unsigned np, const float *array) {
+static inline float operaArraySigmaQuick(unsigned np, const float *array) {
 	
 	float xsig = 0.0;	
 	float xmean = 0.0;
@@ -250,7 +250,7 @@ STATIC inline float operaArraySigmaQuick(unsigned np, const float *array) {
  * \param weigh is a const float pointer that ..,
  * \return float
  */
-STATIC inline float operaArrayWeightedSigmaQuick(unsigned np, const float *array, const float *weigh) {
+static inline float operaArrayWeightedSigmaQuick(unsigned np, const float *array, const float *weigh) {
 	float xmean = 0.0;
 	float xsig = 0.0;
 	float npf = 0.0;	
@@ -282,7 +282,7 @@ STATIC inline float operaArrayWeightedSigmaQuick(unsigned np, const float *array
  * \param nsig is n unsigned that ..,
  * \return float
  */
-STATIC inline float operaArrayAvgSigmaClipQuick(unsigned np, const float *array, unsigned nsig) 
+static inline float operaArrayAvgSigmaClipQuick(unsigned np, const float *array, unsigned nsig) 
 {
 	float xsig = 0.0;	
 	float xmean = 0.0;
@@ -313,13 +313,13 @@ STATIC inline float operaArrayAvgSigmaClipQuick(unsigned np, const float *array,
 }
 
 	/*! 
-	 * STATIC inline float operaArrayMedianQuick(unsigned np, float *arr)
+	 * static inline float operaArrayMedianQuick(unsigned np, float *arr)
 	 * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
 	 * \param arr - the array to get median from
 	 * \param np - number of pixels
 	 * \return median
 	 */
-	STATIC inline float operaArrayMedianQuick(unsigned np, /*MODIFIED!!!*/float *arr) {
+	static inline float operaArrayMedianQuick(unsigned np, /*MODIFIED!!!*/float *arr) {
 		unsigned low = 0, high = np-1; 
 		unsigned median = (low + high) / 2; 
 		unsigned odd = (np & 1);
@@ -382,13 +382,13 @@ STATIC inline float operaArrayAvgSigmaClipQuick(unsigned np, const float *array,
 	}
 	
 	/*! 
-	 * STATIC inline float operaArrayMedianQuick(unsigned np, float *arr)
+	 * static inline float operaArrayMedianQuick(unsigned np, float *arr)
 	 * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
 	 * \param arr - the array to get median from
 	 * \param np - number of pixels
 	 * \return median
 	 */
-	STATIC inline float operaArrayMedianQuick_d(unsigned np, /*MODIFIED!!!*/double *arr) {
+	static inline float operaArrayMedianQuick_d(unsigned np, /*MODIFIED!!!*/double *arr) {
 		unsigned low = 0, high = np-1; 
 		unsigned median = (low + high) / 2; 
 		unsigned odd = (np & 1);
@@ -451,13 +451,13 @@ STATIC inline float operaArrayAvgSigmaClipQuick(unsigned np, const float *array,
 	}
 	
 	/*! 
- * STATIC inline unsigned short operaArrayMedianQuickUSHORT(unsigned np, float *arr)
+ * static inline unsigned short operaArrayMedianQuickUSHORT(unsigned np, float *arr)
  * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
  * \param arr - the array to get median from
  * \param np - number of pixels
  * \return unsigned short median
  */
-STATIC inline unsigned short operaArrayMedianQuickUSHORT(unsigned np, /*MODIFIED!!!*/unsigned short *arr) {
+static inline unsigned short operaArrayMedianQuickUSHORT(unsigned np, /*MODIFIED!!!*/unsigned short *arr) {
 	unsigned low = 0, high = np-1; 
 	unsigned median = (low + high) / 2; 
 	unsigned odd = (np & 1);
@@ -527,7 +527,7 @@ STATIC inline unsigned short operaArrayMedianQuickUSHORT(unsigned np, /*MODIFIED
 	 * \param median is a float input for the median of array
 	 * \return float median deviation of array
 	 */
-STATIC inline float operaArrayMedianSigmaQuick(unsigned np, float *array, float median) {
+static inline float operaArrayMedianSigmaQuick(unsigned np, float *array, float median) {
 		
 		/* Calculate the median deviation at each location in the array */
 		for (unsigned i = 0; i < np; i++) {

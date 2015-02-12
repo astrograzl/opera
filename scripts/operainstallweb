@@ -8,7 +8,7 @@
 # Affiliation: Canada France Hawaii Telescope 
 # Location: Hawaii USA
 # Date: Sep/2012
-# Contact: teeple@cfht.hawaii.edu
+# Contact: opera@cfht.hawaii.edu
 # 
 # Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
 # 
@@ -142,7 +142,7 @@ scp -P 22 $zipname douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/pr
 scp -P 22 $gzipname douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
 if [ "$1" != "--noemail" ]
 then
-	recipients="emartioli@lna.br,kanoa@cfht.hawaii.edu,manset@cfht.hawaii.edu,teeple@cfht.hawaii.edu,moutou@cfht.hawaii.edu,malo@cfht.hawaii.edu"
+	recipients="opera@cfht.hawaii.edu"
 	echo "############################################################################################"
 	echo "#    sending email to: $recipients"
 	echo "############################################################################################"

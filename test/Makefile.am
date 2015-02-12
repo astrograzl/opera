@@ -1,14 +1,15 @@
 # what flags you want to pass to the C compiler & linker
-AM_CFLAGS = --pedantic -Wall -std=c99 -g -O1 -L$(PREFIX)/src/libraries/  -L../lib -L/usr/lib/x86_64-linux-gnu/ -L/usr/lib/ -L/usr/local/lib/ -I../include/ -I. -I/usr/local/include/ -DSTATIC=static
-AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ -L../lib -L/usr/lib/x86_64-linux-gnu/ -L/usr/lib/ -L/usr/local/lib/ -I../include/ -I. -I/usr/include/ -I/usr/local/include/ -DSTATIC=static
-AM_LDFLAGS = -Wl,--no-as-needed
+AM_CFLAGS = --pedantic -Wall -std=c99 -g -O1 -L$(PREFIX)/src/libraries/  -L../lib -L/usr/lib/x86_64-linux-gnu/ -L/usr/lib/ -L/usr/local/lib/ -I../include/ -I. -I/usr/local/include/
+AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ -L../lib -L/usr/lib/x86_64-linux-gnu/ -L/usr/lib/ -L/usr/local/lib/ -I../include/ -I. -I/usr/include/ -I/usr/local/include/
+AM_LDFLAGS = -loperaImageVector -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaFITSImage -loperaFITSSubImage  -loperaImageVector -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector  -loperaFluxVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaMuellerMatrix -loperaFit -loperaLMFit -lPolynomial -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
+#AM_LDFLAGS = -Wl,--no-as-needed
 # This is for Linux...
-LIBS = -loperaImageVector -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaEspadonsImage -loperaWIRCamImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaFITSImage -loperaFITSSubImage  -loperaImageVector -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector  -loperaFluxVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaMuellerMatrix -loperaFit -loperaLMFit -lPolynomial -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
+LIBS = -loperaImageVector -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaFITSImage -loperaFITSSubImage  -loperaImageVector -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector  -loperaFluxVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaMuellerMatrix -loperaFit -loperaLMFit -lPolynomial -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
 # this lists the binaries to produce
 bin_PROGRAMS = operaAsmTest operaMatrixLibTest operaMathLibTest operaJDTest testmpfit operaFITSProductTest \
 	operaMPFitLibTest operaFitLibTest operaImageOperatorTest operaFITSSubImageTest operaConfigurationAccesstest \
 	operaFITSImageTest operaEspadonsImageTest operaStatsLibTest operaGeometricShapesTest operaExtractionApertureTest \
-	operaFluxVectorTest operaPolarimetryTest operaMEFFITSImageTest operaMEFCubeTest operaCubeTest operaWIRCamImageTest \
+	operaFluxVectorTest operaPolarimetryTest operaCubeTest \
 	operaPolarTest basicFITSImageTest gzstreamtest operaSextractorTest sitelletest SBIGtest FITSImageVectorTest \
 	operaAOBImageTest operaNICIImageTest operaNIFSImageTest operaCreateInstrumentEnvironmentSetup nancheck \
 	operastringstreamtest operaOESTest
@@ -49,13 +50,7 @@ basicFITSImageTest_SOURCES = basicFITSImageTest.cpp
 
 operaPolarTest_SOURCES = operaPolarTest.cpp
 
-operaWIRCamImageTest_SOURCES = operaWIRCamImageTest.cpp
-
-operaMEFCubeTest_SOURCES = operaMEFCubeTest.cpp
-
 operaCubeTest_SOURCES = operaCubeTest.cpp
-
-operaMEFFITSImageTest_SOURCES = operaMEFFITSImageTest.cpp
 
 operaPolarimetryTest_SOURCES = operaPolarimetryTest.cpp
 

@@ -2811,11 +2811,11 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 							for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
 								if (!isnan(spectralelements->getFlux(i)) && !isnan(beamElements1->getFlux(i)) && !isnan(beamElements0->getFluxVariance(i) && !isnan(beamElements1->getFluxVariance(i)))) {
 									fout << fixed << setprecision(4) << spectralelements->getwavelength(i) << ' ';
-									fout << scientific << beamElements0->getFlux(i) << ' '
-									<< spectralelements->getFlux(i) << ' '
+									fout << scientific << spectralelements->getFlux(i) << ' '
+									<< beamElements0->getFlux(i) << ' '
 									<< beamElements1->getFlux(i) << ' '
-									<< sqrt(beamElements0->getFluxVariance(i)) << ' '
 									<< sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i)) << ' '
+									<< sqrt(beamElements0->getFluxVariance(i)) << ' '
 									<< sqrt(beamElements1->getFluxVariance(i)) << endl;
 									count++;
 								}
@@ -2836,9 +2836,9 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
                         operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
 						if (spectralelements->getHasWavelength()) {
 							for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-								if (!isnan(spectralelements->getFlux(i)) && !isnan(spectralelements->getFluxVariance(i))) {
+								//if (!isnan(spectralelements->getFlux(i)) && !isnan(spectralelements->getFluxVariance(i))) {
 									rows++;
-								}
+								//}
 							}
 						}
                     }
@@ -2852,12 +2852,12 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 						if (spectralelements->getHasWavelength() && spectralelements->getnSpectralElements() > 0) {
 							unsigned count = 0;
 							for (unsigned i=0; i<spectralelements->getnSpectralElements(); i++) {
-								if (!isnan(spectralelements->getFlux(i)) && !isnan(spectralelements->getFluxVariance(i))) {
+								//if (!isnan(spectralelements->getFlux(i)) && !isnan(spectralelements->getFluxVariance(i))) {
 									fout << fixed << setprecision(4) << spectralelements->getwavelength(i) << ' ';
 									fout << scientific << spectralelements->getFlux(i) << ' '
 									<< sqrt(spectralelements->getFluxVariance(i)) << endl;
 									count++;
-								}
+								//}
 							}
 							if (count > 0) {
 								if (NEWLINES_BETWEEN_ORDERS) fout << endl; // split the orders for plotting
@@ -5133,19 +5133,19 @@ void operaSpectralOrderVector::fitOrderSpacingPolynomial(operaFITSImage &masterF
 #ifdef WITH_ERRORS
         nords = operaCCDDetectPeaksWithErrorsUsingGaussian(np,fx,fy,sigma,noise,gain,threshold,xmean,ymean,xmeanerr);
 #else
-        nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,noise,threshold,xmean,ymean);
+        nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,noise,gain,threshold,xmean,ymean);
 #endif
     } else if (detectionMethod == 2) {
 #ifdef WITH_ERRORS
         nords = operaCCDDetectPeaksWithErrorsUsingGaussian(np,fx,fy,sigma,noise,gain,threshold,xmean,ymean,xmeanerr);
 #else
-        nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,noise,threshold,xmean,ymean);
+        nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,noise,gain,threshold,xmean,ymean);
 #endif
     } else if (detectionMethod == 3) {
 #ifdef WITH_ERRORS
         nords = operaCCDDetectPeaksWithErrorsUsingTopHat(np,fx,fy,(unsigned)slit,noise,gain,threshold,xmean,ymean,xmeanerr);
 #else
-        nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,(unsigned)slit,noise,threshold,xmean,ymean);
+        nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,(unsigned)slit,noise,gain,threshold,xmean,ymean);
 #endif
     }
     
@@ -5423,7 +5423,7 @@ void operaSpectralOrderVector::measureIPAlongRowsFromSamples(operaFITSImage &mas
             operaFFTLowPass(np,fytmp,fy, 0.1);
         }
         
-        nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,noise,threshold,xmean,ymean);	            
+        nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,noise,gain,threshold,xmean,ymean);
         operaCCDFitIP(np,fx,fy,nords,xmean,ymean,ipsample,ipxsample,iperr,uslit);
         
         for(unsigned i=0;i<uslit;i++) {
@@ -6820,11 +6820,18 @@ void operaSpectralOrderVector::correctFlatField(string inputFlatFluxCalibration,
     if (inputFlatFluxCalibration.empty()) {
         throw operaException("operaSpectralOrderVector: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
     }
-    
+
+    unsigned initialNumberofBeams = getNumberofBeams(Minorder, Maxorder);        
     ReadSpectralOrders(inputFlatFluxCalibration);
+    unsigned flatCalNumberofBeams = getNumberofBeams(Minorder, Maxorder);
     
     for (int order=Minorder; order<=Maxorder; order++) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
+        
+        //Below it ignores all Beams in case when the number of beams are different
+        if(initialNumberofBeams != flatCalNumberofBeams) {
+            spectralOrder->setnumberOfBeams(0);
+        }
         if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasSpectralEnergyDistribution()) {
             spectralOrder->divideSpectralElementsBySEDElements(true, NULL,StarPlusSky,false);
         } else {
@@ -6838,10 +6845,16 @@ void operaSpectralOrderVector::correctFlatField(string inputFlatFluxCalibration,
         throw operaException("operaSpectralOrderVector: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
     }
     
+    unsigned initialNumberofBeams = getNumberofBeams(Minorder, Maxorder);    
     ReadSpectralOrders(inputFlatFluxCalibration);
+    unsigned flatCalNumberofBeams = getNumberofBeams(Minorder, Maxorder);
     
     for (int order=Minorder; order<=Maxorder; order++) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
+        //Below it ignores all Beams in case when the number of beams are different
+        if(initialNumberofBeams != flatCalNumberofBeams) {
+            spectralOrder->setnumberOfBeams(0);
+        }
         if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasSpectralEnergyDistribution()) {
             spectralOrder->divideSpectralElementsBySEDElements(true, NULL,StarPlusSky,starplusskyInvertSkyFiber);
         } else {
@@ -7056,7 +7069,7 @@ void operaSpectralOrderVector::normalizeAndCalibrateFluxINTOExtendendSpectra(str
             spectralOrder->applyNormalizationFromExistingContinuum(NULL,NULL,TRUE,normalizeBeams,2);
             
             spectralElements->copyTOnormalizedFlux();
-            spectralElements->copyFROMrawFlux();
+            spectralElements->copyFROMfcalFlux();
         }
     }
     
@@ -7155,4 +7168,72 @@ unsigned operaSpectralOrderVector::getNumberofBeams(int Minorder, int Maxorder) 
         }
     }
     return NumberofBeams;
+}
+
+unsigned operaSpectralOrderVector::getSpectrumWithinTelluricMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double *wavelength, double *spectrum, double *variance) {
+    
+    double *wl0_vector = new double[MAXNUMBEROFWLRANGES];
+    double *wlf_vector = new double[MAXNUMBEROFWLRANGES];
+    
+    unsigned nRangesInWLMask = readContinuumWavelengthMask(inputWavelengthMaskForTelluric,wl0_vector,wlf_vector);
+    
+    float *wl = new float[MAXORDERS*MAXSPECTRALELEMENTSPERORDER];
+    float *flux = new float[MAXORDERS*MAXSPECTRALELEMENTSPERORDER];
+    float *var = new float[MAXORDERS*MAXSPECTRALELEMENTSPERORDER];
+    unsigned nelem = 0;
+    
+    for (int order=Maxorder; order>=Minorder; order--) {
+        
+        operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
+        
+        if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+            
+            spectralOrder->getSpectralElements()->CreateExtendedvectors(spectralOrder->getSpectralElements()->getnSpectralElements());
+            spectralOrder->getSpectralElements()->copyTOrawFlux();
+
+            operaWavelength *wavelength =  spectralOrder->getWavelength();
+            
+            if(normalized && normalizationBinsize>0) {
+                spectralOrder->applyNormalization(normalizationBinsize,0,FALSE,NULL,NULL,TRUE,0);
+            }
+            
+            operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
+            spectralElements->setwavelengthsFromCalibration(wavelength);
+            
+            for (unsigned elemIndex=0; elemIndex<spectralElements->getnSpectralElements(); elemIndex++) {
+                for(unsigned rangeElem=0; rangeElem<nRangesInWLMask; rangeElem++) {
+                    if(spectralElements->getwavelength(elemIndex) >= wl0_vector[rangeElem] &&
+                       spectralElements->getwavelength(elemIndex) <= wlf_vector[rangeElem] ) {
+                        
+                        if(!isnan((float)spectralElements->getFlux(elemIndex))) {
+                            flux[nelem] = (float)spectralElements->getFlux(elemIndex);
+                            var[nelem] = (float)spectralElements->getFluxVariance(elemIndex);
+                            wl[nelem] = (float)spectralElements->getwavelength(elemIndex);
+                            nelem++;
+                        }
+                        
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    int *sindex = new int[nelem];
+    
+    operaArrayIndexSort((int)nelem,wl,sindex);
+    
+    for(unsigned index=0; index<nelem; index++) {
+        wavelength[index] = (double)wl[sindex[index]];
+        spectrum[index] = (double)flux[sindex[index]];
+        variance[index] = (double)var[sindex[index]];
+    }
+    
+    delete[] wl;
+    delete[] flux;
+    delete[] var;
+    delete[] wl0_vector;
+    delete[] wlf_vector;
+
+    return nelem;
 }

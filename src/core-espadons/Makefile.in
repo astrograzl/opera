@@ -87,7 +87,10 @@ bin_PROGRAMS = operaSNR$(EXEEXT) operaWavelengthCalibration$(EXEEXT) \
 subdir = src/core-espadons
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -383,6 +386,7 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
+#AM_LDFLAGS = -Wl,--no-as-needed
 # This is for Linux...
 LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
@@ -393,18 +397,18 @@ LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
 	-loperaEspadonsSubImage -loperaFITSProduct \
 	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
-	-loperaWIRCamImage -loperaMultiExtensionFITSCube \
-	-loperaMultiExtensionFITSImage -loperaFITSCube \
-	-loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT \
-	-loperaMuellerMatrix -loperaStokesVector -loperaFluxVector \
-	-loperaImageVector -loperaFITSSubImage -loperaImageVector \
-	-loperaGeometricShapes -loperaMatrix -lPolynomial \
-	-lLaurentPolynomial -loperaMath -loperaJD -loperaHelio \
-	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
-	-loperaConfigurationAccess -loperaParameterAccess -lPixelSet \
-	-loperaSpectralEnergyDistribution -loperaSpectrumSimulation \
-	-loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c \
-	-lz -lpthread -lm $(am__append_2)
+	-loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage \
+	-loperaFITSCube -loperaPolarimetry -loperaException \
+	-lGainBiasNoise -loperaFFT -loperaMuellerMatrix \
+	-loperaStokesVector -loperaFluxVector -loperaImageVector \
+	-loperaFITSSubImage -loperaImageVector -loperaGeometricShapes \
+	-loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath \
+	-loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage \
+	-loperaLMFit -loperaConfigurationAccess -loperaParameterAccess \
+	-lPixelSet -loperaSpectralEnergyDistribution \
+	-loperaSpectrumSimulation -loperaStats -loperaLib \
+	-lArgumentHandler -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz \
+	-lpthread -lm $(am__append_2)
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -490,9 +494,29 @@ top_srcdir = @top_srcdir@
 # espadons build makefile Generator
 #
 # what flags you want to pass to the C compiler & linker
-AM_CFLAGS = --pedantic -Wall -std=c99 -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/ -I../../include/ -I/usr/local/include/ -DSTATIC=static
-AM_CXXFLAGS = --pedantic -Wall -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -I../../include/ -I/usr/include/ -I/usr/local/include/ -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/ -DSTATIC=static
-AM_LDFLAGS = -Wl,--no-as-needed $(am__append_1)
+AM_CFLAGS = --pedantic -Wall -std=c99 -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/ -I../../include/ -I/usr/local/include/
+AM_CXXFLAGS = --pedantic -Wall -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -I../../include/ -I/usr/include/ -I/usr/local/include/ -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/
+AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
+	-loperaObservingConditions -loperaObjectInTheSky \
+	-loperaSpectrograph -loperaTelescope \
+	-loperaSpectralOrderVector -loperaSpectralOrder \
+	-loperaSpectralElements -loperaSpectralLines \
+	-loperaSpectralFeature -loperaExtractionAperture \
+	-loperaSpectralTools -loperaFluxVector -lGaussian \
+	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
+	-lPolynomial -lLaurentPolynomial -loperaMath -loperaJD \
+	-loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-loperaConfigurationAccess -loperaParameterAccess \
+	-loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct \
+	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
+	-loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage \
+	-loperaFITSCube -loperaPolarimetry -loperaException \
+	-lGainBiasNoise -loperaFFT -loperaMuellerMatrix \
+	-loperaStokesVector -loperaImageVector -loperaGeometricShapes \
+	-loperaMatrix -loperaSpectralEnergyDistribution \
+	-loperaSpectrumSimulation -lPixelSet -loperaStats -loperaLib \
+	-lArgumentHandler -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c \
+	-lpthread -lm $(am__append_1)
 operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp operaGenerateLEFormats.h
 operaStitchOrders_SOURCES = operaStitchOrders.cpp operaStitchOrders.h
 operaTelluricCorrection_SOURCES = operaTelluricCorrection.cpp operaTelluricCorrection.h

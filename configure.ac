@@ -128,17 +128,12 @@ AC_MSG_NOTICE([Configuring files...])
 
 AC_CONFIG_FILES([Makefile
                  src/libraries/Makefile
-				 test/Makefile
 				 scripts/Makefile
 				 scripts/espadons/Makefile
-				 scripts/wircam/Makefile
 				 scripts/guest/Makefile
-				 scripts/sitelle/Makefile
                  src/core-espadons/Makefile
-                 src/core-wircam/Makefile
                  src/core-guest/Makefile
                  src/analysis-espadons/Makefile
-                 src/analysis-wircam/Makefile
                  src/analysis-guest/Makefile
                  src/tools/Makefile])
 

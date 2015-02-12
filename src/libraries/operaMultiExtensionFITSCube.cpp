@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope   
  Location: Hawaii USA 
  Date: Aug/2011 
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -761,9 +761,9 @@ typedef struct thread_args {
 	unsigned maxz;
 } thread_args_t;
 
-STATIC pthread_t *threads = NULL;
+static pthread_t *threads = NULL;
 
-STATIC void collapse(operaMultiExtensionFITSImage *output, const unsigned extension, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
+static void collapse(operaMultiExtensionFITSImage *output, const unsigned extension, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
 	unsigned long npixels_per_extension = output->getnaxis1() * output->getnaxis2() * output->getnaxis3();
 	unsigned long npixels_per_slice = output->getnaxis1() * output->getnaxis2();
 	unsigned int npixels_per_row = output->getnaxis1();
@@ -781,13 +781,13 @@ STATIC void collapse(operaMultiExtensionFITSImage *output, const unsigned extens
 	delete[] pixelStack;
 }
 
-STATIC void *collapsethread(void *argument) {
+static void *collapsethread(void *argument) {
 	thread_args_t *thread_args_s = (thread_args_t *)argument;
 	collapse(thread_args_s->output, thread_args_s->extension, thread_args_s->maxx, thread_args_s->maxy, thread_args_s->maxz);
 	return NULL;
 }
 
-STATIC void processSingleExtension(const unsigned extension, thread_args_t *thread_args, operaMultiExtensionFITSImage *output, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
+static void processSingleExtension(const unsigned extension, thread_args_t *thread_args, operaMultiExtensionFITSImage *output, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
 	thread_args[0].extension = extension;
 	thread_args[0].output = output;
 	thread_args[0].maxx = maxx;
@@ -796,7 +796,7 @@ STATIC void processSingleExtension(const unsigned extension, thread_args_t *thre
     collapsethread((void *) &thread_args[0]);
 }
 
-STATIC bool spawnthreads(unsigned int extension, unsigned int maxextension, unsigned int count, thread_args_t *thread_args, operaMultiExtensionFITSImage *output, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
+static bool spawnthreads(unsigned int extension, unsigned int maxextension, unsigned int count, thread_args_t *thread_args, operaMultiExtensionFITSImage *output, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
 	unsigned int j = 0;
     for (unsigned int i=extension; i<=maxextension; i++) {
 		thread_args[i].extension = i;
@@ -812,7 +812,7 @@ STATIC bool spawnthreads(unsigned int extension, unsigned int maxextension, unsi
     return true;
 }
 
-STATIC bool waitthreads(unsigned int extension, unsigned int maxextension, unsigned int count) {
+static bool waitthreads(unsigned int extension, unsigned int maxextension, unsigned int count) {
 	unsigned int j = 0;
 	for (unsigned int i=extension; i<=maxextension; i++) {
 		if (pthread_join(threads[i], NULL) != 0)
@@ -823,7 +823,7 @@ STATIC bool waitthreads(unsigned int extension, unsigned int maxextension, unsig
     return true;
 }
 
-STATIC bool processExtensions(unsigned int minextension, unsigned int maxextension, unsigned int maxthreads, thread_args_t *thread_args, operaMultiExtensionFITSImage *output, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
+static bool processExtensions(unsigned int minextension, unsigned int maxextension, unsigned int maxthreads, thread_args_t *thread_args, operaMultiExtensionFITSImage *output, const unsigned maxx, const unsigned maxy, const unsigned maxz) {
 	bool worked = true;
 	for (unsigned int extension=minextension; extension<=maxextension; extension+=maxthreads) {
         worked &= spawnthreads(extension, maxextension, maxthreads, thread_args, output, maxx, maxy, maxz);

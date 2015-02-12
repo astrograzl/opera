@@ -1,0 +1,8 @@
+## List of spectral regions containing absorption telluric features
+## By Eder Martioli - LNA Jan 23, 2015
+584.500 600.000
+644.650 660.000
+691.500 742.500
+757.816 776.902
+782.282 846.000
+890.641 986.000

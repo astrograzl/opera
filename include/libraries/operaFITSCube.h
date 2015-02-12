@@ -812,7 +812,7 @@ public:
  * \brief map all pixels from into to.
  * usage: map(image, F_NAN, 0.0);
  */
-STATIC inline void map(operaFITSCube &image, float from, float to) {
+static inline void map(operaFITSCube &image, float from, float to) {
 	float *p = (float *)image.getpixels(); 
 	unsigned n = image.getnpixels(); 
 	while (n--) {*p=(*p==from?to:*p); p++;}

@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -216,19 +216,13 @@ int main(int argc, char *argv[])
 		 * Down to business, read in all the source and calibration data.
 		 */        
 		operaSpectralOrderVector spectralOrders(inputOperaSpectrum);
+		
 		if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();
         }
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}        
-		
 		if(!maxorderprovided) {
-            maxorderprovided = spectralOrders.getMaxorder();
+            maxorder = spectralOrders.getMaxorder();
         }
-        
         if(ordernumber != NOTPROVIDED) {
 			minorder = ordernumber;
 			maxorder = ordernumber;
@@ -244,17 +238,14 @@ int main(int argc, char *argv[])
                 if (spectralElements->getHasExtendedBeamFlux()){
                     
                     switch (fluxType) {
-                        case RawFluxInElectronsPerElement: {
+                        case RawFluxInElectronsPerElement:
                             //spectralElements->copyFROMrawFlux();
-                        }
                             break;
-                        case NormalizedFluxToContinuum: {
+                        case NormalizedFluxToContinuum:
                             spectralElements->copyFROMnormalizedFlux();
-                        }
                             break;
-                        case CalibratedFluxNormalizedToRefWavelength: {
+                        case CalibratedFluxNormalizedToRefWavelength:
                             spectralElements->copyFROMfcalFlux();
-                        }
                             break;
                         default:
                             break;
@@ -263,23 +254,21 @@ int main(int argc, char *argv[])
                     switch (wavelengthType) {
                         case ThArCalibratedInNM:
                             break;
-                        case TelluricCorrectedWavelengthInNM: {
+                        case TelluricCorrectedWavelengthInNM:
                             spectralElements->copyFROMtell();
-                        }
                             break;
-                        case RVCorrectedWavelengthInNM: {
+                        case RVCorrectedWavelengthInNM:
                             spectralOrder->applyBarycentricWavelengthCorrectionFromExtendedRvel();
-                        }
-                        case RVAndTelluricCorrectedWavelengthInNM: {
+                            break;
+                        case RVAndTelluricCorrectedWavelengthInNM:
                             spectralElements->copyFROMtell();
                             spectralOrder->applyBarycentricWavelengthCorrectionFromExtendedRvel();
-                        }
                             break;
                         default:
                             break;
                     }
+                    
                 }
-                
 			}
 		}
         //---------------------------------

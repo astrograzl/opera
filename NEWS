@@ -1,6 +1,82 @@
-May 28 2014 - Teeple
+Jan 15 2015
 
-- fixed segfault in extractionApertureCalibration reference to out of scope address:
-// DT May 28 2014 this is set in to the aperture and must be a pointer and must not be deleted
-Line *beamExtractionLine = new Line((float)tan(tiltAngle[orderIndex]*M_PI/180),height,beamWidth,beamMidPoint);
+Modules/libraries:
+  Modified: operaStarOnly - updated usage syntax and comments
+  Modified: operaCreateProduct - refactored and updated code producing i.fits and p.fits:
+    - moved code segments into separate functions
+    - siginificantly reduced code duplication (cpp file is 850+ lines shorter)
+    - fixed inconsistencies in some fits columns when using .es input files
+    - transposed the output .fits file (swapped x and y axes)
+  Modified: operaTelluricWavelengthCorrection - updated application of telluric correction
 
+Harness/pipeline:
+  Modified: pipeline/pyScripts/espadons.py - updated parameters for operaTelluricWavelengthCorrection
+  Modified: harness/espadons/Makefile.core - modified to match changes to espadons.py
+  Modified: harness/espadons/Makefile.parameters - modified to match changes to espadons.py
+
+Other components:
+  Modified: multiple files in src, include, harness, scripts, test directories
+    - replaced teeple@cfht.hawaii.edu with opera@cfht.hawaii.edu
+  Modified: scripts/operainstallweb - replaced email address list with opera email alias
+  Modified: DEPENDENCIES - updated instructions for required dependencies
+
+Jan 26 2015
+
+Modules/libraries:
+  Modified: operaWavelength - added function applyRadialVelocityCorrection
+  Modified: operaSpectralOrderVector - added function getSpectrumWithinTelluricMask
+  Modified: operaTelluricWavelengthCorrection
+    - many sections of code rewritten and cleaned up
+    - uses all orders together to calculate radial velocity shift
+    - uses HITRAN library
+    - uses input wavelength mask for the telluric spectrum
+    - added option to output object and telluric reference spectra
+    - modified input parameters
+
+Harness/pipeline:
+  Modified: pipeline/pyScripts/espadons.py - updated parameters for operaTelluricWavelengthCorrection
+  Modified: harness/espadons/Makefile.core - modified to match changes to espadons.py
+  Modified: harness/espadons/Makefile.parameters - modified to match changes to espadons.py
+
+Other components:
+  Added: config/wavelengthMaskForTelluricAbsorption.txt
+
+Jan 29 2015
+
+Modules/libraries:
+  Modified: operaTelluricWavelengthCorrection
+    - removed input parameter numberOfPointsAroundMaximum
+    - updated to calculate the error on radial velocity
+    - updated gaussian fit to be more robust. Removed maximum correlation tests; rejection is now based on only the input threshold.
+
+Harness/pipeline:
+  Modified: pipeline/pyScripts/espadons.py - updated parameters for operaTelluricWavelengthCorrection
+  Modified: harness/espadons/Makefile.core - modified to match changes to espadons.py
+  Modified: harness/espadons/Makefile.parameters - modified to match changes to espadons.py
+  Added: pipeline/pyScripts/espadonsRV.py.rvtemp - duplicate of espadons.py with additional changes to operaRadialVelocity
+
+Other components:
+  Modified: DEPENDENCIES - further updated instructions for required dependencies after testing
+
+Feb 12 2015
+
+Modules/libraries:
+  Removed: wircam modules; moved to extras
+  Removed: test modules operaMEFCubeTest, operaMEFFITSImageTest, and operaWIRCamImageTest; moved to extras
+  Added: ArgumentHandler - library for passing command line arguments to modules
+  Modified: operaSpectralOrderVector - swapped columns for Star and Star+Sky under LibreEspritsp1Spectrum case in WriteSpectralOrders function
+  Modified: operaSpectralOrder - removed getLECompatibleSNR function
+  Modified: espqlh - removed LEcompatible argument and calculations
+
+Harness/pipeline:
+  Removed: all wircam harness files; moved to extras
+  Modified: harness/espadons/Makefile.parameters - updated sp1 values under geometry and removed second set of values under instrument profile
+  Modified: harness/espadons/Makefile.calibration - removed invalid plot arguments from operaStitchOrders
+
+Build files:
+  Updated Makefile.am files to remove wircam modules and add ArgumentHandler
+  
+Other components:
+  Removed: wircam and sitelle scripts; moved to extras
+  Removed: OperaBuildAndDistribution.pdf
+  Modified: DEPENDENCIES - updated gnuplot version

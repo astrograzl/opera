@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -362,8 +362,8 @@ int main(int argc, char *argv[])
         
 		/*
 		 * Down to business, read in all the source and calibration data.
-		 */
-		operaSpectralOrderVector spectralOrders(polar);
+		 */ 
+		operaSpectralOrderVector spectralOrders(polar);        
         spectralOrders.ReadSpectralOrders(wavelengthCalibration);
         
 		if(!minorderprovided) {
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
 			cout << "operaPolarimetryCorrection: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         
         unsigned NumberofBeams = spectralOrders.getNumberofBeams(minorder, maxorder);
-                
+        
 		for (int order=minorder; order<=maxorder; order++) {			
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 			if (spectralOrder->gethasSpectralElements()) {
@@ -405,7 +405,7 @@ int main(int argc, char *argv[])
                 }
 			}
 		}
-        
+
         //---------------------------------
         // Load telluric corrected wavelength calibration
 		if (!telluriccorrection.empty()) {
@@ -419,6 +419,13 @@ int main(int argc, char *argv[])
         }
 
         //---------------------------------
+        // Correct flat-field
+        if (!inputFlatFluxCalibration.empty()) {
+            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false);
+            spectralOrders.saveExtendedRawFlux(minorder, maxorder);
+        }
+        
+        //---------------------------------
         // Flux Normalization and Flux Calibration Stuff
         exposureTime *= 4.0; // considering a 4x polar sequence.
         
@@ -427,11 +434,11 @@ int main(int argc, char *argv[])
         } else if (!inputWavelengthMaskForUncalContinuum.empty()) {
             spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
         }
-        
+
         // output a wavelength calibrated spectrum...
 		spectralOrders.setObject(object);
 		spectralOrders.WriteSpectralOrders(outputSpectraFile, spectralOrderType);
-                
+
 		if (fspecdata != NULL) {
 			fspecdata->close();
             if (!plotfilename.empty() && !scriptfilename.empty()) {

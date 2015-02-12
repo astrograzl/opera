@@ -593,20 +593,22 @@ $${pargs} \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting telluric correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--xcorrsplotfilename=$(visualsdir)$*itellxcor.eps --specplotfilename=$(visualsdir)$*itell.eps --xcorrdatafilename=$(byproductsdir)$*itellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*itellxcorrfit.pdat --atlasdatafilename=$(byproductsdir)$*itellatlas.pdat --compdatafilename=$(byproductsdir)$*itellcomp.pdat --linesdatafilename=$(byproductsdir)$*itelllines.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --xcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu" ; \
+			pargs="--xcorrsplotfilename=$(visualsdir)$*itellxcor.eps --specplotfilename=$(visualsdir)$*itell.eps --xcorrdatafilename=$(byproductsdir)$*itellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*itellxcorrfit.pdat --specdatafile=$(byproductsdir)$*itell.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --xcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu" ; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelluricWavelengthCorrection \
 --inputObjectSpectrum=$(spectradir)$*.e$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
 --telluric_lines=$(configdir)$(telluric_atlas_lines) \
 --telluric_spectrum=$(configdir)$(telluric_reference_spectrum) \
+--inputWavelengthMaskForTelluric=$(configdir)$(telluric_absorptionMask) \
 --spectralResolution=$(telluric_spectralResolution) \
---initialWavelengthRange=$(telluric_initialWavelengthRange) \
---initialWavelengthStep=$(telluric_initialWavelengthStep) \
+--radialVelocityRange=$(telluric_radialVelocityRange) \
+--radialVelocityStep=$(telluric_radialVelocityStep) \
 --XCorrelationThreshold=$(telluric_XCorrelationThreshold) \
---subtractCentralWavelength=$(telluric_subtractCentralWavelength) \
 --normalizationBinsize=$(telluric_normalizationbinsize) \
---sigmaThreshold=$(telluric_sigmathreshold) \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--StarPlusSky=$(starplusskymode) \
+--useFitToFindMaximum=$(telluric_useFitToFindMaximum) \
 $${pargs} \
 --outputWaveFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Telluric Wavelength Correction $@ created in $(deltat)" ; \

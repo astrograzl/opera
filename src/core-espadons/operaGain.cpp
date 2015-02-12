@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -185,10 +185,10 @@ int main(int argc, char *argv[])
 				break;
 			case 'm':		// badpixelmask
                 badpixelmask = optarg;
-            break;
+				break;
 			case 's':		// max images
                 maximages = atoi(optarg);
-            break;
+				break;
 			case 'a':		// number of amplifiers = 1 or 2 (for Espadons)
 				namps = atoi(optarg);
 				break;	
@@ -223,6 +223,7 @@ int main(int argc, char *argv[])
 			case 'D':
 				if (strlen(optarg))
 					sscanf(optarg, "%u %u %u %u", &datasec.x1, &datasec.x2, &datasec.y1, &datasec.y2);
+				break;
 			case 'A':
 				if (strlen(optarg))
 					sscanf(optarg, "%u %u %u %u", &dseca.x1, &dseca.x2, &dseca.y1, &dseca.y2);

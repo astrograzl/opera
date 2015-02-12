@@ -240,5 +240,7 @@ public:
     
     void filterDataPointsByErrorClip(double nsig);
     
+    void applyRadialVelocityCorrection(double rvshift_InKPS);
+
 };
 #endif

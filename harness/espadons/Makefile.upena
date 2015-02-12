@@ -7,7 +7,7 @@
 # Affiliation: Canada France Hawaii Telescope 
 # Location: Hawaii USA
 # Date: Aug/2011
-# Contact: teeple@cfht.hawaii.edu
+# Contact: opera@cfht.hawaii.edu
 # 
 # Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
 # 
@@ -394,10 +394,10 @@ endif
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
---wavelengthType=$(RVCorrectedWavelengthInNM) \
+--wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			$(MAKE) -f $(makedir)Makefile $*in.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
+			$(MAKE) -f $(makedir)Makefile $*inw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
 		echo "$(pref)normalized wavelength corrected spectrum $@ $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
@@ -491,7 +491,7 @@ endif
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
---wavelengthType=$(RVCorrectedWavelengthInNM) \
+--wavelengthType=$(CalibratedFluxNormalizedToRefWavelength) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pnw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \

@@ -240,7 +240,7 @@ extern "C" {
  * \arg substring - the snippet
  * \return EXIT_STATUS
  */
-STATIC inline unsigned startsWith(const char *aString, const char *substring) {
+static inline unsigned startsWith(const char *aString, const char *substring) {
 	unsigned i;
 	if (aString == NULL || substring == NULL)
 		return 0;
@@ -280,7 +280,7 @@ typedef  float** CMatrix;
  * \param rows
  * \return CMatrix
  */
-STATIC inline CMatrix newCMatrix(unsigned Cols, unsigned Rows) {
+static inline CMatrix newCMatrix(unsigned Cols, unsigned Rows) {
 	CMatrixStruct_t *cmatrix = (CMatrixStruct_t *)malloc(sizeof(CMatrixStruct_t));
 	cmatrix->matrix = (float **)malloc(sizeof(float *)*(Rows+2));
 	if (!cmatrix->matrix) {
@@ -309,7 +309,7 @@ STATIC inline CMatrix newCMatrix(unsigned Cols, unsigned Rows) {
 	return cmatrix->matrix;		// return the float **
 }
 
-STATIC inline CMatrixStruct_t *getCMatrixBase(CMatrix cmatrix) {
+static inline CMatrixStruct_t *getCMatrixBase(CMatrix cmatrix) {
 	unsigned row = 0;
 	if (cmatrix) {
 		// find the guard row
@@ -323,70 +323,70 @@ STATIC inline CMatrixStruct_t *getCMatrixBase(CMatrix cmatrix) {
 	return NULL;
 }
 
-STATIC inline float *getCMatrixData(CMatrix cmatrix) {
+static inline float *getCMatrixData(CMatrix cmatrix) {
 	if (cmatrix) {
 		return (float *)getCMatrixBase(cmatrix)->data;		
 	}
 	return NULL;
 }
 	
-STATIC inline unsigned getCMatrixPixelationx(CMatrix cmatrix) {
+static inline unsigned getCMatrixPixelationx(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->pixelationx;
 }
 
-STATIC inline void setCMatrixPixelationx(CMatrix cmatrix, unsigned pixelation) {
+static inline void setCMatrixPixelationx(CMatrix cmatrix, unsigned pixelation) {
 	getCMatrixBase(cmatrix)->pixelationx = pixelation;
 }
 
-STATIC inline unsigned getCMatrixPixelationy(CMatrix cmatrix) {
+static inline unsigned getCMatrixPixelationy(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->pixelationy;
 }
 
-STATIC inline void setCMatrixPixelationy(CMatrix cmatrix, unsigned pixelation) {
+static inline void setCMatrixPixelationy(CMatrix cmatrix, unsigned pixelation) {
 	getCMatrixBase(cmatrix)->pixelationy = pixelation;
 }
 
-STATIC inline unsigned getCMatrixCols(CMatrix cmatrix) {
+static inline unsigned getCMatrixCols(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->cols;
 }
 
-STATIC inline unsigned getCMatrixRows(CMatrix cmatrix) {
+static inline unsigned getCMatrixRows(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->rows;
 }
 
-STATIC inline unsigned getCMatrixOriginCol(CMatrix cmatrix) {
+static inline unsigned getCMatrixOriginCol(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->origincol;
 }
 
-STATIC inline void setCMatrixOriginCol2(CMatrix cmatrix, unsigned Col) {
+static inline void setCMatrixOriginCol2(CMatrix cmatrix, unsigned Col) {
 	getCMatrixBase(cmatrix)->origincol2 = Col;
 }
 
-STATIC inline unsigned getCMatrixOriginCol2(CMatrix cmatrix) {
+static inline unsigned getCMatrixOriginCol2(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->origincol2;
 }
 
-STATIC inline void setCMatrixOriginCol(CMatrix cmatrix, unsigned Col) {
+static inline void setCMatrixOriginCol(CMatrix cmatrix, unsigned Col) {
 	getCMatrixBase(cmatrix)->origincol = Col;
 }
 
-STATIC inline unsigned getCMatrixOriginRow(CMatrix cmatrix) {
+static inline unsigned getCMatrixOriginRow(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->originrow;
 }
 
-STATIC inline void setCMatrixOriginRow2(CMatrix cmatrix, unsigned Row) {
+static inline void setCMatrixOriginRow2(CMatrix cmatrix, unsigned Row) {
 	getCMatrixBase(cmatrix)->originrow2 = Row;
 }
 
-STATIC inline unsigned getCMatrixOriginRow2(CMatrix cmatrix) {
+static inline unsigned getCMatrixOriginRow2(CMatrix cmatrix) {
 	return getCMatrixBase(cmatrix)->originrow2;
 }
 
-STATIC inline void setCMatrixOriginRow(CMatrix cmatrix, unsigned Row) {
+static inline void setCMatrixOriginRow(CMatrix cmatrix, unsigned Row) {
 	getCMatrixBase(cmatrix)->originrow = Row;
 }
 
-STATIC inline void deleteCMatrix(CMatrix cmatrix) {
+static inline void deleteCMatrix(CMatrix cmatrix) {
 	if (!cmatrix) {
 		return;
 	}
@@ -406,7 +406,7 @@ STATIC inline void deleteCMatrix(CMatrix cmatrix) {
 typedef  float*** CCube;
 
 /*! 
- * \brief STATIC inline CCube newCCube(unsigned Cols, unsigned Rows, unsigned Depth)
+ * \brief static inline CCube newCCube(unsigned Cols, unsigned Rows, unsigned Depth)
  * \brief creates a CCube, note that the float *** is returned
  * \brief for matrix indexing. A guard pointer of NULL is stored
  * \param cols
@@ -414,7 +414,7 @@ typedef  float*** CCube;
  * \param Depth
  * \return CMatrix*
  */
-STATIC inline CCube newCCube(unsigned Cols, unsigned Rows, unsigned Depth) {
+static inline CCube newCCube(unsigned Cols, unsigned Rows, unsigned Depth) {
 	CMatrix *depth = (CMatrix *)malloc(sizeof(CMatrix *)*(Depth+4));
 	if (!depth) {
 		return NULL;
@@ -440,7 +440,7 @@ STATIC inline CCube newCCube(unsigned Cols, unsigned Rows, unsigned Depth) {
 	return depth;				// return the float ***
 }
 
-STATIC inline void deleteCCube(CCube cCube) {
+static inline void deleteCCube(CCube cCube) {
 	if (!cCube) {
 		return;
 	}
@@ -469,7 +469,7 @@ typedef struct doublePolynomialCoeffs {
 	double polychisqr;
 } doublePolynomialCoeffs_t;
 
-STATIC inline void PolynomialCoeffsToFloat(PolynomialCoeffs_t *f, doublePolynomialCoeffs_t *d) {
+static inline void PolynomialCoeffsToFloat(PolynomialCoeffs_t *f, doublePolynomialCoeffs_t *d) {
 	f->orderofPolynomial = d->orderofPolynomial;
 	for (unsigned i=0; i<MAXPOLYNOMIAL; i++) {
 		f->p[i] = (float)d->p[i];
@@ -499,7 +499,7 @@ typedef struct PolynomialMatrixStruct {
  * \param rows
  * \return CMatrix
  */
-STATIC inline PolynomialMatrix newPolynomialMatrix(unsigned Cols, unsigned Rows) {
+static inline PolynomialMatrix newPolynomialMatrix(unsigned Cols, unsigned Rows) {
 	PolynomialMatrixStruct_t *pmatrix = (PolynomialMatrixStruct_t *)malloc(sizeof(PolynomialMatrixStruct_t));
 	pmatrix->matrix = (PolynomialCoeffs_t ***)malloc(sizeof(PolynomialCoeffs_t ***)*(Rows+2));
 	pmatrix->rows = Rows;
@@ -526,7 +526,7 @@ STATIC inline PolynomialMatrix newPolynomialMatrix(unsigned Cols, unsigned Rows)
 	return pmatrix->matrix;		// return the PolynomialCoeffs_t **
 }
 
-STATIC inline PolynomialMatrixStruct_t *getPolynomialMatrixBase(PolynomialMatrix pmatrix) {
+static inline PolynomialMatrixStruct_t *getPolynomialMatrixBase(PolynomialMatrix pmatrix) {
 	unsigned row = 0;
 	// find the guard row
 	while (pmatrix[row]) {
@@ -538,15 +538,15 @@ STATIC inline PolynomialMatrixStruct_t *getPolynomialMatrixBase(PolynomialMatrix
 }
 
 
-STATIC inline unsigned getPolynomialMatrixCols(PolynomialMatrix pmatrix) {
+static inline unsigned getPolynomialMatrixCols(PolynomialMatrix pmatrix) {
 	return getPolynomialMatrixBase(pmatrix)->cols;
 }
 
-STATIC inline unsigned getPolynomialMatrixRows(PolynomialMatrix pmatrix) {
+static inline unsigned getPolynomialMatrixRows(PolynomialMatrix pmatrix) {
 	return getPolynomialMatrixBase(pmatrix)->rows;
 }
 
-STATIC inline void deletePolynomialMatrix(PolynomialMatrix pmatrix) {
+static inline void deletePolynomialMatrix(PolynomialMatrix pmatrix) {
 	PolynomialMatrixStruct_t *cm = getPolynomialMatrixBase(pmatrix);
 	if (cm) {
 		if (cm->matrix)

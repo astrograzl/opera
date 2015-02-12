@@ -844,41 +844,8 @@ void operaSpectralOrder::calculateSNR(void) {
 		SpectralElements->getFluxSNR(indexElem);
 	}
 	SNR = getCentralSmoothedSNR(length/DEFAULT_SNR_SMOOTHING);
-	//SNR = getLECompatibleSNR();
 	//SNR = SpectralElements->getFluxSNR(length/2);
 	hasSNR = true;
-}
-
-float operaSpectralOrder::getLECompatibleSNR(void) {
-	unsigned length = SpectralElements->getnSpectralElements();
-	if (length == 0) {
-		return 1.0;
-	}
-	unsigned upperlowerbound = length / DEFAULT_SNR_SMOOTHING;	// a la LE
-	int start = max(length/2-upperlowerbound, 0);
-	int stop = min(length/2+upperlowerbound, length-1);
-	int range = stop-start+1;
-	if (range <= 0) {
-		throw operaException("operaSpectralOrder: ",operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	unsigned count = 0;
-	float accumulated = 0.0;
-	for (int indexElem=start; indexElem <= stop; indexElem++){
-		float fluxcalc = SpectralElements->getFlux(indexElem);
-		if (fluxcalc <= 0.0) {
-			fluxcalc = 1.0;
-		}
-		float tmp = sqrt(SpectralElements->getFluxVariance(indexElem))/fluxcalc;
-		if (tmp > 0.0) { 
-			accumulated += 1.0/tmp;
-			count++;
-		} 
-	}
-	if (count == 0) {
-		return 1.0;
-	}
-	accumulated /= count;
-	return (0.1*accumulated+0.5)*10.0;
 }
 
 float operaSpectralOrder::getCentralSmoothedSNR(int upperlowerbound) {
@@ -4712,12 +4679,16 @@ void operaSpectralOrder::calculateStarAndSkyElements(bool starplusskyInvertSkyFi
     }
     
     operaFluxVector starFlux(nspecElem);
-    
-    //starFlux = starPlusSkyFlux - skyFlux;
-    
+        
     // Below is a workaround since operaFluxVector routines can't handle negative values appropriately
     for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
-        double skysubtractedflux = starPlusSkyFlux.getflux(indexElem) - skyFlux.getflux(indexElem);
+        // E. Martioli Oct 31, 2014. Commented line below cause sky subtraction is causing alias
+        //  on main extracted spectra. The beams are saved separately in case someone wants to
+        //  subtract sky on a later analysis. The way around it is to use robust statistics to
+        //  obtain the sky flux, but this would have to be implemented in the optimal extraction
+        //  routines, which we don't wanna touch now. 
+        //double skysubtractedflux = starPlusSkyFlux.getflux(indexElem) - skyFlux.getflux(indexElem);
+        double skysubtractedflux = starPlusSkyFlux.getflux(indexElem);
         double variance = starPlusSkyFlux.getvariance(indexElem);
         starFlux.setflux(skysubtractedflux,indexElem);
         starFlux.setvariance(variance,indexElem);
@@ -4804,19 +4775,19 @@ void operaSpectralOrder::calculatePolarElements(ostream *poutspec) {
 /*
  * Barycentric Wavelength Correction
  */
-void operaSpectralOrder::applyBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond) {
+void operaSpectralOrder::applyBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond) {
     if(gethasWavelength() && SpectralElements->getHasDistance() && !SpectralElements->getHasWavelength()) {
         SpectralElements->setwavelengthsFromCalibration(getWavelength());
     }
     
     for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
         double currentElemWavelength = SpectralElements->getwavelength(indexElem);
-        double wavelengthCorrection = currentElemWavelength*(RVcorrectionInMetersPerSecond/SPEED_OF_LIGHT_M);
+        double wavelengthCorrection = currentElemWavelength*(RVcorrectionInKmPerSecond/SPEED_OF_LIGHT_KMS);
         SpectralElements->setwavelength(currentElemWavelength+wavelengthCorrection,indexElem);
     }
 }
 
-void operaSpectralOrder::setExtendedBarycentricWavelengthCorrection(double RVcorrectionInMetersPerSecond) {
+void operaSpectralOrder::setExtendedBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond) {
     
     if(!gethasWavelength() || !SpectralElements->getHasDistance() || !SpectralElements->getHasExtendedBeamFlux()) {
         throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
@@ -4824,7 +4795,7 @@ void operaSpectralOrder::setExtendedBarycentricWavelengthCorrection(double RVcor
     
     for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
         double currentElemWavelength = SpectralElements->getwavelength(indexElem);
-        double wavelengthCorrection = currentElemWavelength*(RVcorrectionInMetersPerSecond/SPEED_OF_LIGHT_M);
+        double wavelengthCorrection = currentElemWavelength*(RVcorrectionInKmPerSecond/SPEED_OF_LIGHT_KMS);
         SpectralElements->setrvel(wavelengthCorrection,indexElem);
     }
 }

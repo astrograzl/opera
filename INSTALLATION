@@ -1,113 +1,114 @@
 
-
 								INSTALLATION
 
-Prior to attempting to build OPERA, please check for and 
-install the DEPENDENCIES, as necesssary. See the file DEPENDENCIES in this directory.
-------------------------
+Prior to attempting to build OPERA, please check for and install the
+DEPENDENCIES, as necessary. See the file DEPENDENCIES in this directory.
+------------------------------------------------------------------------
 
 STOP - DO NOT PROCEED UNLESS ALL THE REQUIRED DEPENDENCIES INSTALLED PROPERLY
 
 STOP - DO NOT CONFIGURE AND BUILD AS USER ROOT
 
----------------------------------------------------------------
+------------------------------------------------------------------------
 
 Below are the instructions on how to obtain and install OPERA:
 
-1. Download the compressed file: opera-1.0.zip from sourceforge.net:
-
-	http://sourceforge.net/projects/opera-pipeline/files/opera-1.0/opera-1.0-Jul01-2013.zip/download
+1. Download the latest archive of OPERA (zip or tar.gz) from Sourceforge:
+	http://sourceforge.net/projects/opera-pipeline/files/opera-1.0/
 
 2. Remove an existing copy if you have one:
+	cd ~
+	rm -rf opera-1.0/
 
-   cd ~
-   rm -rf opera-1.0/
-   
 3. Unpack this file in your home directory:
-   unzip opera-1.0.zip
+	unzip opera-1.0.zip
 
-4. Open a terminal and access the directory 
-   cd $HOME/opera-1.0/ 
+4. Open a terminal and access the directory:
+	cd $HOME/opera-1.0/
 
-4a. OPERA builds with shared libraries. If you have never compiled shared libraries you may
-   need to do these steps next:
-   
-   libtoolize (perhaps 'glibtoolize'?)
-   aclocal
-   autoconf
-   
-5. Run the configuration file,
-   ./configure --prefix=$HOME/opera-1.0/
-   or if you want to use libpng:
-   ./configure --prefix=$HOME/opera-1.0/ --enable-LIBPNG=true
+5a. IF STEP 5 FAILS, do this step first. Otherwise, this can be skipped.
 
-   NOTE: If you change the prefix to /usr/local/, most likely you DO NOT have
-   write permissions to that directory. In step 6 below you must use 
-   "sudo make install".
-   
-   *** NOTE: dynamic link libraries are used. If you get this error:
-   Error: �required file `./ltmain.sh' not found�
-   please see 'ltmain.sh Error' below.
-   
-   If you wish to use static libraries:
-   ./configure --disable-shared
+OPERA builds with shared libraries, which is taken care of by Autotools.
+Preparing this can usually be done with a single command:
+	 autoreconf -vfi
+Here v = verbose output, f = force remake, and i = install missing files.
 
-   *** NOTE: xubuntu, ubuntu users you MUST:
-   ./configure --disable-shared
-   
-   ***NOTE: Debian user MUST:
+However, if you have an older version of Autotools, the above command
+may not run, so you can run the Autotools one-by-one:
+	libtoolize (or glibtoolize on Mac)
+	aclocal
+	autoconf
+	automake --add-missing
+
+The above process can also be done by running the included script:
+	autoconf/bootstrap.sh
+
+5. Run the configuration file:
+	./configure --prefix=$HOME/opera-1.0/
+
+Or if you want to use libpng:
+	./configure --prefix=$HOME/opera-1.0/ --enable-LIBPNG=true
+
+If you want to build/install OPERA in a different directory, you must
+replace $HOME/opera-1.0/ in the prefix with the actual directory.
+
+*** NOTE: If you change the prefix to /usr/local/, most likely you DO NOT have
+	write permissions to that directory. In step 6 below you must use:
+		sudo make install
+
+*** NOTE: dynamic link libraries are used. If you get this error:
+		Error: 'required file `./ltmain.sh' not found'
+	please see 'ltmain.sh Error' below.
+	
+	If you wish to use static libraries:
+	./configure --disable-shared
+
+*** NOTE: xubuntu, ubuntu users must:
+	./configure --disable-shared
+	
+*** NOTE: Debian users must:
 	aclocal
 	autoconf
 	./configure
-     
-6. Clean: If you have previously compiled the software, first clean and remove any previously installed binaries:
-        make clean
-        make uninstall
-    * you will get an error about uninstalling sofa, a bug to fix
-	Alternatively you can manually uninstall anything previously installed in the source tree:
+	  
+7a. Clean: If you have previously compiled the software in this folder
+without removing that copy first, clean out the existing object files
+and remove any previously installed binaries:
+	make uninstall
+	make clean
+
+You can also manually remove all files binaries previously installed:
 	rm ~/opera-1.0/bin/*
 	rm ~/opera-1.0/lib/*
 
-7. Build:
-   make
-   make install
-   . ./setup.sh
+7. Build and install:
+	make
+	make install
+	. ./setup.sh
 
-8. Release:
-   Once yoou have debugging your modules, you can significantly reduce the
-   module size by stripping debug info:
-   make install-strip
+8. Release: Once you are done debugging your modules, you can significantly reduce
+the module size by stripping debug info:
+	make install-strip
 
 9. Installing for Sourceforge (build master):
-   The main source of Opera is held at CFHT on the machine named opera. Integrations
-   happen on this machine. After an integration and successful build, the entire
-   opera distribution is sent to sourceforge and a copy is sent to CFHT servers
-   on /data/world/doug. There is a script to do this:
+The main source of Opera is held at CFHT on the machine named opera. Integrations
+happen on this machine. After an integration and successful build, the entire
+opera distribution is sent to sourceforge and a copy is sent to CFHT servers
+on /data/world/doug. There is a script to do this:
 
-    ./scripts/operainstallweb
-    
-    This script takes two optional arguments: --nodoc and --noemail. By default
-    doxygen docs are created and a distribution email is sent. These flags speed
-    up the distribution by disabling the features.
+	./scripts/operainstallweb
+
+This script takes two optional arguments: --nodoc and --noemail. By default
+doxygen docs are created and a distribution email is sent. These flags speed
+up the distribution by disabling the features.
 
 =====================
 
-Notes for MacOSX
-
-We use XCode for development on MacOSX. Later versions of XCode do not include
-gcc, which we need to do builds of opera. To get the command line tools:
-
-1. Install XCode from developer.apple.com
-2. Click on XCode/Tools/Other
-3. It will take you to a web page where you can download the command line
-   tools (e.g. cc, gg, make, etc.)
-4. Download the .dmg, double-click and install.
-
 ltmain.sh Error:
 ----------------
-8.3.9.1 Error: ‘required file `./ltmain.sh' not found’
+8.3.9.1 Error: 'required file `./ltmain.sh' not found'
 
-Libtool comes with a tool called libtoolize that will install libtool’s supporting 
+Libtool comes with a tool called libtoolize that will install libtool's supporting 
 files into a package. Running this command will install ltmain.sh. 
 You should execute it before aclocal and automake.
 
@@ -115,7 +116,7 @@ People upgrading old packages to newer autotools are likely to face this issue
 because older Automake versions used to call libtoolize. Therefore old build scripts 
 do not call libtoolize.
 
-Since Automake 1.6, it has been decided that running libtoolize was none of Automake’s business. 
+Since Automake 1.6, it has been decided that running libtoolize was none of Automake's business. 
 Instead, that functionality has been moved into the autoreconf command (see Using autoreconf 
 in The Autoconf Manual). If you do not want to remember what to run and when, 
 just learn the autoreconf command. Hopefully, replacing existing bootstrap.sh or 
@@ -123,7 +124,3 @@ autogen.sh scripts by a call to autoreconf should also free you from any similar
 incompatible change in the future.
 
 =====================
-
-BUGS:
-
-

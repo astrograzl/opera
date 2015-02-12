@@ -955,3 +955,12 @@ void operaWavelength::filterDataPointsByErrorClip(double nsig) {
     }
     setnDataPoints(np);
 }
+
+void operaWavelength::applyRadialVelocityCorrection(double rvshift_InKPS) {
+    for (unsigned i=0; i < wavelengthPolynomial->getOrderOfPolynomial(); i++) {
+        double newCoeff = wavelengthPolynomial->getCoefficient(i)*(1 + rvshift_InKPS / SPEED_OF_LIGHT_KMS);
+        wavelengthPolynomial->setCoefficient(i,newCoeff);
+    }
+}
+
+

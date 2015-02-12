@@ -14,7 +14,7 @@ Comments for developers
 ***********************
 
 1. DEPENDENCIES
-	- please esnure that the REQUIRED dependencies are insatalled properly.
+	- please ensure that the REQUIRED dependencies are installed properly.
 	See the file DEPENDENCIES in this directory.
 
 2. INSTALLATION
@@ -37,6 +37,14 @@ line arguments to it. The main harness script, "/harness/Makefile" will call all
 the other scripts to run the pipeline, and each script will call a sequence of 
 other individual scripts, modules, tools, etc.
 
+3a. ESPADONS PIPELINE SCRIPTS
+
+As an alternative to the existing driver program and harness, a Python script has been
+developed with the goal of providing the most important features of OPERA, while adding
+improvements to stability, accuracy, and functionality. To use these scripts, you will
+need Python (tested on Python 2.7). For information on running these scripts, check the
+OPERA-cookbook.pdf in the pipeline folder.
+
 4. INCLUDING AND TESTING NEW MODULES
 
 Each module is an independent program that should run independently 
@@ -46,13 +54,13 @@ to that module.
 
 The easiest way to create a module is to copy the sample and modify it to
 your needs. The general architecture is that the module gathers the required
-arguments for processing ensuring that the inputs are all avaliable. It
+arguments for processing ensuring that the inputs are all available. It
 then reads the required calibrations using the serialization/deserialization
 support in the operaSpectralOrderVector.
 
 In general you should create a class to store the products of a modules
 execution. After the class is created then operaSpectralOrderVector should
-be augmented to serialize / deserialize the class contants.
+be augmented to serialize / deserialize the class contents.
 
 You then need to edit Makfile.am to include your module. 
 For example, here is the entry for core modules:
@@ -68,7 +76,7 @@ Add your module to the end of this list and then add the build rule:
 mymodule_SOURCES = mymodule.cpp mymodule.h
 
 Create the corresponding myclass.cpp and myclass.h in the src/libraries and include/libraries
-directories. The class shoud encapsulate the content created by processing done by
+directories. The class should encapsulate the content created by processing done by
 the module.
 
 Then edit the src/libraries/Makefile.am to add the library:
@@ -77,7 +85,7 @@ lib_LIBRARIES = liboperaException.a ... libmyclass.a
 
 libmyclasss_a_SOURCES = lmyclass.cpp myclass.h
 
-Then add your library to the Makefile.am library list in thes test/ src/core-guest and
+Then add your library to the Makefile.am library list in the test/ src/core-guest and
 strv/tools directories.
 
 Then go to your home opera directory and enter:

@@ -1,23 +1,26 @@
 # what flags you want to pass to the C compiler & linker
-AM_CFLAGS = --pedantic -Wall -std=c99 -g -O1 -L$(PREFIX)/src/libraries/  -L../../lib -L/usr/lib/ -L/usr/local/lib/ -I../../include/ -I/usr/local/include/ -DSTATIC=static
-AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/  -L../../lib -I../../include/ -I/usr/include/ -I/usr/local/include/ -L/usr/lib/ -L/usr/local/lib/ -DSTATIC=static
+AM_CFLAGS = --pedantic -Wall -std=c99 -g -O1 -L$(PREFIX)/src/libraries/  -L../../lib -L/usr/lib/ -L/usr/local/lib/ -I../../include/ -I/usr/local/include/
+AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/  -L../../lib -I../../include/ -I/usr/include/ -I/usr/local/include/ -L/usr/lib/ -L/usr/local/lib/
 #AM_LDFLAGS = -loperaConfigurationAccess -loperaParameterAccess -loperaImage -lcfitsio -lm
 # This is for Linux...
 #LIBS = -loperaConfigurationAccess -loperaParameterAccess -loperaImage -lcfitsio -lm
+LIBS = -lm
 
 # this lists the libraries to produce, static and dynamic
 
 lib_LIBRARIES = liboperaFFT.a 
 
-lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaSpectralOrderVector.la liboperaSpectralElements.la liboperaSpectralOrder.la liboperaInstrumentProfile.la \
-	liboperaGeometry.la liboperaWavelength.la liboperaCCD.la liboperaFITSSubImage.la liboperaEspadonsSubImage.la liboperaImage.la liboperaStats.la \
-	liboperaMath.la liboperaLMFit.la liboperaFit.la liboperaConfigurationAccess.la liboperaParameterAccess.la liboperaFITSImage.la liboperaPolarimetry.la \
-	liboperaEspadonsImage.la liboperaFITSProduct.la liboperaMEFFITSProduct.la liboperaJD.la liboperaHelio.la liboperaMatrix.la liboperaSpectralLines.la liboperaLib.la \
-	libGaussian.la liboperaSpectralFeature.la liboperaGeometricShapes.la liboperaExtractionAperture.la liboperaFluxVector.la libGainBiasNoise.la \
-	liboperaMultiExtensionFITSImage.la liboperaMultiExtensionFITSCube.la liboperaFITSCube.la liboperaWIRCamImage.la liboperaMuellerMatrix.la \
+lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaFluxVector.la liboperaMath.la libGaussian.la liboperaWavelength.la \
+	liboperaSpectralOrderVector.la liboperaSpectralElements.la liboperaSpectralOrder.la liboperaInstrumentProfile.la \
+	liboperaGeometry.la liboperaCCD.la liboperaFITSSubImage.la liboperaEspadonsSubImage.la liboperaImage.la liboperaStats.la \
+	liboperaLMFit.la liboperaFit.la liboperaConfigurationAccess.la liboperaParameterAccess.la liboperaFITSImage.la liboperaPolarimetry.la \
+	liboperaEspadonsImage.la liboperaFITSProduct.la liboperaMEFFITSProduct.la liboperaJD.la liboperaHelio.la liboperaMatrix.la liboperaSpectralLines.la \
+	liboperaLib.la liboperaSpectralFeature.la liboperaGeometricShapes.la liboperaExtractionAperture.la libGainBiasNoise.la \
+	liboperaMultiExtensionFITSImage.la liboperaMultiExtensionFITSCube.la liboperaFITSCube.la liboperaMuellerMatrix.la \
 	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectrumSimulation.la liboperaSpectralEnergyDistribution.la \
 	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la \
-	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la
+	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la \
+	libArgumentHandler.la
 
 liboperaInstrumentEnvironmentSetup_la_SOURCES = operaInstrumentEnvironmentSetup.cpp operaInstrumentEnvironmentSetup.h
 liboperaInstrumentEnvironmentSetup_la_LDFLAGS = -version-info 1:0:0
@@ -36,6 +39,7 @@ liboperaObservingConditions_la_LDFLAGS = -version-info 1:0:0
 
 liboperaSpectralTools_la_SOURCES = operaSpectralTools.cpp operaSpectralTools.h
 liboperaSpectralTools_la_LDFLAGS = -version-info 1:0:0
+liboperaSpectralTools_la_LIBADD = liboperaSpectralElements.la
 
 libLaurentPolynomial_la_SOURCES = LaurentPolynomial.cpp LaurentPolynomial.h
 libLaurentPolynomial_la_LDFLAGS = -version-info 1:0:0
@@ -64,9 +68,6 @@ liboperaStokesVector_la_LDFLAGS = -version-info 1:0:0
 liboperaFITSCube_la_SOURCES = operaFITSCube.cpp operaFITSCube.h
 liboperaFITSCube_la_LDFLAGS = -version-info 1:0:0
 
-liboperaWIRCamImage_la_SOURCES = operaWIRCamImage.cpp operaWIRCamImage.h
-liboperaWIRCamImage_la_LDFLAGS = -version-info 1:0:0
-
 liboperaMultiExtensionFITSCube_la_SOURCES = operaMultiExtensionFITSCube.cpp operaMultiExtensionFITSCube.h
 liboperaMultiExtensionFITSCube_la_LDFLAGS = -version-info 1:0:0
 
@@ -75,6 +76,7 @@ liboperaMultiExtensionFITSImage_la_LDFLAGS = -version-info 1:0:0
 
 liboperaPolarimetry_la_SOURCES = operaPolarimetry.cpp operaPolarimetry.h
 liboperaPolarimetry_la_LDFLAGS = -version-info 1:0:0
+liboperaPolarimetry_la_LIBADD = liboperaFluxVector.la
 
 liboperaExtractionAperture_la_SOURCES = operaExtractionAperture.cpp operaExtractionAperture.h
 liboperaExtractionAperture_la_LDFLAGS = -version-info 1:0:0
@@ -161,21 +163,27 @@ liboperaParameterAccess_la_LDFLAGS = -version-info 1:0:0
 
 liboperaSpectralElements_la_SOURCES = operaSpectralElements.cpp operaSpectralElements.h
 liboperaSpectralElements_la_LDFLAGS = -version-info 1:0:0
+liboperaSpectralElements_la_LIBADD = liboperaFluxVector.la liboperaWavelength.la
 
 liboperaGeometry_la_SOURCES = operaGeometry.cpp operaGeometry.h
 liboperaGeometry_la_LDFLAGS = -version-info 1:0:0
 
 liboperaWavelength_la_SOURCES = operaWavelength.cpp operaWavelength.h
 liboperaWavelength_la_LDFLAGS = -version-info 1:0:0
+liboperaWavelength_la_LIBADD = libPolynomial.la libGaussian.la liboperaMath.la
 
 liboperaSpectralOrder_la_SOURCES = operaSpectralOrder.cpp operaSpectralOrder.h
 liboperaSpectralOrder_la_LDFLAGS = -version-info 1:0:0
 
 liboperaInstrumentProfile_la_SOURCES = operaInstrumentProfile.cpp operaInstrumentProfile.h
 liboperaInstrumentProfile_la_LDFLAGS = -version-info 1:0:0
+liboperaInstrumentProfile_la_LIBADD = libPolynomial.la
 
 liboperaSpectralOrderVector_la_SOURCES = operaSpectralOrderVector.cpp operaSpectralOrderVector.h
 liboperaSpectralOrderVector_la_LDFLAGS = -version-info 1:0:0
+
+libArgumentHandler_la_SOURCES = ArgumentHandler.cpp ArgumentHandler.h
+libArgumentHandler_la_LDFLAGS = -version-info 1:0:0
 
 #
 # if we want png plotting support, bring in the freetype includes

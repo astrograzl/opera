@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -66,7 +66,7 @@ using namespace std;
  * \arg argc
  * \arg argv
  * \note --output=...
- * \note --input=...
+ * \note --inputUncalibratedSpectrum=...
  * \throws operaException cfitsio error code
  * \throws operaException operaErrorNoInput
  * \throws operaException operaErrorNoOuput
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 	struct option longopts[] = {
 		{"inputUncalibratedSpectrum",	1, NULL, 'i'},	// .e
         {"object",						1, NULL, 'o'},	// object name
-		{"outputCalibratedSpectrum",	1, NULL, 's'},  // .s
+		{"outputCalibratedSpectrum",	1, NULL, 's'},  // .spc
 		{"spectrumtype",				1, NULL, 'y'},	// spectrum type
 		{"wavelengthCalibration",		1, NULL, 'w'},	// wavelength calibration file (.wcal or .tell)
  		{"radialvelocitycorrection",	1, NULL, 'V'},  // Barycentric wavelength correction file (.rvel)
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 			case 'w':
 				wavelengthCalibration = optarg;
 				break;
-			case 'V':		// for telluric wl correction
+			case 'V':		// for barycentric wl correction
 				radialvelocitycorrection = optarg;
 				break;
             case 'T':
@@ -239,7 +239,6 @@ int main(int argc, char *argv[])
 			case 'I':		// for interactive plots
 				interactive = true;
 				break;
-				
 			case 'p':
 				plot = true;
 				break;
@@ -428,20 +427,20 @@ static void printUsageSyntax(char * modulename) {
 	cout <<
 	"\n"
 	" Usage: "+string(modulename)+"  [-vdth]" + 
-	" --input=<input.e>"
-	" --outputSpectraFile=<FILE_NAME>"	
-	" --spectrumtype=<UNS_VALUE>"
 	"  -i, --inputUncalibratedSpectrum=<FITS_IMAGE>, .e\n"
 	"  -s, --outputCalibratedSpectrum=<FILE_NAME>, Output file name\n"
+	"  -o, --object=<STRING>, Output object name\n"
 	"  -y, --spectrumtype=<UNS_VALUE>, Method for extraction\n"
 	"  -w, --wavelengthCalibration=<FILE_NAME>, wavelength calibration polynomials\n"
 	"  -V, --radialvelocitycorrection=<FILE_NAME>, Barycentric Radial Velocity Correction\n"
+	"  -T, --telluriccorrection=<FILE_NAME>'}, Telluric wavelength correction file (.tell)"
 	"  -N, --normalization=1|0, apply flux normalization\n"
 	"  -b, --normalizationBinsize=<float>,  binsize for normalization\n"
 	"  -B, --orderBin=<int>, number or orders to bin for continuum evaluation\n"
 	"  -A, --AbsoluteCalibration=<bool>, perform absolute flux calibration\n"
-	"  -l, --usePolynomial=1|0, option to use polynomial for normalization\n"
-	"  -r, --orderOfPolynomial=<unsigned>, option to set degree of polynomial for normalization\n"
+ 	"  -m, --inputFlatFluxCalibration=<FILE_NAME>, flat field spectrum ff_"
+    "  -u, --inputWavelengthMaskForUncalContinuum=<FILE_NAME>"
+	"  -l, --numberOfPointsInUniformSample=<int>"
 	"  -h, --help  display help message\n"
 	"  -v, --verbose,  Turn on message sending\n"
 	"  -d, --debug,  Turn on debug messages\n"

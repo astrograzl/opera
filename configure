@@ -8257,6 +8257,10 @@ _lt_linker_boilerplate=`cat conftest.err`
 $RM -r conftest*
 
 
+## CAVEAT EMPTOR:
+## There is no encapsulation within the following macros, do not change
+## the running order or otherwise move them around unless you know exactly
+## what you are doing...
 if test -n "$compiler"; then
 
 lt_prog_compiler_no_builtin_flag=
@@ -15352,7 +15356,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: Configuring files..." >&5
 $as_echo "$as_me: Configuring files..." >&6;}
 
-ac_config_files="$ac_config_files Makefile src/libraries/Makefile test/Makefile scripts/Makefile scripts/espadons/Makefile scripts/wircam/Makefile scripts/guest/Makefile scripts/sitelle/Makefile src/core-espadons/Makefile src/core-wircam/Makefile src/core-guest/Makefile src/analysis-espadons/Makefile src/analysis-wircam/Makefile src/analysis-guest/Makefile src/tools/Makefile"
+ac_config_files="$ac_config_files Makefile src/libraries/Makefile scripts/Makefile scripts/espadons/Makefile scripts/guest/Makefile src/core-espadons/Makefile src/core-guest/Makefile src/analysis-espadons/Makefile src/analysis-guest/Makefile src/tools/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -16479,17 +16483,12 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/libraries/Makefile") CONFIG_FILES="$CONFIG_FILES src/libraries/Makefile" ;;
-    "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "scripts/espadons/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/espadons/Makefile" ;;
-    "scripts/wircam/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/wircam/Makefile" ;;
     "scripts/guest/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/guest/Makefile" ;;
-    "scripts/sitelle/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/sitelle/Makefile" ;;
     "src/core-espadons/Makefile") CONFIG_FILES="$CONFIG_FILES src/core-espadons/Makefile" ;;
-    "src/core-wircam/Makefile") CONFIG_FILES="$CONFIG_FILES src/core-wircam/Makefile" ;;
     "src/core-guest/Makefile") CONFIG_FILES="$CONFIG_FILES src/core-guest/Makefile" ;;
     "src/analysis-espadons/Makefile") CONFIG_FILES="$CONFIG_FILES src/analysis-espadons/Makefile" ;;
-    "src/analysis-wircam/Makefile") CONFIG_FILES="$CONFIG_FILES src/analysis-wircam/Makefile" ;;
     "src/analysis-guest/Makefile") CONFIG_FILES="$CONFIG_FILES src/analysis-guest/Makefile" ;;
     "src/tools/Makefile") CONFIG_FILES="$CONFIG_FILES src/tools/Makefile" ;;
 

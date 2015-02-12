@@ -10,7 +10,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Aug/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -51,13 +51,13 @@ extern "C" {
 #include <math.h>
 
 /*
- * The STATIC inline functions below operates img by a constant  (they overrride original img values)
+ * The static inline functions below operates img by a constant  (they overrride original img values)
  */
-STATIC inline void operaSumImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ += number;}
-STATIC inline void operaSubtractImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ -= number;}
-STATIC inline void operaMultiplyImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ *= number;}
-STATIC inline void operaDivideImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ /= number;}
-STATIC inline void operaImSubtractIm(long npixels, float *img1, float *img2) {while (npixels--) *img1++ -= *img2++;}
+static inline void operaSumImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ += number;}
+static inline void operaSubtractImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ -= number;}
+static inline void operaMultiplyImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ *= number;}
+static inline void operaDivideImbyConstant(long npixels, float *img, float number){while (npixels--) *img++ /= number;}
+static inline void operaImSubtractIm(long npixels, float *img1, float *img2) {while (npixels--) *img1++ -= *img2++;}
 float *medianCombineFloat(unsigned depth, long npixels, float *master, float *arrays[]);
 unsigned short *operaArrayMedianCombineUSHORT(unsigned depth, long npixels, unsigned short *master, unsigned short *arrays[]);
 void operaImMean(unsigned depth, long npixels, float *master, float *arrays[]);	
@@ -69,14 +69,14 @@ float operaCCDVarDiff(unsigned depth, long npixels, float *arrays[], float *weig
 void operaImVarDiff(unsigned depth, long npixels, float *arrays[], float *diffvarimg);
 
 /*! 
- * STATIC inline void operaImMeanQuick(unsigned depth, long npixels, float *master, float *arrays[])
+ * static inline void operaImMeanQuick(unsigned depth, long npixels, float *master, float *arrays[])
  * \brief Mean combine a series of arrays (images) into the master.
  * \param depth is an unsigned that ...
  * \param master is a float pointer that ...
  * \param arrays is a float pointer pointer that ...
  * \return void
  */
-STATIC inline void operaImMeanQuick(unsigned depth, long npixels, float *master, float *arrays[]) 
+static inline void operaImMeanQuick(unsigned depth, long npixels, float *master, float *arrays[]) 
 {
 	long np;
 	for (unsigned d=0; d<depth; d++) {
@@ -94,7 +94,7 @@ STATIC inline void operaImMeanQuick(unsigned depth, long npixels, float *master,
 }	
 
 /*! 
- * STATIC inline void operaImWeightedMeanQuick(unsigned depth, long npixels, float *master, float *arrays[], float *weights[])
+ * static inline void operaImWeightedMeanQuick(unsigned depth, long npixels, float *master, float *arrays[], float *weights[])
  * \brief Mean combine a series of arrays (images) weighted by weights into the master.
  * \param depth is an unsigned that ...
  * \param npixels is a long that ...
@@ -103,7 +103,7 @@ STATIC inline void operaImMeanQuick(unsigned depth, long npixels, float *master,
  * \param weights is a float pointer pointer that ...
  * \return void
  */
-STATIC inline void operaImWeightedMeanQuick(unsigned depth, long npixels, float *master, float *arrays[], float *weights[]) 
+static inline void operaImWeightedMeanQuick(unsigned depth, long npixels, float *master, float *arrays[], float *weights[]) 
 {
 	float *weightsum = (float *)malloc(sizeof(float)*npixels);
 	memset(weightsum, sizeof(float)*npixels, 0);
@@ -132,7 +132,7 @@ STATIC inline void operaImWeightedMeanQuick(unsigned depth, long npixels, float 
 }	
 
 /*! 
- * STATIC inline void operaImSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *master)
+ * static inline void operaImSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *master)
  * \brief Calculate the standard deviation image from a series of images with respect to a master image.
  * \param depth is an unsigned that ...
  * \param npixels is a long that ...
@@ -141,7 +141,7 @@ STATIC inline void operaImWeightedMeanQuick(unsigned depth, long npixels, float 
  * \param master is a float pointer that ...
  * \return void
  */
-STATIC inline void operaImSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *master) 
+static inline void operaImSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *master) 
 {
 	long np;
 	for (unsigned d=0; d<depth; d++) {
@@ -165,7 +165,7 @@ STATIC inline void operaImSigQuick(unsigned depth, long npixels, float *sigarray
 }	
 
 /*! 
- * STATIC inline void operaImWeightedSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *weights[], float *master)
+ * static inline void operaImWeightedSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *weights[], float *master)
  * \brief Calculate the weighted standard deviation image from a series of images with respect to a master image.
  * \param depth is an unsigned that ...
  * \param npixels is a long that ...
@@ -174,7 +174,7 @@ STATIC inline void operaImSigQuick(unsigned depth, long npixels, float *sigarray
  * \param master is a float pointer that ...
  * \return void
  */
-STATIC inline void operaImWeightedSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *weights[], float *master) 
+static inline void operaImWeightedSigQuick(unsigned depth, long npixels, float *sigarray, float *arrays[], float *weights[], float *master) 
 {
 	float *weightsum = (float *)malloc(sizeof(float)*npixels);
 	memset(weightsum, sizeof(float)*npixels, 0);
@@ -209,7 +209,7 @@ STATIC inline void operaImWeightedSigQuick(unsigned depth, long npixels, float *
 }	
 
 /*! 
- * STATIC inline void operaImAvgSigClipQuick(unsigned depth, long npixels, float *master, float *arrays[], unsigned nsig)
+ * static inline void operaImAvgSigClipQuick(unsigned depth, long npixels, float *master, float *arrays[], unsigned nsig)
  * \brief Average sigma clip combine a series of arrays (images) into the master.
  * \param depth is an unsigned that ...
  * \param npixels is a long that ...
@@ -218,7 +218,7 @@ STATIC inline void operaImWeightedSigQuick(unsigned depth, long npixels, float *
  * \param master is a float pointer that ...
  * \return void
  */
-STATIC inline void operaImAvgSigClipQuick(unsigned depth, long npixels, float *master, float *arrays[], unsigned nsig) 
+static inline void operaImAvgSigClipQuick(unsigned depth, long npixels, float *master, float *arrays[], unsigned nsig) 
 {
 	long np;
 	unsigned d;

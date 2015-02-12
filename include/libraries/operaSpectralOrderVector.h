@@ -357,6 +357,9 @@ public:
     void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);
     unsigned getMaxNumberOfElementsInOrder(int Minorder, int Maxorder);
     unsigned getNumberofBeams(int Minorder, int Maxorder);
+    
+    unsigned getSpectrumWithinTelluricMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double *wavelength, double *spectrum, double *variance);
+ 
 };
 
 /*

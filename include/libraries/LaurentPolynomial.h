@@ -283,7 +283,7 @@ public:
  * \note x is a double input value for which the given LaurentPolynomial is evaluated
  * \return double value of evaluation of the LaurentPolynomial
  */
-STATIC inline double EvaluateLaurentPolynomialQuick(const double x, LaurentPolynomial &poly) {
+static inline double EvaluateLaurentPolynomialQuick(const double x, LaurentPolynomial &poly) {
 	double *LaurentPolynomialVector = poly.getVector();
 	double fpoly = LaurentPolynomialVector[0];
 	for (int i=poly.getMinorderOfLaurentPolynomial(); i<=poly.getMaxorderOfLaurentPolynomial(); i++) {

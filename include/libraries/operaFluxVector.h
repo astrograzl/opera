@@ -951,7 +951,7 @@ public:
  * \note Usage: operaFluxVector t = Sqrt( operaFluxVector b );
  * \return An operaFluxVector address
  */
-STATIC inline operaFluxVector& Sqrt(operaFluxVector* b) {
+static inline operaFluxVector& Sqrt(operaFluxVector* b) {
 	operaFluxVector *t = new operaFluxVector(b->getlength(), b->gettowards(), true);
 	unsigned n = b->getlength();
 	double *bfluxes = b->getfluxes();
@@ -973,7 +973,7 @@ STATIC inline operaFluxVector& Sqrt(operaFluxVector* b) {
  * \note Usage: operaFluxVector t = Sqrt( operaFluxVector b );
  * \return An operaFluxVector address
  */
-STATIC inline operaFluxVector& Sqrt(operaFluxVector& b) {
+static inline operaFluxVector& Sqrt(operaFluxVector& b) {
 	operaFluxVector *t = new operaFluxVector(b.getlength(), b.gettowards(), true);
 	unsigned n = b.getlength();
 	double *bfluxes = b.getfluxes();
@@ -996,7 +996,7 @@ STATIC inline operaFluxVector& Sqrt(operaFluxVector& b) {
  * \note Usage: operaFluxVector t = Pow( operaFluxVector b , double d );
  * \return An operaFluxVector address
  */
-STATIC inline operaFluxVector& Pow(operaFluxVector* b, double d) {
+static inline operaFluxVector& Pow(operaFluxVector* b, double d) {
 	operaFluxVector *t = new operaFluxVector(b->getlength(), b->gettowards(), true);
 	unsigned n = b->getlength();
 	double *bfluxes = b->getfluxes();
@@ -1019,7 +1019,7 @@ STATIC inline operaFluxVector& Pow(operaFluxVector* b, double d) {
  * \note Usage: operaFluxVector t = Pow( operaFluxVector b , double d );
  * \return An operaFluxVector address
  */
-STATIC inline operaFluxVector& Pow(operaFluxVector& b, double d) {
+static inline operaFluxVector& Pow(operaFluxVector& b, double d) {
 	operaFluxVector *t = new operaFluxVector(b.getlength(), b.gettowards(), true);
 	unsigned n = b.getlength();
 	double *bfluxes = b.getfluxes();
@@ -1042,7 +1042,7 @@ STATIC inline operaFluxVector& Pow(operaFluxVector& b, double d) {
  * \note This function allocated storage which must be disposed of by the caller.
  * \return pointer to a pair of doubles
  */
-STATIC inline pair<double,double>Sum(operaFluxVector& b) {
+static inline pair<double,double>Sum(operaFluxVector& b) {
 	unsigned n = b.getlength();
 	double sum = 0.0;
 	double var = 0.0;
@@ -1064,7 +1064,7 @@ STATIC inline pair<double,double>Sum(operaFluxVector& b) {
  * \note This function allocated storage which must be disposed of by the caller.
  * \return pointer to a pair of doubles
  */
-STATIC inline pair<double,double>Sum(operaFluxVector* b) {
+static inline pair<double,double>Sum(operaFluxVector* b) {
 	unsigned n = b->getlength();
 	double sum = 0.0;
 	double var = 0.0;
@@ -1086,7 +1086,7 @@ STATIC inline pair<double,double>Sum(operaFluxVector* b) {
  * \note This function allocated storage which must be disposed of by the caller.
  * \return pointer to a pair of doubles
  */
-STATIC inline pair<double,double>Mean(operaFluxVector& b) {
+static inline pair<double,double>Mean(operaFluxVector& b) {
 	unsigned n = b.getlength();
 	double sum = 0.0;
 	double var = 0.0;
@@ -1110,7 +1110,7 @@ STATIC inline pair<double,double>Mean(operaFluxVector& b) {
  * \note This function allocated storage which must be disposed of by the caller.
  * \return pointer to a pair of doubles
  */
-STATIC inline pair<double,double>Mean(operaFluxVector* b) {
+static inline pair<double,double>Mean(operaFluxVector* b) {
 	unsigned n = b->getlength();
 	double sum = 0.0;
 	double var = 0.0;

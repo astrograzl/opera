@@ -7,8 +7,8 @@
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
- Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Date: Jan/2015
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -71,7 +71,6 @@
 #include "libraries/gzstream.h"							// for gzstream - read compressed reference spectra
 
 #define NOTPROVIDED -999
-#define MINELEMENTS 20
 
 /*! \file operaTelluricWavelengthCorrection.cpp */
 
@@ -119,9 +118,11 @@ int main(int argc, char *argv[])
     
 	string inputWaveFile;
     string inputObjectSpectrum;
+    string inputFlatFluxCalibration;
+    
 	string outputWaveFile;
-    string telluric_lines;
-    string telluric_spectrum;
+    string telluric_lines;      // HITRAN Library
+    string telluric_spectrum;   // A telluric spectrum
     /*
      * Parameters for telluric wavelength correction
      */
@@ -133,80 +134,64 @@ int main(int argc, char *argv[])
     int maxorder = 62;
     bool maxorderprovided = false;
     
-    bool interactive = false;
+    bool StarPlusSky = false;
+    /*
+     * The parameters below we don't know yet whether they would be useful if used as input
+     */
+    double spectralResolution = 80000; // Input spectral resolution as reference for line detection.
     
-	//bool debug=false, verbose=false, trace=false;
+    double radialVelocityRange = 10;        // km/s
+    double radialVelocityStep = 0.05;       // km/s
     
+    double XCorrelationThreshold = 0.05;    //
+    unsigned normalizationBinsize = 110;
+
+    bool useFitToFindMaximum = FALSE;  // whether or not fit gauss to xcorr data to find maximum
+
+    string inputWavelengthMaskForTelluric;
+
     bool plot=false;
     
     string xcorrsplotfilename;
     string specplotfilename;
-	
+    
     string xcorrscriptfilename;
     string specscriptfilename;
     
-    string atlasdatafilename;
-	string compdatafilename;
-	string linesdatafilename;
-	string xcorrdatafilename;
+    string specdatafilename;
+    
+    string xcorrdatafilename;
     string xcorrfitdatafilename;
-    
-    bool subtractCentralWavelength = TRUE;
-    
-    bool apply2ndOrderCorrection = FALSE;
-    /*
-     * The parameters below we don't know yet whether they would be useful if used as input
-     */
-    double DetectionThreshold = 0.03;    // threshold to regulate the sensitivity of line detection. Must be between 0 and 1.
-    double LocalMaxFilterWidth = 4.0;    // parameter to set a window filter to guarantee a line is not detected twice. It's in units of line width
-    double MinPeakDepth = 0.1;           // limit that also regulates the sensitity of line detection in units of noise.
-    
-    double spectralResolution = 80000; // Input spectral resolution as reference for line detection
-    
-    double initialWavelengthRange = 0.1;
-    double initialWavelengthStep = 0.0001;
-    double XCorrelationThreshold = 0.05;
-    float sigmaThreshold = 1.0;
-    
-    unsigned normalizationBinsize = 110;
-    
-    
-    /*
-     * halfslitsize below sets a window of valid points.
-     * A gaussian will be fit to points within the window in order to
-     * obtain the maximum cross-correlation.
-     */
-    int halfslitsize = 5;
     
 	struct option longopts[] = {
 		{"inputWaveFile",1, NULL, 'w'},				// input wavelength calibration file (.wcal)
  		{"inputObjectSpectrum",1, NULL, 'i'},		// input object spectrum file (.e or .p)
+        {"inputFlatFluxCalibration",1, NULL, 'm'},  // flat field spectrum ff_
         {"outputWaveFile",1, NULL, 'o'},			// output wavelength calibration file (.auto or .pauto)
-		{"telluric_lines",1, NULL, 'L'},            // atlas of telluric lines
+		{"telluric_lines",1, NULL, 'L'},            // atlas of telluric lines (HITRAN)
 		{"telluric_spectrum",1, NULL, 'T'},         // spectrum of telluric lines
 		{"spectralResolution",1, NULL, 'R'},        // Input spectral resolution (wl/dwl) as reference for line detection
-		{"initialWavelengthRange",1, NULL, 'r'},    // Wavelength shift range (in nm) to scan for first order correction
-		{"initialWavelengthStep",1, NULL, 's'},     // Wavelength step (in nm) to scan for first orer correction
+		{"radialVelocityRange",1, NULL, 'r'},       // radial Velocity Range (in km/s) to scan for first order correction
+		{"radialVelocityStep",1, NULL, 's'},        // radial Velocity Step step (in km/s) to scan for first orer correction
 		{"XCorrelationThreshold",1, NULL, 'x'},     // X-correlation lower threshold to consider a match between telluric and object spectra
-		{"sigmaThreshold",1, NULL, 'g'},            // X-correlation lower threshold in sigma units
-		{"normalizationBinsize",1, NULL, 'b'},      // normalization binsize
-        {"subtractCentralWavelength",1, NULL, 'K'},
+        {"normalizationBinsize",1, NULL, 'b'},      // normalization binsize
+        {"StarPlusSky",1, NULL, 'k'},               // starPlusSky mode
+        {"useFitToFindMaximum",1, NULL, 'f'},       // use fit to find maximum
+        
         {"ordernumber",			1, NULL, 'O'},
 		{"minorder",			1, NULL, 'M'},
-		{"maxorder",			1, NULL, 'X'},
-
+        {"maxorder",			1, NULL, 'X'},
+        {"inputWavelengthMaskForTelluric",			1, NULL, 'A'}, // Telluric wavelength mask
+       
         {"xcorrsplotfilename",1, NULL, 'P'},
         {"specplotfilename",1, NULL, 'Q'},
         {"xcorrscriptfilename",1, NULL, 'S'},
         {"specscriptfilename",1, NULL, 'U'},
-        {"xcorrdatafilename",1, NULL, 'D'},
-        {"xcorrfitdatafilename",1, NULL, 'F'},      
-        {"atlasdatafilename",1, NULL, 'G'},
-        {"compdatafilename",1, NULL, 'H'},
-        {"linesdatafilename",1, NULL, 'J'},
         
-		{"interactive",0, NULL, 'I'},
-		
+        {"xcorrdatafilename",1, NULL, 'D'},
+        {"xcorrfitdatafilename",1, NULL, 'F'},
+        {"specdatafilename",1, NULL, 'G'},
+
 		{"plot",0, NULL, 'p'},
 		{"verbose",0, NULL, 'v'},
 		{"debug",0, NULL, 'd'},
@@ -214,7 +199,7 @@ int main(int argc, char *argv[])
 		{"help",0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "i:w:s:o:O:L:T:R:r:s:x:g:b:M:X:P:Q:D:F:G:H:J:S:U:K:p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "w:i:m:o:L:T:R:r:s:x:b:k:f:O:M:X:A:P:Q:S:U:D:F:G:p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		switch(opt)
@@ -225,6 +210,9 @@ int main(int argc, char *argv[])
 			case 'i':
 				inputObjectSpectrum = optarg;
 				break;
+            case 'm':
+                inputFlatFluxCalibration = optarg;
+                break;
 			case 'o':
 				outputWaveFile = optarg;
 				break;
@@ -238,20 +226,23 @@ int main(int argc, char *argv[])
 				spectralResolution = atof(optarg);
 				break;
 			case 'r':
-				initialWavelengthRange = atof(optarg);
+				radialVelocityRange = atof(optarg);
 				break;
 			case 's':
-				initialWavelengthStep = atof(optarg);
+				radialVelocityStep = atof(optarg);
 				break;
 			case 'x':
 				XCorrelationThreshold = atof(optarg);
 				break;
-			case 'g':
-				sigmaThreshold = atof(optarg);
-				break;
 			case 'b':
 				normalizationBinsize = atoi(optarg);
 				break;
+            case 'k':
+                StarPlusSky = (atoi(optarg)?true:false);
+                break;
+            case 'f':
+                useFitToFindMaximum = (atoi(optarg)?true:false);
+                break;
 			case 'O':
 				ordernumber = atoi(optarg);
 				break;
@@ -263,6 +254,9 @@ int main(int argc, char *argv[])
 				maxorder = atoi(optarg);
                 maxorderprovided = true;
 				break;
+            case 'A':
+                inputWavelengthMaskForTelluric = optarg;
+                break;
             case 'P':
 				xcorrsplotfilename = optarg;
 				plot = 1;
@@ -271,33 +265,21 @@ int main(int argc, char *argv[])
 				specplotfilename = optarg;
 				plot = 1;
 				break;
+            case 'S':
+                xcorrscriptfilename = optarg;
+                break;
+            case 'U':
+                specscriptfilename = optarg;
+                break;
 			case 'D':
 				xcorrdatafilename = optarg;
 				break;
 			case 'F':
 				xcorrfitdatafilename = optarg;
 				break;
-			case 'G':
-				atlasdatafilename = optarg;
-				break;
-			case 'H':
-				compdatafilename = optarg;
-				break;
-			case 'J':
-				linesdatafilename = optarg;
-				break;
-			case 'S':
-				xcorrscriptfilename = optarg;
-				break;
-			case 'U':
-				specscriptfilename = optarg;
-				break;
-			case 'K':
-                subtractCentralWavelength = (atoi(optarg)?true:false);
-				break;                
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
+            case 'G':
+                specdatafilename = optarg;
+                break;
 			case 'p':
 				plot = true;
 				break;
@@ -340,19 +322,26 @@ int main(int argc, char *argv[])
 		if (telluric_lines.empty() && telluric_spectrum.empty()) {
 			throw operaException("operaTelluricWavelengthCorrection: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
+        if (inputWavelengthMaskForTelluric.empty()) {
+            throw operaException("operaTelluricWavelengthCorrection: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+        }
         
 		if (verbose) {
 			cout << "operaTelluricWavelengthCorrection: inputWaveFile = " << inputWaveFile << endl;
             cout << "operaTelluricWavelengthCorrection: inputObjectSpectrum = " << inputObjectSpectrum << endl;
+            cout << "operaTelluricWavelengthCorrection: inputFlatFluxCalibration = " << inputFlatFluxCalibration << endl;
 			cout << "operaTelluricWavelengthCorrection: outputWaveFile = " << outputWaveFile << endl;
 			cout << "operaTelluricWavelengthCorrection: telluric_lines =" << telluric_lines << endl;
 			cout << "operaTelluricWavelengthCorrection: telluric_spectrum =" << telluric_spectrum << endl;
 			cout << "operaTelluricWavelengthCorrection: spectralResolution =" << spectralResolution << endl;
-			cout << "operaTelluricWavelengthCorrection: initialWavelengthRange =" << initialWavelengthRange << endl;
-			cout << "operaTelluricWavelengthCorrection: initialWavelengthStep =" << initialWavelengthStep << endl;
+			cout << "operaTelluricWavelengthCorrection: radialVelocityRange =" << radialVelocityRange << endl;
+			cout << "operaTelluricWavelengthCorrection: radialVelocityStep =" << radialVelocityStep << endl;
 			cout << "operaTelluricWavelengthCorrection: XCorrelationThreshold =" << XCorrelationThreshold << endl;
-			cout << "operaTelluricWavelengthCorrection: sigmaThreshold =" << sigmaThreshold << endl;
-			cout << "operaTelluricWavelengthCorrection: normalizationBinsize =" << normalizationBinsize << endl;
+            cout << "operaTelluricWavelengthCorrection: normalizationBinsize =" << normalizationBinsize << endl;
+            cout << "operaTelluricWavelengthCorrection: StarPlusSky = " << StarPlusSky << endl;
+            cout << "operaTelluricWavelengthCorrection: useFitToFindMaximum = " << useFitToFindMaximum << endl;
+            cout << "operaTelluricWavelengthCorrection: inputWavelengthMaskForTelluric = " << inputWavelengthMaskForTelluric << endl;
+            
             
             if(ordernumber != NOTPROVIDED) {
                 cout << "operaTelluricWavelengthCorrection: ordernumber = " << ordernumber << endl;
@@ -364,36 +353,13 @@ int main(int argc, char *argv[])
                 cout << "operaTelluricWavelengthCorrection: specscriptfilename = " << specscriptfilename << endl;
                 cout << "operaTelluricWavelengthCorrection: xcorrdatafilename = " << xcorrdatafilename << endl;
                 cout << "operaTelluricWavelengthCorrection: xcorrfitdatafilename = " << xcorrfitdatafilename << endl;
-                cout << "operaTelluricWavelengthCorrection: atlasdatafilename = " << atlasdatafilename << endl;
-                cout << "operaTelluricWavelengthCorrection: compdatafilename = " << compdatafilename << endl;
-                cout << "operaTelluricWavelengthCorrection: linesdatafilename = " << linesdatafilename << endl;
-                cout << "operaTelluricWavelengthCorrection: subtractCentralWavelength = " << subtractCentralWavelength << endl;
-                if(interactive) {
-                    cout << "operaTelluricWavelengthCorrection: interactive = YES" << endl;
-                } else {
-                    cout << "operaTelluricWavelengthCorrection: interactive = NO" << endl;
-                }
+                cout << "operaTelluricWavelengthCorrection: specdatafilename = " << specdatafilename << endl;
             }
             
 		}
-		ofstream *fatlasdata = NULL;
-		ofstream *fcompdata = NULL;
-		ofstream *flinesdata = NULL;
 		ofstream *fxcorrdata = NULL;
-		ofstream *fxcorrfitdata = NULL;
-        
-        if (!atlasdatafilename.empty()) {
-            fatlasdata = new ofstream();
-            fatlasdata->open(atlasdatafilename.c_str());
-        }
-        if (!compdatafilename.empty()) {
-            fcompdata = new ofstream();
-            fcompdata->open(compdatafilename.c_str());
-        }
-        if (!linesdatafilename.empty()) {
-            flinesdata = new ofstream();
-            flinesdata->open(linesdatafilename.c_str());
-        }
+        ofstream *fxcorrfitdata = NULL;
+        ofstream *fspecdata = NULL;
         
         if (!xcorrdatafilename.empty()) {
             fxcorrdata = new ofstream();
@@ -403,6 +369,11 @@ int main(int argc, char *argv[])
         if (!xcorrfitdatafilename.empty()) {
             fxcorrfitdata = new ofstream();
             fxcorrfitdata->open(xcorrfitdatafilename.c_str());
+        }
+        
+        if (!specdatafilename.empty()) {
+            fspecdata = new ofstream();
+            fspecdata->open(specdatafilename.c_str());
         }
         
 		operaSpectralOrderVector spectralOrders(inputObjectSpectrum);
@@ -424,417 +395,202 @@ int main(int argc, char *argv[])
         if (verbose)
 			cout << "operaTelluricWavelengthCorrection: minorder ="<< minorder << " maxorder=" << maxorder << endl;
     
-		/*
-		 * Read telluric reference files
-		 */
         
-		/*
-		 * Read Telluric reference spectrum
-		 *		lambda vs. intensity
-		 */
-		if (!telluric_spectrum.empty()) {
-			if (debug) {
-				cout << "operaTelluricWavelengthCorrection: telluric reference spectrum " << telluric_spectrum << endl;
-			}
-            nPointsInTelluricSpectrum = readTelluricSpectrum(telluric_spectrum, telluricSpectrumWavelength, telluricSpectrumIntensity);
+        //---------------------------------
+        // Correct for flat-field
+        if (!inputFlatFluxCalibration.empty()) {
+            bool starplusskyInvertSkyFiber = false;
+            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber);
         }
+        //---------------------------------
+        
+        //---------------------------------
+        // Get object spectrum within wavelength mask input ranges defined in "inputWavelengthMaskForTelluric"
+        double *objectSpectrum = new double[MAXORDERS*MAXSPECTRALELEMENTSPERORDER];
+        double *objectSpectrumVariance = new double[MAXORDERS*MAXSPECTRALELEMENTSPERORDER];
+        double *wavelength = new double [MAXORDERS*MAXSPECTRALELEMENTSPERORDER];
+        
+        unsigned nelem = spectralOrders.getSpectrumWithinTelluricMask(inputWavelengthMaskForTelluric, minorder, maxorder, TRUE, normalizationBinsize, wavelength, objectSpectrum,objectSpectrumVariance);
+
+#ifdef PRINT_DEBUG
+        for(unsigned i=0; i<nelem; i++) {
+            cout << wavelength[i] << " " << objectSpectrum[i] << " " << objectSpectrumVariance[i] << endl;
+        }
+#endif
+        //---------------------------------
+
+        //---------------------------------
+        // Define wavelength full range
+        double wl0 = wavelength[0] - radialVelocityRange*wavelength[0]/SPEED_OF_LIGHT_KMS;
+        double wlf = wavelength[nelem-1] + radialVelocityRange*wavelength[nelem-1]/SPEED_OF_LIGHT_KMS;
+        if(verbose) {
+            cout << "operaTelluricWavelengthCorrection: wl0=" <<  wl0 << " wlf=" << wlf << endl;
+        }
+        //---------------------------------
+
 		/*
 		 * Read telluric lines database
 		 *		lambda vs. intensity
 		 */
-		if (!telluric_lines.empty()) {
-			if (debug) {
-				cout << "operaTelluricWavelengthCorrection: reading telluric lines database " << telluric_lines << endl;
-			}
+        double maxatlasflux = -BIG;
+        if (!telluric_lines.empty()) {
+            if (debug) {
+                cout << "operaTelluricWavelengthCorrection: reading telluric lines database " << telluric_lines << endl;
+            }
             ntelluriclines = readTelluricLines(telluric_lines,telluricMoleculeNumber,telluricLinesWavelength,telluricLinesIntensity);
+#ifdef PRINT_DEBUG
+            for(unsigned line=0;line<ntelluriclines;line++) {
+                cout << line << " " << telluricMoleculeNumber[line] << " " << telluricLinesWavelength[line] << " " << telluricLinesIntensity[line] << endl;
+            }
+#endif
+            //---------------------------------
+            // Find line with maximum absorption for normalization
+            for (unsigned i=0; i<ntelluriclines; i++) {
+                if((1-telluricLinesIntensity[i]) > maxatlasflux)
+                maxatlasflux = (1-telluricLinesIntensity[i]);
+            }
+            //---------------------------------
+        } else {
+            maxatlasflux = 1;
         }
-
-/*
-        for(unsigned line=0;line<ntelluriclines;line++) {
-            cout << line << " " << telluricMoleculeNumber[line] << " " << telluricLinesWavelength[line] << " " << telluricLinesIntensity[line] << endl;
-        }
-*/
         
-		for (unsigned order=(unsigned)minorder; order<=(unsigned)maxorder; order++) {
-            if(debug)
-                cout << "\noperaTelluricWavelengthCorrection: Processing order = " << order << endl;
-            
+        //---------------------------------
+        /* Read telluric reference files
+         *
+         * Read Telluric reference spectrum
+         *		lambda vs. intensity
+         */
+        if (!telluric_spectrum.empty()) {
+            nPointsInTelluricSpectrum = readTelluricSpectrum(telluric_spectrum, telluricSpectrumWavelength, telluricSpectrumIntensity);
+        }
+        //---------------------------------
+        
+        //---------------------------------
+        // Calculate radial velocity shift by cross-correlation:
+        double rvshift = 0;
+        double rvshifterror = 0;
+        double maxcorr = 0;
+        double chisqr = 0;
+        
+        /*
+         * Below is the main function to calculate teh radial velocity correction by cross-correlation
+         * between observed spectrum and telluric reference.
+         */
+        if (verbose) {
+            cout << "operaTelluricWavelengthCorrection: calculating cross-correlation for radialVelocityRange=" << radialVelocityRange << " km/s and radialVelocityStep=" << radialVelocityStep << " km/s" << endl;
+        }
+        
+        bool validXCorrelation = calculateRVShiftByXCorr(nelem, wavelength, objectSpectrum, radialVelocityRange, radialVelocityStep, XCorrelationThreshold, &rvshift, &rvshifterror, &maxcorr, fxcorrdata, fxcorrfitdata, spectralResolution, useFitToFindMaximum, &chisqr);
+
+        if(validXCorrelation) {
+            if (verbose) {
+                cout << "\noperaTelluricWavelengthCorrection: Radial Velocity correction = " << rvshift << " +/- " << rvshifterror << " km/s, maxXCorr=" << maxcorr << ", chisqr=" << chisqr << "\n" << endl;
+            }
+        } else {
+            rvshift = 0;
+            rvshifterror = 0;
+            maxcorr = 0;
+        }
+        //---------------------------------
+        
+        /*
+         * Start loop over all orders to apply telluric wavelength correction
+         */
+        if(verbose) {
+            cout << "operaTelluricWavelengthCorrection: applying correction to all orders ... " << endl;
+        }
+        for (unsigned order=(unsigned)minorder; order<=(unsigned)maxorder; order++) {
+            if(debug) {
+                cout << "operaTelluricWavelengthCorrection: applying correction to order = " << order << endl;
+            }
             operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
             
             if (spectralOrder->gethasWavelength()) {
-                
                 operaWavelength *wavelength =  spectralOrder->getWavelength();
-                Polynomial *wavelengthPolynomial =  wavelength->getWavelengthPolynomial();
+                wavelength->applyRadialVelocityCorrection(rvshift);
                 
-                if (spectralOrder->gethasSpectralElements()) {
-					
-					// DT May 20 2014 don't try to process order if there are not enough spectral elements
-					if (spectralOrder->getSpectralElements()->getnSpectralElements() < MINELEMENTS)
-						continue;
-					
-                    spectralOrder->applyNormalization(normalizationBinsize,0,FALSE,NULL,NULL,TRUE,0);
-                    
-                    if (debug) {
-						cout << "operaTelluricWavelengthCorrection: reading object spectrum " << inputObjectSpectrum << endl;
-					}
-                    
-                    operaSpectralElements *compSpectrum = spectralOrder->getSpectralElements();
-                    compSpectrum->setwavelengthsFromCalibration(wavelength);
-                    operaFluxVector *compfluxvector = compSpectrum->getFluxVector();
-
-#ifdef PRINT_DEBUG
-                    for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-                        cout << compSpectrum->getdistd(i) << " "<< compSpectrum->getwavelength(i) << " " << compfluxvector->getflux(i) << " " << compSpectrum->getXCorrelation(i) << endl;
+                if(fspecdata!=NULL) {
+                    if(spectralOrder->gethasSpectralElements()) {
+                        operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
+                        spectralElements->setwavelengthsFromCalibration(wavelength);
                     }
-#endif
-                    
-                    double wl_central = compSpectrum->getwavelength(compSpectrum->getnSpectralElements()/2);
-                    double wl0 = compSpectrum->getwavelength(0);
-                    double wlf = compSpectrum->getwavelength(compSpectrum->getnSpectralElements()-1);
-                    
-                    if(debug)
-                        cout << "operaTelluricWavelengthCorrection: wavelength range: wl0=" << wl0 << ", wl_central=" << wl_central << ", wlf=" << wlf << endl;
-                    
-                    double linewidth = wl_central/spectralResolution;
-                    
-                    if(debug)
-                        cout << "operaTelluricWavelengthCorrection: linewidth=" << linewidth << " nm" << endl;
- 
-                    operaSpectralLines *compLines = new operaSpectralLines(compSpectrum,linewidth,wavelength_disp);
-                    
-                    double CompLocalMaxFilterWidth = LocalMaxFilterWidth*linewidth;
-					
-                    double meanVariance = 0;
-                    unsigned nvarpoints = 0;
-                    for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-                        if(!isnan(compfluxvector->getvariance(i))) {
-                            meanVariance += compfluxvector->getvariance(i);
-                            nvarpoints++;
-                        }
-                    }
-                    double CompMinPeakDepth = MinPeakDepth*sqrt(meanVariance/(double)nvarpoints);
-					
-                    compLines->detectAbsorptionSpectralFeatures(DetectionThreshold,CompLocalMaxFilterWidth,CompMinPeakDepth);
-                    
-                    if (compLines->getnLines() < 3) {	// changed from == 0 Nov 15 2012, since quicksort is called on data & it crashes with only 1 line, for example
-                        if (verbose)
-							printf("operaTelluricWavelengthCorrection: Warning: order %d: [Object Spectrum] %d lines detected from input object. Skipping calibration.\n", order, compLines->getnLines());
-                        delete(compLines);
-						continue;
-                    } else {
-                        if (debug) {
-                            printf("operaTelluricWavelengthCorrection: order %d: [Object Spectrum] %d lines in object between wl0 = %.2f and wlf = %.2f.\n", order,compLines->getnLines(), wl0, wlf);
-                        }
-                    }                   
-                     /*
-                     * Below it reads wavelength and flux from Telluric reference spectrum
-                     */
-                    if (!telluric_spectrum.empty()) {
-                        if (debug) {
-                            cout << "operaTelluricWavelengthCorrection: calculating first order correction (wlshift) using cross-correlation.." << endl;
-                        }
-
-                        double wlshift = 0;
-                        double maxcorr = 0;
-                        
-                        bool validXCorrelation = calculateWavelengthShiftByXCorr(compSpectrum, initialWavelengthRange, initialWavelengthStep, XCorrelationThreshold, halfslitsize, sigmaThreshold, &wlshift, &maxcorr, fxcorrdata, fxcorrfitdata, order);
-                        
-                        if (!validXCorrelation) {
-                            wlshift = 0;
-                        }
-                        
-                        if(debug)
-                            cout << "operaTelluricWavelengthCorrection: order=" << order << " wlshift=" << wlshift <<  " maxcorr=" << maxcorr << endl;
-                        
-                        double zeroOrderCoeff = wavelengthPolynomial->getCoefficient(0);
-                        wavelengthPolynomial->setCoefficient(0,zeroOrderCoeff+wlshift);
-                        compSpectrum->setwavelengthsFromCalibration(wavelength);
-                        
-                        double wl_central = compSpectrum->getwavelength(compSpectrum->getnSpectralElements()/2);
-                        double wl0 = compSpectrum->getwavelength(0);
-                        double wlf = compSpectrum->getwavelength(compSpectrum->getnSpectralElements()-1);
-                        
-                        if(debug)
-                            cout << "operaTelluricWavelengthCorrection: new wavelength range: wl0=" << wl0 << ", wl_central=" << wl_central << ", wlf=" << wlf << endl;
-                        
-                        double *wl,*transmission;
-                        unsigned npointsInShortTelluricSpectrum = getTelluricSpectrumRange(wl0-fabs(wlf-wl0)/100,wlf+fabs(wlf-wl0)/100,&wl,&transmission);
-                        
-                        if (npointsInShortTelluricSpectrum > 0) {
-                            if(verbose)
-                                cout << "operaTelluricWavelengthCorrection: order=" << order << " validXCorrelation=" << validXCorrelation << " wlshift=" << wlshift  <<  " maxcorr=" << maxcorr << endl;
-                            
-                            if (debug) {
-                                cout << "operaTelluricWavelengthCorrection: calculating second order correction based on telluric lines for order " << order << endl;
-                                cout << "operaTelluricWavelengthCorrection: reading telluric reference spectrum " << telluric_spectrum << endl;
-                            }
-                            
-                            /*
-                             * Below it degrades the resolution of the atlas to the resolution of object spectrum.
-                             * The degradation is done by convolving the spectrum with a gaussian.
-                             */
-                            if (debug) {
-                                cout << "operaTelluricWavelengthCorrection: convolving spectrum with Gaussian.." << endl;
-                            }
-                            double *convolvedTelluricFlux = new double[npointsInShortTelluricSpectrum];
-                            
-                            convolveSpectrumWithGaussian(npointsInShortTelluricSpectrum,wl,transmission,convolvedTelluricFlux,linewidth);
-                            
-#ifdef PRINT_DEBUG
-                            for(unsigned i=0;i<npointsInShortTelluricSpectrum;i++)
-                                cout << "operaTelluricWavelengthCorrection: " << wl[i] << ' ' << transmission[i] << ' ' << convolvedTelluricFlux[i] << endl;
-#endif
-                            
-                            /*
-                             * Below it resamples telluric spectrum.
-                             */
-                            unsigned nTelluricElements = compSpectrum->getnSpectralElements();
-                            double *telluricWavelength = new double[nTelluricElements];
-                            double *telluricFlux = new double[nTelluricElements];
-                            
-                            for (unsigned i=0; i<nTelluricElements; i++) {
-                                telluricWavelength[i] = compSpectrum->getwavelength(i);
-                            }
-                            operaFitSplineDouble(npointsInShortTelluricSpectrum,wl,convolvedTelluricFlux,nTelluricElements,telluricWavelength,telluricFlux);
-                            
-        
-                            if (fatlasdata != NULL) { // for plotting
-                                double maxatlasflux = -BIG;
-                                for (unsigned i=0; i<nTelluricElements; i++) {
-                                    if((1-telluricFlux[i]) > maxatlasflux)
-                                        maxatlasflux = (1-telluricFlux[i]);
-                                }
-                                for (unsigned i=0; i<nTelluricElements; i++) {
-                                    *fatlasdata << order << " " << telluricWavelength[i] << " " << (1 - (1-telluricFlux[i])/maxatlasflux) << " " << wl_central << endl;
-                                }
-                                *fatlasdata << endl;
-                            }
-                            
-                            if (debug) {
-                                cout << "operaTelluricWavelengthCorrection: npointsInShortTelluricSpectrum=" << npointsInShortTelluricSpectrum << endl;
-                            }
-                            
-                            if (apply2ndOrderCorrection) {
-                                
-                                /*
-                                 * Below it calculates the cross-correlation between the telluric spectrum and a gaussian function.
-                                 */
-                                if (debug) {
-                                    cout << "operaTelluricWavelengthCorrection: calculating cross correlation with Gaussian.." << endl;
-                                }
-                                for (unsigned i=0; i<nTelluricElements; i++) {
-                                    telluricFlux[i] = 1 - telluricFlux[i];
-                                }
-                                double *telluricSpectrumXCorr = new double[nTelluricElements];
-                                
-                                calculateXCorrWithGaussian(nTelluricElements,telluricWavelength,telluricFlux,telluricSpectrumXCorr,linewidth);
-                                
-                                /*
-                                 * Below it reads the telluric spectrum into an operaSpectralElements class
-                                 */
-                                if (debug) {
-                                    cout << "operaTelluricWavelengthCorrection: reading telluric spectrum into operaSpectralElement.." << endl;
-                                }
-                                operaSpectralElements *telluricSpectrum = new operaSpectralElements(nTelluricElements);
-                                
-                                for (unsigned i=0; i<nTelluricElements; i++) {
-                                    telluricSpectrum->setXCorrelation(telluricSpectrumXCorr[i], i);
-                                    telluricSpectrum->setwavelength(telluricWavelength[i], i);
-                                    telluricSpectrum->setFlux(telluricFlux[i],i);
-                                    telluricSpectrum->setFluxVariance(0.0001,i);
-                                }
-                                
-                                telluricSpectrum->setHasXCorrelation(true);
-                                telluricSpectrum->setHasWavelength(true);
-                                telluricSpectrum->setHasRawSpectrum(true);
-                                
-                                if(debug) {
-                                    for (unsigned i=0; i<nTelluricElements; i++) {
-                                        cout << telluricSpectrum->getwavelength(i)  << " " << telluricSpectrum->getFlux(i)  << " " << telluricSpectrum->getFluxVariance(i) << " " << telluricSpectrum->getXCorrelation(i)<< " " << compfluxvector->getflux(i) << " " << compSpectrum->getXCorrelation(i) << endl;
-                                    }
-                                }
-                                
-                                /*
-                                 * Below it creates an operaSpectralLines class for the telluric lines
-                                 */
-                                if (debug) {
-                                    cout << "operaTelluricWavelengthCorrection: creating an operaSpectralLines class for the telluric lines.." << endl;
-                                }
-                                operaSpectralLines *telluricLines = new operaSpectralLines(telluricSpectrum, linewidth, wavelength_disp);
-                                
-                                /*
-                                 * Below it sets detection thresholds and run the algorithm to detect spectral lines in the reference telluric spectrum
-                                 */
-                                if (debug) {
-                                    cout << "operaTelluricWavelengthCorrection: setting detection thresholds and running the algorithm to detect spectral lines in the reference telluric spectrum.." << endl;
-                                }
-                                double TelluricLocalMaxFilterWidth = LocalMaxFilterWidth*linewidth;
-                                double TelluricMinPeakDepth = 0.000001;
-                                telluricLines->detectSpectralFeatures(DetectionThreshold,TelluricLocalMaxFilterWidth,TelluricMinPeakDepth);
-                                
-                                /*
-                                 * Below it reads the telluric lines information
-                                 */
-                                if (debug) {
-                                    cout << "operaTelluricWavelengthCorrection: reading the telluric lines information.." << endl;
-                                }
-                                
-                                if (telluricLines->getnLines() < 3) {	// changed from == 0 Nov 15 2012, since quicksort is called on data & it crashes with only 1 line, for example
-									if (verbose)
-										printf("operaTelluricWavelengthCorrection: Warning:  order %d: [Telluric] %d lines detected from input telluric reference. Skipping calibration.\n", order, telluricLines->getnLines());
-                                    delete(telluricLines);
-                                    continue;
-                                } else {
-                                    if (debug) {
-                                        printf("operaTelluricWavelengthCorrection: order %d: [Telluric] %d lines detected in telluric reference within the range wl0=%.2f, wlf=%.2f.\n", order,  telluricLines->getnLines(), wl0, wlf);
-                                    }
-                                }
-                                
-                                /*
-                                 *
-                                 * Here it should be checked the quality of telluric reference.
-                                 * Say we need a minimum number of lines, with good coverage and with good signal.
-                                 * If any of the conditions above fail it must not be a good source for
-                                 * calibration.
-                                 *
-                                 *
-                                 * Mininum number of lines is arbitrary but say a minimum of 50
-                                 *
-                                 */
-                                
-                                unsigned Coeffs = 2;
-                                
-                                Polynomial *wlcorrection = new Polynomial(Coeffs);
-                                
-                                unsigned numberOfMatchedLines = matchTelluricReferencewithObjectLines(1.0,linewidth,telluricLines,compLines,wlcorrection,order,wl_central,flinesdata);
-                                
-                                double *par = (double *)wlcorrection->getVector();
-                                double *parerr = (double *)wlcorrection->getErrorVector();
-                                
-                                double zeroOrderModelVariance = wavelengthPolynomial->getCoefficientError(0)*wavelengthPolynomial->getCoefficientError(0);
-                                
-                                if (verbose) {
-                                    cout << "operaTelluricWavelengthCorrection: order=" << order << ", numberOfMatchedLines=" << numberOfMatchedLines << ", zeroOrderModelVariance=" << zeroOrderModelVariance << ", chisqr=" << wlcorrection->getChisqr() << endl;
-                                }
-                                
-                                /*
-                                 * Apply wavelength correction up to 2nd order
-                                 *
-                                 *   From previous calibration we have: wl = a + b*x + c*x*x + d*x*x*x
-                                 *   The new telluric correction gives: new_wl = u + v*wl
-                                 *
-                                 *   Therefore: new_wl = (u + v*a) + v*b*x + v*c*x*x + v*d*x*x*x
-                                 *
-                                 *   The correction will only be applied if chisqr < variance(wl)
-                                 */
-                                
-                                if(wlcorrection->getChisqr() < zeroOrderModelVariance || zeroOrderModelVariance == 0) {
-                                    unsigned outputNpar = wavelengthPolynomial->getOrderOfPolynomial();
-                                    
-                                    double *newpar = new double[outputNpar];
-                                    double *newparerr = new double[outputNpar];
-                                    
-                                    newpar[0] = par[0] + par[1]*wavelengthPolynomial->getCoefficient(0);
-                                    newparerr[0] = sqrt(parerr[0]*parerr[0] + (wavelengthPolynomial->getCoefficient(0)*parerr[1] + wavelengthPolynomial->getCoefficientError(0)*par[1])*(wavelengthPolynomial->getCoefficient(0)*parerr[1] + wavelengthPolynomial->getCoefficientError(0)*par[1]));
-                                    
-                                    for(unsigned coeff=1;coeff<outputNpar;coeff++) {
-                                        newpar[coeff] = par[1]*wavelengthPolynomial->getCoefficient(coeff);
-                                        newparerr[coeff] = sqrt((wavelengthPolynomial->getCoefficient(coeff)*parerr[1] + wavelengthPolynomial->getCoefficientError(coeff)*par[1])*(wavelengthPolynomial->getCoefficient(coeff)*parerr[1] + wavelengthPolynomial->getCoefficientError(coeff)*par[1]));
-                                    }
-                                    
-                                    // cout << wlcorrection->getChisqr() << " " << zeroOrderModelVariance << " " << zeroOrderCorrectedVariance << endl;
-                                    for(unsigned coeff=0;coeff<outputNpar;coeff++) {
-                                        wavelengthPolynomial->setCoefficient(coeff,newpar[coeff]);
-                                        wavelengthPolynomial->setCoefficientError(coeff, newparerr[coeff]);
-                                    }
-                                    
-                                    delete[] newpar;
-                                    delete[] newparerr;
-                                } else {
-                                    if (verbose) {
-                                        cout << "operaTelluricWavelengthCorrection: no wavelength correction has been applied using telluric lines." << endl;
-                                    }
-                                }
-                                
-
-                                delete[] telluricSpectrumXCorr;
-                                delete(telluricLines);
-                                delete(wlcorrection);
-                            }
-                            
-                            delete[] convolvedTelluricFlux;
-                            delete[] telluricWavelength;
-                            delete[] telluricFlux;
-                            
-                        } else {
-                            if(verbose)
-                                cout << "operaTelluricWavelengthCorrection: order=" << order << " no points in the telluric spectrum." << endl;
-                        }
-                        
-                        if (fcompdata != NULL){ // for plotting
-                            for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-                                double dist = compSpectrum->getdistd(i);
-                                double lambda = compSpectrum->getwavelength(i);
-                                double flux = compSpectrum->getFlux(i);
-                                *fcompdata << order << " " << dist << " " << lambda << " " << flux << " " << wl_central << endl;
-                            }
-                            *fcompdata << endl;
-                        }
-                        
-                    } else {
-                        if(verbose)
-                            cout << "operaTelluricWavelengthCorrection: order=" << order << " empty input telluric spectrum. Skipping calibration." << endl;
-                        continue;
-                    } // if (!telluric_spectrum.empty())
-					//delete(compLines);
-                } else {
-                    if(verbose)
-                        cout << "operaTelluricWavelengthCorrection: order=" << order << " no spectral elements in input spectrum. Skipping calibration." << endl;
-                    continue;
-                } // if (spectralOrder->gethasSpectralElements())
-            
-                if(debug) {
-                    cout << "operaTelluricWavelengthCorrection: corrected wavelength solution for order " << order << endl;
-                    cout << "operaTelluricWavelengthCorrection: ";
-                    wavelengthPolynomial->printEquation(&cout);
-                    cout << endl;
                 }
             } else {
-                if(verbose)
+                if(debug)
                     cout << "operaTelluricWavelengthCorrection: order=" << order << " no wavelength calibration for order " << order << endl;
                 continue;
             } // if (spectralOrder->gethasWavelength())
  		}
 
-		// output a new wavelength calibration file
-		spectralOrders.WriteSpectralOrders(outputWaveFile, Wave);
+        // output a new wavelength calibration file
+        spectralOrders.WriteSpectralOrders(outputWaveFile, Wave);
+        
+        
+        if(fspecdata!=NULL) {
+            /*
+             * Generate telluric synthetic spectrum using both HITRAN lines and input telluric spectrum:
+             */
+            //---------------------------------
+            // First use hitran lines to generate synthetic spectrum
+            double *hitranTelluricSpectrum = new double[nelem];
+            if (!telluric_lines.empty()) {
+                generateSyntheticTelluricSpectrumUsingGaussianProfile(nelem,wavelength,hitranTelluricSpectrum,spectralResolution);
+            }
+            //---------------------------------
+            
+            //---------------------------------
+            // Then read telluric spectrum from input spectrum file.
+            double *KPNOTelluricSpectrum = new double[nelem];
+            if (!telluric_spectrum.empty()) {
+                double *wl,*transmission_p;
+                unsigned npointsInShortTelluricSpectrum = getTelluricSpectrumRange(wl0,wlf,&wl,&transmission_p);
+                double *transmission = new double [npointsInShortTelluricSpectrum];
+                // Normalize telluric reference
+                for (unsigned i=0; i<npointsInShortTelluricSpectrum; i++) {
+                    transmission[i]= 1 - (1-transmission_p[i])/maxatlasflux;
+                }
+                // Spline to match same sampling as in observed spectrum
+                operaFitSplineDouble(npointsInShortTelluricSpectrum,wl,transmission,nelem,wavelength,KPNOTelluricSpectrum);
+            }
+            //---------------------------------
+            
+            //---------------------------------
+            // Print spectral data to file
+            for(unsigned i=0; i<nelem; i++) {
+                *fspecdata << wavelength[i] << " " << objectSpectrum[i] << " " << hitranTelluricSpectrum[i] << " " << KPNOTelluricSpectrum[i] << endl;
+            }
+            //---------------------------------
+        }
+        
         
         /*
-         * Telluric wavelength correction orders info plot: 
+         * Telluric wavelength correction orders info plot:
          */
         if (fxcorrdata != NULL && fxcorrfitdata != NULL) {
             fxcorrdata->close();
             fxcorrfitdata->close();
             if (!xcorrscriptfilename.empty()) {
-                GenerateTelluricXCorrelationPlot(xcorrscriptfilename, xcorrsplotfilename, xcorrdatafilename, xcorrfitdatafilename, interactive);
+                GenerateTelluricXCorrelationPlot(xcorrscriptfilename, xcorrsplotfilename, xcorrdatafilename, xcorrfitdatafilename);
             }
         }
         
         /*
-         * Telluric wavelength correction plot: plot atlas and comparison spectra and final set of matched lines.
+         * Spectrum plot: plot observed and reference telluric spectra.
          */
-
-        if (fatlasdata != NULL && fcompdata != NULL && flinesdata != NULL) {
-            fatlasdata->close();
-            fcompdata->close();
-            flinesdata->close();
+        
+        if (fspecdata != NULL) {
+            fspecdata->close();
             
             if (!specscriptfilename.empty()) {
-                GenerateTelluricSpecPlot(specscriptfilename, specplotfilename, atlasdatafilename, compdatafilename, linesdatafilename, subtractCentralWavelength, interactive, apply2ndOrderCorrection);
+                GenerateTelluricSpecPlot(specscriptfilename, specplotfilename, specdatafilename);
             }
         }
-        
-	}
+
+        //delete[] objectSpectrum;
+        //delete[] wavelength;
+        //delete[] objectSpectrumVariance;
+
+    }
 	catch (operaException e) {
 		cerr << "operaTelluricWavelengthCorrection: " << e.getFormattedMessage() << endl;
 		return EXIT_FAILURE;
@@ -849,7 +605,7 @@ int main(int argc, char *argv[])
 /*
  * Generate multiple plot containing statistical info about telluric wavelength correction
  */
-void GenerateTelluricXCorrelationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, string cleanDataFileName, bool display)
+void GenerateTelluricXCorrelationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, string cleanDataFileName)
 {
     ofstream *fgnu = NULL;
     
@@ -862,42 +618,32 @@ void GenerateTelluricXCorrelationPlot(string gnuScriptFileName, string outputPlo
     }
     *fgnu << "reset" << endl;
 
-    *fgnu << "\nset xlabel \"{/Symbol Dl} (nm)\"" << endl;
-    *fgnu << "set ylabel \"order number + cross-correlation\"" << endl;
+    *fgnu << "\nset xlabel \"Radial Velocity (km/s)\"" << endl;
+    *fgnu << "set ylabel \"cross-correlation\"" << endl;
     *fgnu << "set pointsize 1.5" << endl;
 
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        *fgnu << "\nset terminal postscript enhanced mono solid lw 1.5 \"Helvetica\" 14" << endl;
         *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         *fgnu << endl;
         
-        *fgnu << "plot \"" << dataFileName << "\" u 3:($1+$5) t \"gaussian fit\" w l lt 3 lw 2, ";
-        *fgnu << "\"" << dataFileName << "\" u 3:($1+$6) t \"XCorr data\" w p pt 6, ";
-        *fgnu << "\"" << dataFileName << "\" u 3:($1+$7) t \"SigmaThreshold\" w l, ";
-        *fgnu << "\"" << dataFileName << "\" u 3:($1+$8) t \"XCorrThreshold\" w l, ";
-        *fgnu << "\"" << cleanDataFileName << "\" u 3:($1+$6) t \"fit data\" w p pt 7" << endl;
+        *fgnu << "plot \"" << dataFileName << "\" u 1:2 t \"gaussian fit\" w l lt 3 lw 2, ";
+        *fgnu << "\"" << dataFileName << "\" u 1:3:4 t \"XCorr data\" w yerr pt 6, ";
+        *fgnu << "\"" << cleanDataFileName << "\" u 1:4:2:5 t \"fit data\" w xyerr pt 7" << endl;
         
-        if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
-        } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
-        }
+        *fgnu << "\n#set terminal x11" << endl;
+        *fgnu << "#set output" << endl;
+        *fgnu << "#replot" << endl;
     } else {
         *fgnu << endl;
         
-        *fgnu << "plot \"" << dataFileName << "\" u 3:($1+$5) t \"gaussian fit\" w l lt 3 lw 2, ";
-        *fgnu << "\"" << dataFileName << "\" u 3:($1+$6) t \"XCorr data\" w p pt 6, ";
-        *fgnu << "\"" << dataFileName << "\" u 3:($1+$7) t \"SigmaThreshold\" w l, ";
-        *fgnu << "\"" << dataFileName << "\" u 3:($1+$8) t \"XCorrThreshold\" w l, ";
-        *fgnu << "\"" << cleanDataFileName << "\" u 3:($1+$6) t \"fit data\" w p pt 7" << endl;
+        *fgnu << "plot \"" << dataFileName << "\" u 1:2 t \"gaussian fit\" w l lt 3 lw 2, ";
+        *fgnu << "\"" << dataFileName << "\" u 1:3:4 t \"XCorr data\" w yerr pt 6, ";
+        *fgnu << "\"" << cleanDataFileName << "\" u 1:4:2:5 t \"fit data\" w xyerr pt 7" << endl;
         
         *fgnu << endl;
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        *fgnu << "\n#set terminal postscript enhanced mono solid lw 1.5 \"Helvetica\" 14" << endl;
         *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
         *fgnu << "#replot" << endl;
         *fgnu << "#set terminal x11" << endl;
@@ -906,19 +652,16 @@ void GenerateTelluricXCorrelationPlot(string gnuScriptFileName, string outputPlo
     
     fgnu->close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }
+
+    if(!outputPlotEPSFileName.empty())
+        systemf("gnuplot %s",gnuScriptFileName.c_str());
 }
 
 
 /*
  * Generate 2D plot for spectra of atlas + comparison + identified lines
  */
-void GenerateTelluricSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string atlasdatafilename, string compdatafilename, string linesdatafilename, bool subtractCentralWavelength, bool display, bool apply2ndOrderCorrection) {
+void GenerateTelluricSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string specdatafilename) {
     
     ofstream *fgnu = NULL;
     
@@ -931,66 +674,30 @@ void GenerateTelluricSpecPlot(string gnuScriptFileName, string outputPlotEPSFile
     }
     
     *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    if(subtractCentralWavelength) {
-        *fgnu << "\nset xlabel \"{/Symbol l} - {/Symbol l}_c (nm)\"" << endl;
-    } else {
-        *fgnu << "\nset xlabel \"{/Symbol l} (nm)\"" << endl;
-    }
-    *fgnu << "set ylabel \"order number + norm flux\"" << endl;
+    *fgnu << "#unset key" << endl;
+
+    *fgnu << "\nset xlabel \"{/Symbol l} (nm)\"" << endl;
+
+    *fgnu << "set ylabel \"norm flux\"" << endl;
     
     if(!outputPlotEPSFileName.empty()) {
         *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
         *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         *fgnu << endl;
         
-        if(subtractCentralWavelength) {
-            *fgnu << "plot \"" << atlasdatafilename << "\" u ($2-$4):($1 + $3) w l lt 4, ";
-            *fgnu << "\"" << compdatafilename << "\" u ($3-$5):($1 + $4) w l lt 3";
-            if(apply2ndOrderCorrection) {
-                *fgnu << ",\"" << linesdatafilename << "\" u ($3-$6):($1 + $4):5 w xerr pt 7 lw 2 lt 1" << endl;
-            } else {
-                *fgnu << endl;
-            }
-        } else {
-            *fgnu << "plot \"" << atlasdatafilename << "\" u 2:($1 + $3) w l lt 4, ";
-            *fgnu << "\"" << compdatafilename << "\" u 3:($1 + $4) w l lt 3";
-            if(apply2ndOrderCorrection) {
-                *fgnu << ",\"" << linesdatafilename << "\" u 3:($1 + $4):5 w xerr pt 7 lw 2 lt 1" << endl;
-            } else {
-                *fgnu << endl;
-            }
-        }
+        *fgnu << "plot \"" << specdatafilename << "\" u 1:2 t \"Object Spectrum\" w l lt 4, ";
+        *fgnu << "\"" << specdatafilename << "\" u 1:3 t \"Telluric Reference (HITRAN)\" w l lt 3";
+        *fgnu << endl;
         
-        if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
-        } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
-        }
+        *fgnu << "\n#set terminal x11" << endl;
+        *fgnu << "#set output" << endl;
+        *fgnu << "#replot" << endl;
     } else {
         *fgnu << endl;
         
-        if(subtractCentralWavelength) {
-            *fgnu << "plot \"" << atlasdatafilename << "\" u ($2-$4):($1 + $3) w l lt 4, ";
-            *fgnu << "\"" << compdatafilename << "\" u ($3-$5):($1 + $4) w l lt 3";
-            if(apply2ndOrderCorrection) {
-                *fgnu << ",\"" << linesdatafilename << "\" u ($3-$6):($1 + $4):5 w xerr pt 7 lw 2 lt 1" << endl;
-            } else {
-                *fgnu << endl;
-            }
-        } else {
-            *fgnu << "plot \"" << atlasdatafilename << "\" u 2:($1 + $3) w l lt 4, ";
-            *fgnu << "\"" << compdatafilename << "\" u 3:($1 + $4) w l lt 3";
-            if(apply2ndOrderCorrection) {
-                *fgnu << ",\"" << linesdatafilename << "\" u 3:($1 + $4):5 w xerr pt 7 lw 2 lt 1" << endl;
-            } else {
-                *fgnu << endl;
-            }
-        }
+        *fgnu << "plot \"" << specdatafilename << "\" u 1:2 t \"Object Spectrum\" w l lt 4, ";
+        *fgnu << "\"" << specdatafilename << "\" u 1:3 t \"Telluric Reference (HITRAN)\" w l lt 3";
+        *fgnu << endl;
         *fgnu << endl;
         
         *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
@@ -1002,12 +709,8 @@ void GenerateTelluricSpecPlot(string gnuScriptFileName, string outputPlotEPSFile
     
     fgnu->close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }    
+    if(!outputPlotEPSFileName.empty())
+        systemf("gnuplot %s",gnuScriptFileName.c_str());
 }
 
 
@@ -1022,11 +725,12 @@ static void printUsageSyntax(char * modulename) {
 	" --telluric_lines=<LINES_FILE>"
 	" --telluric_spectrum=<SPECTRUM_FILE>"
 	" --spectralResolution=<DBL_VALUE>"
-	" --initialWavelengthRange=<DBL_VALUE>"
-	" --initialWavelengthStep=<DBL_VALUE>"
+	" --radialVelocityRange=<DBL_VALUE>"
+	" --radialVelocityStep=<DBL_VALUE>"
 	" --XCorrelationThreshold=<DBL_VALUE>"
-	" --sigmaThreshold=<FLT_VALUE>"
-	" --normalizationBinsize=<UNS_VALUE>"
+    " --normalizationBinsize=<UNS_VALUE>"
+    " --StarPlusSky=<BOOL>"
+    " --useFitToFindMaximum=<BOOL>"
     " --ordernumber=<INT_VALUE"
 	" --minorder=<INT_VALUE>"
 	" --maxorder=<INT_VALUE>"
@@ -1036,12 +740,8 @@ static void printUsageSyntax(char * modulename) {
     " --specscriptfilename=<GNUPLOT_FILE>"
     " --xcorrdatafilename=<DATA_FILE>"
     " --xcorrfitdatafilename=<DATA_FILE>"
-    " --atlasdatafilename=<DATA_FILE>"
-    " --compdatafilename=<DATA_FILE>"
-    " --linesdatafilename=<DATA_FILE>"
-    " --subtractCentralWavelength=<BOOL>"
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputObjectSpectrum=/Users/edermartioli//opera//spectra/51Peg-12BQ10-Dec01/1599045i.e.gz --inputWaveFile=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/OLAPAa_pol_Normal.wcal.gz --telluric_lines=/Users/edermartioli/opera-1.0//config/opera_HITRAN08-extracted.par.gz --telluric_spectrum=/Users/edermartioli/opera-1.0//config/KPNO_atmtrans.dat.gz --spectralResolution=80000 --initialWavelengthRange=0.1 --initialWavelengthStep=0.002 --XCorrelationThreshold=0.1 --sigmaThreshold=1.25 --normalizationBinsize=110 --xcorrdatafilename=1599045itellxcorr.pdat --xcorrfitdatafilename=1599045itellxcorrfit.pdat --atlasdatafilename=1599045itellatlas.pdat --compdatafilename=1599045itellcomp.pdat --linesdatafilename=1599045itelllines.pdat --specscriptfilename=1599045itell.gnu --xcorrscriptfilename=1599045itellxcorr.gnu --subtractCentralWavelength=1 --outputWaveFile=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/1599045i.tell.gz -v \n\n"
+    " --specdatafilename=<DATA_FILE>\n\n"
+	" Example: "+string(modulename)+" --inputObjectSpectrum= ... -v \n\n"
 	"  -h, --help  display help message\n"
 	"  -v, --verbose,  Turn on message sending\n"
 	"  -d, --debug,  Turn on debug messages\n"
@@ -1052,25 +752,22 @@ static void printUsageSyntax(char * modulename) {
 	"  -L, --telluric_lines=<LINES_FILE>, Atlas of telluric lines \n"
 	"  -T, --telluric_spectrum=<SPECTRUM_FILE>, Spectrum of telluric lines\n"
 	"  -R, --spectralResolution=<DBL_VALUE>, Input spectral resolution (wl/dwl) as reference for line detection\n"
-	"  -r, --initialWavelengthRange=<DBL_VALUE>, Wavelength shift range (in nm) to scan for first order correction\n"
-	"  -s, --initialWavelengthStep=<DBL_VALUE>, Wavelength step (in nm) to scan for first orer correction\n"
+	"  -r, --radialVelocityRange=<DBL_VALUE>, Radial velocity range (in nm) to scan for first order correction\n"
+	"  -s, --radialVelocityStep=<DBL_VALUE>, Radial velocity step (in nm) to scan for first orer correction\n"
 	"  -x, --XCorrelationThreshold=<DBL_VALUE>, X-correlation lower threshold to consider a match between telluric and object spectra\n"
-	"  -g, --sigmaThreshold=<FLT_VALUE>, X-correlation lower threshold based on the dispersion of xcorrelation data\n"
-	"  -b, --normalizationBinsize=<UNS_VALUE>, Binsize to normalize input object spectrum \n"
+    "  -b, --normalizationBinsize=<UNS_VALUE>, Binsize to normalize input object spectrum \n"
+    "  -k, --StarPlusSky=<BOOL>, Star plus sky mode \n"
+    "  -f, --useFitToFindMaximum=<BOOL>, Use gaussian fit to find maximum xcorr and corresponding RV \n"
     "  -O, --ordernumber=<INT_VALUE>, Absolute order number to extract (default=all)\n"
 	"  -N, --minorder=<INT_VALUE>, Define minimum order number\n"
 	"  -X, --maxorder=<INT_VALUE>, Define maximum order number\n"
+    "  -S, --xcorrscriptfilename=<GNUPLOT_FILE>\n"
+    "  -U, --specscriptfilename=<GNUPLOT_FILE>\n"
 	"  -P, --xcorrsplotfilename=<EPS_FILE>\n"
 	"  -Q, --specplotfilename=<EPS_FILE>\n"
 	"  -D, --xcorrdatafilename=<DATA_FILE>\n"
-	"  -F, --xcorrfitdatafilename=<DATA_FILE>\n"
-	"  -G, --atlasdatafilename=<DATA_FILE>\n"
-	"  -H, --compdatafilename=<DATA_FILE>\n"
-	"  -J, --linesdatafilename=<DATA_FILE>\n"
-	"  -S, --xcorrscriptfilename=<GNUPLOT_FILE>\n"
-	"  -U, --specscriptfilename=<GNUPLOT_FILE>\n"
-	"  -K, --subtractCentralWavelength=<BOOL>,Choose to subtract order central wavelength for plot\n"
-	"  -I, --interactive=<BOOL>\n\n";
+    "  -F, --xcorrfitdatafilename=<DATA_FILE>\n"
+    "  -G, --specdatafilename=<DATA_FILE>\n\n";
 }
 
 /*
@@ -1182,7 +879,7 @@ void generateSyntheticTelluricSpectrumUsingGaussianProfile(unsigned np, double *
     double *wl, *intensity;
     
     for(unsigned i=0;i<np;i++) {
-        double gaussianWidth = wavelengthVector[i]/resolution;
+        double gaussianWidth = (wavelengthVector[i]/resolution);
 
         unsigned nlinesInRange = getTelluricLinesRange(wavelengthVector[i] - 5*gaussianWidth,wavelengthVector[i] + 5*gaussianWidth,&wl,&intensity);
         
@@ -1420,223 +1117,128 @@ unsigned matchTelluricReferencewithObjectLines(double acceptableMismatch,double 
     return nmatch;
 }
 
-bool calculateWavelengthShiftByXCorr(operaSpectralElements *compSpectrum, double DWavelengthRange, double DWavelengthStep, double threshold, int halfslitsize, float nsigcut, double *maxDWavelength, double *maxcorr, ostream *fxcorrdata, ostream *fxcorrfitdata, unsigned order) {
+
+bool calculateRVShiftByXCorr(unsigned nelem, double *wavelength, double *objectSpectrum, double radialVelocityRange, double radialVelocityStep, double threshold, double *maxRV, double *sigRV, double *maxcorr, ostream *fxcorrdata, ostream *fxcorrfitdata, double spectralResolution, bool useFitToFindMaximum, double *chisqr) {
     
     bool status = true;
     
-    operaFluxVector *compfluxvector = compSpectrum->getFluxVector();
+    double *telluricWavelength = new double[nelem];
+    double *telluricSpectrum = new double[nelem];
     
-    double *objectSpectrum = new double[compSpectrum->getnSpectralElements()];
-    for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-        objectSpectrum[i] = compfluxvector->getflux(i);
-    }
+    unsigned nDataPoints = (unsigned)ceil(radialVelocityRange/radialVelocityStep);
     
-    double *telluricWavelength = new double[compSpectrum->getnSpectralElements()];
-    double *telluricSpectrum = new double[compSpectrum->getnSpectralElements()];
-//    double *hitranTelluricSpectrum = new double[compSpectrum->getnSpectralElements()];
-    
-    double firstDWavelength = -DWavelengthRange/2;
-    //double lastDWavelength = +DWavelengthRange/2;
-    
-    double wl0 = compSpectrum->getwavelength(0)*(1 - DWavelengthRange);
-    double wlf = compSpectrum->getwavelength(compSpectrum->getnSpectralElements()-1)*(1 + DWavelengthRange);
-    double wl_central = compSpectrum->getwavelength(compSpectrum->getnSpectralElements()/2);
+    double firstRV = -radialVelocityRange/2.0;
 
-    double *wl,*transmission_p;
-    unsigned npointsInShortTelluricSpectrum = getTelluricSpectrumRange(wl0,wlf,&wl,&transmission_p);
-
-    double *transmission = new double [npointsInShortTelluricSpectrum];
-
-    /*
-     * Normalize telluric reference
-     */
-    double maxatlasflux = -BIG;
-    for (unsigned i=0; i<npointsInShortTelluricSpectrum; i++) {
-        if((1-transmission_p[i]) > maxatlasflux)
-            maxatlasflux = (1-transmission_p[i]);
-    }
-    for (unsigned i=0; i<npointsInShortTelluricSpectrum; i++) {
-       transmission[i]= 1 - (1-transmission_p[i])/maxatlasflux;
-    }
+    double deltaRV = firstRV;
     
-    unsigned nDataPoints = (unsigned)ceil(DWavelengthRange/DWavelengthStep);
-    
-    double DWavelength = firstDWavelength;
     unsigned jmax = 0;
     *maxcorr = -BIG;
-    *maxDWavelength = 0;
-	
-	if (npointsInShortTelluricSpectrum == 0) {
-		*maxcorr = NAN;
-		*maxDWavelength = NAN;
-		return false;
-	}
+    *maxRV = 0;
     
-    float *crosscorrelation = new float [nDataPoints];
-    float *dwl = new float [nDataPoints];
-    float *dRV = new float [nDataPoints];
-
+    double *crosscorrelation = new double [nDataPoints];
+    double *crosscorrerror = new double [nDataPoints];
+    double *dRV = new double [nDataPoints];
+    double xcorrerror = 2e-04;
+    
     for(unsigned j=0; j<nDataPoints;j++) {
-        for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-            telluricWavelength[i] = compSpectrum->getwavelength(i) + DWavelength;
+        
+        for (unsigned i=0; i<nelem; i++) {
+            double DWavelength = deltaRV * wavelength[i] / SPEED_OF_LIGHT_KMS;
+            telluricWavelength[i] = wavelength[i] + DWavelength;
         }
         
-        operaFitSplineDouble(npointsInShortTelluricSpectrum,wl,transmission,compSpectrum->getnSpectralElements(),telluricWavelength,telluricSpectrum);
+        //operaFitSplineDouble(nelem,telluricWavelength,telluricSpectrum,nelem,wavelength,telluricNewSpectrum);
         
-        crosscorrelation[j] = (float)(operaCrossCorrelation(compSpectrum->getnSpectralElements(),objectSpectrum,telluricSpectrum));
-        dwl[j] = (float)DWavelength;
-        dRV[j] = (float)(DWavelength/wl_central)*SPEED_OF_LIGHT_M*(1e-3);
+        generateSyntheticTelluricSpectrumUsingGaussianProfile(nelem,telluricWavelength,telluricSpectrum,spectralResolution);
         
-        //     generateSyntheticTelluricSpectrumUsingGaussianProfile(compSpectrum->getnSpectralElements(),telluricWavelength,hitranTelluricSpectrum,80000);
-        //     double crosscorrelation = operaCrossCorrelation(compSpectrum->getnSpectralElements(),objectSpectrum,hitranTelluricSpectrum);
+        crosscorrelation[j] = operaCrossCorrelation(nelem,objectSpectrum,telluricSpectrum);
+        crosscorrerror[j] = xcorrerror;
+        dRV[j] = deltaRV;
         
-        if((double)(crosscorrelation[j]) > *maxcorr && (double)(crosscorrelation[j]) > threshold) {
-            *maxcorr = (double)(crosscorrelation[j]);
-            *maxDWavelength = DWavelength;
+        if(debug) {
+            cout << dRV[j] << " " << crosscorrelation[j] << endl;
+        }
+        // Test (I) :
+        if(crosscorrelation[j] > *maxcorr && crosscorrelation[j] > threshold) {
+            *maxcorr = crosscorrelation[j];
+            *maxRV = deltaRV;
+            *sigRV = radialVelocityStep;
             jmax = j;
         }
         
-        DWavelength+=DWavelengthStep;
+        deltaRV+=radialVelocityStep;
     }
-    if (*maxDWavelength == firstDWavelength) {
-		*maxcorr = NAN;
-		*maxDWavelength = NAN;
+    
+    if (*maxRV == firstRV) {
+        *maxcorr = 0;
+        *maxRV = 0;
+        *sigRV = 0;
+        *chisqr = 0;
         status = false;
-	}
-    if(debug)
-        cout << "calculateWavelengthShiftByXCorr: status=" << status << " order=" << order << " wlshift=" << *maxDWavelength  <<  " maxcorr=" << *maxcorr << endl;
-
-    /*
-     * Two tests will be performed:
-     *  I) Whether it is an isolated maximum point, i.e. three points before and three points after all must be lower than max
-     *
-     *  II) Whether it's a significant maximum, i.e. maxcorrelation > median + 3*sigma
-     */
+    }
     
-    halfslitsize = 5;
-    
-    double *peakXdata = new double[2*halfslitsize+2];
-    double *peakYdata = new double[2*halfslitsize+2];
-    unsigned np = 0;
-    // Test (I)
-    
-    if((int)jmax - halfslitsize < 0 || jmax + halfslitsize >= nDataPoints) {
-        *maxcorr = NAN;
-		*maxDWavelength = NAN;
-        status = false;
-    } else {
-        float goingup = -BIG;
-        for(unsigned j=jmax-halfslitsize;j<jmax;j++) {
-            peakXdata[np] = (double)dwl[j];
-            peakYdata[np] = (double)crosscorrelation[j];
-            np++;
-            if(crosscorrelation[j] > goingup) {
-                goingup = crosscorrelation[j];
-            } else {
-                *maxcorr = NAN;
-                *maxDWavelength = NAN;
-                np=0;
-                status = false;
-                break;
-            }
-        }
-  
-        peakXdata[np] = (double)dwl[jmax];
-        peakYdata[np] = (double)crosscorrelation[jmax];
-        np++;
+    if(useFitToFindMaximum && status == TRUE) {
         
-        float goingdown = BIG;
-        for(unsigned j=jmax+1;j<=jmax+halfslitsize;j++) {
-            peakXdata[np] = (double)dwl[j];
-            peakYdata[np] = (double)crosscorrelation[j];
-            np++;
-            if(crosscorrelation[j] < goingdown) {
-                goingdown = crosscorrelation[j];
-            } else {
-                *maxcorr = NAN;
-                *maxDWavelength = NAN;
-                np=0;
-                status = false;
-                break;
-            }
-        }
-    }
-    if(debug)
-        cout << "calculateWavelengthShiftByXCorr: Test I status=" << status << endl;
-
-    // Test (II)
-    
-    float medianXcorr = operaArrayMedian(nDataPoints,crosscorrelation);
-    float medsigXcorr = operaArrayMedianSigma(nDataPoints,crosscorrelation,medianXcorr);
-    
-    if(debug)
-        cout << "calculateWavelengthShiftByXCorr:maxcorr=" << crosscorrelation[jmax] << "  medianXcorr=" << medianXcorr << "  medsigXcorr=" << medsigXcorr << "  median+n*sig=" << medianXcorr + nsigcut*medsigXcorr << endl;
-
-    if(crosscorrelation[jmax] < medianXcorr + nsigcut*medsigXcorr) {
-        *maxcorr = NAN;
-        *maxDWavelength = NAN;
-        status = false;
-    }
-    
-    if(debug)
-        cout << "calculateWavelengthShiftByXCorr: Test II status=" << status << endl;
-
-    if(status==true) {
         double a=(double)crosscorrelation[jmax];
-        double x0=(double)dwl[jmax];
-        double sig=(double)(fabs(dwl[jmax+halfslitsize/2]-dwl[jmax-halfslitsize/2]))/2.0;
-        double chisqr;
+        double x0=(double)dRV[jmax];
+        double sig=(double)radialVelocityRange/4;
+        double ea;
+        double ex0;
+        double esig;
+        double fitchisqr;
         
-        operaLMFitGaussian(np, peakXdata, peakYdata, &a, &x0, &sig, &chisqr);
+        //            operaLMFitGaussian(np, peakXdata, peakYdata, &a, &x0, &sig, &chisqr);
+        operaMPFitGaussian(nDataPoints, dRV, crosscorrelation, crosscorrerror, &a, &ea, &x0, &ex0, &sig, &esig, &fitchisqr);
+        
+        if(debug) {
+            cout << a << "+/-" << ea << endl;
+            cout << x0 << "+/-" << ex0 << endl;
+            cout << sig << "+/-" << esig <<  " fitchisqr=" << fitchisqr << endl;
+        }
+        
+        // Below is for plotting
+        if(fxcorrdata != NULL) {
+            for(unsigned j=0; j<nDataPoints;j++) {
+                double x = (double)dRV[j];
+                double gaussfunc = a*exp(-(x-x0)*(x-x0)/(2*sig*sig));
+                
+                *fxcorrdata << dRV[j] << " " <<  gaussfunc << " " <<  crosscorrelation[j] << " " <<  crosscorrerror[j] << " " << crosscorrelation[j] - gaussfunc << endl;
+            }
+            *fxcorrdata << endl;
+        }
+        // Below is for plotting
+        if(fxcorrfitdata != NULL) {
+            *fxcorrfitdata  << x0 << " " << ex0 << " " <<  a << " " <<  *maxcorr  <<  " " <<  crosscorrerror[jmax]  << " " << *maxcorr - a << endl;
+        }
+
         *maxcorr = a;
-        *maxDWavelength = x0;
+        *maxRV = x0;
+        *sigRV = ex0;
+        *chisqr = fitchisqr;
+        
+    } else if (!useFitToFindMaximum && status == TRUE) {
+
+        // Below is for plotting
+        if(fxcorrdata != NULL) {
+            for(unsigned j=0; j<nDataPoints;j++) {
+                *fxcorrdata  << dRV[j] << " " <<  crosscorrelation[j] << " " <<  crosscorrelation[j] <<  " " <<  crosscorrerror[j] << " " <<  0.0  << endl;
+            }
+            *fxcorrdata << endl;
+        }
         
         // Below is for plotting
         if(fxcorrfitdata != NULL) {
-            for(unsigned j=0; j<np;j++) {
-                double x = (double)peakXdata[j];
-                double rv = (double)(peakXdata[j]/wl_central)*SPEED_OF_LIGHT_M*(1e-3);
-                double gaussfunc = a*exp(-(x-x0)*(x-x0)/(2*sig*sig));
-                *fxcorrfitdata <<  order  << " " << wl_central << " " << x << " " << rv << " " <<  gaussfunc << " " <<  peakYdata[j] << " " << medianXcorr + nsigcut*medsigXcorr <<  " " << threshold << endl;
-            }
-            *fxcorrfitdata << endl;
+            *fxcorrfitdata  << *maxRV << " " <<  *sigRV << " " << *maxcorr << " " <<  *maxcorr  <<  " " <<  crosscorrerror[jmax] <<  " " << 0.0 << endl;
         }
-        
-        // Below is for plotting
-        if(fxcorrdata != NULL) {
-            for(unsigned j=0; j<nDataPoints;j++) {
-                double x = (double)dwl[j];
-                double gaussfunc = a*exp(-(x-x0)*(x-x0)/(2*sig*sig));
-                
-                *fxcorrdata <<  order  << " " << wl_central << " " << dwl[j] << " " << dRV[j] << " " <<  gaussfunc << " " <<  crosscorrelation[j] << " " << medianXcorr + nsigcut*medsigXcorr << " " << threshold <<  endl;
-            }
-            *fxcorrdata << endl;
-        }
-    } else {
-        // Below is for plotting
-        if(fxcorrdata != NULL) {
-            for(unsigned j=0; j<nDataPoints;j++) {
-                *fxcorrdata <<  order  << " " << wl_central << " " << dwl[j] << " " << dRV[j] << " " <<  0.0 << " " <<  crosscorrelation[j] << " " << medianXcorr + nsigcut*medsigXcorr << " " << threshold << endl;
-            }
-            *fxcorrdata << endl;
-        }
+         *chisqr = 0;
     }
-
-    delete[] peakXdata;
-    delete[] peakYdata;
     
     delete[] crosscorrelation;
-    delete[] dwl;
+    delete[] crosscorrerror;
     delete[] dRV;
     
-    delete[] objectSpectrum;
     delete[] telluricWavelength;
     delete[] telluricSpectrum;
-    //    delete[] hitranTelluricSpectrum;
-
-    delete[] transmission;
-        
-	return status;
+    
+    return status;
 }
-
-

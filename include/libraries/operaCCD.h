@@ -61,19 +61,19 @@ extern "C" {
 #endif
 	
 	/* prototypes for gain calculations*/
-void operaMaskPixbyCountRange(unsigned npixels, float *array, float *badpixmask, float *newmask, float minvalue, float maxvalue, unsigned char invert);
-void operaMarkPixbyCountRange(unsigned npixels, float *array, float *previousmarks, float *newmarks, float minvalue, float maxvalue, float index2mark);
-void operaCCDGainNoise(unsigned npixels, unsigned nbias, float *biasdata[], unsigned nflat, float *flatdata[], float *badpixdata, float lowcount, float highcount, float maxbins, float minnpixelsperbin, float *gain, float *gainerror, float *bias, float *noise);
+    void operaMaskPixbyCountRange(unsigned npixels, float *array, float *badpixmask, float *newmask, float minvalue, float maxvalue, unsigned char invert);
+    void operaMarkPixbyCountRange(unsigned npixels, float *array, float *previousmarks, float *newmarks, float minvalue, float maxvalue, float index2mark);
+    void operaCCDGainNoise(unsigned npixels, unsigned nbias, float *biasdata[], unsigned nflat, float *flatdata[], float *badpixdata, float lowcount, float highcount, float maxbins, float minnpixelsperbin, float *gain, float *gainerror, float *bias, float *noise);
 
-/* prototypes for geometry/findorders calculations*/
-unsigned operaCCDDetectPeaksWithErrorsUsingIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float gain, float threshold,float *xmean, float *ymean, float *xmeanerr);
-	unsigned operaCCDDetectPeaksWithErrorsUsingGaussian(unsigned np, float *x,float *y,float sigma, float noise, float gain, float threshold,float *xmean, float *ymean, float *xmeanerr);
-	unsigned operaCCDDetectPeaksWithErrorsUsingGaussianDouble(unsigned np, double *x,double *y,double sigma, double noise, double gain, double threshold,double *xmean, double *ymean, double *xmeanerr);
-unsigned operaCCDDetectPeaksWithErrorsUsingTopHat(unsigned np, float *x,float *y,unsigned width, float noise, float gain, float threshold,float *xmean, float *ymean, float *xmeanerr);
+    /* prototypes for geometry/findorders calculations*/
+    unsigned operaCCDDetectPeaksWithErrorsUsingIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float gain, float threshold,float *xmean, float *ymean, float *xmeanerr);
+    unsigned operaCCDDetectPeaksWithErrorsUsingGaussian(unsigned np, float *x,float *y,float sigma, float noise, float gain, float threshold,float *xmean, float *ymean, float *xmeanerr);
+    unsigned operaCCDDetectPeaksWithErrorsUsingGaussianDouble(unsigned np, double *x,double *y,double sigma, double noise, double gain, double threshold,double *xmean, double *ymean, double *xmeanerr);
+    unsigned operaCCDDetectPeaksWithErrorsUsingTopHat(unsigned np, float *x,float *y,unsigned width, float noise, float gain, float threshold,float *xmean, float *ymean, float *xmeanerr);
 
-unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float threshold,float *xmean, float *ymean);
-unsigned operaCCDDetectPeaksWithGaussian(unsigned np, float *x,float *y,float sigma, float noise, float threshold,float *xmean, float *ymean);
-unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned width, float noise, float threshold,float *xmean, float *ymean);
+    unsigned operaCCDDetectPeaksWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float gain, float threshold,float *xmean, float *ymean);
+    unsigned operaCCDDetectPeaksWithGaussian(unsigned np, float *x,float *y,float sigma, float noise, float gain, float threshold,float *xmean, float *ymean);
+    unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned width, float noise, float gain, float threshold,float *xmean, float *ymean);
 
     int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,int AbsPrevOrdNumber,float x0prev);
     
@@ -83,9 +83,9 @@ unsigned operaCCDDetectPeaksWithTopHat(unsigned np, float *x,float *y,unsigned w
 
     void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean, float *ymean, float *ipfunc, float *ipx,float *iperr, unsigned slit);
 
-void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *myerr, unsigned nlines, float *xlines, float *ylines, float *medianWidth);
+    void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *myerr, unsigned nlines, float *xlines, float *ylines, float *medianWidth);
     
-    unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float threshold,float *xmean, float *ymean);
+    unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float gain, float threshold,float *xmean, float *ymean);
     
     int operaCCDDetectMissingOrdersNew(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,unsigned minordertouse,float minorderx0, unsigned maxorders);
 

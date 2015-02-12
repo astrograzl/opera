@@ -12,7 +12,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -359,7 +359,7 @@ static string operaStrError(const operaErrorCode errcode) {
  * \param errcode is an operaErrorCode
  * \return void
  */
-STATIC inline void operaPError(string prefix, const operaErrorCode errcode) {
+static inline void operaPError(string prefix, const operaErrorCode errcode) {
 	cerr << prefix << ": " << operaStrError(errcode) << '\n';
 }
 
@@ -566,7 +566,7 @@ static char *operaStrError(const operaErrorCode errcode) {
  * \param errcode is an operaErrorCode
  * \return void
  */
-STATIC inline void operaPError(const char *prefix, const operaErrorCode errcode) {
+static inline void operaPError(const char *prefix, const operaErrorCode errcode) {
 	if (prefix == NULL) {
 		fprintf(stderr, "%s\n", operaStrError(errcode));
 	} else {
