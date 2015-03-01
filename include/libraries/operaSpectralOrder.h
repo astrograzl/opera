@@ -281,9 +281,7 @@ public:
 	
     void measureInstrumentProfileAlongRows(operaFITSImage &masterFlatImage, unsigned binsize, unsigned sampleElementForPlot, ostream *pout);
 	
-    void measureInstrumentProfileAlongRowsInto2DWithGaussian(operaFITSImage &masterFlatImage, operaFITSImage &badpix, unsigned binsize, float gaussSig, float tiltInDegrees, bool witherrors, unsigned sampleElementForPlot, ostream *pout);
-	
-    void measureInstrumentProfileAlongRowsInto2DWithGaussian(operaFITSImage &masterFlatImage, unsigned binsize,float gaussSig, float tiltInDegrees, ostream *pout);
+    void measureInstrumentProfileAlongRowsInto2DWithGaussian(operaFITSImage &masterFlatImage, operaFITSImage &badpix, unsigned binsize, float gaussSig, float tiltInDegrees, bool witherrors, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
 	
 	void CalculateWavelengthSolution(void);
 	
@@ -295,13 +293,13 @@ public:
 	
     void setSpectralLines(operaFITSImage &masterCompImage, operaFITSImage &badpix, operaFITSImage &bias, float noise, float gain, float ReferenceLineWidth,float DetectionThreshold, float LocalMaxFilterWidth, float MinPeakDepth);        
 	
-    void measureInstrumentProfile(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout);
+    void measureInstrumentProfile(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
 	
-    void measureInstrumentProfileWithBinning(operaFITSImage &masterCompImage, operaFITSImage &badpix, double binsize, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout);
+    void measureInstrumentProfileWithBinning(operaFITSImage &masterCompImage, operaFITSImage &badpix, double binsize, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
     
-    void measureInstrumentProfileUsingMedian(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout);
+    void measureInstrumentProfileUsingMedian(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
     
-    void measureInstrumentProfileUsingWeightedMean(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout);
+    void measureInstrumentProfileUsingWeightedMean(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
     
     void recenterOrderPosition(void);
     

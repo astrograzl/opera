@@ -41,6 +41,8 @@
 
 #define NEWLINES_BETWEEN_ORDERS false
 
+#define MAXNUMBEROFPOINTSINFLATRESPONSE 1000
+
 using namespace std;
 
 /*! 
@@ -355,11 +357,14 @@ public:
     void saveExtendedRawFlux(int Minorder, int Maxorder);
     void normalizeFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams);
     void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);
+    void normalizeAndApplyFlatResponseINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, string flatResponse, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);
     unsigned getMaxNumberOfElementsInOrder(int Minorder, int Maxorder);
     unsigned getNumberofBeams(int Minorder, int Maxorder);
     
     unsigned getSpectrumWithinTelluricMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double *wavelength, double *spectrum, double *variance);
- 
+    void calculateRawFluxQuantities(int Minorder, int Maxorder, double *integratedFlux, double *meanFlux, double *maxSNR, double *meanSNR);
+    void readLibreEspritFlatResponseIntoSED(string filename,int Minorder, int Maxorder);
+
 };
 
 /*

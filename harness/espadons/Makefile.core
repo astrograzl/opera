@@ -258,7 +258,7 @@ endif
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
 --beam=$(spectradir)$*.e$(gzip) \
---centralsnr=1 \
+--centralsnr \
 --polar=$${polar} \
 --gain=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
 --geom=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
@@ -468,6 +468,7 @@ $${pargs} \
 $${tell} \
 $${rvel} \
 $${fcal} \
+--flatResponse=$(configdir)$(extractor_FlatResponse) \
 --numberOfPointsInUniformSample=$(extractor_numberOfPointsInUniformSample) \
 --normalizationBinsize=$(extractor_normalizationBinsize) \
 --AbsoluteCalibration=$(extractor_AbsoluteCalibration) \
@@ -491,6 +492,8 @@ $${pargs} \
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting extended polar spectrum generation for $@ $(QUALIFIERS)" ; \
+		etime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			pargs="--plotfilename=$(visualsdir)$*p.eps --datafilename=$(byproductsdir)$*p.sdat --scriptfilename=$(byproductsdir)$*p.gnu" ; \
 		fi ; \
@@ -525,6 +528,7 @@ $${pargs} \
 --wavelengthCalibration=$${wavelengthCalibration} \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
 --fluxCalibration=$${fluxCalibration} \
+--flatResponse=$(configdir)$(extractor_FlatResponse) \
 --etime=$${etime} \
 $${tell} \
 $${rvel} \
@@ -615,13 +619,13 @@ $${pargs} \
 	fi
 
 #########################################################################################
-# Barycentric Radial Velocity Correction
+# Heliocentric Radial Velocity Correction
 # The .rvel file has the same format as the .wcal
 #########################################################################################
 %i.rvel$(gzip):
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
-		echo "$(pref) Barycentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
+		echo "$(pref) Heliocentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		MJDATE=`$(bindir)operagetheader --keyword=MJDATE $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		absra_center=`$(bindir)operagetheader --keyword=RA_DEG $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		absdec_center=`$(bindir)operagetheader --keyword=DEC_DEG $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
@@ -629,15 +633,19 @@ $${pargs} \
 		instzdec=`$(bindir)operagetheader --keyword=INSTZDEC $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		absra_center=`echo $${absra_center} $${instzra} | awk '{printf("%f", $$1-$$2/3600.0)}'` ; \
 		absdec_center=`echo $${absdec_center} $${instzdec} | awk '{printf("%f", $$1+$$2/3600.0)}'` ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaBarycentricWavelengthCorrection \
+		startha=`$(bindir)operagetheader --keyword=HA $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		exposure=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaHeliocentricWavelengthCorrection \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
 --observatory_coords=\"$(observatory_coords)\" \
 --object_coords=\"$${absra_center} $${absdec_center}\" \
 --observatory_elevation=$(observatory_elevation) \
 --MJDTime=$${MJDATE} \
+--ha_start=$${startha} \
+--etime=$${exposure} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
-	fi
+fi
 
 #########################################################################################
 # odometer-based flux calibration

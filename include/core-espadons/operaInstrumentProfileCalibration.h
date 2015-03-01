@@ -45,6 +45,4 @@
 
 void GenerateInstrumentProfile3DPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, unsigned minorderWithIP, unsigned maxorderWithIP, unsigned IPxsize, unsigned IPysize, bool display);
 
-static void printUsageSyntax(char *prgname);
-
 #endif

@@ -98,6 +98,19 @@ void normalizeSpectrum(unsigned nLines, double *lineflux, double *linevariance);
  */
 void convolveSpectrumWithGaussian(unsigned np, double *wavelength, double *flux, double *convolvedSpectrum, double sigma);
 
+
+/*
+ * convolveSpectrumWithGaussianByResolution(unsigned np, double *wavelength, double *flux, double *convolvedSpectrum, double spectralResolution)
+ * \brief This function calculates the convolution between an input spectrum and a gaussian function using the spectral Resolution to calculate line width
+ * \param unsigned np
+ * \param double *wavelength
+ * \param double *flux
+ * \param return double *convolvedSpectrum
+ * \param double spectralResolution
+ * \return void
+ */
+void convolveSpectrumWithGaussianByResolution(unsigned np, double *wavelength, double *flux, double *convolvedSpectrum, double spectralResolution);
+
 /*
  * double convertVacuumToAirWavelength(double vac_wl)
  * \brief This function converts from vacuum to air wavelength using the IAU standard for conversion

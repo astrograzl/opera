@@ -187,8 +187,8 @@ snr:
 	if [[ ! -e $(spectradir)$@ ]] ; then \
 		echo "$(pref) Starting quicklook SNR creation for $(FILE) $*q.sn $(QUALIFIERS)" ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaSNR \
---input=$(spectradir)$*.q$(gzip) \
---wavelengthCalibration=$(configdir)wcal_ref.dat$(gzip) \
+--input=$(spectradir)$*.q$(extension) \
+--wavelengthCalibration=$(configdir)wcal_ref.dat$(extension) \
 --spectrumtype=$(OperaSNR) \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
@@ -206,12 +206,12 @@ snr:
 		echo "$(pref) Starting quicklook spectrum generation for $@ $(FILE)" ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaExtractRawSum \
 --inputImage=$(DATADIR)/$(FILE)$(inextension) \
---inputGeometryFile=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
---inputgain=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
+--inputGeometryFile=$(calibrationdir)$(QUALIFIERS).geom$(extension) \
+--inputgain=$(calibrationdir)$(QUALIFIERS).gain$(extension) \
 --inputBiasFile=$(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) \
 --spectralElementHeight=$(spectralElementHeight) \
 --aperture=$(apernapertureWidth) \
---wave=$(configdir)wcal_ref.dat$(gzip) \
+--wave=$(configdir)wcal_ref.dat$(extension) \
 --outputSpectraFile=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) quicklook spectrum $@ created in $(deltat)" ; \
 	fi
@@ -225,16 +225,20 @@ snr:
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Basic Intensity product creation in $@ $(QUALIFIERS)" ; \
+		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
+			rvel="$(calibrationdir)$*i.rvel$(extension)" ; \
+		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
---iu=$(spectradir)$*iu.s$(gzip) \
---in=$(spectradir)$*in.s$(gzip) \
---iuw=$(spectradir)$*iuw.s$(gzip) \
---inw=$(spectradir)$*inw.s$(gzip) \
---snr=$(spectradir)$*i.sn$(gzip) \
+--ufile=$(spectradir)$*iu.s$(extension) \
+--nfile=$(spectradir)$*in.s$(extension) \
+--uwfile=$(spectradir)$*iuw.s$(extension) \
+--nwfile=$(spectradir)$*inw.s$(extension) \
+--snr=$(spectradir)$*i.sn$(extension) \
+--rvel=$${rvel} \
 --version=\"$(versionstr)\" \
 --date=\"$(shell date)\" \
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
---centralsnr=1 \
+--centralsnr \
 --compressiontype=$(compressiontype) \
 --input=$(DATADIR)/$*o.$(FITS)$(inextension) \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
@@ -256,15 +260,15 @@ endif
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Polarimetry product creation in $@ $(QUALIFIERS)" ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
---pu=$(spectradir)$*pu.s$(gzip) \
---pn=$(spectradir)$*pn.s$(gzip) \
---puw=$(spectradir)$*puw.s$(gzip) \
---pnw=$(spectradir)$*pnw.s$(gzip) \
+--ufile=$(spectradir)$*pu.s$(extension) \
+--nfile=$(spectradir)$*pn.s$(extension) \
+--uwfile=$(spectradir)$*puw.s$(extension) \
+--nwfile=$(spectradir)$*pnw.s$(extension) \
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
 --version=\"$(versionstr)\" \
 --date=\"$(shell date)\" \
 --compressiontype=$(compressiontype) \
---centralsnr=1 \
+--centralsnr \
 --input=$(DATADIR)/$*o.$(FITS)$(inextension) \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if  (( $(TRACE) != 1 )) ; then echo "$(pref) fits `$(bindir)operafitsverify $(VERBOSE) $(spectradir)$@`"; fi; \
@@ -284,8 +288,8 @@ endif
 		echo "$(pref) Starting LE SNR creation for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaSNR \
---input=$(spectradir)$*.e$(gzip) \
---wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
+--input=$(spectradir)$*.e$(extension) \
+--wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(extension) \
 --object=\"$${object}\" \
 --centralsnr=$(centralsnr) \
 --spectrumtype=$(LibreEspritSNR) \
@@ -306,7 +310,7 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -334,7 +338,7 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
@@ -362,7 +366,7 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -390,7 +394,7 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
@@ -414,7 +418,7 @@ endif
 		echo "$(pref) Starting Un-normalized polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -438,7 +442,7 @@ endif
 		echo "$(pref) Starting Un-normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -463,7 +467,7 @@ endif
 		echo "$(pref) Starting Normalized polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
@@ -487,7 +491,7 @@ endif
 		echo "$(pref) Starting Normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
@@ -595,49 +599,49 @@ distributelog:
 						fi ; \
 					done ; \
 					echo "$(pref) Step 4 -- distributing the processed calibration data for $$r." ; \
-					list=`ls $(calibrationdir)*.gain$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.gain$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
-					list=`ls $(calibrationdir)*.tell$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.tell$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
-					list=`ls $(calibrationdir)*.rvel$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.rvel$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
-					list=`ls $(calibrationdir)*.aper$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.aper$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
-					list=`ls $(calibrationdir)*.geom$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.geom$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
-					list=`ls $(calibrationdir)*.prof$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.prof$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
-					list=`ls $(calibrationdir)*.disp$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.disp$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
 						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
 					done ; \
-					list=`ls $(calibrationdir)*.wcal$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.wcal$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(processeddir)$$r/$$f; \
 						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \

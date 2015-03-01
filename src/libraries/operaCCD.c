@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: opera@cfht.hawaii.edu
+ Contact: teeple@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -1426,78 +1426,69 @@ unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigne
 	
     unsigned firstj, lastj;
     
+    unsigned halfnip = (unsigned)floor(nip/2);
+    
     for(i=0;i<np;i++) {
         
-        if(i<nip/2) {
-            firstj = 0;
-            lastj = nip;
-        } else if (i-nip/2+nip >np) {
-            firstj = i-nip;
-            lastj = np;
-        } else {
-            firstj = i-nip/2;
+        if( i>=halfnip || i < np-halfnip) {
+
+            firstj = i-halfnip;
             lastj = firstj+nip;
+            
+            intflux=0;
+            
+            unsigned k=0;
+            my[i] = 0;
+            for(j=firstj;j<lastj;j++) {
+                datatmp[k] = y[j];
+                intflux += y[j];
+                my[i] += y[j]*ipfunc[k];
+                k++;
+            }
+            
+            stdev[i] = operaArraySigma(nip,datatmp);
+            
+            mx[i]=0;
+            for(j=firstj;j<lastj;j++) {
+                mx[i] += x[j]*y[j]/intflux;
+            }
+            
+            xcorr[i] = operaCrossCorrelation_f(nip,ipfunc,datatmp);
+            
+            // printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\n",i,x[i],y[i],mx[i],my[i],stdev[i],xcorr[i]);
+        } else {
+            xcorr[i] = 0.0;
         }
-        
-        intflux=0;
-		
-        unsigned k=0;
-        my[i] = 0;
-        for(j=firstj;j<lastj;j++) {
-            datatmp[k] = y[j];
-            intflux += y[j];
-            my[i] += y[j]*ipfunc[k];
-            k++;
-        }
-		
-        stdev[i] = operaArraySigma(nip,datatmp);
-		
-        mx[i]=0;
-        for(j=firstj;j<lastj;j++) {
-			mx[i] += x[j]*y[j]/intflux;
-		}
-		
-        xcorr[i] = operaCrossCorrelation_f(nip,ipfunc,datatmp);
-        
-		// printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\n",i,x[i],y[i],mx[i],my[i],stdev[i],xcorr[i]);
     }
 	
     for(i=0;i<np;i++) {
-        
-        if(i<nip) {
-            firstj = 0;
-            lastj = i+nip;
-        } else if (i > np - nip) {
-            firstj = i-nip;
-            lastj = np;
-        } else {
+        if( i>=nip || i < np-nip) {
+            
             firstj = i-2*nip/3;
             lastj = firstj+2*2*nip/3;
-        }
-        
-        
-        float locmax = -BIG;
-        unsigned jmax = np+1;
-        for(j=firstj;j<lastj;j++) {
-            if(xcorr[j] > locmax) {
-                locmax = xcorr[j];
-                jmax = j;
+            
+            float locmax = -BIG;
+            unsigned jmax = np+1;
+            for(j=firstj;j<lastj;j++) {
+                if(xcorr[j] > locmax) {
+                    locmax = xcorr[j];
+                    jmax = j;
+                }
+            }
+            
+            if(jmax==i && xcorr[i]>threshold && stdev[i] > noise/gain) {
+                if(nords > MAXORDERS) { // run out of memory
+                    return nords;
+                }
+                xmean[nords] = mx[i];
+                ymean[nords] = my[i];
+                //printf("%d\t%lf\t%lf\n",i,xmean[nords],ymean[nords]);
+                nords++;
             }
         }
-        
-        if(jmax==i && xcorr[i]>threshold && stdev[i] > noise/gain) {
-            if(nords > MAXORDERS) { // run out of memory
-				return nords;  
-            }
-            xmean[nords] = mx[i];
-            ymean[nords] = my[i];
-            //printf("%d\t%lf\t%lf\n",i,xmean[nords],ymean[nords]);
-            nords++;
-        }
-        
         //printf("%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",i,x[i],y[i],mx[i],my[i],stdev[i]);
     }
-	
+    
 	return nords;
 }
 

@@ -206,12 +206,12 @@ snr:
 		echo "$(pref) Starting quicklook spectrum generation for $@ $(FILE)" ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaExtractRawSum \
 --inputImage=$(DATADIR)/$(FILE)$(inextension) \
---inputGeometryFile=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
---inputgain=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
+--inputGeometryFile=$(calibrationdir)$(QUALIFIERS).geom$(extension) \
+--inputgain=$(calibrationdir)$(QUALIFIERS).gain$(extension) \
 --inputBiasFile=$(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) \
 --spectralElementHeight=$(spectralElementHeight) \
 --aperture=$(apernapertureWidth) \
---wave=$(configdir)wcal_ref.dat$(gzip) \
+--wave=$(configdir)wcal_ref.dat$(extension) \
 --outputSpectraFile=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) quicklook spectrum $@ created in $(deltat)" ; \
 	fi
@@ -221,20 +221,20 @@ snr:
 # removed --parameters=$(tmpdir)$*i.parm
 # removed -- 		$(ECHO) $(MAKE) -f $(makedir)Makefile parameters DETECTOR=$(DETECTOR) MODE=$(MODE) OSET=$(OSET) SPEED=$(SPEED) AMPLIFIER=$(AMPLIFIER) --no-print-directory >$(tmpdir)$*i.parm; \
 #########################################################################################
-%i.$(FITS)$(extension): %i.sn$(gzip)
+%i.$(FITS)$(extension): %i.sn$(extension)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Basic Intensity product creation in $@ $(QUALIFIERS)" ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
---iu=$(spectradir)$*iu.s$(gzip) \
---in=$(spectradir)$*in.s$(gzip) \
---iuw=$(spectradir)$*iuw.s$(gzip) \
---inw=$(spectradir)$*inw.s$(gzip) \
---snr=$(spectradir)$*i.sn$(gzip) \
+--ufile=$(spectradir)$*iu.s$(extension) \
+--nfile=$(spectradir)$*in.s$(extension) \
+--uwfile=$(spectradir)$*iuw.s$(extension) \
+--nwfile=$(spectradir)$*inw.s$(extension) \
+--snr=$(spectradir)$*i.sn$(extension) \
 --version=\"$(versionstr)\" \
 --date=\"$(shell date)\" \
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
---centralsnr=1 \
+--centralsnr \
 --compressiontype=$(compressiontype) \
 --input=$(DATADIR)/$*o.$(FITS)$(inextension) \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
@@ -248,18 +248,18 @@ snr:
 # removed -- 		$(ECHO) $(MAKE) -f $(makedir)Makefile parameters --no-print-directory >$(tmpdir)$*p.parm; \
 #########################################################################################
 ifeq ($(TYPE),setup)
-%p.$(FITS)$(extension): %pn.s$(gzip)
+%p.$(FITS)$(extension): %pn.s$(extension)
 else
-%p.$(FITS)$(extension): %pn.s$(gzip) %pu.s$(gzip) %pnw.s$(gzip) %puw.s$(gzip)
+%p.$(FITS)$(extension): %pn.s$(extension) %pu.s$(extension) %pnw.s$(extension) %puw.s$(extension)
 endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Polarimetry product creation in $@ $(QUALIFIERS)" ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
---pu=$(spectradir)$*pu.s$(gzip) \
---pn=$(spectradir)$*pn.s$(gzip) \
---puw=$(spectradir)$*puw.s$(gzip) \
---pnw=$(spectradir)$*pnw.s$(gzip) \
+--pu=$(spectradir)$*pu.s$(extension) \
+--pn=$(spectradir)$*pn.s$(extension) \
+--puw=$(spectradir)$*puw.s$(extension) \
+--pnw=$(spectradir)$*pnw.s$(extension) \
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
 --version=\"$(versionstr)\" \
 --date=\"$(shell date)\" \
@@ -284,8 +284,8 @@ endif
 		echo "$(pref) Starting LE SNR creation for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaSNR \
---input=$(spectradir)$*.e$(gzip) \
---wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
+--input=$(spectradir)$*.e$(extension) \
+--wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(extension) \
 --object=\"$${object}\" \
 --centralsnr=$(centralsnr) \
 --spectrumtype=$(LibreEspritSNR) \
@@ -306,7 +306,7 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -324,7 +324,7 @@ endif
 # no heliocentric wavelength calibration
 #########################################################################################
 
-%in.s$(gzip): %.spc$(gzip)
+%in.s$(extension): %.spc$(extension)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting normalization of $@ $(QUALIFIERS)" ; \
@@ -334,7 +334,7 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
@@ -352,7 +352,7 @@ endif
 # with heliocentric wavelength calibration
 #########################################################################################
 
-%iuw.s$(gzip): %.spc$(gzip)
+%iuw.s$(extension): %.spc$(extension)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting un-normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
@@ -362,7 +362,7 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -380,7 +380,7 @@ endif
 # with heliocentric wavelength calibration
 #########################################################################################
 
-%inw.s$(gzip): %.spc$(gzip)
+%inw.s$(extension): %.spc$(extension)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
@@ -390,11 +390,11 @@ endif
 			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.spc$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
---wavelengthType=$(RVCorrectedWavelengthInNM) \
+--wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*in.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
@@ -408,13 +408,13 @@ endif
 # no heliocentric wavelength calibration
 #########################################################################################
 
-%pu.s$(gzip): %.pol$(gzip)
+%pu.s$(extension): %.pol$(extension)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Un-normalized polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -438,7 +438,7 @@ endif
 		echo "$(pref) Starting Un-normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
@@ -463,7 +463,7 @@ endif
 		echo "$(pref) Starting Normalized polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
@@ -487,7 +487,7 @@ endif
 		echo "$(pref) Starting Normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(gzip) \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
@@ -772,7 +772,7 @@ approvelog:
 							fi ; \
 						done ; \
 					done ; \
-					list=`ls $(calibrationdir)*.gain$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.gain$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -782,7 +782,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)*.tell$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.tell$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -792,7 +792,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)*.rvel$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.rvel$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -802,7 +802,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)*.aper$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.aper$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -812,7 +812,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)*.geom$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.geom$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -822,7 +822,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)*.prof$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.prof$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -832,7 +832,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)*.disp$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.disp$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -842,7 +842,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)*.wcal$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)*.wcal$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \
@@ -852,7 +852,7 @@ approvelog:
 							echo "$(epref) $$r $$f not approved." 2>&1 | tee -a $(errfile) ; \
 						fi ; \
 					done ; \
-					list=`ls $(calibrationdir)master*$(gzip) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
+					list=`ls $(calibrationdir)master*$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
 					for f in $$list; do \
 						rm -f $(approveddir)$$r/calibrations/$$f; \
 						if [ -e $(processeddir)$$r/$$f ] ; then \

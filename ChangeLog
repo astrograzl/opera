@@ -2416,7 +2416,7 @@ Harness/pipeline:
   Modified: pipeline/pyScripts/espadons.py - updated parameters for operaTelluricWavelengthCorrection
   Modified: harness/espadons/Makefile.core - modified to match changes to espadons.py
   Modified: harness/espadons/Makefile.parameters - modified to match changes to espadons.py
-  Added: pipeline/pyScripts/espadonsRV.py.rvtemp - duplicate of espadons.py with additional changes to operaRadialVelocity
+  Added: pipeline/pyScripts/espadons.py.rvtemp - duplicate of espadons.py with additional changes to operaRadialVelocity
 
 Other components:
   Modified: DEPENDENCIES - further updated instructions for required dependencies after testing
@@ -2443,3 +2443,52 @@ Other components:
   Removed: wircam and sitelle scripts; moved to extras
   Removed: OperaBuildAndDistribution.pdf
   Modified: DEPENDENCIES - updated gnuplot version
+
+Feb 19 2015
+
+Modules/libraries:
+  Modified: operaCreateProduct - replaced old argument passing with new ArgumentHandler
+  Modified: opera - replaced passing -v -t -p -d to module calls with full argument names
+
+Harness/pipeline:
+  Modified: harness/espadons/Makefile.calibration - fixed issue with commented out arguments causing error on OSX
+  Modified: harness/espadons/Makefile.core - updated arguments for operaCreateProduct
+  Modified: harness/espadons/Makefile.upena - updated arguments for operaCreateProduct
+
+Other components:
+  Modified: DEPENDENCIES, INSTALLATION, README - updated instructions
+
+Feb 24 2015
+
+Modules/libraries:
+  Added: operaCreateFlatResponse - for flux calibration with standard source
+  Modified: operaCreateProduct
+    - removed practically empty header file
+    - updated fits headers to include HRV keyword with RV correction
+  Modified: operaRadialVelocity - rewrote most of the module
+  Modified: operaSpectralTools - added function convolveSpectrumWithGaussianByResolution
+  Modified: operaSpectralOrderVector - added functions normalizeAndApplyFlatResponseINTOExtendendSpectra, calculateRawFluxQuantities, and readLibreEspritFlatResponseIntoSED
+  Modified: operaCCD - updated calculations in function operaCCDDetectPeaksByXCorrWithIP
+  Modified: operaPolarimetryCorrection, operaPolarIntensity, operaStarOnly - added flat response calibration
+  Modified: operaGeometryCalibration - modified sigma value for slit
+
+Harness/pipeline:
+  Removed: pipeline/pyScripts/espadons.py.rvtemp - no longer needed
+  Modified: pipeline/pyScripts/espadons.py
+    - integrated changes to operaRadialVelocity
+    - added variables for parameters for operaRadialVelocity and operaCreateFlatResponse
+    - added call for operaCreateFlatResponse module
+    - adjusted parameters to operaGeometryCalibration
+    - added added flatResponse parameter to spc creation modules and operaPolarimetryCorrection
+  Modified: harness/espadons/Makefile.parameters - updated to match changes to espadons.py
+  Modified: harness/espadons/Makefile.analysis - updated to match changes to to espadons.py (operaRadialVelocity)
+  Modified: harness/espadons/Makefile.calibration - seperated aperture variables for operaOrderSpacingCalibration and operaGeometryCalibration
+  Modified: harness/espadons/Makefile.upena - added rvel parameter to operaCreateProduct
+  Modified: harness/espadons/Makefile.core - updated to match changes to to espadons.py (flatResponse parameter)
+
+Build files:
+  Modified: core-espadons/Makefile.am - added operaCreateFlatResponse
+
+Other components:
+  Modified: config/wavelengthMaskForRefContinuumDetection.txt - removed last range and lengthened the preceeding range
+  Added: config/flat_resp.s, config/wavelengthMaskForRVxcorr.txt, config/syntethicSpectra/M_s5500g3.0z0.25t1.0_a0.00c0.00n0.00o0.00r0.00s0.00_VIS.spec.txt, config/syntethicSpectra/Teff5500.spec

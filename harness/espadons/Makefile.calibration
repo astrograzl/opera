@@ -1014,7 +1014,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --badpixelmask=$(badpixelmask) \
 $${gains} \
 --subformat=\"$(geomsubformat)\" \
---aperture=$(aperture) \
+--aperture=$(orderspacing_aperture) \
 --numberOfsamples=$(ordpnumberOfsamples) \
 --orderspacingoutput=$(calibrationdir)$@ \
 --sampleCenterPosition=$(sampleCenterPosition) \
@@ -1046,7 +1046,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --badpixelmask=$(badpixelmask) \
 $${gains} \
 --subformat=\"$(geomsubformat)\" \
---aperture=$(aperture) \
+--aperture=$(geom_aperture) \
 --detectionMethod=$(detectionMethod) \
 --FFTfilter=$(FFTfilter) \
 --nsamples=$(nsamples) \
@@ -1090,12 +1090,16 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --masterflat=$(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) \
 --mastercomparison=$(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension) \
 --badpixelmask=$(badpixelmask) \
---ipDimensions=\"$(IPDimensions)\" \
+--xSize=$(IPXSize) \
+--ySize=$(IPYSize) \
+--xSampling=$(IPXSampling) \
+--ySampling=$(IPYSampling) \
+--minimumlines=$(IPminimumlines) \
 --binsize=$(IPBinsize) \
 --ordernumber=$(ordernumber) \
 --method=$${IPmethod} \
 --tilt=$(IPtilt) \
---gain=$(calibrationdir)$*.gain$(gzip) \
+--gainfilename=$(calibrationdir)$*.gain$(gzip) \
 --referenceLineWidth=$(referenceLineWidth) \
 --LocalMaxFilterWidth=$(LocalMaxFilterWidth) \
 --DetectionThreshold=$(DetectionThreshold) \
@@ -1174,7 +1178,6 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) Starting Wavelength refinement with operaStitchOrders for $(QUALIFIERS)" ;\
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			pargs="" ; \
-			#pargs="--plotfilename=$(visualsdir)$*wcal.eps --datafilename=$(byproductsdir)$*wcal.pdat --scriptfilename=$(byproductsdir)$*wcal.gnu" ; \
 		fi ; \
 		wcar="$(configdir)wcal_ref.dat$(gzip)" ; \
 		if [ -e $(calibrationdir)$(QUALIFIERS).wcar$(gzip) ] ; then \

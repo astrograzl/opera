@@ -199,43 +199,39 @@ gainHighestCount		:= 30000
 
 geom_limit						:= 0.2
 geomsubformat					:= 8 2040 3 4600
-maxorders						:= 41
+maxorders						:= 45
 colDispersion					:= 1
 invertOrders					:= 1
 aperture						:= 30		# width of aperture
 detectionMethod					:= 2		# 1 Gaussian, 2 Instrument Profile, 3 Top-hat
-FFTfilter_EEV1_sp1				:= 1		# smooth using a low-pass FFT filters
-FFTfilter_EEV1_sp2				:= 1		# smooth using a low-pass FFT filters
-FFTfilter_EEV1_pol				:= 1		# smooth using a low-pass FFT filters
-FFTfilter_OLAPA_sp1				:= 1		# smooth using a low-pass FFT filters
+FFTfilter_OLAPA_sp1				:= 0		# smooth using a low-pass FFT filters
 FFTfilter_OLAPA_sp2				:= 0		# smooth using a low-pass FFT filters
-FFTfilter_OLAPA_pol				:= 0		# smooth using a low-pass FFT filters
 FFTfilter						:= $(FFTfilter_$(DETECTOR)_$(MODE))		# smooth using a low-pass FFT filters
 geomnpar_Fast					:= 3		# max number of coefficents of polynomial (including zero)
 geomnpar_Slow					:= 3		# max number of coefficents of polynomial (including zero)
 geomnpar_Normal					:= 3		# max number of coefficents of polynomial (including zero)
 geombinsize						:= 10		# binning in y direction
-nsamples						:= 40		# number of samples for something or other
-minordertouse_EEV1				:= 19		# the first order that geometry outputs
-minordertouse_OLAPA				:= 18		# the first order that geometry outputs
+nsamples						:= 30		# number of samples for something or other
+minordertouse_OLAPA				:= 17		# the first order that geometry outputs
 minordertouse					:= $(minordertouse_$(DETECTOR))		# the first order that geometry outputs
-recenterIPUsingSliceSymmetry_pol	:= 1		# refines the geometry
-recenterIPUsingSliceSymmetry_sp1	:= 1		# refines the geometry
+recenterIPUsingSliceSymmetry_sp1	:= 0		# refines the geometry
 recenterIPUsingSliceSymmetry_sp2	:= 0		# refines the geometry
 recenterIPUsingSliceSymmetry	:= $(recenterIPUsingSliceSymmetry_$(MODE))
-totalNumberOfSlices				:= 6		# for recentering
-referenceOrderNumber			:= 58
-referenceOrderSeparation_pol	:= 66.7
-referenceOrderSeparation_sp1	:= 66.7
-referenceOrderSeparation_sp2	:= 56.5
+totalNumberOfSlices_sp2			:= 4		# for recentering
+totalNumberOfSlices_sp1			:= 2		# for recentering
+totalNumberOfSlices				:= $(totalNumberOfSlices_$(MODE))
+referenceOrderNumber			:= 45
+referenceOrderSeparation_sp1	:= 58.0
+referenceOrderSeparation_sp2	:= 58.0
 referenceOrderSeparation		:= $(referenceOrderSeparation_$(MODE))
-referenceOrderSamplePosition	:= 2300
+referenceOrderSamplePosition	:= 1000
+gracesOption                    := 1
 
 #########################################################################################
 # order spacing polynomial
 #########################################################################################
 
-ordpnumberOfsamples		:= 30		# number of samples for order spacing sampling
+ordpnumberOfsamples		:= 10		# number of samples for order spacing sampling
 sampleCenterPosition	:= 2300		# Detector position to center samples. Position along the dispersion direction (rows for Espadons)
 
 #########################################################################################
@@ -248,8 +244,8 @@ sampleCenterPosition	:= 2300		# Detector position to center samples. Position al
 thorium_argon_atlas_lines		:= thar_MM201006.dat.gz
 thorium_argon_atlas_spectrum	:= LovisPepe_ThArAtlas.dat.gz
 wavelengthgoodinitialguessnotavailable := 0
-wcalParRangeSizeInPerCent		:= 0.5
-wcalNpointsPerPar				:= 1000
+wcalParRangeSizeInPerCent		:= 1.0
+wcalNpointsPerPar				:= 3000
 wcalmaxorderofpolynomial		:= 4
 wcalinitialAcceptableMismatch	:= 1.5
 wcalnsigclip					:= 2.5
@@ -294,13 +290,16 @@ wcaldampingFactor				:= $(wcal_dampingFactor_$(MODE))
 
 telluric_atlas_lines			:= opera_HITRAN08-extracted.par.gz
 telluric_reference_spectrum		:= KPNO_atmtrans.dat.gz
-telluric_spectralResolution		:= 80000
-telluric_initialWavelengthRange	:= 0.1
-telluric_initialWavelengthStep	:= 0.002
+telluric_absorptionMask			:= wavelengthMaskForTelluricAbsorption.txt
+telluric_spectralResolution_sp1	:= 65000
+telluric_spectralResolution_sp2	:= 80000
+telluric_spectralResolution_pol	:= 65000
+telluric_spectralResolution		:= $(telluric_spectralResolution_$(MODE))
+telluric_radialVelocityRange	:= 5.0
+telluric_radialVelocityStep		:= 0.15
 telluric_XCorrelationThreshold	:= 0.1
-telluric_subtractCentralWavelength := 1
 telluric_normalizationbinsize	:= 110
-telluric_sigmathreshold			:= 1.25
+telluric_useFitToFindMaximum	:= 1
 
 #########################################################################################
 # Stitch Orders
@@ -329,22 +328,28 @@ disp_wcalmaxorderofpolynomial   := 1
 
 #sp1_IPDimensions		:= 28 4 6 8
 #sp2_IPDimensions		:= 28 4 6 8
-#pol_IPDimensions		:= 28 4 6 8
 # for more speed
 #sp1_IPDimensions		:= 28 1 6 4
 #sp2_IPDimensions		:= 28 1 6 4
-#pol_IPDimensions		:= 28 1 6 4
-# fixes polar issues
-sp1_IPDimensions		:= 34 5 7 5
-sp2_IPDimensions		:= 32 5 7 5
-pol_IPDimensions		:= 30 5 6 5
-IPDimensions			:= $($(MODE)_IPDimensions)
+# New EDER
+#sp1_IPDimensions		:= 28 3 4 5
+#sp2_IPDimensions		:= 28 3 4 5
+#IPDimensions			:= $($(MODE)_IPDimensions)
+IPXSize					:= 32
+IPYSize					:= 7
+IPXSampling				:= 5
+IPYSampling				:= 5
 spectralElementHeight	:= 1.0
-DetectionThreshold		:= 0.5
-referenceLineWidth		:= $(referenceLineWidth_$(MODE))
+DetectionThreshold		:= 0.2
 referenceLineWidth_sp1	:= 2.5
 referenceLineWidth_sp2	:= 1.8
+referenceLineWidth		:= $(referenceLineWidth_$(MODE))
+#LocalMaxFilterWidth = 2.5*referenceLineWidth
+LocalMaxFilterWidth		:= 6.25
+#MinPeakDepth			:= 1.5*noise
+MinPeakDepth			:= 5.25
 IPtilt					:= -3.0
+IPminimumlines			:= 7
 IPBinsize				:= 100
 #methods of measuring instrument profile
 IPWeightedMeanMethod	:= 1
@@ -376,20 +381,15 @@ FourierFilterWidthNormal := 0.1
 
 sp1_numberOfBeams		:= 2
 sp2_numberOfBeams		:= 1
-pol_numberOfBeams		:= 2
 # Note that the apertureWidth is usually given as $(word 1,$(IPDimensions))-2*$(aperbackgroundAperture)
-sp1_apertureWidth		:= 28
-sp2_apertureWidth		:= 28
-pol_apertureWidth		:= 28
+sp1_apertureWidth		:= 32
+sp2_apertureWidth		:= 32
 sp1_apertureHeight		:= 0.6923
 sp2_apertureHeight		:= 0.6923
-pol_apertureHeight		:= 0.6923
 sp1_backgroundAperture	:= 1.0
 sp2_backgroundAperture	:= 1.0
-pol_backgroundAperture	:= 1.0
 sp1_gapBetweenBeams		:= 0
 sp2_gapBetweenBeams		:= 0
-pol_gapBetweenBeams		:= 0
 apernumberOfBeams		:= $($(MODE)_numberOfBeams)
 apernapertureWidth		:= $($(MODE)_apertureWidth)
 aperapertureHeight		:= $($(MODE)_apertureHeight)
@@ -509,17 +509,16 @@ ordernumber				:= -999
 #########################################################################################
 deconstructor_sp1			:= operaStarPlusSky
 deconstructor_sp2			:= operaStarOnly
-deconstructor_pol			:= operaPolarIntensity
 deconstructor				:= $(deconstructor_$(MODE))
 starplusskymode_sp1			:= 1
 starplusskymode_sp2			:= 0
-starplusskymode_pol			:= 0
 starplusskymode				:= $(starplusskymode_$(MODE))
 
 extractor_normalizationBinsize			:= 750
 extractor_numberOfPointsInUniformSample	:= 150
 extractor_AbsoluteCalibration			:= 0
 extractor_WavelengthMaskForUncalContinuum := wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt
+extractor_FlatResponse					:= flat_resp.s
 
 #########################################################################################
 # To Generate LE Formats
@@ -558,16 +557,16 @@ cRICE					:= 11
 cGZIP					:= 21
 cHCOMPRESS				:= 41
 cPLIO					:= 31
-compressiontype			:= $(cRICE)
+compressiontype			:= $(cGZIP)
 
 # FITS can be fits or FIT or whatever
 FITS					:= fits
 # compression extension can be .gz or .fz or nothing
-extension				:= .fz
+extension				:= .gz
 #
 # 2. FITS Image INPUT compression extension
 #
-#inextension				:= .fz
+#inextension				:= .gz #.fz
 #
 # 3. Intermediate text products
 #
@@ -598,7 +597,7 @@ polarbinningsize	:= 750
 #
 #########################################################################################
 # approval email recipients
-recipients					:= teeple,manset,forshay,tburd,moutou,malo
+recipients					:= manset,forshay,tburd,moutou,malo
 
 # is fluxcalibration requested
 upenawantfcal				:= 0

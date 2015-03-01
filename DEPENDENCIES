@@ -101,14 +101,11 @@ Don't go any further if you don't have the right version of gcc/g++.
 - WCSlib 	-- FITS World Coordinate System describes astronomical coordinate systems in a FITS image header
 			-- Homepage: http://www.atnf.csiro.au/people/mcalabre/WCS/wcslib/
 			-- Download: ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib-4.17.tar.bz2
-			-- If you need it, best to build it as a standalone library and then include in lib. When building OPERA:
-				configure --enable-LIBWCS=true --prefix=$HOME/opera-1.0		
+			-- If you need it, best to build it as a standalone library and then include in lib.
 
 ----------------------------------- EVEN MORE OPTIONAL -----------------------------------
 
 - libPNG	-- Used by the tool operaFITStoPNG and some visualization tools.
-			-- You would configure thusly:
-			   ./configure --prefix=$HOME/opera-1.0/ --enable-LIBPNG=true
 			-- http://www.libpng.org
 				cd libpng-<version>
 				./configure --prefix=/usr/local/

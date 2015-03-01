@@ -140,6 +140,8 @@ int main(int argc, char *argv[])
      * Parameters for flux calibration
      */    
     string fluxCalibration;
+    string flatResponse;
+    
 	float exposureTime = 1.0;
     bool AbsoluteCalibration = false;
     
@@ -164,7 +166,7 @@ int main(int argc, char *argv[])
 	string scriptfilename;	
 	
 	struct option longopts[] = {
-		{"polar",						1, NULL, 'R'},	// .p
+		{"polar",						1, NULL, 'L'},	// .p
 		{"outputCalibratedSpectrum",	1, NULL, 's'},  // .s                                                    
 		{"spectrumtype",				1, NULL, 'y'},	// spectrum type
 		{"wavelengthCalibration",		1, NULL, 'w'},	// wavelength calibration file (.wcal or .auto)
@@ -176,7 +178,9 @@ int main(int argc, char *argv[])
         
  		{"normalizationBinsize",		1, NULL, 'b'},	// binsize for normalization                                                   
 		
-        {"fluxCalibration",				1, NULL, 'C'},	// flux calibration file (.fcal)        
+        {"fluxCalibration",				1, NULL, 'C'},	// flux calibration file (.fcal)
+        {"flatResponse",				1, NULL, 'R'},	// apply flat response calibration; file (LE .s)
+        
         {"etime",						1, NULL, 'E'},	// needed for flux calibration        
 		{"AbsoluteCalibration",         1, NULL, 'A'},  // absolute or relative flux calibration
 
@@ -200,12 +204,12 @@ int main(int argc, char *argv[])
 		{"help",						0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "R:s:y:w:V:T:m:u:l:b:C:E:A:o:O:M:X:P:F:c:S:I:p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "L:s:y:w:V:T:m:u:l:b:C:R:E:A:o:O:M:X:P:F:c:S:I:p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		switch(opt) 
 		{
-			case 'R':
+			case 'L':
 				polar = optarg;
 				break;   
 			case 's':
@@ -238,6 +242,10 @@ int main(int argc, char *argv[])
 			case 'C':       // for flux calibration
 				fluxCalibration = optarg;
 				break;
+            case 'R':       // for flat-response flux calibration
+                flatResponse = optarg;
+                break;
+                
 			case 'E':
 				exposureTime = atof(optarg);
 				break;		
@@ -318,6 +326,7 @@ int main(int argc, char *argv[])
 			cout << "operaPolarimetryCorrection: wavelength calibration file = " << wavelengthCalibration << endl;
             cout << "operaPolarimetryCorrection: binsize for normalization = " << normalizationBinsize << endl;  
             cout << "operaPolarimetryCorrection: input flux calibration file = " << fluxCalibration << endl;
+            cout << "operaPolarimetryCorrection: input flat response calibration file = " << flatResponse << endl;
             cout << "operaPolarimetryCorrection: inputWavelengthMaskForUncalContinuum = " << inputWavelengthMaskForUncalContinuum << endl;
             cout << "operaPolarimetryCorrection: numberOfPointsInUniformSample = " << numberOfPointsInUniformSample << endl;            
 			cout << "operaPolarimetryCorrection: exposure time = " << exposureTime << endl;
@@ -428,13 +437,17 @@ int main(int argc, char *argv[])
         //---------------------------------
         // Flux Normalization and Flux Calibration Stuff
         exposureTime *= 4.0; // considering a 4x polar sequence.
-        
-		if (!fluxCalibration.empty() && !inputWavelengthMaskForUncalContinuum.empty()) {
-            spectralOrders.normalizeAndCalibrateFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,fluxCalibration, exposureTime, AbsoluteCalibration,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, false);
-        } else if (!inputWavelengthMaskForUncalContinuum.empty()) {
-            spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
-        }
 
+        if (!inputWavelengthMaskForUncalContinuum.empty()) {
+            if (!fluxCalibration.empty()) {
+                spectralOrders.normalizeAndCalibrateFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,fluxCalibration, exposureTime, AbsoluteCalibration,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, false);
+            } else if (fluxCalibration.empty() && !flatResponse.empty()) {
+                spectralOrders.normalizeAndApplyFlatResponseINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,flatResponse,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, false);
+            } else {
+                spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
+            }
+        }
+        
         // output a wavelength calibrated spectrum...
 		spectralOrders.setObject(object);
 		spectralOrders.WriteSpectralOrders(outputSpectraFile, spectralOrderType);
@@ -470,7 +483,8 @@ static void printUsageSyntax(char * modulename) {
 	"  -y, --spectrumtype=<UNS_VALUE>, Method for extraction\n"
 	"  -w, --wavelengthCalibration=<FILE_NAME>, wavelength calibration polynomials\n"
 	"  -V, --radialvelocitycorrection=<FILE_NAME>, Barycentric Radial Velocity Correction\n"
-	"  -N, --normalization=1|0, apply flux normalization\n"
+    "  -C, --fluxCalibration=<FILE_NAME>, flux calibration file (.fcal) -> this overrides flatResponse\n"
+    "  -R, --flatResponse=<FILE_NAME>, flat response calibration file (LE .s)\n"
 	"  -b, --normalizationBinsize=<float>,  binsize for normalization\n"
 	"  -B, --orderBin=<int>, number or orders to bin for continuum evaluation\n"
 	"  -A, --AbsoluteCalibration=<bool>, perform absolute flux calibration\n"    

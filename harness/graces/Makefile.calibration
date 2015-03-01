@@ -1022,7 +1022,6 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 --nRowSamples=$(apernRowSamples) \
 --xbin=$(aperxbin) \
 $${pargs} \
---ordernumber=$(ordernumber) \
 --outputApertureFile=$(calibrationdir)$@ \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) aperture for $(QUALIFIERS) complete in $(deltat)" ; \
@@ -1051,6 +1050,8 @@ $${gains} \
 --numberOfsamples=$(ordpnumberOfsamples) \
 --orderspacingoutput=$(calibrationdir)$@ \
 --sampleCenterPosition=$(sampleCenterPosition) \
+--referenceOrderNumber=$(referenceOrderNumber) \
+--referenceOrderSeparation=$(referenceOrderSeparation) \
 $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) order polynomial for $(QUALIFIERS) complete in $(deltat)" ; \
@@ -1080,6 +1081,7 @@ $${gains} \
 --aperture=$(aperture) \
 --detectionMethod=$(detectionMethod) \
 --FFTfilter=$(FFTfilter) \
+--graces=$(gracesOption) \
 --nsamples=$(nsamples) \
 --maxorders=$(maxorders) \
 --minordertouse=$(minordertouse) \
@@ -1090,8 +1092,6 @@ $${gains} \
 --recenterIPUsingSliceSymmetry=$(recenterIPUsingSliceSymmetry) \
 --totalNumberOfSlices=$(totalNumberOfSlices) \
 --inputOrderSpacing=$(calibrationdir)$*.ordp$(gzip) \
---referenceOrderNumber=$(referenceOrderNumber) \
---referenceOrderSeparation=$(referenceOrderSeparation) \
 --referenceOrderSamplePosition=$(referenceOrderSamplePosition) \
 $${pargs} \
 --outputGeomFile=$(calibrationdir)$@ \
@@ -1123,13 +1123,20 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --masterflat=$(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) \
 --mastercomparison=$(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension) \
 --badpixelmask=$(badpixelmask) \
---ipDimensions=\"$(IPDimensions)\" \
+--xSize=$(IPXSize) \
+--ySize=$(IPYSize) \
+--xSampling=$(IPXSampling) \
+--ySampling=$(IPYSampling) \
+--minimumlines=$(IPminimumlines) \
 --binsize=$(IPBinsize) \
 --ordernumber=$(ordernumber) \
 --method=$${IPmethod} \
 --tilt=$(IPtilt) \
---gain=$(calibrationdir)$*.gain$(gzip) \
+--gainfilename=$(calibrationdir)$*.gain$(gzip) \
 --referenceLineWidth=$(referenceLineWidth) \
+--LocalMaxFilterWidth=$(LocalMaxFilterWidth) \
+--DetectionThreshold=$(DetectionThreshold) \
+--MinPeakDepth=$(MinPeakDepth) \
 $${pargs} \
 $${fabparm} \
 --spectralElementHeight=$(spectralElementHeight) \
@@ -1203,7 +1210,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting Wavelength refinement with operaStitchOrders for $(QUALIFIERS)" ;\
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--plotfilename=$(visualsdir)$*wcal.eps --datafilename=$(byproductsdir)$*wcal.pdat --scriptfilename=$(byproductsdir)$*wcal.gnu" ; \
+			pargs="" ; \
 		fi ; \
 		wcar="$(configdir)wcal_ref.dat$(gzip)" ; \
 		if [ -e $(calibrationdir)$(QUALIFIERS).wcar$(gzip) ] ; then \
@@ -1228,25 +1235,25 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 #########################################################################################
 %.disp$(gzip): %.wcal$(gzip)
 	@start=$$SECONDS; \
-	if [ ! -e $(calibrationdir)$@ ] ; then \
-		echo "$(pref) Starting Echelle Dispersion Polynomial calibration for $(QUALIFIERS)" ;\
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--plotfilename=$(visualsdir)$*disp.eps --datafilename=$(byproductsdir)$*disp.pdat --scriptfilename=$(byproductsdir)$*disp.gnu" ; \
-		fi ; \
-		wcar="$(configdir)wcal_ref.dat$(gzip)" ; \
-		if [ -e $(calibrationdir)$(QUALIFIERS).wcar$(gzip) ] ; then \
-			wcar=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaEchelleDispersionCalibration \
---inputWaveFile=$${wcar} \
---outputDispFile=$(calibrationdir)$@ \
---minorderOfLaurentPolynomial=$(dispminorderOfLaurentPolynomial) \
---maxorderOfLaurentPolynomial=$(dispmaxorderOfLaurentPolynomial) \
---maxorderofpolynomial=$(wcalmaxorderofpolynomial) \
-$${pargs} \
-$(optargs)" 2>&1 | tee -a $(logfile) ; \
-		echo "$(pref) Echelle Dispersion Polynomial calibration for $(QUALIFIERS) complete in $(deltat)" ; \
-	fi
+#	if [ ! -e $(calibrationdir)$@ ] ; then \
+#		echo "$(pref) Starting Echelle Dispersion Polynomial calibration for $(QUALIFIERS)" ;\
+#		if [[ "$(PLOT)" != "0" ]] ; then \
+#			pargs="--plotfilename=$(visualsdir)$*disp.eps --datafilename=$(byproductsdir)$*disp.pdat --scriptfilename=$(byproductsdir)$*disp.gnu" ; \
+#		fi ; \
+#		wcar="$(configdir)wcal_ref.dat$(gzip)" ; \
+#		if [ -e $(calibrationdir)$(QUALIFIERS).wcar$(gzip) ] ; then \
+#			wcar=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) ; \
+#		fi ; \
+#		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaEchelleDispersionCalibration \
+#--inputWaveFile=$${wcar} \
+#--outputDispFile=$(calibrationdir)$@ \
+#--minorderOfLaurentPolynomial=$(dispminorderOfLaurentPolynomial) \
+#--maxorderOfLaurentPolynomial=$(dispmaxorderOfLaurentPolynomial) \
+#--maxorderofpolynomial=$(wcalmaxorderofpolynomial) \
+#$${pargs} \
+#$(optargs)" 2>&1 | tee -a $(logfile) ; \
+#		echo "$(pref) Echelle Dispersion Polynomial calibration for $(QUALIFIERS) complete in $(deltat)" ; \
+#	fi
 
 #########################################################################################
 # Calculate the Resolution

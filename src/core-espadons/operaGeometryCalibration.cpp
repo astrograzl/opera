@@ -381,9 +381,9 @@ int main(int argc, char *argv[])
 			cout << "operaGeometryCalibration: x1,y1,nx,ny = " << x1 << ' ' << y1 << ' ' << nx  << ' ' << ny << '\n';
 		}
 		
-        double slit = aperture;
-        unsigned uslit = (unsigned)slit;
-        double sigma = slit/2;
+        double slit = (double)aperture;
+        unsigned uslit = (unsigned)aperture;
+        double sigma = slit/4.0;
         
         double threshold = DETECTTHRESHOLD;
         

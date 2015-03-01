@@ -194,7 +194,50 @@ void convolveSpectrumWithGaussian(unsigned np, double *wavelength, double *flux,
     }
 }
 
-//convolveSpectrumWithGaussian(npointsInShortTelluricSpectrum,wl,trasmission,convolvedTelluricSpectrum,actuallinewidth);
+
+/*
+ * convolveSpectrumWithGaussianByResolution(unsigned np, double *wavelength, double *flux, double *convolvedSpectrum, double spectralResolution)
+ * \brief This function calculates the convolution between an input spectrum and a gaussian function using the spectral Resolution to calculate line width
+ * \param unsigned np
+ * \param double *wavelength
+ * \param double *flux
+ * \param return double *convolvedSpectrum
+ * \param double spectralResolution
+ * \return void
+ */
+void convolveSpectrumWithGaussianByResolution(unsigned np, double *wavelength, double *flux, double *convolvedSpectrum, double spectralResolution) {
+    double wlstep;
+    
+    memset(convolvedSpectrum, 0, sizeof(double)*np);
+    
+    for(unsigned i=0;i<np;i++) {
+        
+        double sigma = wavelength[i] / spectralResolution;
+        
+        if(i==0) {
+            wlstep = fabs(wavelength[i+1] - wavelength[0]);
+        } else if (i==np-1) {
+            wlstep = fabs(wavelength[np-1] - wavelength[i-1]);
+        } else {
+            wlstep = fabs(wavelength[i+1] - wavelength[i-1])/2.0;
+        }
+        
+        unsigned window = (unsigned)ceil(4*sigma/(2*wlstep));
+        if (window > np/2) {
+            window = np/2;
+        }
+        double weighSum = 0;
+        for(unsigned j=0;j<2*window;j++) {
+            if((i-window+j) >= 0 && (i-window+j) < np) {
+                convolvedSpectrum[i] += flux[i-window+j]*exp(-((wavelength[i-window+j] - wavelength[i])*(wavelength[i-window+j] - wavelength[i])/(2*sigma*sigma)))/(sqrt(2*M_PI)*sigma);
+                weighSum += exp(-((wavelength[i-window+j] - wavelength[i])*(wavelength[i-window+j] - wavelength[i])/(2*sigma*sigma)))/(sqrt(2*M_PI)*sigma);
+            }
+        }
+        if (weighSum) {
+            convolvedSpectrum[i] /= weighSum;
+        }
+    }
+}
 
 
 /*

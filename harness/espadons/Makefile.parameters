@@ -199,10 +199,14 @@ gainHighestCount		:= 30000
 
 geom_limit						:= 0.2
 geomsubformat					:= 8 2040 3 4600
-maxorders						:= 44
+maxorders						:= 45
 colDispersion					:= 1
 invertOrders					:= 1
-aperture						:= 28		# width of aperture
+geom_aperture_pol				:= 30		# width of aperture
+geom_aperture_sp1				:= 30		# width of aperture
+geom_aperture_sp2				:= 28		# width of aperture
+geom_aperture					:= $(geom_aperture_$(MODE))
+orderspacing_aperture			:= 30		# width of aperture for order spacing
 detectionMethod					:= 2		# 1 Gaussian, 2 Instrument Profile, 3 Top-hat
 FFTfilter_EEV1_sp1				:= 1		# smooth using a low-pass FFT filters
 FFTfilter_EEV1_sp2				:= 1		# smooth using a low-pass FFT filters
@@ -214,7 +218,7 @@ FFTfilter						:= $(FFTfilter_$(DETECTOR)_$(MODE))		# smooth using a low-pass FF
 geomnpar_Fast					:= 3		# max number of coefficents of polynomial (including zero)
 geomnpar_Slow					:= 3		# max number of coefficents of polynomial (including zero)
 geomnpar_Normal					:= 3		# max number of coefficents of polynomial (including zero)
-geombinsize						:= 20		# binning in y direction
+geombinsize						:= 25		# binning in y direction
 nsamples						:= 30		# number of samples for something or other
 minordertouse_EEV1				:= 19		# the first order that geometry outputs
 minordertouse_OLAPA				:= 18		# the first order that geometry outputs
@@ -227,8 +231,11 @@ totalNumberOfSlices_sp2			:= 6		# for recentering
 totalNumberOfSlices_sp1			:= 3		# for recentering
 totalNumberOfSlices_pol			:= 3		# for recentering
 totalNumberOfSlices				:= $(totalNumberOfSlices_$(MODE))
-referenceOrderNumber			:= 45
-referenceOrderSeparation_pol	:= 57.5
+referenceOrderNumber_pol		:= 46
+referenceOrderNumber_sp1		:= 45
+referenceOrderNumber_sp2		:= 45
+referenceOrderNumber			:= $(referenceOrderNumber_$(MODE))
+referenceOrderSeparation_pol	:= 57.2
 referenceOrderSeparation_sp1	:= 57.5
 referenceOrderSeparation_sp2	:= 57.5
 referenceOrderSeparation		:= $(referenceOrderSeparation_$(MODE))
@@ -309,6 +316,14 @@ telluric_normalizationbinsize	:= 110
 telluric_useFitToFindMaximum	:= 1
 
 #########################################################################################
+# radial velocity parameters
+#########################################################################################
+rv_syntheticSpectrum			:= syntethicSpectra/Teff5500.spec
+rv_xcorrWavelengthMask			:= wavelengthMaskForRVxcorr.txt
+rv_searchRange					:= 200
+rv_searchStep					:= 0.5
+
+#########################################################################################
 # Stitch Orders
 #########################################################################################
 stitch_orderOfReference         := 37
@@ -345,18 +360,29 @@ disp_wcalmaxorderofpolynomial   := 1
 #sp2_IPDimensions		:= 30 5 6 5
 #pol_IPDimensions		:= 30 5 6 5
 # New EDER
-sp1_IPDimensions		:= 28 3 4 5
-sp2_IPDimensions		:= 28 3 4 5
-pol_IPDimensions		:= 28 3 4 5
-IPDimensions			:= $($(MODE)_IPDimensions)
+#sp1_IPDimensions		:= 30 3 4 5
+#sp2_IPDimensions		:= 28 3 4 5
+#pol_IPDimensions		:= 30 3 4 5
+#IPDimensions			:= $($(MODE)_IPDimensions)
+sp1_IPXSize				:= 30
+sp2_IPXSize				:= 28
+pol_IPXSize				:= 30
+IPXSize					:= $($(MODE)_IPXSize)
+IPYSize					:= 4
+IPXSampling				:= 3
+IPYSampling				:= 5
 spectralElementHeight	:= 1.0
 DetectionThreshold		:= 0.2
-referenceLineWidth		:= 2.0
+referenceLineWidth_sp2		:= 2.0
+referenceLineWidth_sp1		:= 2.0
+referenceLineWidth_pol		:= 2.5
+referenceLineWidth		:= $(referenceLineWidth_$(MODE))
 #LocalMaxFilterWidth = 2.5*referenceLineWidth
 LocalMaxFilterWidth		:= 6.25
 #MinPeakDepth			:= 1.5*noise
-MinPeakDepth			:= 1.5
+MinPeakDepth			:= 5.25
 IPtilt					:= -2.0
+IPminimumlines			:= 20
 IPBinsize				:= 100
 #methods of measuring instrument profile
 IPWeightedMeanMethod	:= 1
@@ -377,6 +403,12 @@ normalizedflataperture		:= 28
 normalizedflatbinsize		:= 40
 
 #########################################################################################
+# flat response creation
+#########################################################################################
+
+flatresponse_normalizationWavelength := 700
+
+#########################################################################################
 # normalize
 #########################################################################################
 
@@ -392,7 +424,7 @@ pol_numberOfBeams		:= 2
 # Note that the apertureWidth is usually given as $(word 1,$(IPDimensions))-2*$(aperbackgroundAperture)
 sp1_apertureWidth		:= 28
 sp2_apertureWidth		:= 28
-pol_apertureWidth		:= 28
+pol_apertureWidth		:= 30
 sp1_apertureHeight		:= 0.6923
 sp2_apertureHeight		:= 0.6923
 pol_apertureHeight		:= 0.6923
@@ -535,6 +567,7 @@ extractor_AbsoluteCalibration_sp1		:= 0
 extractor_AbsoluteCalibration_sp2		:= 0
 extractor_AbsoluteCalibration			:= $(extractor_AbsoluteCalibration_$(MODE))
 extractor_WavelengthMaskForUncalContinuum := wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt
+extractor_FlatResponse					:= flat_resp.s
 
 #########################################################################################
 # To Generate LE Formats

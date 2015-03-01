@@ -121,22 +121,30 @@ radialvelocitysequence:
 		echo "$(epref)opera DATADIRS=\". . .\" [OUT=... TEMPLATE=...] OBJECT=... radialvelocitysequence" ; \
 	else \
 		echo "$(pref) Starting radial velocity sequence for $(DATADIRS)." ; \
-		$(call doAllDirs,o.$(FITS)$(inextension),.rv$(gzip)) ; \
+		$(call doAllDirs,o.$(FITS)$(inextension),.rv) ; \
 		echo "$(pref) radial velocity sequence for $(DATADIRS) complete in $(deltat)" ; \
 	fi
 
 cleanrv cleanradialvelocitysequence:
-	@rm -f $(analysesdir)*.rv$(gzip)
+	@rm -f $(analysesdir)*.rv
 
 #########################################################################################
 # Single odometer Radial Velocity Calculation
 #########################################################################################
 
-%.rv$(gzip):
+%.rv:
 	@start=$$SECONDS; \
 	if [ ! -e $(analysesdir)$@ ] ; then \
 		if [ -e $(spectradir)$*i.e$(gzip) ] ; then \
 			echo "$(pref) Starting Radial Velocity generation for $*o.$(FITS) $(OBJECT)" ; \
+			expnum=`$(bindir)operagetheader --keyword=EXPNUM $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+			mjdate=`$(bindir)operagetheader --keyword=MJDATE $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+			exptime=`$(bindir)operagetheader --keyword=EXPTIME $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+			airmass=`$(bindir)operagetheader --keyword=AIRMASS $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+			outsideTemp=`$(bindir)operagetheader --keyword=TEMPERAT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+			windspeed=`$(bindir)operagetheader --keyword=WINDSPED $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+			relHumidity=`$(bindir)operagetheader --keyword=RELHUMID $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+			atmoPressure=`$(bindir)operagetheader --keyword=PRESSURE $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 			if [[ "$(PLOT)" != "0" ]] ; then \
 				pargs="--plotfilename=$(visualsdir)$*rv.eps --datafilename=$(byproductsdir)$*rv.pdat --scriptfilename=$(byproductsdir)$*rv.gnu" ; \
 			fi ; \
@@ -149,13 +157,20 @@ cleanrv cleanradialvelocitysequence:
 --inputObjectSpectrum=$(spectradir)$*i.e$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
 --telluric_lines=$(configdir)$(telluric_atlas_lines) \
---telluric_spectrum=$(configdir)$(telluric_reference_spectrum) \
+--inputWavelengthMask=$(configdir)$(rv_xcorrWavelengthMask) \
+--inputStellarSpectrum=$(configdir)$(rv_syntheticSpectrum) \
 --spectralResolution=$(telluric_spectralResolution) \
---initialWavelengthRange=$(telluric_initialWavelengthRange) \
---initialWavelengthStep=$(telluric_initialWavelengthStep) \
+--radialVelocitySearchRange=$(rv_searchRange) \
+--radialVelocitySearchStep=$(rv_searchStep) \
 --XCorrelationThreshold=$(telluric_XCorrelationThreshold) \
+--normalizationBinsize=$(telluric_normalizationbinsize) \
+--headerData="$(expnum) $(mjdate) $(exptime) $(airmass) $(outsideTemp) $(windspeed) $(relHumidity) $(atmoPressure)"
+--inputBarycentricCorrection=$(calibrationdir)$*i.rvel$(gzip) \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--StarPlusSky=$(starplusskymode) \
+--useFitToFindMaximum=$(telluric_useFitToFindMaximum) \
 $${pargs} \
---outputWaveFile=$(analysesdir)$@ $(optargs)" 2>&1 | tee -a $${out} | tee -a $(logdir)$*.log ; \
+--outputRVFile=$(analysesdir)$@ $(optargs)" 2>&1 | tee -a $${out} | tee -a $(logdir)$*.log ; \
 			rm -f $(byproductsdir)$*rv.pdat $(byproductsdir)$*rv.gnu ; \
 			echo "$(pref) Radial Velocity for $*o.$(FITS) created in $(deltat)" ; \
 		fi ; \

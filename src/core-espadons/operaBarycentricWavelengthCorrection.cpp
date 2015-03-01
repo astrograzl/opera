@@ -59,32 +59,10 @@ template <typename T> inline int sign(const T& value) {
 #define NOTPROVIDED -999
 #endif
 
-// 1 AU = 149597870.700 +/- 0.003 km
-// value of the astronomical unit compatible with Barycentric
-// Dynamical Time (TDB) in Table 1 of the IAU 2009 System (149 597 870 700 m ￼ 3 m),
-// is an average (Pitjeva and Standish 2009) of recent estimates for the
-// astronomical unit defined by k.
 
-#ifndef AU_IN_KILOMETERS
-#define AU_IN_KILOMETERS 149597870.700
-#endif
-
-#ifndef DAY_IN_SECONDS
-#define DAY_IN_SECONDS 86400
-#endif
-
-// Sidereal day: Ds= D/k, from k given in Aoki et al, 1982, "The New definition of Universal Time", Astron. Astrophys., 105, 359-361 (1982)
-#ifndef SIDEREALDAY_IN_SECONDS
-#define SIDEREALDAY_IN_SECONDS 86164.09053083288
-#endif
-
-#ifndef SIDEREALDAY_IN_HOURS
-#define SIDEREALDAY_IN_HOURS 23.93446959
-#endif
-
-#ifndef TWO_PI
-#define TWO_PI 6.141592653589793238462643383279
-#endif
+//#ifndef TWO_PI
+//#define TWO_PI 6.141592653589793238462643383279  //Wrong Value!! Change for TWOPI from operaLibCommon.h
+//#endif
 
 /*! \file operaBarycentricWavelengthCorrection.cpp */
 
@@ -92,8 +70,8 @@ using namespace std;
 
 /*! 
  * operaBarycentricWavelengthCorrection
- * \author Eder Martioli
- * \brief Calculate and aplly Barycentric velocity wavelength correction.
+ * \author Eder Martioli & Lison Malo
+ * \brief Calculate and apply Barycentric velocity wavelength correction.
  * \arg argc
  * \arg argv
  * \note --output=...
@@ -121,10 +99,12 @@ int main(int argc, char *argv[])
      */
     double JDTime = 0.0;
     double MJDTime = 0.0;
+    double etime=0.0;
 
     skycoord_t object_coords = {0, 0, 0.0, 0, 0, 0.0};
     double ra, dec;
-    geocoord_t observatory_coords = {19, 49, 41.86, 155, 28, 18.00};
+    geocoord_t observatory_coords = {19, 49, 41.86, -155, 28, 18.00};
+    hacoord_t ha_start = {0, 0, 0.0};
 
     double observatory_elevation = 4200;
 	int ordernumber = NOTPROVIDED;
@@ -145,6 +125,8 @@ int main(int argc, char *argv[])
 		{"object_coords",				1, NULL, 'K'},    // object sky coordinates
 		{"observatory_coords",			1, NULL, 'G'},    // observatory geographic coordinates
 		{"observatory_elevation",		1, NULL, 'E'},    // observatory elevation in meters
+        {"ha_start",		            1, NULL, 'F'},    // Hour angle at start
+        {"etime",		                1, NULL, 'L'},    // Exposure time (shutter open)
 
 		{"ordernumber",					1, NULL, 'O'},
 		{"minorder",					1, NULL, 'M'},
@@ -157,7 +139,7 @@ int main(int argc, char *argv[])
 		{"help",						0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "i:o:J:D:K:G:E:O:M:X:p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "i:o:J:D:K:G:E:F:L:O:M:X:p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		switch(opt)
@@ -200,6 +182,14 @@ int main(int argc, char *argv[])
 			case 'E':
 				observatory_elevation = atof(optarg);
 				break;
+            case 'F':		// HA value
+                if (strlen(optarg)) {
+                    sscanf(optarg, "%d:%d:%lf",&ha_start.ha_d, &ha_start.ha_m, &ha_start.ha_s);
+                }    
+                break;
+            case 'L':
+                etime = atof(optarg);
+                break;
 			case 'O':
 				ordernumber = atoi(optarg);
 				break;
@@ -282,17 +272,19 @@ int main(int argc, char *argv[])
         double dbl_latitude = sign((double)(observatory_coords.latitude_d)) * (fabs((double)(observatory_coords.latitude_d)) + (double)(observatory_coords.latitude_m)/60.0 + (double)(observatory_coords.latitude_s)/3600.0);
         double dbl_longitude = sign((double)(observatory_coords.longitude_d)) * (fabs((double)(observatory_coords.longitude_d)) + (double)(observatory_coords.longitude_m)/60.0 + (double)(observatory_coords.longitude_s)/3600.0);
 
-        double latitudeInRadians =  dbl_latitude*TWO_PI/360; // Latitude (-PI/2, PI/2)
-        double longitudeInRadians = dbl_longitude*TWO_PI/360; // Longitude (-PI, PI)
+        double dbl_ha =sign((double)(ha_start.ha_d)) * (fabs((double)(ha_start.ha_d)) + (double)(ha_start.ha_m)/60.0 + (double)(ha_start.ha_s)/3600.0);
         
-        if(longitudeInRadians < 0 && longitudeInRadians > -TWO_PI/2.0) { // WEST
-            longitudeInRadians = TWO_PI + longitudeInRadians;
-        }
+        double latitudeInRadians =  dbl_latitude*TWOPI/360; // Latitude (-PI/2, PI/2)
+        double longitudeInRadians = dbl_longitude*TWOPI/360; // Longitude (-PI, PI)
+        
+        //if(longitudeInRadians < 0 && longitudeInRadians > -TWOPI/2.0) { // WEST
+        //    longitudeInRadians = TWOPI + longitudeInRadians;
+        //}
         
         if(debug) {
             cout << endl;
             cout << "operaBarycentricWavelengthCorrection: Latitude (deg, (+) North, (-) South) = " << dbl_latitude << endl;
-            cout << "operaBarycentricWavelengthCorrection: Longitude (deg, +East) = " << longitudeInRadians * (360/TWO_PI) << endl;
+            cout << "operaBarycentricWavelengthCorrection: Longitude (deg, +East) = " << longitudeInRadians * (360/TWOPI) << endl;
 
         }
         
@@ -342,29 +334,31 @@ int main(int argc, char *argv[])
         }
         
         double mjd = MJDTime;
+
+/* Commented part of the code not required anymore. (LMa Mar1,2015)
+ */
+//        int iyear, imonth, iday;
+//        double fractionday;
+//        iauJd2cal(JDTime1,mjd, &iyear, &imonth, &iday, &fractionday);
         
-        int iyear, imonth, iday;
-        double fractionday;
-        iauJd2cal(JDTime1,mjd, &iyear, &imonth, &iday, &fractionday);
+//        double deltat;
+//        iauDat(iyear, imonth, iday,fractionday, &deltat);
         
-        double deltat;
-        iauDat(iyear, imonth, iday,fractionday, &deltat);
-        
-        double tt1, tt2;
-        // Time scale transformation:  Universal Time, UT1, to Terrestrial Time, TT.
-        iauUt1tt(JDTime1,mjd,deltat,&tt1,&tt2);
+//        double tt1, tt2;
+//        // Time scale transformation:  Universal Time, UT1, to Terrestrial Time, TT.
+//        iauUt1tt(JDTime1,mjd,deltat,&tt1,&tt2);
                 
-        if(debug) {
-            cout << endl;
-            cout << "operaBarycentricWavelengthCorrection:  JDTime= " << JDTime << " JDTime1= " << JDTime1 << " mjd= " << mjd << endl;
-            cout << "operaBarycentricWavelengthCorrection:  UT = " << iyear << " / " << imonth << " / " << (double)iday + fractionday << endl;
-            cout << "operaBarycentricWavelengthCorrection:  deltat = " << deltat << endl;
-            cout << "operaBarycentricWavelengthCorrection:  TT1 = " << tt1 << " TT2 = " << tt2 << endl;
-            cout << endl;
-        }
+//        if(debug) {
+//            cout << endl;
+//            cout << "operaBarycentricWavelengthCorrection:  JDTime= " << JDTime << " JDTime1= " << JDTime1 << " mjd= " << mjd << endl;
+//            cout << "operaBarycentricWavelengthCorrection:  UT = " << iyear << " / " << imonth << " / " << (double)iday + fractionday << endl;
+//            cout << "operaBarycentricWavelengthCorrection:  deltat = " << deltat << endl;
+//            cout << "operaBarycentricWavelengthCorrection:  TT1 = " << tt1 << " TT2 = " << tt2 << endl;
+//            cout << endl;
+//        }
         
         
-        double gmst = 0;
+//        double gmst = 0;
         
         /*
          * It seems like SOFA routines for GMST calculation gives a 
@@ -372,76 +366,77 @@ int main(int argc, char *argv[])
          * below we keep both ways for calculating the GMST. This will 
          * need to be checked.
          */
-        bool useSOFAiaugmst = true;
+//        bool useSOFAiaugmst = true;
 
-        if(useSOFAiaugmst) {
-            gmst = iauGmst00(JDTime1,mjd,tt1,tt2)*(24/TWO_PI);
+//        if(useSOFAiaugmst) {
+//            gmst = iauGmst00(JDTime1,mjd,tt1,tt2)*(24/TWOPI);
+//
+//            if(debug) {
+//                struct time_coord gmst_sexigesimal = {0,0,0};
+//                dec_to_sexigesimal(gmst, &gmst_sexigesimal);
+//                cout << "operaBarycentricWavelengthCorrection: Greenwich Mean Sidereal Time (GMST, iauGmst00) = " << (int)gmst_sexigesimal.hh <<  ":" << (int)gmst_sexigesimal.mm << ":" << gmst_sexigesimal.ss<< endl;
+//                cout << endl;
+//            }
+//            // Greenwich apparent sidereal time (radians)
+//            // double gst = iauGst00a(JDTime1,mjd,tt1,tt2); // alternative way to calculate gst
+//            // double gst = iauGst06a(JDTime1,mjd,tt1,tt2);
+//
+//        } else {
+//            //  Below is a simple algorithm for computing apparent sidereal time obtained at USNO website.
+//            //  http://aa.usno.navy.mil/faq/docs/GAST.php
+//
+//            double julian2000 = 2451545.0;
+//            double julianCenturies = (JDTime - julian2000) / 36525;  /* centuries since J2000 */
+//            gmst = 18.697374558 + 24.06570982441908 * julianCenturies * 36525;
+//            gmst = ((gmst/24) - (double)floor(gmst/24))*24;
+//            if(debug) {
+//                struct time_coord gmst_sexigesimal = {0,0,0};
+//                dec_to_sexigesimal(gmst, &gmst_sexigesimal);
+//                cout << "operaBarycentricWavelengthCorrection: Greenwich Mean Sidereal Time (GMST, formula) = " << (int)gmst_sexigesimal.hh <<  ":" << (int)gmst_sexigesimal.mm << ":" << gmst_sexigesimal.ss<< endl;
+//            }
+//        }
 
-            if(debug) {
-                struct time_coord gmst_sexigesimal = {0,0,0};
-                dec_to_sexigesimal(gmst, &gmst_sexigesimal);
-                cout << "operaBarycentricWavelengthCorrection: Greenwich Mean Sidereal Time (GMST, iauGmst00) = " << (int)gmst_sexigesimal.hh <<  ":" << (int)gmst_sexigesimal.mm << ":" << gmst_sexigesimal.ss<< endl;
-                cout << endl;
-            }
-            // Greenwich apparent sidereal time (radians)
-            // double gst = iauGst00a(JDTime1,mjd,tt1,tt2); // alternative way to calculate gst
-            // double gst = iauGst06a(JDTime1,mjd,tt1,tt2);
+//        double ee00b = iauEe00b(JDTime1,mjd);
+//        double gst = iauAnp(gmst*(TWOPI/24) + ee00b); // This is equivalent to routine iauGst00a
+        
+//        if(debug) {
+//            struct time_coord gst_sexigesimal = {0,0,0};
+//            dec_to_sexigesimal(gst*(24/TWOPI), &gst_sexigesimal);
             
-        } else {
-            //  Below is a simple algorithm for computing apparent sidereal time obtained at USNO website.
-            //  http://aa.usno.navy.mil/faq/docs/GAST.php
-            
-            double julian2000 = 2451545.0;
-            double julianCenturies = (JDTime - julian2000) / 36525;  /* centuries since J2000 */
-            gmst = 18.697374558 + 24.06570982441908 * julianCenturies * 36525;
-            gmst = ((gmst/24) - (double)floor(gmst/24))*24;
-            if(debug) {
-                struct time_coord gmst_sexigesimal = {0,0,0};
-                dec_to_sexigesimal(gmst, &gmst_sexigesimal);
-                cout << "operaBarycentricWavelengthCorrection: Greenwich Mean Sidereal Time (GMST, formula) = " << (int)gmst_sexigesimal.hh <<  ":" << (int)gmst_sexigesimal.mm << ":" << gmst_sexigesimal.ss<< endl;
-            }
-        }
+//            cout << "operaBarycentricWavelengthCorrection: Greenwich apparent Sidereal Time (GST, iauGst06a) = " << (int)gst_sexigesimal.hh <<  ":" << (int)gst_sexigesimal.mm << ":" << gst_sexigesimal.ss<< endl;
+//            cout << "operaBarycentricWavelengthCorrection: Greenwich apparent Sidereal Time (GST, iauGst06a) = " << gst*(24/TWOPI) <<  " hr" << endl;
+//            cout << "operaBarycentricWavelengthCorrection: Greenwich apparent Sidereal Time (GST, iauGst06a) = " << gst*(360/TWOPI) <<  " deg" << endl;
+//            cout << endl;
+//        }
+        
+//        // Earth rotation angle (IAU 2000 model)
+//        double era = iauEra00(JDTime1,mjd);
+        
+//        if(debug) {
+//            cout << "operaBarycentricWavelengthCorrection: Earth rotation angle (ERA, iauEra00) = " << era*(24/TWOPI) <<  " hr" << endl;
+//            cout << "operaBarycentricWavelengthCorrection: Earth rotation angle (ERA, iauEra00) = " << era*(360/TWOPI) <<  " deg" << endl;
+//            cout << endl;
+//        }
+        
+//        double lst = gst + longitudeInRadians;
+        
+//        struct time_coord lst_sexigesimal = {0,0,0};
+//        dec_to_sexigesimal(lst*(24/TWOPI), &lst_sexigesimal);
 
-        double ee00b = iauEe00b(JDTime1,mjd);
-        double gst = iauAnp(gmst*(TWO_PI/24) + ee00b); // This is equivalent to routine iauGst00a
+//        if(debug) {
+//            cout << "operaBarycentricWavelengthCorrection: Local Sidereal Time (LST) = " << (int)lst_sexigesimal.hh <<  ":" << (int)lst_sexigesimal.mm << ":" << lst_sexigesimal.ss<< endl;
+//            cout << "operaBarycentricWavelengthCorrection: Local Sidereal Time (LST) := GST + longitude = " << lst*(24/TWOPI) <<  " hr" << endl;
+//            cout << endl;
+//        }
         
-        if(debug) {
-            struct time_coord gst_sexigesimal = {0,0,0};
-            dec_to_sexigesimal(gst*(24/TWO_PI), &gst_sexigesimal);
-            
-            cout << "operaBarycentricWavelengthCorrection: Greenwich apparent Sidereal Time (GST, iauGst06a) = " << (int)gst_sexigesimal.hh <<  ":" << (int)gst_sexigesimal.mm << ":" << gst_sexigesimal.ss<< endl;
-            cout << "operaBarycentricWavelengthCorrection: Greenwich apparent Sidereal Time (GST, iauGst06a) = " << gst*(24/TWO_PI) <<  " hr" << endl;
-            cout << "operaBarycentricWavelengthCorrection: Greenwich apparent Sidereal Time (GST, iauGst06a) = " << gst*(360/TWO_PI) <<  " deg" << endl;
-            cout << endl;
-        }
-        
-        // Earth rotation angle (IAU 2000 model)
-        double era = iauEra00(JDTime1,mjd);
-        
-        if(debug) {
-            cout << "operaBarycentricWavelengthCorrection: Earth rotation angle (ERA, iauEra00) = " << era*(24/TWO_PI) <<  " hr" << endl;
-            cout << "operaBarycentricWavelengthCorrection: Earth rotation angle (ERA, iauEra00) = " << era*(360/TWO_PI) <<  " deg" << endl;
-            cout << endl;
-        }
-        
-        double lst = gst + longitudeInRadians;
-        
-        struct time_coord lst_sexigesimal = {0,0,0};
-        dec_to_sexigesimal(lst*(24/TWO_PI), &lst_sexigesimal);
-
-        if(debug) {
-            cout << "operaBarycentricWavelengthCorrection: Local Sidereal Time (LST) = " << (int)lst_sexigesimal.hh <<  ":" << (int)lst_sexigesimal.mm << ":" << lst_sexigesimal.ss<< endl;
-            cout << "operaBarycentricWavelengthCorrection: Local Sidereal Time (LST) := GST + longitude = " << lst*(24/TWO_PI) <<  " hr" << endl;
-            cout << endl;
-        }
-        
-        double ha = (lst - ra*(TWO_PI/24)); // in radians
+        //double ha = (lst - ra*(TWOPI/24)); // in radians
+        double ha = dbl_ha + etime/3600.;
         struct time_coord ha_sexigesimal = {0,0,0};
-        dec_to_sexigesimal(ha*(24/TWO_PI), &ha_sexigesimal);
+        dec_to_sexigesimal(ha*(24/TWOPI), &ha_sexigesimal);
         
         if(debug) {
             cout << "operaBarycentricWavelengthCorrection: Hour Angle (HA) = " << (int)ha_sexigesimal.hh <<  ":" << (int)ha_sexigesimal.mm << ":" << ha_sexigesimal.ss<< endl;            
-            cout << "operaBarycentricWavelengthCorrection: Hour Angle (HA):= LST - RA = " << ha*(24/TWO_PI) <<  " hr" << endl;
+            cout << "operaBarycentricWavelengthCorrection: Hour Angle (HA):= LST - RA = " << ha*(24/TWOPI) <<  " hr" << endl;
             cout << endl;            
         }
       
@@ -469,7 +464,7 @@ int main(int argc, char *argv[])
         
         // Angular rotation rate (2.PI/T)
         // According to IERS Numerical Standards (IAG 1999) w=7.2921150(1)e-5 rad/s
-        double angularRotationRate = TWO_PI/SIDEREALDAY_IN_SECONDS;
+        double angularRotationRate = TWOPI/SIDEREALDAY_IN_SECONDS;
 
         if(debug)
             cout << "operaBarycentricWavelengthCorrection: angularRotationRate = " << angularRotationRate << " rad/s" << endl;
@@ -583,14 +578,13 @@ static void printUsageSyntax(char * modulename) {
 	" Usage: "+string(modulename)+"  [-vdth]" +
 	" --inputWaveFile=<WAVE_FILE>"
 	" --outputWaveFile=<WAVE_FILE>"
-	" --JDTime=<DBL_VALUE>"
 	" --object_coords=<\"RA_DBL_VALUE DEC_DBL_VALUE\">"
 	" --observatory_coords=<\"UNS_VALUE:UNS_VALUE:DBL_VALUE UNS_VALUE:UNS_VALUE:DBL_VALUE\">"
-	" --observatory_elevation=<DBL_VALUE>"    
-    " --ordernumber=<INT_VALUE"
-	" --minorder=<INT_VALUE>"
-	" --maxorder=<INT_VALUE>\n\n"
-	" Example: "+string(modulename)+" --inputWaveFile=/Users/edermartioli/opera/calibrations/PolarData/OLAPAa_pol_Normal.wcal.gz --outputWaveFile=helio.wcal --JDTime=2447089.958611 --object_coords=\"3.60416666 0.36777777\" --observatory_coords=\"19:49:41.86 155:28:18.00\" --observatory_elevation=4215 -v\n\n"
+	" --observatory_elevation=<DBL_VALUE>"
+    " --MJDTime=<DBL_VALUE>"
+    " --ha_start=<\"HA_DBL_VALUE\">"
+	" --etime=<INT_VALUE>"
+	" Example: "+string(modulename)+" ----inputWaveFile=/Users/lisonmalo/opera//calibrations/13BQ08-Nov25/OLAPAa_sp2_Normal.wcal.gz --observatory_coords=\"19:49:36 -155:28:18\" --object_coords=\"130.806167 3.398667\" --observatory_elevation=4207 --MJDTime=56622.6666429  --ha_start=1:17:50.06  --etime=30.0  --outputRVelFile=/Users/lisonmalo/opera//calibrations/13BQ08-Nov25/1671579i.rvel.gz -v\n\n"
 	"  -h, --help  display help message\n"
 	"  -v, --verbose,  Turn on message sending\n"
 	"  -d, --debug,  Turn on debug messages\n"

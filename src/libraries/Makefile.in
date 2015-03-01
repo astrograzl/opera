@@ -159,6 +159,14 @@ libgzstream_la_OBJECTS = $(am_libgzstream_la_OBJECTS)
 libgzstream_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(libgzstream_la_LDFLAGS) $(LDFLAGS) -o $@
+liboperaArgumentHandler_la_DEPENDENCIES = libArgumentHandler.la
+am_liboperaArgumentHandler_la_OBJECTS = operaArgumentHandler.lo
+liboperaArgumentHandler_la_OBJECTS =  \
+	$(am_liboperaArgumentHandler_la_OBJECTS)
+liboperaArgumentHandler_la_LINK = $(LIBTOOL) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(AM_CXXFLAGS) $(CXXFLAGS) \
+	$(liboperaArgumentHandler_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaCCD_la_LIBADD =
 am_liboperaCCD_la_OBJECTS = operaCCD.lo
 liboperaCCD_la_OBJECTS = $(am_liboperaCCD_la_OBJECTS)
@@ -517,6 +525,7 @@ SOURCES = $(liboperaFFT_a_SOURCES) $(liboperaPNG_a_SOURCES) \
 	$(libGainBiasNoise_la_SOURCES) $(libGaussian_la_SOURCES) \
 	$(libLaurentPolynomial_la_SOURCES) $(libPixelSet_la_SOURCES) \
 	$(libPolynomial_la_SOURCES) $(libgzstream_la_SOURCES) \
+	$(liboperaArgumentHandler_la_SOURCES) \
 	$(liboperaCCD_la_SOURCES) \
 	$(liboperaConfigurationAccess_la_SOURCES) \
 	$(liboperaEspadonsImage_la_SOURCES) \
@@ -560,6 +569,7 @@ DIST_SOURCES = $(liboperaFFT_a_SOURCES) \
 	$(libGainBiasNoise_la_SOURCES) $(libGaussian_la_SOURCES) \
 	$(libLaurentPolynomial_la_SOURCES) $(libPixelSet_la_SOURCES) \
 	$(libPolynomial_la_SOURCES) $(libgzstream_la_SOURCES) \
+	$(liboperaArgumentHandler_la_SOURCES) \
 	$(liboperaCCD_la_SOURCES) \
 	$(liboperaConfigurationAccess_la_SOURCES) \
 	$(liboperaEspadonsImage_la_SOURCES) \
@@ -748,7 +758,7 @@ lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaFluxVector.la li
 	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectrumSimulation.la liboperaSpectralEnergyDistribution.la \
 	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la \
 	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la \
-	libArgumentHandler.la
+	libArgumentHandler.la liboperaArgumentHandler.la
 
 liboperaInstrumentEnvironmentSetup_la_SOURCES = operaInstrumentEnvironmentSetup.cpp operaInstrumentEnvironmentSetup.h
 liboperaInstrumentEnvironmentSetup_la_LDFLAGS = -version-info 1:0:0
@@ -860,6 +870,9 @@ liboperaSpectralOrderVector_la_SOURCES = operaSpectralOrderVector.cpp operaSpect
 liboperaSpectralOrderVector_la_LDFLAGS = -version-info 1:0:0
 libArgumentHandler_la_SOURCES = ArgumentHandler.cpp ArgumentHandler.h
 libArgumentHandler_la_LDFLAGS = -version-info 1:0:0
+liboperaArgumentHandler_la_SOURCES = operaArgumentHandler.cpp operaArgumentHandler.h
+liboperaArgumentHandler_la_LDFLAGS = -version-info 1:0:0
+liboperaArgumentHandler_la_LIBADD = libArgumentHandler.la
 
 #
 # if we want png plotting support, bring in the freetype includes
@@ -991,6 +1004,8 @@ libPolynomial.la: $(libPolynomial_la_OBJECTS) $(libPolynomial_la_DEPENDENCIES) $
 	$(libPolynomial_la_LINK) -rpath $(libdir) $(libPolynomial_la_OBJECTS) $(libPolynomial_la_LIBADD) $(LIBS)
 libgzstream.la: $(libgzstream_la_OBJECTS) $(libgzstream_la_DEPENDENCIES) $(EXTRA_libgzstream_la_DEPENDENCIES) 
 	$(libgzstream_la_LINK) -rpath $(libdir) $(libgzstream_la_OBJECTS) $(libgzstream_la_LIBADD) $(LIBS)
+liboperaArgumentHandler.la: $(liboperaArgumentHandler_la_OBJECTS) $(liboperaArgumentHandler_la_DEPENDENCIES) $(EXTRA_liboperaArgumentHandler_la_DEPENDENCIES) 
+	$(liboperaArgumentHandler_la_LINK) -rpath $(libdir) $(liboperaArgumentHandler_la_OBJECTS) $(liboperaArgumentHandler_la_LIBADD) $(LIBS)
 liboperaCCD.la: $(liboperaCCD_la_OBJECTS) $(liboperaCCD_la_DEPENDENCIES) $(EXTRA_liboperaCCD_la_DEPENDENCIES) 
 	$(liboperaCCD_la_LINK) -rpath $(libdir) $(liboperaCCD_la_OBJECTS) $(liboperaCCD_la_LIBADD) $(LIBS)
 liboperaConfigurationAccess.la: $(liboperaConfigurationAccess_la_OBJECTS) $(liboperaConfigurationAccess_la_DEPENDENCIES) $(EXTRA_liboperaConfigurationAccess_la_DEPENDENCIES) 
@@ -1097,6 +1112,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gzstream.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ladfit.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpfit.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaArgumentHandler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCCD.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaConfigurationAccess.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaEspadonsImage.Plo@am__quote@

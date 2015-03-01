@@ -61,9 +61,6 @@
 #ifndef NMORESIGMASTOSTARTOPTIMALEXTRACTION
 #define NMORESIGMASTOSTARTOPTIMALEXTRACTION 1
 #endif
-#ifndef MINIMUMNUMBEROFLINESFORIPMEASUREMENTS
-#define MINIMUMNUMBEROFLINESFORIPMEASUREMENTS 20
-#endif
 #ifndef DEFAULT_SNR_SMOOTHING
 #define DEFAULT_SNR_SMOOTHING 5
 #endif
@@ -1168,7 +1165,7 @@ void operaSpectralOrder::measureInstrumentProfileAlongRows(operaFITSImage &maste
 	delete[] SumSubPixElements;	
 }
 
-void operaSpectralOrder::measureInstrumentProfileAlongRowsInto2DWithGaussian(operaFITSImage &masterFlatImage, operaFITSImage &badpix, unsigned binsize, float gaussSig, float tiltInDegrees, bool witherrors, unsigned sampleElementForPlot, ostream *pout){
+void operaSpectralOrder::measureInstrumentProfileAlongRowsInto2DWithGaussian(operaFITSImage &masterFlatImage, operaFITSImage &badpix, unsigned binsize, float gaussSig, float tiltInDegrees, bool witherrors, unsigned sampleElementForPlot, ostream *pout, const int minimumLines){
 	
 	int npar = 3;
 	double par[3];
@@ -1299,7 +1296,7 @@ void operaSpectralOrder::measureInstrumentProfileAlongRowsInto2DWithGaussian(ope
     
     InstrumentProfile->setnDataPoints(ndataPoints);
     
-    if(ndataPoints > MINIMUMNUMBEROFLINESFORIPMEASUREMENTS) {
+    if(ndataPoints > minimumLines) {
         InstrumentProfile->normalizeCubeData();        
         InstrumentProfile->FitPolyMatrixtoIPDataVector(3,witherrors);
         
@@ -1763,10 +1760,10 @@ void operaSpectralOrder::calculateXCorrBetweenIPandImage(operaFITSImage &Image, 
     SpectralElements->setHasXCorrelation(true);
 }
 
-void operaSpectralOrder::measureInstrumentProfile(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout) {
+void operaSpectralOrder::measureInstrumentProfile(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines) {
 	
     if(!gethasSpectralLines()) {
-        throw operaException("operaSpectralOrder::measureInstrumentProfileUsingMedian: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
+        throw operaException("operaSpectralOrder::measureInstrumentProfile: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
     }
     
     double *LinePositionVector = new double[SpectralLines->getnLines()];
@@ -1837,14 +1834,14 @@ void operaSpectralOrder::measureInstrumentProfile(operaFITSImage &masterCompImag
     
     InstrumentProfile->setnDataPoints(cubeDataIndex);  
     
-    if(cubeDataIndex < MINIMUMNUMBEROFLINESFORIPMEASUREMENTS) {
+    if(cubeDataIndex < minimumLines) {
 #ifdef PRINT_DEBUG
 		cerr << "operaSpectralOrder::measureInstrumentProfile: Order " << getorder() << " IP measurements not possible." << endl;
 #endif
 		sethasInstrumentProfile(false);
-    } else if(cubeDataIndex >= MINIMUMNUMBEROFLINESFORIPMEASUREMENTS && cubeDataIndex <= 3*MINIMUMNUMBEROFLINESFORIPMEASUREMENTS) {
+    } else if(cubeDataIndex >= minimumLines && cubeDataIndex <= 3*minimumLines) {
         InstrumentProfile->FitMediantoIPDataVector();
-    } else if (cubeDataIndex > 3*MINIMUMNUMBEROFLINESFORIPMEASUREMENTS) {
+    } else if (cubeDataIndex > 3*minimumLines) {
         InstrumentProfile->FitPolyMatrixtoIPDataVector(3,false);        
     }    
 	
@@ -1857,10 +1854,10 @@ void operaSpectralOrder::measureInstrumentProfile(operaFITSImage &masterCompImag
     delete[] LineAmplitudeVector;
 }
 
-void operaSpectralOrder::measureInstrumentProfileWithBinning(operaFITSImage &masterCompImage, operaFITSImage &badpix, double binsize, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout) {
+void operaSpectralOrder::measureInstrumentProfileWithBinning(operaFITSImage &masterCompImage, operaFITSImage &badpix, double binsize, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines) {
     
     if(!gethasSpectralLines()) {
-        throw operaException("operaSpectralOrder::measureInstrumentProfileUsingMedian: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
+        throw operaException("operaSpectralOrder::measureInstrumentProfileWithBinning: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
     }
     
     double *LinePositionVector = new double[SpectralLines->getnLines()];
@@ -1870,7 +1867,7 @@ void operaSpectralOrder::measureInstrumentProfileWithBinning(operaFITSImage &mas
     unsigned nSelectedLines = SpectralLines->selectLines(MaxContamination,nSigCut,amplitudeCutOff,LinePositionVector,LineSigmaVector,LineAmplitudeVector);
     
     if(nSelectedLines == 0) {
-        throw operaException("operaSpectralOrder::measureInstrumentProfileUsingMedian: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
+        throw operaException("operaSpectralOrder::measureInstrumentProfileWithBinning: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
     }
 #ifdef PRINT_DEBUG	    
     for(unsigned k=0; k<nSelectedLines; k++) {   
@@ -1967,12 +1964,12 @@ void operaSpectralOrder::measureInstrumentProfileWithBinning(operaFITSImage &mas
     
     InstrumentProfile->setnDataPoints(cubeDataIndex);        
     
-    if(cubeDataIndex < MINIMUMNUMBEROFLINESFORIPMEASUREMENTS) {
+    if(cubeDataIndex < minimumLines) {
 #ifdef PRINT_DEBUG	    
 		cerr << "operaSpectralOrder::measureInstrumentProfileWithBinning: Order " << getorder() << " IP measurements not possible." << endl;
 #endif
         sethasInstrumentProfile(false);
-    } else if(cubeDataIndex >= MINIMUMNUMBEROFLINESFORIPMEASUREMENTS) {
+    } else if(cubeDataIndex >= minimumLines) {
         InstrumentProfile->FitPolyMatrixtoIPDataVector(3,false);        
     }    
     
@@ -1985,7 +1982,7 @@ void operaSpectralOrder::measureInstrumentProfileWithBinning(operaFITSImage &mas
     delete[] LineAmplitudeVector;
 }
 
-void operaSpectralOrder::measureInstrumentProfileUsingMedian(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout) {
+void operaSpectralOrder::measureInstrumentProfileUsingMedian(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines) {
     
     if(!gethasSpectralLines()) {
         throw operaException("operaSpectralOrder::measureInstrumentProfileUsingMedian: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
@@ -2055,7 +2052,7 @@ void operaSpectralOrder::measureInstrumentProfileUsingMedian(operaFITSImage &mas
         InstrumentProfile->normalizeCubeData(k);        
     }
 	
-    if(nSelectedLines > MINIMUMNUMBEROFLINESFORIPMEASUREMENTS) {
+    if(nSelectedLines > minimumLines) {
         InstrumentProfile->FitMediantoIPDataVector();
         sethasInstrumentProfile(true);
     } else {
@@ -2070,13 +2067,13 @@ void operaSpectralOrder::measureInstrumentProfileUsingMedian(operaFITSImage &mas
     delete[] LineAmplitudeVector;
 }
 
-void operaSpectralOrder::measureInstrumentProfileUsingWeightedMean(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout) {
+void operaSpectralOrder::measureInstrumentProfileUsingWeightedMean(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines) {
     
     if(!gethasSpectralLines()) {
-        throw operaException("operaSpectralOrder::measureInstrumentProfileUsingMedian: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
+        throw operaException("operaSpectralOrder::measureInstrumentProfileUsingWeightedMean: ",operaErrorNoSpectralLineDetected, __FILE__, __FUNCTION__, __LINE__);
     }
     if(SpectralLines->getnLines() == 0) {
-        throw operaException("operaSpectralOrder::measureInstrumentProfileUsingMedian: ",operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);
+        throw operaException("operaSpectralOrder::measureInstrumentProfileUsingWeightedMean: ",operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);
     }
     
     double *LinePositionVector = new double[SpectralLines->getnLines()];

@@ -98,69 +98,46 @@ int main(int argc, char *argv[])
 					verbose = verbosevalue;
 				if (sscanf(argv[i], "--verbose=%d", &verbosevalue) == 1 && verbosevalue != 0)
 					verbose = verbosevalue;
-				optargs += "-v"+(verbose>1?itos(verbose):"")+" ";
+				optargs += "--verbose"+(verbose>1?itos(verbose):"")+" ";
+			} else if (startsWith(argv[i], "-d") || startsWith(argv[i], "--debug")) {
+				debug = 1;
+				if (sscanf(argv[i], "-d%d", &debugvalue) && debugvalue != 0)
+					debug = debugvalue;
+				if (sscanf(argv[i], "--debug=%d", &debugvalue) && debugvalue != 0)
+					debug = debugvalue;
+				optargs += "--debug"+(debug>1?itos(debug):"")+" ";
+			} else if (startsWith(argv[i], "-t") || startsWith(argv[i], "--trace")) {
+				trace = 1;
+				if (sscanf(argv[i], "-t%d", &tracevalue) && tracevalue != 0)
+					trace = tracevalue;
+				if (sscanf(argv[i], "--trace=%d", &tracevalue) && tracevalue != 0)
+					trace = tracevalue;
+				optargs += "--trace"+(trace>1?itos(trace):"")+" ";
+			} else if (startsWith(argv[i], "-p") || startsWith(argv[i], "--plot")) {
+				plot = 1;
+				if (sscanf(argv[i], "-p%d", &plotvalue) && plotvalue != 0)
+					plot = plotvalue;
+				if (sscanf(argv[i], "--plot=%d", &plotvalue) && plotvalue != 0)
+					plot = plotvalue;
+				optargs += "--plot"+(plot>1?itos(plot):"")+" ";
+			} else if (startsWith(argv[i], "-a") || startsWith(argv[i], "--valgrind")) {
+				valgrind = 1;
+			} else if (startsWith(argv[i], "-n") || startsWith(argv[i], "--noexecute")) {
+				trace = 1;
+				execute = 0;
+			} else if (startsWith(argv[i], "-h") || startsWith(argv[i], "--help")) {
+				printUsageSyntax();
+				exit(EXIT_SUCCESS);
 			} else {
-				if (startsWith(argv[i], "-d") || startsWith(argv[i], "--debug")) {
-					debug = 1;
-					if (sscanf(argv[i], "-d%d", &debugvalue) && debugvalue != 0)
-						debug = debugvalue;
-					if (sscanf(argv[i], "--debug=%d", &debugvalue) && debugvalue != 0)
-						debug = debugvalue;
-					optargs += "-d"+(debug>1?itos(debug):"")+" ";
-				} else {
-					if (startsWith(argv[i], "-t") || startsWith(argv[i], "--trace")) {
-						trace = 1;
-						if (sscanf(argv[i], "-t%d", &tracevalue) && tracevalue != 0)
-							trace = tracevalue;
-						if (sscanf(argv[i], "--trace=%d", &tracevalue) && tracevalue != 0)
-							trace = tracevalue;
-						optargs += "-t"+(trace>1?itos(trace):"")+" ";
-					} else {
-						if (startsWith(argv[i], "-p") || startsWith(argv[i], "--plot")) {
-							plot = 1;
-							if (sscanf(argv[i], "-p%d", &plotvalue) && plotvalue != 0)
-								plot = plotvalue;
-							if (sscanf(argv[i], "--plot=%d", &plotvalue) && plotvalue != 0)
-								plot = plotvalue;
-							optargs += "-p"+(plot>1?itos(plot):"")+" ";
-						} else {
-							if (startsWith(argv[i], "-a") || startsWith(argv[i], "--valgrind")) {
-								valgrind = 1;
-							} else {
-								if (startsWith(argv[i], "-n") || startsWith(argv[i], "--noexecute")) {
-									trace = 1;
-									execute = 0;
-								} else {
-									if (startsWith(argv[i], "-h") || startsWith(argv[i], "--help")) {
-										printUsageSyntax();
-										exit(EXIT_SUCCESS);
-									} else {
-										int skip = 0;
-										if (argv[i][skip] == '-') {
-											skip++;
-											if (argv[i][skip] == '-')
-												skip++;
-											string arg = string(&argv[i][skip]);
-											if (arg.find(' ') != string::npos) {
-												commandbuffer += arg.substr(0,arg.find('=')+1) + '"' + arg.substr(arg.find('=')+1) + '"'  + ' ';
-											} else {
-												commandbuffer += arg + ' ';
-											}
-										} else {
-											string arg = string(argv[i]);
-											if (arg.find(' ') != string::npos) {
-												commandbuffer += arg.substr(0,arg.find('=')+1) + '"' + arg.substr(arg.find('=')+1) + '"'  + ' ';
-											} else {
-												commandbuffer += arg + ' ';
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+				int skip = 0;
+				if (argv[i][skip] == '-') skip++;
+				if (argv[i][skip] == '-') skip++;
+				string arg = (skip ? string(&argv[i][skip]) : string(argv[i]));
+				if (arg.find(' ') != string::npos)
+					commandbuffer += arg.substr(0,arg.find('=')+1) + '"' + arg.substr(arg.find('=')+1) + '"'  + ' ';
+				else commandbuffer += arg + ' ';
 			}
+
 		}
 		
 		if (verbose) {

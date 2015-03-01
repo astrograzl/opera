@@ -231,6 +231,25 @@ extern "C" {
 #define  VEGA_VBAND_MAGNITUDE   0.03
 #endif
 
+// 1 AU = 149597870.700 +/- 0.003 km
+// value of the astronomical unit compatible with Barycentric
+// Dynamical Time (TDB) in Table 1 of the IAU 2009 System (149 597 870 700 m ￼ 3 m),
+// is an average (Pitjeva and Standish 2009) of recent estimates for the
+// astronomical unit defined by k.
+    
+#ifndef AU_IN_KILOMETERS
+#define AU_IN_KILOMETERS 149597870.700
+#endif
+#ifndef DAY_IN_SECONDS
+#define DAY_IN_SECONDS 86400
+#endif
+// Sidereal day: Ds= D/k, from k given in Aoki et al, 1982, "The New definition of Universal Time", Astron. Astrophys., 105, 359-361 (1982)
+#ifndef SIDEREALDAY_IN_SECONDS
+#define SIDEREALDAY_IN_SECONDS 86164.09053083288
+#endif
+#ifndef SIDEREALDAY_IN_HOURS
+#define SIDEREALDAY_IN_HOURS 23.93446959
+#endif
     
 /*!
  * startsWith
@@ -596,6 +615,12 @@ typedef struct geocoord {
 	int longitude_m;
 	double longitude_s;    
 } geocoord_t;
+
+typedef struct hacoord {
+        int ha_d;
+        int ha_m;
+        double ha_s;
+    } hacoord_t;
     
 #ifdef __cplusplus
 }

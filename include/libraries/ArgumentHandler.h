@@ -1,3 +1,6 @@
+#ifndef ARGUMENTHANDLER_H
+#define ARGUMENTHANDLER_H
+
 #include <string>
 #include <vector>
 #include <map>
@@ -135,51 +138,4 @@ void ArgumentHandler::AddFlexibleSwitch(std::string name, T& variable, U switchO
 	argNames.push_back(name);
 }
 
-template <typename T>
-std::string ArgumentList<T>::GetDescription(unsigned int index) {
-	return arglist[index].description;
-}
-
-template <typename T>
-ArgumentFlag ArgumentList<T>::GetFlag(unsigned int index) {
-	return arglist[index].flag;
-}
-
-#include <stdexcept>
-
-template <typename T>
-void ArgumentList<T>::SetToDefaultValue(unsigned int index) {
-	if (arglist[index].flag == REQUIRED_ARGUMENT) throw std::runtime_error("missing required argument");
-	arglist[index].SetValue(arglist[index].defaultValue);
-}
-
-template <typename T>
-void ArgumentList<T>::SetToSwitchValue(unsigned int index) {
-	if (arglist[index].flag == REQUIRED_ARGUMENT || arglist[index].flag == OPTIONAL_ARGUMENT) throw std::runtime_error("argument expects a value");
-	arglist[index].SetValue(arglist[index].switchValue);
-}
-
-#include <sstream>
-
-template <>
-void ArgumentList<std::string>::SetToPassedString(unsigned int index, std::string value);
-
-template <typename T>
-void ArgumentList<T>::SetToPassedString(unsigned int index, std::string value) {
-	T temp;
-	std::istringstream ss(value);
-	ss >> temp; //future work: use more stringent type-checking and error throwing?
-	if (ss.fail()) throw std::runtime_error("value could not be read into argument");
-	SetToPassedValue(index, temp);
-}
-
-template <typename T>
-void ArgumentList<T>::SetToPassedValue(unsigned int index, T value) {
-	if (arglist[index].flag == SWITCH) throw std::runtime_error("argument does not expect a value");
-	arglist[index].SetValue(value);
-}
-
-template <typename T>
-void ArgumentList<T>::Add(ArgumentWrapper<T> arg) {
-	arglist.push_back(arg);
-}
+#endif

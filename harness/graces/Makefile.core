@@ -15,7 +15,7 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -259,7 +259,7 @@ endif
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
 --beam=$(spectradir)$*.e$(gzip) \
---centralsnr=1 \
+--centralsnr \
 --polar=$${polar} \
 --gain=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
 --geom=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
@@ -415,6 +415,8 @@ $${nargs} \
 --onTargetProfile=1 \
 --usePolynomialFit=$(extraction_usePolynomialFit) \
 --starplusskymode=0 \
+--spectrumtype=$(OptimalBeamSpectrum) \
+--spectrumtypename=OptimalBeamSpectrum \
 --ordernumber=$(ordernumber) \
 --maxthreads=$(maxthreads) \
 $${pargs} \
@@ -456,12 +458,12 @@ $${pargs} \
 			echo "$(pref) opera Flux calibration for $@ not used." ; \
 		else \
 			if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) --fluxcalibrate=$(operawantfcal)" ; \
+				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
 			fi ; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)$(deconstructor) \
 --inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
---spectrumtype=$(DefaultCalibratedSpectrumType) \
+--spectrumtype=$(CalibratedExtendedBeamSpectrum) \
 --wavelengthCalibration=$${wavelengthCalibration} \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
 --inputWavelengthMaskForUncalContinuum=$(configdir)$(extractor_WavelengthMaskForUncalContinuum) \
@@ -469,6 +471,7 @@ $${pargs} \
 $${tell} \
 $${rvel} \
 $${fcal} \
+--flatResponse=$(configdir)$(extractor_FlatResponse) \
 --numberOfPointsInUniformSample=$(extractor_numberOfPointsInUniformSample) \
 --normalizationBinsize=$(extractor_normalizationBinsize) \
 --AbsoluteCalibration=$(extractor_AbsoluteCalibration) \
@@ -575,6 +578,8 @@ $${nargs} \
 --sigmaclip=$(extraction_sigmaclip) \
 --onTargetProfile=1 \
 --starplusskymode=$(starplusskymode) \
+--spectrumtype=$(OptimalBeamSpectrum) \
+--spectrumtypename=OptimalBeamSpectrum \
 --ordernumber=$(ordernumber) \
 --usePolynomialFit=$(extraction_usePolynomialFit) \
 --removeBackground=$(extraction_removeBackground) \
@@ -594,33 +599,35 @@ $${pargs} \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting telluric correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--xcorrsplotfilename=$(visualsdir)$*itellxcor.eps --specplotfilename=$(visualsdir)$*itell.eps --xcorrdatafilename=$(byproductsdir)$*itellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*itellxcorrfit.pdat --atlasdatafilename=$(byproductsdir)$*itellatlas.pdat --compdatafilename=$(byproductsdir)$*itellcomp.pdat --linesdatafilename=$(byproductsdir)$*itelllines.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --xcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu" ; \
+			pargs="--xcorrsplotfilename=$(visualsdir)$*itellxcor.eps --specplotfilename=$(visualsdir)$*itell.eps --xcorrdatafilename=$(byproductsdir)$*itellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*itellxcorrfit.pdat --specdatafile=$(byproductsdir)$*itell.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --xcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu" ; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelluricWavelengthCorrection \
 --inputObjectSpectrum=$(spectradir)$*.e$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
 --telluric_lines=$(configdir)$(telluric_atlas_lines) \
 --telluric_spectrum=$(configdir)$(telluric_reference_spectrum) \
+--inputWavelengthMaskForTelluric=$(configdir)$(telluric_absorptionMask) \
 --spectralResolution=$(telluric_spectralResolution) \
---initialWavelengthRange=$(telluric_initialWavelengthRange) \
---initialWavelengthStep=$(telluric_initialWavelengthStep) \
+--radialVelocityRange=$(telluric_radialVelocityRange) \
+--radialVelocityStep=$(telluric_radialVelocityStep) \
 --XCorrelationThreshold=$(telluric_XCorrelationThreshold) \
---subtractCentralWavelength=$(telluric_subtractCentralWavelength) \
 --normalizationBinsize=$(telluric_normalizationbinsize) \
---sigmaThreshold=$(telluric_sigmathreshold) \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--StarPlusSky=$(starplusskymode) \
+--useFitToFindMaximum=$(telluric_useFitToFindMaximum) \
 $${pargs} \
 --outputWaveFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Telluric Wavelength Correction $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
-# Barycentric Radial Velocity Correction
+# Heliocentric Radial Velocity Correction
 # The .rvel file has the same format as the .wcal
 #########################################################################################
 %i.rvel$(gzip):
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
-		echo "$(pref) Barycentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
+		echo "$(pref) Heliocentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		MJDATE=`$(bindir)operagetheader --keyword=MJDATE $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		absra_center=`$(bindir)operagetheader --keyword=RA_DEG $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		absdec_center=`$(bindir)operagetheader --keyword=DEC_DEG $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
@@ -628,12 +635,14 @@ $${pargs} \
 		instzdec=`$(bindir)operagetheader --keyword=INSTZDEC $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
 		absra_center=`echo $${absra_center} $${instzra} | awk '{printf("%f", $$1-$$2/3600.0)}'` ; \
 		absdec_center=`echo $${absdec_center} $${instzdec} | awk '{printf("%f", $$1+$$2/3600.0)}'` ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaBarycentricWavelengthCorrection \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaHeliocentricWavelengthCorrection \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
 --observatory_coords=\"$(observatory_coords)\" \
 --object_coords=\"$${absra_center} $${absdec_center}\" \
 --observatory_elevation=$(observatory_elevation) \
 --MJDTime=$${MJDATE} \
+--ha_start=$${startha} \
+--etime=$${exposure} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi

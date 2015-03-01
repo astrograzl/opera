@@ -58,14 +58,11 @@
 #include "libraries/LaurentPolynomial.h"
 #include "libraries/operaCCD.h"					// for MAXORDERS
 #include "libraries/operastringstream.h"		// for Double, Float
-
-#include "core-espadons/operaCreateProduct.h"
+#include "libraries/operaArgumentHandler.h"
 
 /*! \file operaCreateProduct.cpp */
 
 using namespace std;
-
-int debug=0, verbose=0, trace=0, plot=0;
 
 /*!
  * operaCreateProduct
@@ -79,192 +76,44 @@ int debug=0, verbose=0, trace=0, plot=0;
  * \ingroup core
  */
 
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdpth] --output=... --input=... \n\n"
-	"--iu=...\n"
-	"--in=...\n"
-	"--iuw=...\n"
-	"--inw=...\n"
-	"--pu=...\n"
-	"--pn=...\n"
-	"--puw=...\n"
-	"--pnw=...\n"
-	"--snr=...\n"
-	"--centralsnr\n"
-	"--version=...\n"
-	"--date=...\n"
-	"--csv=...\n"
-	"--es=...\n"
-	"--input=...\n"
-	"--output=...\n"
-	"--spectrumtype=...\n"
-	"--compressiontype=...\n"
-	"--geom=...\n"
-	"--wave=...\n"
-	"--aper=...\n"
-	"--prof=...\n"
-	"--ordp=...\n"
-	"--beam=...\n"
-	"--gain=...\n"
-	"--bias=...\n"
-	"--fcal=...\n"
-	"--disp=...\n"
-	"--rvel=...\n"
-	"--tell=...\n"
-	"--prvel=...\n"
-	"--ptell=...\n"
-	"--parameters=...\n"
-	"--object=...\n"
-	"  -p, --plot  plot\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	;
-}
-/*
- * if MEF we need the extension index
- */
+operaArgumentHandler args;
 
 // Returns the number of rows from a Libre-Esprit spectrum file (.s).
-unsigned int GetRowCountFromLESpectrumFile(const string spectrumfile) {
-	unsigned int rows = 0;
-	operaistream fin(spectrumfile.c_str());
-	if (fin.is_open()) {
-		string dataline;
-		getline(fin, dataline);
-		getline(fin, dataline);
-		stringstream ss (dataline);
-		ss >> rows;
-		fin.close();
-	}
-	return rows;
-}
+unsigned int GetRowCountFromLESpectrumFile(const string spectrumfile);
 
 // Returns the number of rows from an extended spectrum file (.es).
-unsigned int GetRowCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode) {
-	operaSpectralOrderVector spectralOrders(spectrumfile);
-	const unsigned int minorder = spectralOrders.getMinorder();
-	const unsigned int maxorder = spectralOrders.getMaxorder();
-	unsigned totaldatapoints = 0;
-	for (unsigned int order = minorder; order <= maxorder; order++) {
-		operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-		if (instrumentmode == MODE_POLAR && spectralOrder->gethasPolarimetry() && spectralOrder->gethasWavelength()) {
-			totaldatapoints += spectralOrder->getPolarimetry()->getLength();
-		}
-		else if (instrumentmode != MODE_POLAR && spectralOrder->gethasSpectralElements()) {
-			operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-			totaldatapoints += spectralelements->getnSpectralElements();
-		}
-	}
-	return totaldatapoints;
-}
+unsigned int GetRowCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode);
 
 /* Updates the specified columns of a FITS product using the values from a Libre-Esprit spectrum file (.s).
    colgroup - which group of columns (index from 0 to 3) will be updated 
    groupsize - the number of columns in this group */
-void UpdateProductFromLESpectrumFile(operaFITSProduct& Product, const string spectrumfile, const unsigned groupsize, const unsigned int colgroup, const unsigned int rowcount) {
-	operaistream fin(spectrumfile.c_str());
-	if (fin.is_open()) {
-		string dataline;
-		getline(fin, dataline);
-		getline(fin, dataline);
-		unsigned row = 0;
-		while (fin.good() && row < rowcount) {
-			getline(fin, dataline);
-			if (!dataline.empty()) {
-				stringstream ss (dataline);
-				for (int col = colgroup * groupsize; col < (colgroup + 1) * groupsize; col++) {
-					Float NanTolerantFloat = 0.0;
-					ss >> NanTolerantFloat;
-					Product[col][row] = NanTolerantFloat.f;
-				}
-				row++;
-			}
-		}
-		fin.close();
-	}	
-}
+void UpdateProductFromLESpectrumFile(operaFITSProduct& Product, const string spectrumfile, const unsigned groupsize, const unsigned int colgroup, const unsigned int rowcount);
 
 /* Updates the specified columns of a FITS product using the values from an extended spectrum file (.es).
    colgroup - which group of columns (index from 0 to 3) will be updated */
-void UpdateProductFromExtendedSpectrumFile(operaFITSProduct& Product, const string spectrumfile, const instrumentmode_t instrumentmode, const unsigned int colgroup) {
-	operaSpectralOrderVector spectralOrders(spectrumfile);
-	const unsigned int minorder = spectralOrders.getMinorder();
-	const unsigned int maxorder = spectralOrders.getMaxorder();
-	unsigned int startcol = 0;
-	unsigned int datapoint = 0;
-	switch (instrumentmode) {
-		case MODE_POLAR:
-			startcol = colgroup * MODE_POLAR_COLS / 4;
-			for (unsigned order = minorder; order <= maxorder; order++) {
-				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-				if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasPolarimetry() && spectralOrder->gethasWavelength()) {
-					operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-					operaPolarimetry *Polarimetry = spectralOrder->getPolarimetry();
-					unsigned length = Polarimetry->getLength();
-					stokes_parameter_t stokesParameter = StokesI;
-					if (Polarimetry->getHasStokesV()) stokesParameter = StokesV;
-					else if (Polarimetry->getHasStokesQ()) stokesParameter = StokesQ;
-					else if (Polarimetry->getHasStokesU()) stokesParameter = StokesU;
-					else if (Polarimetry->getHasStokesI()) stokesParameter = StokesI; //this is currently the default value anyway
-					for (unsigned index = 0; index < length; index++) {
-						Product[startcol+0][datapoint] = SpectralElements->getwavelength(index);
-						Product[startcol+1][datapoint] = Polarimetry->getStokesParameter(stokesParameter)->getflux(index); //Polarization
-						Product[startcol+2][datapoint] = stokesParameter;
-						Product[startcol+3][datapoint] = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index); //Null Spectrum 1
-						Product[startcol+4][datapoint] = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index); //Null Spectrum 2
-						Product[startcol+5][datapoint] = sqrt(Polarimetry->getStokesParameter(stokesParameter)->getvariance(index)); //Polarization Error
-						datapoint++;
-					}
-				}
+void UpdateProductFromExtendedSpectrumFile(operaFITSProduct& Product, const string spectrumfile, const instrumentmode_t instrumentmode, const unsigned int colgroup);
+
+double readRadialVelocityCorrection(string filename) {
+	if (!filename.empty()) {
+		operaistream fin(filename.c_str());
+		if (fin.is_open()) {
+			while (fin.good()) {
+				string dataline;
+				getline (fin,dataline);
+				if (!dataline.empty() && dataline[0] != '#') {
+					stringstream ss (dataline);
+					double rvel;
+					ss >> rvel;
+					return rvel;
+				}									
 			}
-			break;
-		case MODE_STAR_ONLY:
-			startcol = colgroup * MODE_STAR_ONLY_COLS / 4;
-			for (unsigned int order = minorder; order <= maxorder; order++) {
-				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-				if (spectralOrder->gethasSpectralElements()) {
-					operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-					for (unsigned int i = 0; i < spectralelements->getnSpectralElements(); i++) {
-						Product[startcol+0][datapoint] = spectralelements->getwavelength(i);
-						Product[startcol+1][datapoint] = spectralelements->getFlux(i);
-						Product[startcol+2][datapoint] = sqrt(spectralelements->getFluxVariance(i));
-						datapoint++;
-					}
-				}
-			}
-			break;
-		case MODE_STAR_PLUS_SKY:
-			startcol = colgroup * MODE_STAR_PLUS_SKY_COLS / 4;
-			for (unsigned order = minorder; order <= maxorder; order++) {
-				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-				if (spectralOrder->gethasSpectralElements()) {
-					operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-					operaSpectralElements *beamElements0 = spectralOrder->getBeamElements(0);
-					operaSpectralElements *beamElements1 = spectralOrder->getBeamElements(1);
-					for (unsigned int i = 0; i < spectralelements->getnSpectralElements(); i++) {
-						Product[startcol+0][datapoint] = spectralelements->getwavelength(i);
-						Product[startcol+1][datapoint] = beamElements0->getFlux(i);
-						Product[startcol+2][datapoint] = beamElements0->getFlux(i) + beamElements1->getFlux(i);
-						Product[startcol+3][datapoint] = beamElements1->getFlux(i);
-						Product[startcol+4][datapoint] = sqrt(beamElements0->getFluxVariance(i));
-						Product[startcol+5][datapoint] = sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i)); ////I don't think this is the correct way to calculate error...
-						Product[startcol+6][datapoint] = sqrt(beamElements1->getFluxVariance(i));
-						datapoint++;
-					}
-				}
-			}
-			break;
+		}
 	}
+	return 0.00;
 }
 
 // Adds various information to the header of the FITS product.
-void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename) {
+void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename, const string rvelfilename) {
 	Product.operaFITSDeleteHeaderKey("DATASEC");
 	Product.operaFITSDeleteHeaderKey("DETSEC");
 	Product.operaFITSAddComment("----------------------------------------------------");
@@ -298,7 +147,7 @@ void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, con
 	Product.operaFITSAddComment("OPERA Processing Parameters");
 	Product.operaFITSAddComment("---------------------------");
 	if (!parametersfilename.empty()) {
-		if (verbose) cout << "operaCreateProduct: adding parameters " << endl;
+		if (args.verbose) cout << "operaCreateProduct: adding parameters " << endl;
 		ifstream parameters(parametersfilename.c_str());
 		while (parameters.good()) {
 			string dataline;
@@ -308,10 +157,10 @@ void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, con
 	}
 	//To do: replace this with more useful SNR information (i.e. peak SNR)
 	if (!snrfilename.empty()) {
-		if (verbose) cout << "operaCreateProduct: adding SNR comments " << endl;
+		if (args.verbose) cout << "operaCreateProduct: adding SNR comments " << endl;
 		operaSpectralOrderVector spectralOrders(snrfilename);
-		int minorder = spectralOrders.getMinorder();
-		int maxorder = spectralOrders.getMaxorder();
+		unsigned minorder = spectralOrders.getMinorder();
+		unsigned maxorder = spectralOrders.getMaxorder();
 		Product.operaFITSAddComment("SNR Table");
 		Product.operaFITSAddComment("---------");
 		Product.operaFITSAddComment("Format: <order number><center SNR><center wavelength><SNR>");
@@ -324,238 +173,89 @@ void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, con
 			}
 		}
 	}
+	double rvcorr = readRadialVelocityCorrection(rvelfilename);
+	Product.operaFITSSetHeaderValue("HRV", rvcorr, "barycentric RV correction");
+	//Product.operaFITSSetHeaderValue("TELLRV", value, "telluric RV correction");
 }
 
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
 	
-	string version = "";
-	string date = "";
-	string iu, in, iuw, inw;				// i*.s
-	string pu, pn, puw, pnw;				// p*.s
-	string inputfilename;					// o.fits
-	string outputfilename;					// m.fits
-	string ifilename;						// i.s
-	string snrfilename;						// .sn
-	string csvfilename;						// .csv
-	string esfilename;						// .es.gz
-	string parametersfilename;				// .parm
-	string geomfilename;					// .geom
-	string wavefilename;					// .wcal
-	string aperfilename;					// .aper
-	string proffilename;					// .prof
-	string ordpfilename;					// .ordp
-	string beamfilename;					// .es
-	string polarfilename;					// .ep
-	string gainfilename;					// .gain
-	string biasfilename;					// .bias
-	string fcalfilename;					// .fcal
-	string dispfilename;					// .disp
-	string rvelfilename;					// i.rvel
-	string tellfilename;					// i.tell
-	string prvelfilename;					// p.rvel
-	string ptellfilename;					// p.tell
-	string object;							// quoted string
+	string version, date;
+	args.AddOptionalArgument("version", version, "", "");
+	args.AddOptionalArgument("date", date, "", "");
+	
+	string inputfilename, outputfilename;
+	args.AddRequiredArgument("input", inputfilename, "input file (o.fits)");
+	args.AddOptionalArgument("output", outputfilename, "", "output file (i.fits/m.fits)");
+	string ifilename;
+	args.AddOptionalArgument("i", ifilename, "", "i.s");
+	string polarfilename;
+	args.AddOptionalArgument("polar", polarfilename, "", ".ep");
+	string ufile, nfile, uwfile, nwfile;
+	args.AddOptionalArgument("ufile", ufile, "", "unnormalized spectrum (iu.s/pu.s)");
+	args.AddOptionalArgument("nfile", nfile, "", "normalized spectrum (in.s/pn.s)");
+	args.AddOptionalArgument("uwfile", uwfile, "", "unnormalized wavelength corrected spectrum (iuw.s/puw.s)");
+	args.AddOptionalArgument("nwfile", nwfile, "", "normalized wavelength corrected spectrum (inw.s/pnw.s)");
+	string snrfilename;
+	args.AddOptionalArgument("snr", snrfilename, "", ".sn");
+	string csvfilename;
+	args.AddOptionalArgument("csv", csvfilename, "", ".csv");
+	string esfilename;
+	args.AddOptionalArgument("es", esfilename, "", ".es.gz");
+	string geomfilename;
+	args.AddOptionalArgument("geom", geomfilename, "", ".geom");
+	string wavefilename;
+	args.AddOptionalArgument("wave", wavefilename, "", ".wcal");
+	string aperfilename;
+	args.AddOptionalArgument("aper", aperfilename, "", ".aper");
+	string proffilename;
+	args.AddOptionalArgument("prof", proffilename, "", ".prof");
+	string ordpfilename;
+	args.AddOptionalArgument("ordp", ordpfilename, "", ".ordp");
+	string beamfilename;
+	args.AddOptionalArgument("beam", beamfilename, "", ".es");
+	string gainfilename;
+	args.AddOptionalArgument("gain", gainfilename, "", ".gain");
+	string biasfilename;
+	args.AddOptionalArgument("bias", biasfilename, "", ".bias");
+	string fcalfilename;
+	args.AddOptionalArgument("fcal", fcalfilename, "", ".fcal");
+	string dispfilename;
+	args.AddOptionalArgument("disp", dispfilename, "", ".disp");
+	string rvelfilename;
+	args.AddOptionalArgument("rvel", rvelfilename, "", "i.rvel");
+	string tellfilename;
+	args.AddOptionalArgument("tell", tellfilename, "", "i.tell");
+	string prvelfilename;
+	args.AddOptionalArgument("prvel", prvelfilename, "", "p.rvel");
+	string ptellfilename;
+	args.AddOptionalArgument("ptell", ptellfilename, "", "p.tell");
+	string parametersfilename;
+	args.AddOptionalArgument("parameters", parametersfilename, "", ".parm");
+	string object;
+	args.AddOptionalArgument("object", object, "", "object name, needed for Libre-Esprit output");
 	
 	string spectralOrderType;
-	eCompression compression = cNone;
-	unsigned extensions = 0;
-	bool centralsnr = false;
-	unsigned sequence = 0;					// for polar sequence in case of masterfluxcalibrations
-	
-	struct option longopts[] = {
-		{"iu",				1, NULL, 'A'},
-		{"in",				1, NULL, 'B'},
-		{"iuw",				1, NULL, 'C'},
-		{"inw",				1, NULL, 'D'},
-		{"pu",				1, NULL, 'E'},
-		{"pn",				1, NULL, 'F'},
-		{"puw",				1, NULL, 'G'},
-		{"pnw",				1, NULL, 'H'},
-		{"i",				1, NULL, 'J'},
-		{"snr",				1, NULL, 'S'},
-		{"centralsnr",		1, NULL, 'Z'},
-		{"version",			1, NULL, 'V'},
-		{"date",			1, NULL, 'a'},
-		{"input",			1, NULL, 'i'},
-		{"output",			1, NULL, 'o'},
-		{"spectrumtype",	1, NULL, 'T'},
-		{"compressiontype", 1, NULL, 'I'},
-		{"sequence",		1, NULL, 'q'},
-		{"csv",				1, NULL, '5'},
-		{"es",				1, NULL, '6'},
-		{"geom",			1, NULL, 'g'},
-		{"wave",			1, NULL, 'w'},
-		{"aper",			1, NULL, 'r'},
-		{"prof",			1, NULL, 'f'},
-		{"ordp",			1, NULL, 'y'},
-		{"beam",			1, NULL, 'e'},
-		{"polar",			1, NULL, 'R'},
-		{"gain",			1, NULL, 'n'},
-		{"bias",			1, NULL, 's'},
-		{"fcal",			1, NULL, 'c'},
-		{"disp",			1, NULL, 'k'},
-		{"rvel",			1, NULL, '1'},
-		{"tell",			1, NULL, '2'},
-		{"prvel",			1, NULL, '3'},
-		{"ptell",			1, NULL, '4'},
-		{"parameters",		1, NULL, 'P'},
-		{"object",			1, NULL, 'O'},	// needed for Libre-Esprit output
+	args.AddOptionalArgument("spectrumtype", spectralOrderType, "", "spectral order type");
+	int compressionVal;
+	args.AddOptionalArgument("compressiontype", compressionVal, cNone, "compression type");
+	bool centralsnr;
+	args.AddSwitch("centralsnr", centralsnr, "");
+	unsigned sequence;
+	args.AddOptionalArgument("sequence", sequence, 0, "for polar sequence in case of masterfluxcalibrations");
 		
-		{"plot",	optional_argument, NULL, 'p'},
-		{"verbose",	optional_argument, NULL, 'v'},
-		{"debug",	optional_argument, NULL, 'd'},
-		{"trace",	optional_argument, NULL, 't'},
-		{"help",	no_argument, NULL, 'h'},
-		{0,0,0,0}
-	};
-	while((opt = getopt_long(argc, argv, "A:B:C:D:E:F:G:H:J:S:R:O:i:o:V:T:I:q:Z:g:k:w:r:f:y:e:n:s:c:P:a:1:2:3:4:5:6:v::d::t::p::h",  longopts, NULL)) != -1) {
-		switch(opt) {
-			case 'A':
-				iu = optarg;
-				break;
-			case 'B':
-				in = optarg;
-				break;
-			case 'C':
-				iuw = optarg;
-				break;
-			case 'D':
-				inw = optarg;
-				break;
-			case 'E':
-				pu = optarg;
-				break;
-			case 'F':
-				pn = optarg;
-				break;
-			case 'G':
-				puw = optarg;
-				break;
-			case 'H':
-				pnw = optarg;
-				break;
-			case 'J':
-				ifilename = optarg;
-				break;
-			case 'S':
-				snrfilename = optarg;
-				break;
-			case '5':
-				csvfilename = optarg;
-				break;
-			case '6':
-				esfilename = optarg;
-				break;
-			case 'Z':
-				centralsnr = atoi(optarg) == 1;
-				break;
-			case 'O':
-				object = optarg;
-				break;
-			case 'V':
-				version = optarg;
-				break;
-			case 'I':
-				compression = (eCompression)atoi(optarg);
-				break;
-			case 'q':
-				sequence = atoi(optarg);
-				break;
-			case 'a':
-				date = optarg;
-				break;
-			case 'o':		// output
-				outputfilename = optarg;
-				break;
-			case 'i':		// input
-				inputfilename = optarg;
-				break;
-			case 'T':		// spectrum type
-				spectralOrderType = optarg;
-				break;
-			case 'P':
-				parametersfilename = optarg;
-				break;
-			case 'g':
-				geomfilename = optarg;
-				break;
-			case 'w':
-				wavefilename = optarg;
-				break;
-			case 'r':
-				aperfilename = optarg;
-				break;
-			case 'f':
-				proffilename = optarg;
-				break;
-			case 'y':
-				ordpfilename = optarg;
-				break;
-			case 'e':
-				beamfilename = optarg;
-				break;
-			case 'R':
-				polarfilename = optarg;
-				break;
-			case 'n':
-				gainfilename = optarg;
-				break;
-			case 's':
-				biasfilename = optarg;
-				break;
-			case 'c':
-				fcalfilename = optarg;
-				break;
-			case 'k':
-				dispfilename = optarg;
-				break;
-			case '1':
-				rvelfilename = optarg;
-				break;
-			case '2':
-				tellfilename = optarg;
-				break;
-			case '3':
-				prvelfilename = optarg;
-				break;
-			case '4':
-				ptellfilename = optarg;
-				break;
-				
-			case 'v':
-				verbose = 1;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}
-	
 	try {
-		// we need an input...
-		if (inputfilename.empty()) {
+		args.Parse(argc, argv);
+		
+		if (inputfilename.empty()) // we need an input...
 			throw operaException("operaCreateProduct: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
-		}
-		// we need an output...
-		if (outputfilename.empty() && csvfilename.empty()) {
+		if (outputfilename.empty() && csvfilename.empty()) // we need an output...
 			throw operaException("operaCreateProduct: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
-		}
+		
+		eCompression compression = (eCompression)compressionVal;
+		unsigned extensions = 0;	
 		if (!beamfilename.empty()) extensions++;
 		if (!polarfilename.empty()) extensions++;
 		if (!geomfilename.empty()) extensions++;
@@ -571,21 +271,17 @@ int main(int argc, char *argv[])
 		if (!tellfilename.empty()) extensions++;
 		if (!prvelfilename.empty()) extensions++;
 		if (!ptellfilename.empty()) extensions++;
-		if (verbose) {
+		if (args.verbose) {
+			cout << "operaCreateProduct: input= " << inputfilename << endl;
+			cout << "operaCreateProduct: output= " << outputfilename << endl;
 			cout << "operaCreateProduct: ifilename= " << ifilename << endl;
-			cout << "operaCreateProduct: iu= " << iu << endl;
-			cout << "operaCreateProduct: in= " << in << endl;
-			cout << "operaCreateProduct: iuw= " << iuw << endl;
-			cout << "operaCreateProduct: inw= " << inw << endl;
-			cout << "operaCreateProduct: pu= " << pu << endl;
-			cout << "operaCreateProduct: pn= " << pn << endl;
-			cout << "operaCreateProduct: puw= " << puw << endl;
-			cout << "operaCreateProduct: pnw= " << pnw << endl;
+			cout << "operaCreateProduct: ufile= " << ufile << endl;
+			cout << "operaCreateProduct: nfile= " << nfile << endl;
+			cout << "operaCreateProduct: uwfile= " << uwfile << endl;
+			cout << "operaCreateProduct: nwfile= " << nwfile << endl;
 			cout << "operaCreateProduct: snrfilename= " << snrfilename << endl;
 			cout << "operaCreateProduct: csvfilename= " << csvfilename << endl;
 			cout << "operaCreateProduct: esfilename= " << esfilename << endl;
-			cout << "operaCreateProduct: input= " << inputfilename << endl;
-			cout << "operaCreateProduct: output= " << outputfilename << endl;
 			cout << "operaCreateProduct: parametersfilename= " << parametersfilename << endl;
 			cout << "operaCreateProduct: geomfilename= " << geomfilename << endl;
 			cout << "operaCreateProduct: wavefilename= " << wavefilename << endl;
@@ -612,19 +308,14 @@ int main(int argc, char *argv[])
 		operaFITSImage input(inputfilename, tfloat, READONLY, cNone, true);
 		string mode = input.operaFITSGetHeaderValue("INSTMODE");
 		input.operaFITSImageClose();
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaCreateProduct: " << mode << endl;
 		}
 		instrumentmode_t instrumentmode;
 		unsigned int numcols = 0;
-		string ufile = iu, nfile = in, uwfile = iuw, nwfile = inw;
 		if (mode.find("Polarimetry") != string::npos) {
 			instrumentmode = MODE_POLAR;
 			numcols = MODE_POLAR_COLS;
-			ufile = pu;
-			nfile = pn;
-			uwfile = puw;
-			nwfile = pnw;
 		} else if (mode.find("Spectroscopy, star+sky") != string::npos) {
 			instrumentmode = MODE_STAR_PLUS_SKY;
 			numcols = MODE_STAR_PLUS_SKY_COLS;
@@ -642,7 +333,7 @@ int main(int argc, char *argv[])
 		if (!ifilename.empty()) {
 			operaostream fout;
 			fout.open(outputfilename.c_str());
-			if (verbose) {
+			if (args.verbose) {
 				cout << "operaCreateProduct: mode=" << instrumentmode << endl;
 				cout << "operaCreateProduct: object='" << object << "'"<< endl;
 			}
@@ -713,7 +404,7 @@ int main(int argc, char *argv[])
 		else if (!polarfilename.empty() && outputfilename.find("m.fits") == string::npos) {
 			operaostream fout;
 			fout.open(outputfilename.c_str());
-			if (verbose) {
+			if (args.verbose) {
 				cout << "operaCreateProduct: mode=" << instrumentmode << endl;
 				cout << "operaCreateProduct: object='" << object << "'"<< endl;
 			}
@@ -797,18 +488,18 @@ int main(int argc, char *argv[])
 				UpdateProductFromLESpectrumFile(Product, uwfile, numcols/4, 1, datapoints);
 				UpdateProductFromLESpectrumFile(Product, nwfile, numcols/4, 0, datapoints);
 			}
-			AddFITSHeaderToProduct(Product, version, date, spectralOrderType, parametersfilename, snrfilename);
+			AddFITSHeaderToProduct(Product, version, date, spectralOrderType, parametersfilename, snrfilename, rvelfilename);
 			Product.operaFITSImageSave();
 			Product.operaFITSImageClose();
-			if (verbose && instrumentmode == MODE_POLAR) cout << "operaCreateProduct: done polarimetry " << endl;
-			else if (verbose) cout << "operaCreateProduct: done intensity " << endl;
+			if (args.verbose && instrumentmode == MODE_POLAR) cout << "operaCreateProduct: done polarimetry " << endl;
+			else if (args.verbose) cout << "operaCreateProduct: done intensity " << endl;
         }
 		
         /***********************************************************************************************
          * PART III - Do the CSV
          ***********************************************************************************************/
 		else if (!csvfilename.empty() && !esfilename.empty()) {
-			if (verbose) {
+			if (args.verbose) {
 				cout << "operaCreateProduct: mode=" << instrumentmode << endl;
 				cout << "operaCreateProduct: object='" << object << "'"<< endl;
 			}
@@ -865,7 +556,7 @@ int main(int argc, char *argv[])
 				 * Add in the reduction parameters
 				 */
 				if (!parametersfilename.empty()) {
-					if (verbose) {
+					if (args.verbose) {
 						cout << "operaCreateProduct: adding parameters " << endl;
 					}
 					ifstream parameters(parametersfilename.c_str());
@@ -880,7 +571,7 @@ int main(int argc, char *argv[])
 				MaxColumns = 25;
 				detsec.x2 = MaxColumns;
 				detsec.y2 = Rows;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " beam spectra " << spectralOrderType << " " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("BEAMFLUX", MaxColumns, Rows, detsec, true);	// reuse the first extension
@@ -954,7 +645,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " SNR " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("SNR", MaxColumns, Rows, detsec);
@@ -1005,6 +696,8 @@ int main(int argc, char *argv[])
 				}
 				product->saveExtension(extension);
 			}
+			double rvcorr = readRadialVelocityCorrection(rvelfilename);
+			product->operaFITSSetHeaderValue("HRV", rvcorr, "barycentric RV correction");
 			if (!polarfilename.empty()) {
 				extension++;
 				// <order number> <StokesParameter_t> <length> <index> <wavelength> <Stokes(Q,U,V) flux> <Stokes(Q,U,V) variance> <StokesI flux> <StokesI variance> <degree of polarization flux> <degree of polarization variance> <first null polarization> <first null polarization variance> <second null polarization> <second null polarization variance>
@@ -1025,7 +718,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " POLAR " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("POLAR", MaxColumns, Rows, detsec);
@@ -1120,7 +813,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " geometry " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("GEOMETRY", MaxColumns, Rows, detsec);
@@ -1174,7 +867,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " order spacing polynomial " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("ORDERPOLY", MaxColumns, Rows, detsec);
@@ -1213,7 +906,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " dispersion polynomial " << Columns << " x " << Rows << endl;
 				}
 				product->addExtension("DISPERSION", MaxColumns, Rows, detsec);
@@ -1264,7 +957,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " radial velocity " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("RADIALVELOCITY", MaxColumns, Rows, detsec);
@@ -1291,7 +984,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " polarimetry radial velocity " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("PRADIALVELOCITY", MaxColumns, Rows, detsec);
@@ -1325,7 +1018,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " telluric wavelength " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("TELLCORR", MaxColumns, Rows, detsec);
@@ -1381,7 +1074,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " polarimetry telluric wavelength " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("PTELLCORR", MaxColumns, Rows, detsec);
@@ -1437,7 +1130,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " wavelength " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("WAVELENGTH", MaxColumns, Rows, detsec);
@@ -1493,7 +1186,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " aperture " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("APERTURE", MaxColumns, Rows, detsec);
@@ -1567,7 +1260,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " instrument profile " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("PROFILE", MaxColumns, Rows, detsec);
@@ -1640,7 +1333,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " flux calibration " << MaxColumns << " x " << Rows << endl;
 				}
 				if (sequence == 0) {
@@ -1712,7 +1405,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " gain " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("GAIN", MaxColumns, Rows, detsec);
@@ -1757,7 +1450,7 @@ int main(int argc, char *argv[])
 				detsec.x1 = detsec.x2 + 1;
 				detsec.y2 = Rows;
                 detsec.x2 = detsec.x1 + MaxColumns;
-				if (verbose) {
+				if (args.verbose) {
 					cout << "operaCreateProduct: adding extension " << extension << " bias " << MaxColumns << " x " << Rows << endl;
 				}
 				product->addExtension("BIAS", MaxColumns, Rows, detsec);
@@ -1789,7 +1482,7 @@ int main(int argc, char *argv[])
 				}
 				product->saveExtension(extension);
 			}
-			if (verbose) {
+			if (args.verbose) {
 				cout << "operaCreateProduct: completed adding " << extension << " extensions." << endl;
 			}
 			product->operaFITSImageClose();
@@ -1805,4 +1498,132 @@ int main(int argc, char *argv[])
     }
     
     return EXIT_SUCCESS;
+}
+
+unsigned int GetRowCountFromLESpectrumFile(const string spectrumfile) {
+	unsigned int rows = 0;
+	operaistream fin(spectrumfile.c_str());
+	if (fin.is_open()) {
+		string dataline;
+		getline(fin, dataline);
+		getline(fin, dataline);
+		stringstream ss (dataline);
+		ss >> rows;
+		fin.close();
+	}
+	return rows;
+}
+
+unsigned int GetRowCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode) {
+	operaSpectralOrderVector spectralOrders(spectrumfile);
+	const unsigned int minorder = spectralOrders.getMinorder();
+	const unsigned int maxorder = spectralOrders.getMaxorder();
+	unsigned totaldatapoints = 0;
+	for (unsigned int order = minorder; order <= maxorder; order++) {
+		operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+		if (instrumentmode == MODE_POLAR && spectralOrder->gethasPolarimetry() && spectralOrder->gethasWavelength()) {
+			totaldatapoints += spectralOrder->getPolarimetry()->getLength();
+		}
+		else if (instrumentmode != MODE_POLAR && spectralOrder->gethasSpectralElements()) {
+			operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+			totaldatapoints += spectralelements->getnSpectralElements();
+		}
+	}
+	return totaldatapoints;
+}
+
+void UpdateProductFromLESpectrumFile(operaFITSProduct& Product, const string spectrumfile, const unsigned groupsize, const unsigned int colgroup, const unsigned int rowcount) {
+	operaistream fin(spectrumfile.c_str());
+	if (fin.is_open()) {
+		string dataline;
+		getline(fin, dataline);
+		getline(fin, dataline);
+		unsigned row = 0;
+		while (fin.good() && row < rowcount) {
+			getline(fin, dataline);
+			if (!dataline.empty()) {
+				stringstream ss (dataline);
+				for (unsigned col = colgroup * groupsize; col < (colgroup + 1) * groupsize; col++) {
+					Float NanTolerantFloat = 0.0;
+					ss >> NanTolerantFloat;
+					Product[col][row] = NanTolerantFloat.f;
+				}
+				row++;
+			}
+		}
+		fin.close();
+	}	
+}
+
+void UpdateProductFromExtendedSpectrumFile(operaFITSProduct& Product, const string spectrumfile, const instrumentmode_t instrumentmode, const unsigned int colgroup) {
+	operaSpectralOrderVector spectralOrders(spectrumfile);
+	const unsigned int minorder = spectralOrders.getMinorder();
+	const unsigned int maxorder = spectralOrders.getMaxorder();
+	unsigned int startcol = 0;
+	unsigned int datapoint = 0;
+	switch (instrumentmode) {
+		case MODE_POLAR:
+			startcol = colgroup * MODE_POLAR_COLS / 4;
+			for (unsigned order = minorder; order <= maxorder; order++) {
+				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+				if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasPolarimetry() && spectralOrder->gethasWavelength()) {
+					operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
+					operaPolarimetry *Polarimetry = spectralOrder->getPolarimetry();
+					unsigned length = Polarimetry->getLength();
+					stokes_parameter_t stokesParameter = StokesI;
+					if (Polarimetry->getHasStokesV()) stokesParameter = StokesV;
+					else if (Polarimetry->getHasStokesQ()) stokesParameter = StokesQ;
+					else if (Polarimetry->getHasStokesU()) stokesParameter = StokesU;
+					else if (Polarimetry->getHasStokesI()) stokesParameter = StokesI; //this is currently the default value anyway
+					for (unsigned index = 0; index < length; index++) {
+						Product[startcol+0][datapoint] = SpectralElements->getwavelength(index);
+						Product[startcol+1][datapoint] = Polarimetry->getStokesParameter(stokesParameter)->getflux(index); //Polarization
+						Product[startcol+2][datapoint] = stokesParameter;
+						Product[startcol+3][datapoint] = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index); //Null Spectrum 1
+						Product[startcol+4][datapoint] = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index); //Null Spectrum 2
+						Product[startcol+5][datapoint] = sqrt(Polarimetry->getStokesParameter(stokesParameter)->getvariance(index)); //Polarization Error
+						datapoint++;
+					}
+				}
+			}
+			break;
+		case MODE_STAR_ONLY:
+			startcol = colgroup * MODE_STAR_ONLY_COLS / 4;
+			for (unsigned int order = minorder; order <= maxorder; order++) {
+				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+				if (spectralOrder->gethasSpectralElements()) {
+					operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+					for (unsigned int i = 0; i < spectralelements->getnSpectralElements(); i++) {
+						Product[startcol+0][datapoint] = spectralelements->getwavelength(i);
+						Product[startcol+1][datapoint] = spectralelements->getFlux(i);
+						Product[startcol+2][datapoint] = sqrt(spectralelements->getFluxVariance(i));
+						datapoint++;
+					}
+				}
+			}
+			break;
+		case MODE_STAR_PLUS_SKY:
+			startcol = colgroup * MODE_STAR_PLUS_SKY_COLS / 4;
+			for (unsigned order = minorder; order <= maxorder; order++) {
+				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+				if (spectralOrder->gethasSpectralElements()) {
+					operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+					operaSpectralElements *beamElements0 = spectralOrder->getBeamElements(0);
+					operaSpectralElements *beamElements1 = spectralOrder->getBeamElements(1);
+					for (unsigned int i = 0; i < spectralelements->getnSpectralElements(); i++) {
+						Product[startcol+0][datapoint] = spectralelements->getwavelength(i);
+						Product[startcol+1][datapoint] = beamElements0->getFlux(i);
+						Product[startcol+2][datapoint] = beamElements0->getFlux(i) + beamElements1->getFlux(i);
+						Product[startcol+3][datapoint] = beamElements1->getFlux(i);
+						Product[startcol+4][datapoint] = sqrt(beamElements0->getFluxVariance(i));
+						Product[startcol+5][datapoint] = sqrt(beamElements0->getFluxVariance(i)+beamElements1->getFluxVariance(i));
+						Product[startcol+6][datapoint] = sqrt(beamElements1->getFluxVariance(i));
+						datapoint++;
+					}
+				}
+			}
+			break;
+		default:
+			throw operaException("operaCreateProduct: ", operaErrorCodeBadInstrumentModeError, __FILE__, __FUNCTION__, __LINE__);
+	}
 }
