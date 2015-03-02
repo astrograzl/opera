@@ -2492,3 +2492,13 @@ Build files:
 Other components:
   Modified: config/wavelengthMaskForRefContinuumDetection.txt - removed last range and lengthened the preceeding range
   Added: config/flat_resp.s, config/wavelengthMaskForRVxcorr.txt, config/syntethicSpectra/M_s5500g3.0z0.25t1.0_a0.00c0.00n0.00o0.00r0.00s0.00_VIS.spec.txt, config/syntethicSpectra/Teff5500.spec
+
+Mar 2 2015
+  - Changed operaGeometryCalibration parameters to find missing order on the blue side
+  - Changed minimum number of lines for InstrumentProfileCalibration from constant into a parameter
+  - Fixed calculations in BarycentricWavelengthCorrection
+  - Added HeliocentricWavelengthCorrection module, used in place of BarycentricWavelengthCorrection
+  - Created subclass of ArgumentHandler to handle plot, verbose, debug, and trace switches by default
+  - Changed harness to use specified extension rather than gzip
+  - Updated differences in python script, espadons harness, and graces harness to sync changes
+  - Updated DEPENDENCIES and AUTHORS

@@ -3,9 +3,9 @@
 /*******************************************************************
  ****                  MODULE FOR OPERA v1.0                     ***
  *******************************************************************
- Module name: operaBarycentricWavelengthCorrection
+ Module name: operaHeliocentricWavelengthCorrection
  Version: 1.0
- Description: Apply barycentric velocity wavelength correction 
+ Description: Apply Heliocentric velocity wavelength correction 
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA

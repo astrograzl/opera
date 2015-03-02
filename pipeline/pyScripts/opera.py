@@ -31,9 +31,9 @@ parser.add_option("-T", "--product", dest="product", help='target product: "CALI
 parser.add_option("-a", action="store_true", dest="cleanall", help="JUST clean all products",default=False)
 parser.add_option("-c", action="store_true", dest="clean", help="clean products",default=False)
 parser.add_option("-s", action="store_true", dest="simulate", help="simulate",default=False)
-parser.add_option("-p", action="store_true", dest="plot", help="plots",default=False)
-parser.add_option("-v", action="store_true", dest="verbose", help="verbose",default=False)
-parser.add_option("-t", action="store_true", dest="trace", help="trace",default=False)
+parser.add_option("-p", "--plot", action="store_true", dest="plot", help="plots",default=False)
+parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose",default=False)
+parser.add_option("-t", "--trace", action="store_true", dest="trace", help="trace",default=False)
 
 try:
     options,args = parser.parse_args(sys.argv[1:])

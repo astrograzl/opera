@@ -1,71 +1,9 @@
-Feb 12 2015
-
-Modules/libraries:
-  Removed: wircam modules; moved to extras
-  Removed: test modules operaMEFCubeTest, operaMEFFITSImageTest, and operaWIRCamImageTest; moved to extras
-  Added: ArgumentHandler - library for passing command line arguments to modules
-  Modified: operaSpectralOrderVector - swapped columns for Star and Star+Sky under LibreEspritsp1Spectrum case in WriteSpectralOrders function
-  Modified: operaSpectralOrder - removed getLECompatibleSNR function
-  Modified: espqlh - removed LEcompatible argument and calculations
-
-Harness/pipeline:
-  Removed: all wircam harness files; moved to extras
-  Modified: harness/espadons/Makefile.parameters - updated sp1 values under geometry and removed second set of values under instrument profile
-  Modified: harness/espadons/Makefile.calibration - removed invalid plot arguments from operaStitchOrders
-
-Build files:
-  Updated Makefile.am files to remove wircam modules and add ArgumentHandler
-  
-Other components:
-  Removed: wircam and sitelle scripts; moved to extras
-  Removed: OperaBuildAndDistribution.pdf
-  Modified: DEPENDENCIES - updated gnuplot version
-
-Feb 19 2015
-
-Modules/libraries:
-  Modified: operaCreateProduct - replaced old argument passing with new ArgumentHandler
-  Modified: opera - replaced passing -v -t -p -d to module calls with full argument names
-
-Harness/pipeline:
-  Modified: harness/espadons/Makefile.calibration - fixed issue with commented out arguments causing error on OSX
-  Modified: harness/espadons/Makefile.core - updated arguments for operaCreateProduct
-  Modified: harness/espadons/Makefile.upena - updated arguments for operaCreateProduct
-
-Other components:
-  Modified: DEPENDENCIES, INSTALLATION, README - updated instructions
-
-Feb 24 2015
-
-Modules/libraries:
-  Added: operaCreateFlatResponse - for flux calibration with standard source
-  Modified: operaCreateProduct
-    - removed practically empty header file
-    - updated fits headers to include HRV keyword with RV correction
-  Modified: operaRadialVelocity - rewrote most of the module
-  Modified: operaSpectralTools - added function convolveSpectrumWithGaussianByResolution
-  Modified: operaSpectralOrderVector - added functions normalizeAndApplyFlatResponseINTOExtendendSpectra, calculateRawFluxQuantities, and readLibreEspritFlatResponseIntoSED
-  Modified: operaCCD - updated calculations in function operaCCDDetectPeaksByXCorrWithIP
-  Modified: operaPolarimetryCorrection, operaPolarIntensity, operaStarOnly - added flat response calibration
-  Modified: operaGeometryCalibration - modified sigma value for slit
-
-Harness/pipeline:
-  Removed: pipeline/pyScripts/espadons.py.rvtemp - no longer needed
-  Modified: pipeline/pyScripts/espadons.py
-    - integrated changes to operaRadialVelocity
-    - added variables for parameters for operaRadialVelocity and operaCreateFlatResponse
-    - added call for operaCreateFlatResponse module
-    - adjusted parameters to operaGeometryCalibration
-    - added added flatResponse parameter to spc creation modules and operaPolarimetryCorrection
-  Modified: harness/espadons/Makefile.parameters - updated to match changes to espadons.py
-  Modified: harness/espadons/Makefile.analysis - updated to match changes to to espadons.py (operaRadialVelocity)
-  Modified: harness/espadons/Makefile.calibration - seperated aperture variables for operaOrderSpacingCalibration and operaGeometryCalibration
-  Modified: harness/espadons/Makefile.upena - added rvel parameter to operaCreateProduct
-  Modified: harness/espadons/Makefile.core - updated to match changes to to espadons.py (flatResponse parameter)
-
-Build files:
-  Modified: core-espadons/Makefile.am - added operaCreateFlatResponse
-
-Other components:
-  Modified: config/wavelengthMaskForRefContinuumDetection.txt - removed last range and lengthened the preceeding range
-  Added: config/flat_resp.s, config/wavelengthMaskForRVxcorr.txt, config/syntethicSpectra/M_s5500g3.0z0.25t1.0_a0.00c0.00n0.00o0.00r0.00s0.00_VIS.spec.txt, config/syntethicSpectra/Teff5500.spec
+Mar 2 2015
+  - Changed operaGeometryCalibration parameters to find missing order on the blue side
+  - Changed minimum number of lines for InstrumentProfileCalibration from constant into a parameter
+  - Fixed calculations in BarycentricWavelengthCorrection
+  - Added HeliocentricWavelengthCorrection module, used in place of BarycentricWavelengthCorrection
+  - Created subclass of ArgumentHandler to handle plot, verbose, debug, and trace switches by default
+  - Changed harness to use specified extension rather than gzip
+  - Updated differences in python script, espadons harness, and graces harness to sync changes
+  - Updated DEPENDENCIES and AUTHORS

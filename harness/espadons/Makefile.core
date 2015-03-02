@@ -645,7 +645,7 @@ $${pargs} \
 --etime=$${exposure} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
-fi
+	fi
 
 #########################################################################################
 # odometer-based flux calibration

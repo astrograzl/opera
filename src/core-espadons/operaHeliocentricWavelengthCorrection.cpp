@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
             throw operaException("operaHeliocentricWavelengthCorrection: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
         }
         
-        if (verbose) {
+        if (verbose || debug) {
             cout << "operaHeliocentricWavelengthCorrection: time in JD = " << JDTime << endl;
             cout << "operaHeliocentricWavelengthCorrection: time in MJD = " << MJDTime << endl;
         }
@@ -444,10 +444,10 @@ int main(int argc, char *argv[])
          */
         heliocentric_correction(JDTime,ra,dec,ha,dbl_latitude,observatory_elevation, &timeCorrection, &rvCorrection);
         
-     //   if(debug) {
+        if(verbose) {
             cout << "operaHeliocentricWavelengthCorrection: TOTAL velocity correction (operaHelio library) = " << rvCorrection <<  " km/s" << endl;
-            cout << endl;            
-      //  }
+            cout << endl;
+        }
 
         spectralOrders.setBarycentricRadialVelocityCorrection(rvCorrection);
 

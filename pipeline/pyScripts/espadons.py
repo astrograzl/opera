@@ -160,7 +160,7 @@ class InstMode :
             self.SPACINGREFERENCEORDERSEPARATION=57.5
             # Changed GEOMAPERTURE value from 30 to 28 on Jan 12 2015, by E. Martioli.
             self.GEOMAPERTURE=28
-            self.GEOMMAXNORDERS=44
+            self.GEOMMAXNORDERS=45
             self.GEOMMINORDERTOUSE=18
             self.REFERENCELINEWIDTH=2.0
             self.IPXSIZE="28"
@@ -191,7 +191,7 @@ class InstMode :
             self.SPACINGREFERENCEORDERNUMBER=45
             self.SPACINGREFERENCEORDERSEPARATION=57.5
             self.GEOMAPERTURE=28
-            self.GEOMMAXNORDERS=44
+            self.GEOMMAXNORDERS=45
             self.GEOMMINORDERTOUSE=18
             self.REFERENCELINEWIDTH=2.5
             self.IPXSIZE="30"
@@ -228,7 +228,7 @@ class InstMode :
             self.SPACINGREFERENCEORDERNUMBER=46
             self.SPACINGREFERENCEORDERSEPARATION=57.2
             self.GEOMAPERTURE=30
-            self.GEOMMAXNORDERS=44
+            self.GEOMMAXNORDERS=45
             self.GEOMMINORDERTOUSE=18
             self.REFERENCELINEWIDTH=2.5
             self.IPXSIZE="30"
@@ -275,7 +275,7 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
     
     verstr = ""
     if (verbose) :
-        verstr = " -v"
+        verstr = " --verbose"
     
     objproducts = {}
     objdependencies = {}
@@ -341,6 +341,9 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         
         atmoPressurecommand = Dirs.EXE +"operagetheader --keyword=PRESSURE " + file
         atmoPressure = subprocess.check_output(atmoPressurecommand,stderr=subprocess.STDOUT,shell=True).rstrip('\n')
+        
+        startHAcommand = Dirs.EXE +"operagetheader --keyword=HA " + file
+        startHA = subprocess.check_output(startHAcommand,stderr=subprocess.STDOUT,shell=True).rstrip('\n')
         ########################################
 
 
@@ -365,7 +368,7 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         rveltarget = Dirs.PRODUCTDIR + basename + ".rvel.gz"
         objproducts[rvelkey] = rveltarget
         objdependencies[rvelkey] = ["WAVELENGTHPRODUCT"]
-        objcommands[rvelkey] = BarycentricWaveCommand(Dirs, rveltarget, products["WAVELENGTHPRODUCT"], absra_center, absdec_center, mjdate) + verstr
+        objcommands[rvelkey] = HeliocentricWaveCommand(Dirs, rveltarget, products["WAVELENGTHPRODUCT"], absra_center, absdec_center, mjdate, exptime, startHA) + verstr
         ###############################################################
     
         ### Create TARGETS for Radial Velocity #########
@@ -1063,12 +1066,13 @@ def InstrumentProfileCommand(Dirs, product, geomproduct, gainproduct, masterbias
     
     plotstring = ' --plotfilename=' + plots["PROFPLOTFILE"] + ' --datafilename=' + plots["PROFDATAFILE"] + ' --scriptfilename=' + plots["PROFSCRIPTFILE"]
 
-    commandline = Dirs.EXE + "operaInstrumentProfileCalibration --output=" + product + \
+    commandline = Dirs.EXE + "operaInstrumentProfileCalibration --outputProf=" + product + \
     ' --geometryfilename=' + geomproduct + ' --masterbias=' + masterbias + ' --masterflat=' + masterflat + \
     ' --badpixelmask=' + badpix + ' --mastercomparison=' +  mastercomp + ' --gainfilename=' + gainproduct + \
     ' --xSize=' + str(Instmode.IPXSIZE) + ' --ySize=' + str(Instmode.IPXSIZE) + ' --xSampling=' + str(Instmode.IPXSAMPLING) + \
     ' --ySampling=' + str(Instmode.IPYSAMPLING) + ' --referenceLineWidth=' + str(Instmode.REFERENCELINEWIDTH) + \
     ' --binsize=100 --ordernumber=-999 --method=2 --tilt=-3.0 --spectralElementHeight=1.0 --maxthreads=4' + \
+    ' --minimumlines=20 --LocalMaxFilterWidth=6.25 --DetectionThreshold=0.2 --MinPeakDepth=5.25' + \
     plotstring
     
     return commandline
@@ -1238,11 +1242,11 @@ def RadialVelocityCommand(Dirs, product, inputSpectrum, wave, rvel, flatSpectrum
 
     
 #### Function to generate a command line for Barycentric Wavelength Correction: ####
-def BarycentricWaveCommand(Dirs, product, wave, ra, dec, mjdate) :
+def HeliocentricWaveCommand(Dirs, product, wave, ra, dec, mjdate, exptime, startHA) :
     
-    commandline = Dirs.EXE + 'operaBarycentricWavelengthCorrection --outputRVelFile=' + product + \
+    commandline = Dirs.EXE + 'operaHeliocentricWavelengthCorrection --outputRVelFile=' + product + \
     ' --inputWaveFile=' + wave + ' --observatory_coords="19:49:36 -155:28:18" --observatory_elevation=4207' + \
-    ' --object_coords="' + str(ra) + ' ' + str(dec) + '" --MJDTime=' + str(mjdate)
+    ' --object_coords="' + str(ra) + ' ' + str(dec) + '" --MJDTime=' + str(mjdate) + ' --etime=' + str(exptime) + " --ha_start=" + str(startHA)
     
     return commandline
 ##########################################
