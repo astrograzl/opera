@@ -1,16 +1,16 @@
-#ifndef OPERASTITCHORDERS_H
-#define OPERASTITCHORDERS_H
+#ifndef OPERAMEDIANCOMBINE_H
+#define OPERAMEDIANCOMBINE_H
 /*******************************************************************
  ****                  MODULE FOR OPERA v1.0                     ***
  *******************************************************************
- Module name: operaStitchOrders
+ Module name: operaMedianCombine
  Version: 1.0
- Description: Stitch all orders together 
- Author(s): CFHT OPERA team
- Affiliation: Canada France Hawaii Telescope 
- Location: Hawaii USA
- Date: Jan/2011
- Contact: opera@cfht.hawaii.edu
+ Description: This module median combines a list of images
+ Author(s): CFHT OPERA team / Eder Martioli
+ Affiliation: Canada France Hawaii Telescope / Laboratorio Nacional de Astrofisica
+ Location: Hawaii USA / Itajuba-MG Brazil
+ Date: Jan/2014
+ Contact: opera@cfht.hawaii.edu / emartioli@lna.br
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -37,10 +37,13 @@
 // $Locker$
 // $Log$
 
-/*! \brief Stitch all orders together . */
-/*! \file operaStitchOrders.h */
+/*! \brief Create a Master Bias by medianing biases. */
+/*! \file operaMedianCombine.h */
 /*! \ingroup core */
 
-static void printUsageSyntax(char *prgname);
+#define MAXIMAGES 1000
 
+/* prototypes */
+
+static void printUsageSyntax();
 #endif

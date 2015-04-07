@@ -174,7 +174,7 @@ void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, con
 		}
 	}
 	double rvcorr = readRadialVelocityCorrection(rvelfilename);
-	Product.operaFITSSetHeaderValue("HRV", rvcorr, "barycentric RV correction");
+	Product.operaFITSSetHeaderValue("HRV", rvcorr, "heliocentric RV correction");
 	//Product.operaFITSSetHeaderValue("TELLRV", value, "telluric RV correction");
 }
 

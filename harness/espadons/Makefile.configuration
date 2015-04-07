@@ -238,12 +238,14 @@ POL					:= 4
 #########################################################################################
 
 OBJECTFILEPATTERN		:= [0-9]*o.$(FITS)$(inextension)
+OBJECTFILEPATTERNB		:= [0-9]*o.$(FITS)
 FLATFILEPATTERN			:= [0-9]*f.$(FITS)$(inextension)
 BIASFILEPATTERN			:= [0-9]*b.$(FITS)$(inextension)
 THORIUMFILEPATTERN		:= [0-9]*c.$(FITS)$(inextension)
 FABPERFILEPATTERN		:= [0-9]*a.$(FITS)$(inextension)
 CALFILEPATTERN			:= [0-9]*[abcf].$(FITS)$(inextension)
 ALLFILEPATTERN			:= [0-9]*[oabcf].$(FITS)$(inextension)
+ALLFILEPATTERNB			:= [0-9]*[oabcf].$(FITS)
 
 INTENSITYFILEPATTERN	:= [0-9]*i.$(FITS)$(extension)
 POLARIMETRYFILEPATTERN	:= [0-9]*p.$(FITS)$(extension)
@@ -251,6 +253,7 @@ CALSFILEPATTERN			:= [0-9]*m.$(FITS)
 SNRFILEPATTERN			:= [0-9]*.sn$(gzip)
 
 OBJECTROOTPATTERN		:= o.$(FITS)$(inextension)
+OBJECTROOTPATTERNB		:= o.$(FITS)
 INTENSITYROOTPATTERN	:= i.$(FITS)$(extension)
 PRODUCTROOTPATTERN		:= m.$(FITS)
 SNRROOTPATTERN			:= .sn$(gzip)

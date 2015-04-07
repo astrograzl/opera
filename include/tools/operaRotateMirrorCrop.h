@@ -1,16 +1,16 @@
-#ifndef OPERAHELIOCENTRICWAVELENGTHCORRECTION_H
-#define OPERAHELIOCENTRICWAVELENGTHCORRECTION_H
+#ifndef OPERAROTATEMIRRORCROP_H
+#define OPERAROTATEMIRRORCROP_H
 /*******************************************************************
  ****                  MODULE FOR OPERA v1.0                     ***
  *******************************************************************
- Module name: operaHeliocentricWavelengthCorrection
+ Module name: operaRotateMirrorCrop
  Version: 1.0
- Description: Apply Heliocentric velocity wavelength correction 
- Author(s): CFHT OPERA team
- Affiliation: Canada France Hawaii Telescope 
- Location: Hawaii USA
- Date: Jan/2011
- Contact: opera@cfht.hawaii.edu
+ Description: Module to rotate, mirror and crop a list of images
+ Author(s): CFHT OPERA team / Eder Martioli
+ Affiliation: Canada France Hawaii Telescope / Laboratorio Nacional de Astrofisica
+ Location: Hawaii USA / Itajuba-MG Brazil
+ Date: Jan/2014
+ Contact: opera@cfht.hawaii.edu / emartioli@lna.br
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -37,11 +37,13 @@
 // $Locker$
 // $Log$
 
-/*! \brief Apply heliocentric velocity wavelength correction. */
-/*! \file operaHeliocentricWavelengthCorrection.h */
+/*! \brief Module to rotate, mirror and crop a list of images. */
+/*! \file operaRotateMirrorCrop.h */
 /*! \ingroup core */
 
-/* prototypes */
-static void printUsageSyntax(char *prgname);
+#define MAXIMAGES 1000
 
+/* prototypes */
+
+static void printUsageSyntax();
 #endif

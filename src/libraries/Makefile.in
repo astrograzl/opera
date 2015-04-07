@@ -170,9 +170,9 @@ liboperaArgumentHandler_la_LINK = $(LIBTOOL) --tag=CXX \
 liboperaCCD_la_LIBADD =
 am_liboperaCCD_la_OBJECTS = operaCCD.lo
 liboperaCCD_la_OBJECTS = $(am_liboperaCCD_la_OBJECTS)
-liboperaCCD_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(liboperaCCD_la_LDFLAGS) $(LDFLAGS) -o $@
+liboperaCCD_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(liboperaCCD_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaConfigurationAccess_la_LIBADD =
 am_liboperaConfigurationAccess_la_OBJECTS =  \
 	operaConfigurationAccess.lo
@@ -822,7 +822,7 @@ libPolynomial_la_SOURCES = Polynomial.cpp Polynomial.h
 libPolynomial_la_LDFLAGS = -version-info 1:0:0
 liboperaSpectralLines_la_SOURCES = operaSpectralLines.cpp operaSpectralLines.h
 liboperaSpectralLines_la_LDFLAGS = -version-info 1:0:0
-liboperaCCD_la_SOURCES = operaCCD.c operaCCD.h operaLibCommon.h
+liboperaCCD_la_SOURCES = operaCCD.cpp operaCCD.h operaLibCommon.h
 liboperaCCD_la_LDFLAGS = -version-info 1:0:0
 liboperaMath_la_SOURCES = operaMath.c operaMath.h operaLibCommon.h
 liboperaMath_la_LDFLAGS = -version-info 1:0:0

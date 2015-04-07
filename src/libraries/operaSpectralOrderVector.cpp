@@ -1442,16 +1442,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasExtractionApertures()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasExtractionApertures()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
 				fout << (maxorder - minorder + 1) << ' ' << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -1507,16 +1518,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralEnergyDistribution()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralEnergyDistribution()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
 				fout << (maxorder - minorder + 1) << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -1576,16 +1598,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				const unsigned columns = 14;
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasPolarimetry()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasPolarimetry()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				bool firstline = true;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -1709,16 +1743,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasPolarimetry()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasPolarimetry()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				bool firstline = true;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -1957,16 +2003,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -1990,16 +2048,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2025,16 +2095,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2058,16 +2139,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2093,16 +2185,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2126,16 +2229,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2161,16 +2276,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2196,16 +2322,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2232,16 +2369,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2283,16 +2432,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2329,16 +2490,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2380,16 +2553,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2426,16 +2611,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
 					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
 					}
 				}
+
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2477,16 +2674,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2524,16 +2732,27 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2575,16 +2794,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2622,16 +2853,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2917,16 +3160,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasGeometry()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
+
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasGeometry()) {
+                        if(spectralOrder->getorder() < minPossibleOrder || minPossibleOrder==0) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                
 				fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
@@ -2954,19 +3209,30 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "# ...\n";
 				fout << "#\n";
 				fout << "######################################################################\n";
-				operaSpectralOrder **v = vector;
-				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasWavelength()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
-				fout << (maxorder - minorder + 1)  << endl;
+                operaSpectralOrder **v = vector;
+                operaSpectralOrder *spectralOrder;
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasWavelength()) {
+                        if(spectralOrder->getorder() < minPossibleOrder) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) { 
 					if (spectralOrder->gethasWavelength()) {
@@ -2994,17 +3260,28 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasInstrumentProfile()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
-				v = vector;
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasInstrumentProfile()) {
+                        if(spectralOrder->getorder() < minPossibleOrder) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                v = vector;
 				unsigned index = 0;
 				while ((spectralOrder = *v++)) { 
 					if (spectralOrder->gethasInstrumentProfile()) {
@@ -3039,17 +3316,29 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "######################################################################\n";
 				operaSpectralOrder **v = vector;
 				operaSpectralOrder *spectralOrder;
-				while ((spectralOrder = *v++)) {
-					if (spectralOrder->gethasSpectralLines()) {
-						if (spectralOrder->getorder() < minorder || minorder == 0) {
-							minorder = spectralOrder->getorder();
-						}
-						if (spectralOrder->getorder() > maxorder || maxorder == 0) {
-							maxorder = spectralOrder->getorder();
-						}
-					}
-				}
-				fout << (maxorder - minorder + 1)  << endl;
+                
+                
+                int minPossibleOrder = 0;
+                int maxPossibleOrder = 0;
+                
+                while ((spectralOrder = *v++)) {
+                    if (spectralOrder->gethasSpectralLines()) {
+                        if(spectralOrder->getorder() < minPossibleOrder) {
+                            minPossibleOrder = spectralOrder->getorder();
+                        }
+                        if(spectralOrder->getorder() > maxPossibleOrder) {
+                            maxPossibleOrder = spectralOrder->getorder();
+                        }
+                    }
+                }
+                
+                if (minPossibleOrder > minorder) {
+                    minorder = minPossibleOrder;
+                }
+                if (maxPossibleOrder < maxorder) {
+                    maxorder = maxPossibleOrder;
+                }
+                fout << (maxorder - minorder + 1)  << endl;
 				v = vector;
 				while ((spectralOrder = *v++)) {
 					if (spectralOrder->gethasSpectralLines()) {
@@ -7162,8 +7451,18 @@ void operaSpectralOrderVector::normalizeAndApplyFlatResponseINTOExtendendSpectra
     
     // Function below reads flat response spectrum, interpolate values and
     // feed them into spectralEnergyDistribution for all orders
-    readLibreEspritFlatResponseIntoSED(flatResponse,Minorder,Maxorder);
+    bool FITSformat = FALSE;
     
+    string fitssuffix = "fits";
+    string fitsgzsuffix = "fits.gz";
+    
+    if (flatResponse.size() >= fitssuffix.size() || flatResponse.size() >= fitsgzsuffix.size()) {
+        if(flatResponse.compare(flatResponse.size() - fitssuffix.size(), fitssuffix.size(), fitssuffix) == 0 ||
+           flatResponse.compare(flatResponse.size() - fitsgzsuffix.size(), fitsgzsuffix.size(), fitsgzsuffix) == 0) {
+            FITSformat = TRUE;
+        }
+    }
+
     unsigned NumberofBeams = getNumberofBeams(Minorder, Maxorder);
     
     if(StarPlusSky) {
@@ -7309,12 +7608,17 @@ void operaSpectralOrderVector::normalizeAndApplyFlatResponseINTOExtendendSpectra
         }
     }
     */
+    // Read flat response data into spectral Energy Distribution class
+    readFlatResponseIntoSED(flatResponse,Minorder,Maxorder,FITSformat);
+
     // The flux calibration is effectively calculated below, but it expects that SED elements are in there.
     bool AbsoluteCalibration = false;
     
     for (int order=Minorder; order<=Maxorder; order++) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
-        if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasSpectralEnergyDistribution()) {
+        if (spectralOrder->gethasWavelength() &&
+            spectralOrder->gethasSpectralElements() &&
+            spectralOrder->gethasSpectralEnergyDistribution()) {
             operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
             
             if(AbsoluteCalibration) { // use fluxcalibation
@@ -7326,7 +7630,6 @@ void operaSpectralOrderVector::normalizeAndApplyFlatResponseINTOExtendendSpectra
             spectralElements->copyFROMrawFlux();
         }
     }
-    
     delete[] uniform_wl;
     delete[] uniform_flux;
     for(unsigned beam=0;beam<NumberofBeams;beam++) {
@@ -7473,15 +7776,38 @@ void operaSpectralOrderVector::calculateRawFluxQuantities(int Minorder, int Maxo
 }
 
 /*
- * void readLibreEspritFlatResponseIntoSED(string filename)
+ * unsigned readFITSFlatResponse(string filename,float *frwavelength,float *flatresp)
+ * \brief Read OPERA FITS flat response from the .fits.gz file.
+ */
+unsigned operaSpectralOrderVector::readFITSFlatResponse(string filename,float *frwavelength,float *flatresp) {
+    
+    //
+    // read in the flat response spectrum from .fits.gz file
+    //
+    operaFITSImage inFlatResp(filename, tfloat, READONLY);
+    
+    unsigned np = inFlatResp.getXDimension();
+    if(np > MAXNUMBEROFPOINTSINFLATRESPONSE) {
+        throw operaException("operaSpectralOrderVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    unsigned wlrow = 0;
+    unsigned frrow = 1;
+    
+    for (unsigned i=0; i<np; i++) {
+        frwavelength[i] = inFlatResp[wlrow][i];
+        flatresp[i] =  inFlatResp[frrow][i];
+    }
+    inFlatResp.operaFITSImageClose();
+    return np;
+}
+
+/*
+ * unsigned readLibreEspritFlatResponse(string filename,float *frwavelength,float *flatresp)
  * \brief Read Libre-Esprit flat response from the .s file.
  */
-void operaSpectralOrderVector::readLibreEspritFlatResponseIntoSED(string filename,int Minorder, int Maxorder) {
-    
-    float *flatresp_tmp = new float[MAXNUMBEROFPOINTSINFLATRESPONSE];
-    float *frwavelength_tmp = new float[MAXNUMBEROFPOINTSINFLATRESPONSE];
+unsigned operaSpectralOrderVector::readLibreEspritFlatResponse(string filename,float *frwavelength,float *flatresp) {
     //
-    // first read in the flat response spectrum from .s file
+    // read in the flat response spectrum from .s file
     //
     unsigned np = 0;
     operaistream fspectrum(filename.c_str());
@@ -7500,28 +7826,47 @@ void operaSpectralOrderVector::readLibreEspritFlatResponseIntoSED(string filenam
                     line++;
                 } else {
                     sscanf(dataline.c_str(), "%f %f", &w, &fresp);
-                    flatresp_tmp[np] = fresp;
-                    frwavelength_tmp[np] = w;
+                    flatresp[np] = fresp;
+                    frwavelength[np] = w;
                     np++;
-                    
+                    if(np > MAXNUMBEROFPOINTSINFLATRESPONSE) {
+                        throw operaException("operaSpectralOrderVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+                    }
                     line++;
                 }
             }
         }
         fspectrum.close();
     }
+
+    return np;
+}
+/*
+ * void readLibreEspritFlatResponseIntoSED(string filename,int Minorder, int Maxorder, bool FITSformat)
+ * \brief Read flat response from FITS file or from LE .s file (when FITSformat=false).
+ */
+void operaSpectralOrderVector::readFlatResponseIntoSED(string filename,int Minorder, int Maxorder, bool FITSformat) {
     
+    float *flatresp_tmp = new float[MAXNUMBEROFPOINTSINFLATRESPONSE];
+    float *frwavelength_tmp = new float[MAXNUMBEROFPOINTSINFLATRESPONSE];
+    
+    unsigned np = 0;
+    if (FITSformat) {
+        np = readFITSFlatResponse(filename,frwavelength_tmp,flatresp_tmp);
+    } else {
+        np = readLibreEspritFlatResponse(filename,frwavelength_tmp,flatresp_tmp);
+    }
     float *flatresp = new float[MAXNUMBEROFPOINTSINFLATRESPONSE];
     float *frwavelength = new float[MAXNUMBEROFPOINTSINFLATRESPONSE];
 
     calculateUniformSample(np,frwavelength_tmp,flatresp_tmp,np,frwavelength,flatresp);
     
     double wavelengthForNormalization = 0;
-    float maxflatresp = -BIG;
-    // get wavelength at maximum flat response, which should be around 1 since this quantity is normalized.
+    float mindist = BIG;
+    // get wavelength where flat response is closest to 1.0.
     for (unsigned i=0; i<np; i++) {
-        if (flatresp[i] > maxflatresp) {
-            maxflatresp = flatresp[i];
+        if (fabs(flatresp[i] - 1.0) < mindist) {
+            mindist = fabs(flatresp[i] - 1.0);
             wavelengthForNormalization = frwavelength[i];
         }
     }
@@ -7538,7 +7883,9 @@ void operaSpectralOrderVector::readLibreEspritFlatResponseIntoSED(string filenam
     for (int order=Minorder; order<=Maxorder; order++) {
         operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
 
-        if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
+        if (spectralOrder->gethasSpectralElements() &&
+            spectralOrder->gethasWavelength() &&
+            spectralOrder->gethasSpectralEnergyDistribution()) {
 
             operaWavelength *wavelength =  spectralOrder->getWavelength();
             operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
@@ -7607,8 +7954,30 @@ void operaSpectralOrderVector::readLibreEspritFlatResponseIntoSED(string filenam
             spectralEnergyDistribution->setHasInstrumentThroughput(true);
         }
     }
+
     delete[] frwavelength;
     delete[] flatresp;
     delete[] frwavelength_tmp;
     delete[] flatresp_tmp;
+}
+
+void operaSpectralOrderVector::normalizeOrderbyOrderAndSaveFluxINTOExtendendSpectra(unsigned normalizationBinsize, int Minorder, int Maxorder, bool normalizeBeams) {
+    
+    for (int order=Minorder; order<=Maxorder; order++) {
+        
+        operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
+        
+        if (spectralOrder->gethasSpectralElements()) {
+
+            operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
+
+            if(!normalizeBeams) {
+                spectralOrder->setnumberOfBeams(0);
+            }
+            spectralOrder->applyNormalization(normalizationBinsize,0,FALSE,NULL,NULL,TRUE,0);
+            
+            spectralElements->copyTOnormalizedFlux();
+            spectralElements->copyFROMrawFlux();
+        }
+    }
 }

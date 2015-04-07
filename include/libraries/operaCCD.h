@@ -56,9 +56,9 @@
 #define FRACTIONOFIPTOSCANFORRECENTERORDER 2
 #define MINIMUMCROSSCORRELATIONTORECENTERORDER 0.1
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
 	
 	/* prototypes for gain calculations*/
     void operaMaskPixbyCountRange(unsigned npixels, float *array, float *badpixmask, float *newmask, float minvalue, float maxvalue, unsigned char invert);
@@ -87,12 +87,20 @@ extern "C" {
     
     unsigned operaCCDDetectPeaksByXCorrWithIP(unsigned np, float *x,float *y,unsigned nip, float *ipfunc, float noise, float gain, float threshold,float *xmean, float *ymean);
     
-    int operaCCDDetectMissingOrdersNew(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,unsigned minordertouse,float minorderx0, unsigned maxorders);
+    int operaCCDDetectOrderMapBasedOnSpacingPolynomial(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,unsigned minordertouse, unsigned maxorders);
 
-    
-#ifdef __cplusplus
-}
-#endif
+    unsigned matchMeasuredOrdersWithMap(unsigned np,float *fx,float *fy,float slit, unsigned npar,double *par,unsigned nords,float *xmean,float *ymean, float *orderMap, float *ordSepPred, float *ordXPosPred,float *ordYValue, unsigned *ordIndex, unsigned j, unsigned nAccHops,unsigned minordertouse, unsigned maxorders, float *xiSqr);
+
+    float operaXCorrelationWithRefOrders(unsigned np,float *fx,float *fy,unsigned nrefs, float *xref,float *yref,unsigned nords, float *xmean,float *ymean, float slit, float xrange, float xstep);
+
+    int operaCCDDetectMissingOrdersUsingRefMap(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,unsigned nrefs,float *xref,float *yref,int *AbsRefOrdNumber,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,float xrange,float xstep);
+
+    int operaCCDDetectMissingOrdersUsingNearMap(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,unsigned nrefs,float *xref,float *yref,int *AbsRefOrdNumber,float *xord,float *yord, float *xerrord, int *AbsOrdNumber);
+
+
+//#ifdef __cplusplus
+//}
+//#endif
 		
 		
 #endif

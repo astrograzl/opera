@@ -65,6 +65,7 @@ bin_PROGRAMS = operaConfigurationAccess$(EXEEXT) \
 	operads9thumbs$(EXEEXT) operaRotate$(EXEEXT) \
 	operaApplyTransform$(EXEEXT) operaEspadonsETC$(EXEEXT) \
 	operaExtractImage$(EXEEXT) operaPlotOut$(EXEEXT) \
+	operaRotateMirrorCrop$(EXEEXT) operaMedianCombine$(EXEEXT) \
 	$(am__EXEEXT_1)
 @LIBPNG_TRUE@am__append_1 = $(FT_ARG) 
 @LIBPNG_TRUE@am__append_2 = $(FT_ARG) 
@@ -142,6 +143,9 @@ operaFITStoPNG_LDADD = $(LDADD)
 am_operaImage_OBJECTS = operaImage.$(OBJEXT)
 operaImage_OBJECTS = $(am_operaImage_OBJECTS)
 operaImage_LDADD = $(LDADD)
+am_operaMedianCombine_OBJECTS = operaMedianCombine.$(OBJEXT)
+operaMedianCombine_OBJECTS = $(am_operaMedianCombine_OBJECTS)
+operaMedianCombine_LDADD = $(LDADD)
 am_operaParameterAccess_OBJECTS = operaParameterAccess.$(OBJEXT)
 operaParameterAccess_OBJECTS = $(am_operaParameterAccess_OBJECTS)
 operaParameterAccess_LDADD = $(LDADD)
@@ -171,6 +175,9 @@ operaQueryImageInfo_LDADD = $(LDADD)
 am_operaRotate_OBJECTS = operaRotate.$(OBJEXT)
 operaRotate_OBJECTS = $(am_operaRotate_OBJECTS)
 operaRotate_LDADD = $(LDADD)
+am_operaRotateMirrorCrop_OBJECTS = operaRotateMirrorCrop.$(OBJEXT)
+operaRotateMirrorCrop_OBJECTS = $(am_operaRotateMirrorCrop_OBJECTS)
+operaRotateMirrorCrop_LDADD = $(LDADD)
 am_operaStatistics_OBJECTS = operaStatistics.$(OBJEXT)
 operaStatistics_OBJECTS = $(am_operaStatistics_OBJECTS)
 operaStatistics_LDADD = $(LDADD)
@@ -228,11 +235,12 @@ SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operaExtractImage_SOURCES) $(operaExtractProducts_SOURCES) \
 	$(operaExtractRawSum_SOURCES) $(operaFITS2txt_SOURCES) \
 	$(operaFITSDisplayImage_SOURCES) $(operaFITStoPNG_SOURCES) \
-	$(operaImage_SOURCES) $(operaParameterAccess_SOURCES) \
-	$(operaPlot_SOURCES) $(operaPlotGeom_SOURCES) \
-	$(operaPlotInstrumentProfile_SOURCES) $(operaPlotOut_SOURCES) \
-	$(operaPlotWave_SOURCES) $(operaQueryImageInfo_SOURCES) \
-	$(operaRotate_SOURCES) $(operaStatistics_SOURCES) \
+	$(operaImage_SOURCES) $(operaMedianCombine_SOURCES) \
+	$(operaParameterAccess_SOURCES) $(operaPlot_SOURCES) \
+	$(operaPlotGeom_SOURCES) $(operaPlotInstrumentProfile_SOURCES) \
+	$(operaPlotOut_SOURCES) $(operaPlotWave_SOURCES) \
+	$(operaQueryImageInfo_SOURCES) $(operaRotate_SOURCES) \
+	$(operaRotateMirrorCrop_SOURCES) $(operaStatistics_SOURCES) \
 	$(operabiasinjector_SOURCES) $(operacompress_SOURCES) \
 	$(operads9thumbs_SOURCES) $(operagetheader_SOURCES) \
 	$(operaimagestats_SOURCES) $(operaimarith_SOURCES) \
@@ -246,16 +254,17 @@ DIST_SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operaExtractRawSum_SOURCES) $(operaFITS2txt_SOURCES) \
 	$(operaFITSDisplayImage_SOURCES) \
 	$(am__operaFITStoPNG_SOURCES_DIST) $(operaImage_SOURCES) \
-	$(operaParameterAccess_SOURCES) $(am__operaPlot_SOURCES_DIST) \
+	$(operaMedianCombine_SOURCES) $(operaParameterAccess_SOURCES) \
+	$(am__operaPlot_SOURCES_DIST) \
 	$(am__operaPlotGeom_SOURCES_DIST) \
 	$(operaPlotInstrumentProfile_SOURCES) $(operaPlotOut_SOURCES) \
 	$(am__operaPlotWave_SOURCES_DIST) \
 	$(operaQueryImageInfo_SOURCES) $(operaRotate_SOURCES) \
-	$(operaStatistics_SOURCES) $(operabiasinjector_SOURCES) \
-	$(operacompress_SOURCES) $(operads9thumbs_SOURCES) \
-	$(operagetheader_SOURCES) $(operaimagestats_SOURCES) \
-	$(operaimarith_SOURCES) $(operasaturated_SOURCES) \
-	$(operasetheader_SOURCES)
+	$(operaRotateMirrorCrop_SOURCES) $(operaStatistics_SOURCES) \
+	$(operabiasinjector_SOURCES) $(operacompress_SOURCES) \
+	$(operads9thumbs_SOURCES) $(operagetheader_SOURCES) \
+	$(operaimagestats_SOURCES) $(operaimarith_SOURCES) \
+	$(operasaturated_SOURCES) $(operasetheader_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -444,6 +453,8 @@ AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 @LIBPNG_TRUE@operaPlotGeom_SOURCES = operaPlotGeom.cpp operaPlotGeom.h
 @LIBPNG_TRUE@operaPlotWave_SOURCES = operaPlotWave.cpp operaPlotWave.h
 @LIBPNG_TRUE@operaPlot_SOURCES = operaPlot.cpp operaPlot.h
+operaRotateMirrorCrop_SOURCES = operaRotateMirrorCrop.cpp
+operaMedianCombine_SOURCES = operaMedianCombine.cpp
 operaPlotOut_SOURCES = operaPlotOut.cpp
 operaExtractImage_SOURCES = operaExtractImage.cpp
 operaEspadonsETC_SOURCES = operaEspadonsETC.cpp operaEspadonsETC.h
@@ -597,6 +608,9 @@ operaFITStoPNG$(EXEEXT): $(operaFITStoPNG_OBJECTS) $(operaFITStoPNG_DEPENDENCIES
 operaImage$(EXEEXT): $(operaImage_OBJECTS) $(operaImage_DEPENDENCIES) $(EXTRA_operaImage_DEPENDENCIES) 
 	@rm -f operaImage$(EXEEXT)
 	$(CXXLINK) $(operaImage_OBJECTS) $(operaImage_LDADD) $(LIBS)
+operaMedianCombine$(EXEEXT): $(operaMedianCombine_OBJECTS) $(operaMedianCombine_DEPENDENCIES) $(EXTRA_operaMedianCombine_DEPENDENCIES) 
+	@rm -f operaMedianCombine$(EXEEXT)
+	$(CXXLINK) $(operaMedianCombine_OBJECTS) $(operaMedianCombine_LDADD) $(LIBS)
 operaParameterAccess$(EXEEXT): $(operaParameterAccess_OBJECTS) $(operaParameterAccess_DEPENDENCIES) $(EXTRA_operaParameterAccess_DEPENDENCIES) 
 	@rm -f operaParameterAccess$(EXEEXT)
 	$(CXXLINK) $(operaParameterAccess_OBJECTS) $(operaParameterAccess_LDADD) $(LIBS)
@@ -621,6 +635,9 @@ operaQueryImageInfo$(EXEEXT): $(operaQueryImageInfo_OBJECTS) $(operaQueryImageIn
 operaRotate$(EXEEXT): $(operaRotate_OBJECTS) $(operaRotate_DEPENDENCIES) $(EXTRA_operaRotate_DEPENDENCIES) 
 	@rm -f operaRotate$(EXEEXT)
 	$(CXXLINK) $(operaRotate_OBJECTS) $(operaRotate_LDADD) $(LIBS)
+operaRotateMirrorCrop$(EXEEXT): $(operaRotateMirrorCrop_OBJECTS) $(operaRotateMirrorCrop_DEPENDENCIES) $(EXTRA_operaRotateMirrorCrop_DEPENDENCIES) 
+	@rm -f operaRotateMirrorCrop$(EXEEXT)
+	$(CXXLINK) $(operaRotateMirrorCrop_OBJECTS) $(operaRotateMirrorCrop_LDADD) $(LIBS)
 operaStatistics$(EXEEXT): $(operaStatistics_OBJECTS) $(operaStatistics_DEPENDENCIES) $(EXTRA_operaStatistics_DEPENDENCIES) 
 	@rm -f operaStatistics$(EXEEXT)
 	$(CXXLINK) $(operaStatistics_OBJECTS) $(operaStatistics_LDADD) $(LIBS)
@@ -670,6 +687,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFITSDisplayImage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFITStoPNG.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaImage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMedianCombine.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaParameterAccess.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaPlot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaPlotGeom.Po@am__quote@
@@ -678,6 +696,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaPlotWave.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaQueryImageInfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaRotate.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaRotateMirrorCrop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStatistics.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operabiasinjector.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operacompress.Po@am__quote@

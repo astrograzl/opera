@@ -427,7 +427,7 @@ standardstars:
 				amplifier=`$(bindir)operagetword 4 $${line} | sed -e 's:_::'`; \
 				oset=`$(bindir)operagetword 5 $${line}`; \
 				if [ -s $(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst ] ; then \
-					files=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep '$(OBJECTFILEPATTERN)'`; \
+					files=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTROOTPATTERNB)'`; \
 					if [[ "$${files}" != "" ]] ; then \
 						for file in $${files} ; do \
 							runid=`$(bindir)operagetheader --keyword=RUNID $${file} | sed -e 's: ::'` ; \
@@ -460,7 +460,8 @@ standardstars:
 			done ; \
 			exec 4>&- ; \
 		else \
-			files=`ls $(DATADIR)/$(OBJECTFILEPATTERN) 2>/dev/null` ; \
+			files=`ls $(DATADIR)/$(OBJECTFILEPATTERN) 2>/dev/null` `ls $(DATADIR)/$(OBJECTFILEPATTERNB) 2>/dev/null` ; \
+			files=
 			for file in $${files} ; do \
 				runid=`$(bindir)operagetheader --keyword=RUNID $${file} | sed -e 's: ::'` ; \
 				if [[ $$runid =~ [.]*Q78 || $$runid =~ [.]*Q79 || $$runid =~ [.]*E87 ]] ; then \
@@ -896,10 +897,10 @@ partarget:
 		oset=`$(bindir)operagetword 5 $${line}`; \
 		linecount=`cat <$(byproductsdir)master.rlst | wc -l`; \
 		if [ -s $(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst ] ; then \
-			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep '$(OBJECTFILEPATTERN)'`; \
+			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)'`; \
 			if [[ "$${filelist}" != "" ]] ; then \
 				if [[ "$(MODE)" == "$${mode}" || "$(MODE)" == "" ]] ; then \
-					filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep '$(OBJECTFILEPATTERN)' | xargs -n1 basename`; \
+					filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)' | xargs -n1 basename`; \
 					objects="`$(bindir)operaslice $$index $$pulls \"$$filelist\"`" ; \
 					count=`$(bindir)operacount "$$objects"`; \
 					while [[ $$objects ]] ; do \
@@ -1012,9 +1013,9 @@ parintensity parallelintensity:
 		oset=`$(bindir)operagetword 5 $${line}`; \
 		linecount=`cat <$(byproductsdir)master.rlst | wc -l`; \
 		if [ -s $(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst ] ; then \
-			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep '$(OBJECTFILEPATTERN)'`; \
+			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)'`; \
 			if [[ "$${filelist}" != "" ]] ; then \
-				filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep '$(OBJECTFILEPATTERN)' | xargs -n1 basename`; \
+				filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)' | xargs -n1 basename`; \
 				amp=1 ; \
 				objects="`$(bindir)operaslice $$index $$pulls \"$$filelist\"`" ; \
 				count=`$(bindir)operacount "$$objects"`; \
@@ -1025,7 +1026,7 @@ parintensity parallelintensity:
 						shortlist=`$(bindir)operagetwords 1 $$stride $$objects` ; \
 						count=`$(bindir)operacount "$${shortlist}"`; \
 						if (( count > 0 )) ; then \
-							spectra=`echo "$${shortlist}" | sed -e 's/$(OBJECTROOTPATTERN)/$(TARGET)/g' -e 's/^ //' -e s'/ /_/'g`; \
+							spectra=`echo "$${shortlist}" | sed -e 's/$(OBJECTROOTPATTERN)/$(TARGET)/g' -e 's/$(OBJECTROOTPATTERNB)/$(TARGET)/g' -e 's/^ //' -e s'/ /_/'g`; \
 							makelist="$$makelist $$machine.cpu MACHINE=$${machine} $${machine}SPECTRA=$${spectra} $${machine}MODE=$${mode} $${machine}SPEED=$${speed} OSET=$${oset} $${machine}DETECTOR=$${detector} $${machine}AMPLIFIER=$${amplifier} $${machine}QUALIFIERS=$${detector}$${amplifier}_$${mode}$${oset}_$${speed} "; \
 						fi ; \
 						((j++)); \
@@ -1089,9 +1090,9 @@ parpolarimetry parallelpolarimetry:
 		amplifier=`$(bindir)operagetword 4 $${line} | sed -e 's:_::'`; \
 		oset=`$(bindir)operagetword 5 $${line}`; \
 		if [[ "$${mode}" == "pol" && -s $(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst ]] ; then \
-			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst  | grep '$(OBJECTROOTPATTERN)' | tr '\n' ' '`; \
+			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst  | grep -e '$(OBJECTROOTPATTERN)' -e '$(OBJECTROOTPATTERNB)' | tr '\n' ' '`; \
 			if [[ "$${filelist}" != "" ]] ; then \
-				filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst  | grep '$(OBJECTROOTPATTERN)' | tr '\n' ' '`; \
+				filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst  | grep -e '$(OBJECTROOTPATTERN)' -e '$(OBJECTROOTPATTERNB)' | tr '\n' ' '`; \
 				count=`$(bindir)operacount "$$filelist"`; \
 				while (( count > 0 )) ; do \
 					quadpath=`$(bindir)operagetpolarquad $$filelist | tr '\n' ' '`; \
@@ -1102,11 +1103,11 @@ parpolarimetry parallelpolarimetry:
 						machine=$${themachine[$$j]}; \
 						stride=$${theload[$$j]} ; \
 						objects="`$(bindir)operagetword 2 $$quad` `$(bindir)operagetword 3 $$quad` `$(bindir)operagetword 4 $$quad` `$(bindir)operagetword 5 $$quad`"; \
-						spectra=`echo "$$obj1" | sed -e 's:$(OBJECTROOTPATTERN):$(POLARIMETRYROOTPATTERN):'`; \
-						p1=`$(bindir)operagetword 2 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::'` ; \
-						p2=`$(bindir)operagetword 3 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::'` ; \
-						p3=`$(bindir)operagetword 4 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::'` ; \
-						p4=`$(bindir)operagetword 5 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::'` ; \
+						spectra=`echo "$$obj1" | sed -e 's:$(OBJECTROOTPATTERN):$(POLARIMETRYROOTPATTERN):' -e 's:$(OBJECTROOTPATTERNB):$(POLARIMETRYROOTPATTERN):'`; \
+						p1=`$(bindir)operagetword 2 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
+						p2=`$(bindir)operagetword 3 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
+						p3=`$(bindir)operagetword 4 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
+						p4=`$(bindir)operagetword 5 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
 						makelist="$$makelist $$machine.cpu MACHINE=$${machine} $${machine}P1=$${p1} $${machine}P2=$${p2} $${machine}P3=$${p3} $${machine}P4=$${p4} $${machine}SPECTRA=$$spectra $${machine}MODE=$${mode} $${machine}OSET=$${oset} $${machine}SPEED=$$speed $${machine}DETECTOR=$$detector $${machine}AMPLIFIER=$${amplifier} $${machine}QUALIFIERS=$${detector}$${amplifier}_$${mode}$${oset}_$${speed} "; \
 						((j--)); \
 						if (( j == 0 )) ; then \

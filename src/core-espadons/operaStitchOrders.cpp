@@ -57,8 +57,8 @@
 #include "libraries/operaSpectralLines.h"
 #include "libraries/Gaussian.h"
 #include "libraries/Polynomial.h"						// for Polynomial
+#include "libraries/operaArgumentHandler.h"
 
-#include "core-espadons/operaStitchOrders.h"
 #include "core-espadons/operaWavelengthCalibration.h"
 
 #include "libraries/operaSpectralTools.h"
@@ -81,8 +81,6 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
 
 using namespace std;
 
-int debug=0, verbose=0, trace=0, plot=0;
-
 /*!
  * operaStitchOrders
  * \author Eder Martioli
@@ -99,107 +97,36 @@ int debug=0, verbose=0, trace=0, plot=0;
  * \ingroup core
  */
 
+operaArgumentHandler args;
 
 int main(int argc, char *argv[])
 {
-	int opt;
-    
     string inputSpectrum;
-	string inputWaveFile;
-	string outputWaveFile;
-	
+    string inputWaveFile;
+    string outputWaveFile;
+    int orderOfReference;
+    double DWavelengthRange;
+    double DWavelengthStep;
+    double XCorrelationThreshold;
+    double sigmaThreshold;
+    bool interactive;
+    args.AddRequiredArgument("inputSpectrum", inputSpectrum, "Input object spectrum file (.s)");
+	args.AddRequiredArgument("outputWaveFile", outputWaveFile, "Output wavelength calibration file to store final solution");
+	args.AddOptionalArgument("inputWaveFile", inputWaveFile, "", "Input wavelength calibration file");
+    args.AddOptionalArgument("orderOfReference", orderOfReference, 51, "Order taken as reference (fixed) for stitching");
+    args.AddOptionalArgument("DWavelengthRange", DWavelengthRange, 0.1, "Wavelength range to search for shift");
+    args.AddOptionalArgument("DWavelengthStep", DWavelengthStep, 0.0001, "Wavelength precision to search for shift");
+    args.AddOptionalArgument("XCorrelationThreshold", XCorrelationThreshold, 0.05, "XCorrelation minimum treshold to accept shift");
+    args.AddOptionalArgument("sigmaThreshold", sigmaThreshold, 1.0, "Threshold in units of sigma to find peak correlation");
+    args.AddSwitch("interactive", interactive, "for interactive plots");
+    //" Example: "+string(modulename)+" --inputSpectrum=/Users/edermartioli/opera//calibrations/PolarTest-08BQ00-Oct17/th_EEV1_pol_Normal.e.gz --inputWaveFile=/Users/edermartioli/opera//calibrations/PolarTest-08BQ00-Oct17/EEV1_pol_Normal.wcar.gz --outputWaveFile=/Users/edermartioli/opera//calibrations/PolarTest-08BQ00-Oct17/EEV1_pol_Normal.wcal.gz --orderOfReference=50 --DWavelengthRange=0.1 --DWavelengthStep=0.0001 --XCorrelationThreshold=0.05 --sigmaThreshold=1.0  -v -t -p \n\n"
+    
     int ordernumber = NOTPROVIDED;
-    
-    int minorder = 22;
-    bool minorderprovided = false;
-    int maxorder = 62;
-    bool maxorderprovided = false;
-    
-    int orderOfReference = 51;
-    double DWavelengthRange = 0.1;
-    double DWavelengthStep = 0.0001;
-    double XCorrelationThreshold = 0.05;
-    float sigmaThreshold = 1.0;
-    
-    bool interactive = false;
-    
-	struct option longopts[] = {
-		{"inputSpectrum",       1, NULL, 's'},        
-		{"inputWaveFile",       1, NULL, 'w'},
-		{"outputWaveFile",      1, NULL, 'o'},
-
-		{"orderOfReference",        1, NULL, 'r'},
-		{"DWavelengthRange",        1, NULL, 'R'},
-		{"DWavelengthStep",         1, NULL, 'S'},
-		{"XCorrelationThreshold",   1, NULL, 'X'},
-		{"sigmaThreshold",          1, NULL, 'T'},
-        
-        
-		{"interactive",         0, NULL, 'I'},
-		{"plot",                0, NULL, 'p'},
-		{"verbose",             0, NULL, 'v'},
-		{"debug",               0, NULL, 'd'},
-		{"trace",               0, NULL, 't'},
-		{"help",                0, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "s:w:o:r:R:S:X:T:I::p::v::d::t::h",  longopts, NULL))  != -1)
-	{
-		switch(opt)
-		{
-			case 's':
-				inputSpectrum = optarg;
-				break;
-			case 'w':
-                inputWaveFile = optarg;
-				break;
-			case 'o':		// output
-				outputWaveFile = optarg;
-				break;
-
-			case 'r':		
-				orderOfReference = atoi(optarg);
-				break;
-			case 'R':		
-				DWavelengthRange = atof(optarg);
-				break;
-			case 'S':		
-				DWavelengthStep = atof(optarg);
-				break;
-			case 'X':		
-				XCorrelationThreshold = atof(optarg);
-				break;
-			case 'T':		
-				sigmaThreshold = atof(optarg);
-				break;
-                
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
-			case 'p':
-				plot = true;
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'd':
-				debug = true;
-				break;
-			case 't':
-				trace = true;
-				break;
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}
+    int minorder = NOTPROVIDED;
+    int maxorder = NOTPROVIDED;
 	
 	try {
+		args.Parse(argc, argv);
 		// we need an input spectrum...
 		if (inputSpectrum.empty()) {
 			throw operaException("operaStitchOrders: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
@@ -208,7 +135,7 @@ int main(int argc, char *argv[])
 			throw operaException("operaStitchOrders: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
 
-        if (verbose) {
+        if (args.verbose) {
 			cout << "operaStitchOrders: inputWaveFile = " << inputWaveFile << endl;
 			cout << "operaStitchOrders: inputSpectrum = " << inputSpectrum << endl;            
 			cout << "operaStitchOrders: outputWaveFile = " << outputWaveFile << endl;
@@ -217,7 +144,6 @@ int main(int argc, char *argv[])
 			cout << "operaStitchOrders: DWavelengthStep = " << DWavelengthStep << endl;
 			cout << "operaStitchOrders: XCorrelationThreshold = " << XCorrelationThreshold << endl;
 			cout << "operaStitchOrders: sigmaThreshold = " << sigmaThreshold << endl;            
-
             if(ordernumber != NOTPROVIDED) {
                 cout << "operaStitchOrders: ordernumber = " << ordernumber << endl;
             }
@@ -227,38 +153,26 @@ int main(int argc, char *argv[])
         
         spectralOrders.ReadSpectralOrders(inputWaveFile); // This merges in the wavelength calibration information
         
-        if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();
-        }
-        
+        if(minorder == NOTPROVIDED) minorder = spectralOrders.getMinorder();
+        if(maxorder == NOTPROVIDED) maxorder = spectralOrders.getMaxorder();        
         if(ordernumber != NOTPROVIDED) {
 			minorder = ordernumber;
 			maxorder = ordernumber;
 		}
+        if (args.verbose) cout << "operaStitchOrders: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         
-        if (verbose)
-			cout << "operaStitchOrders: minorder ="<< minorder << " maxorder=" << maxorder << endl;
-        
-        float *wlShifts[2];
-        wlShifts[0] = new float[MAXORDERS];
-        wlShifts[1] = new float[MAXORDERS];
-        
+        float wlShifts[2][MAXORDERS];
         for (unsigned i=0; i<MAXORDERS; i++) {
             wlShifts[0][i] = 0;
             wlShifts[1][i] = 0;
         }
         
-        
         unsigned nord = 0;
         int orderIndex[MAXORDERS];
         
         for (unsigned order=(unsigned)minorder; order<=(unsigned)maxorder; order++) {
-            if (verbose) {
-                cout << "operaStitchOrders: processing order " << order << endl;
-            }
+            if (args.verbose) cout << "operaStitchOrders: processing order " << order << endl;
+            
             operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
             
             if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
@@ -312,35 +226,27 @@ int main(int argc, char *argv[])
             }
         }
 
-        double *orderWlShift = new double[MAXORDERS];
-        float *shift = new float[MAXORDERS];
+        double orderWlShift[MAXORDERS];
+        float shift[MAXORDERS];
         int referenceOrderIndex = NOTPROVIDED;
         unsigned np = 0;
                 
         for(unsigned ord=0; ord<nord; ord++) {
             orderWlShift[ord] = 0;
-            if(orderIndex[ord] == orderOfReference) {
-                referenceOrderIndex = (int)ord;
-           }
-            if(wlShifts[0][ord] != 0) {
-                shift[np++] = wlShifts[0][ord];
-            }
-            if(wlShifts[1][ord] != 0) {
-                shift[np++] = wlShifts[1][ord];
-            }
-            if(debug) {
+            if(wlShifts[0][ord] != 0) shift[np++] = wlShifts[0][ord];
+            if(wlShifts[1][ord] != 0) shift[np++] = wlShifts[1][ord];
+            if(orderIndex[ord] == orderOfReference) referenceOrderIndex = (int)ord;
+            if(args.debug) {
                 cout << orderIndex[ord] << " " << wlShifts[0][ord] << " " << wlShifts[1][ord] << endl;
             }
         }
 
         float medianShift = operaArrayMedian(np,shift);
         float medianShiftSigma = operaArrayMedianSigma(np,shift,medianShift);
-        if (debug) {
+        if (args.debug) {
             cout << medianShift << " +/- " << medianShiftSigma << endl;
-        }
-        
-        if(debug)
-            cout << "referenceOrderIndex = " << referenceOrderIndex << " refOrder = " << orderIndex[referenceOrderIndex] << endl;
+			cout << "referenceOrderIndex = " << referenceOrderIndex << " refOrder = " << orderIndex[referenceOrderIndex] << endl;
+		}
 
         
         for(int ord=referenceOrderIndex+1; ord<(int)nord; ord++) {
@@ -362,9 +268,7 @@ int main(int argc, char *argv[])
         }
 
         for(unsigned ord=0; ord<nord; ord++) {
-            if(debug) {
-                cout << orderIndex[ord] << " " << orderWlShift[ord] << endl;
-            }
+            if(args.debug) cout << orderIndex[ord] << " " << orderWlShift[ord] << endl;
             
             operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(orderIndex[ord]);
             
@@ -390,37 +294,6 @@ int main(int argc, char *argv[])
 	
 	return EXIT_SUCCESS;
 }
-
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" +
-	" --inputWaveFile=<WAVE_FILE>"
-	" --inputSpectrum=<SPECTRUM_FILE>"
-	" --outputWaveFile=<WAVE_FILE>"
-	" --orderOfReference=<INT_VALUE>"
-	" --DWavelengthRange=<DBL_VALUE>"
-	" --DWavelengthStep=<DBL_VALUE>"
-	" --XCorrelationThreshold=<DBL_VALUE>"
-	" --sigmaThreshold=<FLT_VALUE>"
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputSpectrum=/Users/edermartioli/opera//calibrations/PolarTest-08BQ00-Oct17/th_EEV1_pol_Normal.e.gz --inputWaveFile=/Users/edermartioli/opera//calibrations/PolarTest-08BQ00-Oct17/EEV1_pol_Normal.wcar.gz --outputWaveFile=/Users/edermartioli/opera//calibrations/PolarTest-08BQ00-Oct17/EEV1_pol_Normal.wcal.gz --orderOfReference=50 --DWavelengthRange=0.1 --DWavelengthStep=0.0001 --XCorrelationThreshold=0.05 --sigmaThreshold=1.0  -v -t -p \n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -w, --inputWaveFile=<WAVE_FILE>, Input wavelength calibration file \n"
-	"  -s, --inputSpectrum=<SPECTRUM_FILE>, Input object spectrum file (.s)\n"
-	"  -o, --outputWaveFile=<WAVE_FILE>, Output wavelength calibration file to store final solution\n"
-	"  -r, --orderOfReference=<INT_VALUE>, Order taken as reference (fixed) for stitching \n"
-	"  -R, --DWavelengthRange=<DBL_VALUE>, Wavelength range to search for shift \n"
-	"  -S, --DWavelengthStep=<DBL_VALUE>, Wavelength precision to search for shift \n"
-	"  -X, --XCorrelationThreshold=<DBL_VALUE>, XCorrelation minimum treshold to accept shift \n"
-	"  -T, --sigmaThreshold=<FLT_VALUE>, Threshold in units of sigma to find peak correlation \n"
-	"  -I, --interactive=<BOOL>\n\n";
-}
-
 
 bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, operaSpectralElements *compSpectrum, double wl0, double wlf, double DWavelengthStep, double DWavelengthRange,  float nsigcut, double threshold, double &maxDWavelength, double &maxcorr) {
     
@@ -479,7 +352,7 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
             status = true;
         }
 
-        if(debug) {
+        if(args.debug) {
             cout << dwl[j] << " "  << crosscorrelation[j] << endl;
         }
         
@@ -495,7 +368,7 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
         status = false;
 	}
     
-    if(debug)
+    if(args.debug)
         cout << "calculateWavelengthShiftByXCorrInRange: status=" << status << " wlshift=" << maxDWavelength  <<  " maxcorr=" << maxcorr << endl;
 
      /*
@@ -553,7 +426,7 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
             }
         }
     }
-    if(debug)
+    if(args.debug)
         cout << "calculateWavelengthShiftByXCorr: Test I status=" << status << endl;
     
     // Test (II)
@@ -561,7 +434,7 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
     float medianXcorr = operaArrayMedian(nDataPoints,crosscorrelation);
     float medsigXcorr = operaArrayMedianSigma(nDataPoints,crosscorrelation,medianXcorr);
     
-    if(debug)
+    if(args.debug)
         cout << "calculateWavelengthShiftByXCorr:maxcorr=" << crosscorrelation[jmax] << "  medianXcorr=" << medianXcorr << "  medsigXcorr=" << medsigXcorr << "  median+n*sig=" << medianXcorr + nsigcut*medsigXcorr << endl;
     
     if(crosscorrelation[jmax] < medianXcorr + nsigcut*medsigXcorr) {
@@ -570,7 +443,7 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
         status = false;
     }
     
-    if(debug)
+    if(args.debug)
         cout << "calculateWavelengthShiftByXCorr: Test II status=" << status << endl;
     
     if(status==true) {
@@ -590,7 +463,7 @@ bool calculateWavelengthShiftByXCorrInRange(operaSpectralElements *RefSpectrum, 
         }
     }
     
-    if(debug)
+    if(args.debug)
         cout << "calculateWavelengthShiftByXCorr: maxDWavelength=" << maxDWavelength << endl;
     
     delete[] peakXdata;

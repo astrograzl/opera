@@ -43,6 +43,7 @@
 
 #include <string>
 #include "libraries/Polynomial.h"
+#include "libraries/operaFITSImage.h"
 
 /* prototypes */
 
@@ -53,5 +54,10 @@ void GenerateGeometryPlot(string gnuScriptFileName, string outputPlotEPSFileName
 float calculateCenterOfSymmetry(unsigned np, float *ipx, float *ipfunc, float *iperr, unsigned totalNumberOfSlices, bool applyXcenterCorrection);
 
 float calculatePhotoCenter(unsigned np, float *ipx, float *ipfunc, float *iperr, bool applyXcenterCorrection);
+
+unsigned getRowBinnedData(operaFITSImage *flat,unsigned x1,unsigned x2,unsigned nx,unsigned y1,unsigned y2,unsigned ny,float *fx,float *fy,float *yout, bool FFTfilter);
+
+unsigned geometryDetectOrders(unsigned np,float *fx,float *fy,unsigned uslit,float *ipfunc, unsigned binsize, float noise,float gain,float *xmean,float *ymean,float *xmeanerr,int detectionMethod, bool witherrors, bool graces);
+
 
 #endif

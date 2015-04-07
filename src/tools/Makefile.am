@@ -13,7 +13,8 @@ bin_PROGRAMS =  operaConfigurationAccess operaParameterAccess \
 				operabiasinjector operaPlotInstrumentProfile \
 				operaStatistics espqlh catz operaFITSDisplayImage operaimagestats \
 				operaExtractProducts operads9thumbs operaRotate operaApplyTransform \
-				operaEspadonsETC operaExtractImage operaPlotOut
+				operaEspadonsETC operaExtractImage operaPlotOut \
+				operaRotateMirrorCrop operaMedianCombine
 #
 # if we want png plotting support, bring in the png libs and freetype
 #				
@@ -37,6 +38,10 @@ if LIBWCS
 AM_LDFLAGS += -lwcs
 LIBS += -lwcs
 endif
+
+operaRotateMirrorCrop_SOURCES = operaRotateMirrorCrop.cpp
+
+operaMedianCombine_SOURCES = operaMedianCombine.cpp
 
 operaPlotOut_SOURCES = operaPlotOut.cpp
 

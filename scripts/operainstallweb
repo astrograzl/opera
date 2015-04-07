@@ -74,7 +74,7 @@ rm -f $gzipname
 echo "zip -9 -r $zipname ${version}"
 zip -r $zipname -x@${version}/exclude.lst ${version}
 echo "tar cvzf ${version}.tar.gz ${version} --exclude=@${version}/exclude.lst"
-tar cvzf ${gzipname} ${version} --exclude=@${version}/exclude.lst
+tar cvzf ${gzipname} ${version}
 rm -f ${version}-xcodeproj.zip
 rm -f ${version}-xcodeproj.tar.gz
 echo "zip -9 -r ${version}-xcodeproj.zip ${version}.xcodeproj"

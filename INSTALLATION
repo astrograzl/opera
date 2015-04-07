@@ -42,7 +42,7 @@ Below are the instructions on how to install OPERA:
 	. ./setup.sh
 
 -- To rebuild in a directory that already has OPERA installed, you
-   should clear out the existing built binary files first. See 6a.
+   should clear out the existing built files first. See 6a.
 
 -- The ". ./setup.sh" may fail if using tcsh. Try bash instead.
 
@@ -135,10 +135,12 @@ Example:
 ------------------------------------------------------------------------
 
 6a. Clean: If you have previously compiled the software in this folder
-without removing that copy first, clean out the existing object files
-and remove any previously installed binaries:
+without removing that copy first, clean out the existing intermediate
+files and remove any previously installed binaries:
 	make uninstall
 	make clean
+	make distclean
+After running make distclean, you will need to run configure again.
 
 You can also manually remove all binaries previously installed:
 	rm ~/opera-1.0/bin/*

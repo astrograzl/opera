@@ -346,9 +346,9 @@ int main(int argc, char *argv[])
         
         spectralOrders.fitOrderSpacingPolynomial(flat, *badpix, slit, nsamples, sampleCenterPosition, referenceOrderNumber, referenceOrderSeparation, detectionMethod, FFTfilter, (float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, cleanbinsize, nsigcut, fdata);
 
-        // spacing polynomial must be changed to order number versus order separation
+        // Note: spacing polynomial must be changed to order number versus order separation
         // then one can project all separations as a map and identify orders later in
-        // in geometry. They way it works now it is relying on a single point to identify
+        // in geometry. The way it works now it is relying on a single point to identify
         // all orders and this has shown to be unreliable.
         
         if (fdata != NULL) {

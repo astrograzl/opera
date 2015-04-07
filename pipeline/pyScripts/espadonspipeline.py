@@ -82,24 +82,24 @@ def executePipeline(input, Dirs, config, keywords):
         #products.executeTarget("INSTRUMENTPROFILEPRODUCT") # This is an example how to execute a given target
         # Note that any target will trigger a novel process until the final product can be produced
             
-        if (specificProduct == "LIBRE-ESPRIT") :
+        if (specificProduct in "LIBRE-ESPRIT") :
             products.executeTargetsWithSubstrings(["LESPC","LEPOL"])
-        elif (specificProduct == "OBJECTS") :
+        elif (specificProduct in "OBJECTS") :
             products.executeTargetsWithSubstrings(["OPSPC","OPPOL"])
-        elif (specificProduct == "CALIBRATIONS") :
-            products.executeTargetsWithSubstrings(["WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"])
+        elif (specificProduct in "CALIBRATIONS") :
+            products.executeTargetsWithSubstrings(["GEOMETRY","WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"])
         elif (specificProduct == "") :
             products.executeAllTargets()
         else :
             products.executeTargetsWithSubstrings([specificProduct])
 
         if clean :
-            if (specificProduct == "LIBRE-ESPRIT") :
+            if (specificProduct in "LIBRE-ESPRIT") :
                 products.removeTargets(["LESPC","LEPOL"])
-            elif (specificProduct == "OBJECTS") :
+            elif (specificProduct in "OBJECTS") :
                 products.removeTargets(["OPSPC","OPPOL"])
-            elif (specificProduct == "CALIBRATIONS") :
-                products.removeTargets(["WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"])
+            elif (specificProduct in "CALIBRATIONS") :
+                products.removeTargets(["GEOMETRY","WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"])
             elif (specificProduct != "") :
                 products.removeTargets([specificProduct])
             

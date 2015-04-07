@@ -110,14 +110,17 @@ string datafilename;
 string scriptfilename;
 
 double spectralElementHeight = 1.0;
-double referenceLineWidth = 2.5;
+double referenceLineWidth = 2.0;
 
 double gain = 1.12;
 double noise = 3.5;
 
-double LocalMaxFilterWidth = 2.5*referenceLineWidth;
+double LocalMaxFilterWidth = 2.5;
+double LocalMaxFilterWidthInUnitsOfLineWidth = LocalMaxFilterWidth*referenceLineWidth;
+
 double DetectionThreshold = 0.2;
-double MinPeakDepth = 1.5*noise;
+double MinPeakDepth = 1.5;
+double MinPeakDepthInElectronUnits = MinPeakDepth*noise;
 
 int minorder = 22;
 int maxorder = 62;
@@ -136,11 +139,11 @@ unsigned minimumLinesForIPMeasurements = 20;
 unsigned binsize = 80;
 double tilt = -3.0;
 
-operaFITSImage *fabperot = NULL;
 operaFITSImage *badpix = NULL;
 operaFITSImage *bias = NULL;
 operaFITSImage *flat = NULL;
 operaFITSImage *comp = NULL;
+bool fabperot;
 
 unsigned IPxsize = 0;
 unsigned IPxsampling = 0;
@@ -187,19 +190,16 @@ void *processOrder(void *argument) {
     spectralOrder->measureInstrumentProfileAlongRowsInto2DWithGaussian(*flat,*badpix,binsize,referenceLineWidth,tilt,false,sampleElementForPlot,NULL,minimumLinesForIPMeasurements);
     
     if(spectralOrder->gethasInstrumentProfile()) {
-        operaFITSImage *fitsptr;
         string methodName;
         double MaxContamination;
         double amplitudeCutOff;
         unsigned nSigCut;
         if (fabperot) {
-            fitsptr = fabperot;
             methodName = "Fabry-Perot";
             MaxContamination = 1.0;
             amplitudeCutOff = 3*noise;
             nSigCut = 3;
 		} else {
-            fitsptr = comp;
             methodName = "Comparison";
             MaxContamination = 0.05;      // accept up to 1% flux contamination from neighbor line
             amplitudeCutOff = 2*noise;  // limit lines with amplitude greater than 10 x CCD noise
@@ -207,8 +207,8 @@ void *processOrder(void *argument) {
         }    
 		operaSpectralLines *spectralLines = NULL;
 		try {
-			spectralOrder->calculateXCorrBetweenIPandImage(*fitsptr, *badpix, NULL);
-			spectralOrder->setSpectralLines(*fitsptr, *badpix, *bias, noise, gain, referenceLineWidth, DetectionThreshold, LocalMaxFilterWidth, MinPeakDepth);
+			spectralOrder->calculateXCorrBetweenIPandImage(*comp, *badpix, NULL);
+			spectralOrder->setSpectralLines(*comp, *badpix, *bias, noise, gain, referenceLineWidth, DetectionThreshold, LocalMaxFilterWidthInUnitsOfLineWidth, MinPeakDepthInElectronUnits);
 			spectralOrder->sethasSpectralLines(true);
 			spectralLines = spectralOrder->getSpectralLines();
 			if (args.verbose) cout << "operaInstrumentProfileCalibration: " << spectralLines->getnLines() << " lines found in order " << order << " of " << methodName << "." << endl;
@@ -218,13 +218,13 @@ void *processOrder(void *argument) {
 		}
 		if (spectralOrder->gethasSpectralLines() && spectralLines && spectralLines->getnLines() > 0) {
 			if(method == 1) {
-				spectralOrder->measureInstrumentProfileUsingWeightedMean(*fitsptr, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				spectralOrder->measureInstrumentProfileUsingWeightedMean(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
 			} else if (method == 2) {
-				spectralOrder->measureInstrumentProfileUsingMedian(*fitsptr, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				spectralOrder->measureInstrumentProfileUsingMedian(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
 			} else if (method == 3) {
-				spectralOrder->measureInstrumentProfile(*fitsptr, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				spectralOrder->measureInstrumentProfile(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
 			} else if (method == 4) {
-				spectralOrder->measureInstrumentProfileWithBinning(*fitsptr, *badpix, binsize, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				spectralOrder->measureInstrumentProfileWithBinning(*comp, *badpix, binsize, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
 			}
 			spectralOrder->recenterOrderPosition();
 		}
@@ -285,10 +285,9 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("geometryfilename", geometryfilename, "Input geometry file");
 	args.AddRequiredArgument("masterbias", masterbias, "Input Master Bias FITS image");
 	args.AddRequiredArgument("masterflat", masterflat, "Input Master Flat-Field FITS image");
-	args.AddRequiredArgument("mastercomparison", mastercomparison, "Input Master Comparison (ThAr) FITS image");
-	
+	args.AddOptionalArgument("mastercomparison", mastercomparison, "", "Input Master Comparison (ThAr) FITS image (use this or masterfabperot but not both)");
+	args.AddOptionalArgument("masterfabperot", masterfabperot, "", "Input Master Fabry-Perot FITS image (use this or mastercomparison but not both)");
 	args.AddOptionalArgument("badpixelmask", badpixelmask, "", "FITS image for badpixel mask");
-	args.AddOptionalArgument("masterfabperot", masterfabperot, "", "Input Master Fabry-Perot FITS image");
 	args.AddOptionalArgument("method", method, 1, "Method to combine IP measurements from spectral lines. Possible values are: 1 - weighted mean, 2 - median combine, 3 - polynomial fit, 4 - polynomial fit with median binning (use binsize provided)");
 	args.AddOptionalArgument("spectralElementHeight", spectralElementHeight, 1.0, "Height of spectral element in Y-direction in pixel units");
 	args.AddOptionalArgument("referenceLineWidth", referenceLineWidth, 2.5, "Spectral line width for reference in pixel units");
@@ -336,8 +335,8 @@ int main(int argc, char *argv[])
 		if (masterflat.empty()) {
 			throw operaException("operaInstrumentProfileCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
-		// we need a comparison...
-		if (mastercomparison.empty()) {
+		// we need a comparison or fabperot, but not both...
+		if ((mastercomparison.empty() && masterfabperot.empty()) || (!mastercomparison.empty() && !masterfabperot.empty())) {
 			throw operaException("operaInstrumentProfileCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}								
 		
@@ -374,15 +373,15 @@ int main(int argc, char *argv[])
             fdata->open(datafilename.c_str());  
         }
         
+        fabperot = !masterfabperot.empty();
+		if (fabperot) comp = new operaFITSImage(masterfabperot, tfloat, READONLY);
+		else comp = new operaFITSImage(mastercomparison, tfloat, READONLY);
         bias = new operaFITSImage(masterbias, tfloat, READONLY);
 		flat = new operaFITSImage(masterflat, tfloat, READONLY);
-		comp = new operaFITSImage(mastercomparison, tfloat, READONLY);
+		
 		
 		//flat -= bias;			// remove bias from masterflat
         
-		if (!masterfabperot.empty()){
-			fabperot = new operaFITSImage(masterfabperot, tfloat, READONLY);
-		}
 		
 		if (!badpixelmask.empty()){              
 			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
@@ -419,7 +418,12 @@ int main(int argc, char *argv[])
             DetectionThreshold = 0.1;
         if(!MinPeakDepth)
             MinPeakDepth = 1.25*noise;
-#endif*/        
+#endif*/
+        
+        MinPeakDepthInElectronUnits = MinPeakDepth*noise;
+        
+        LocalMaxFilterWidthInUnitsOfLineWidth = LocalMaxFilterWidth*referenceLineWidth;
+        
         if(minorder == NOTPROVIDED) minorder = spectralOrders.getMinorder();
         if(maxorder == NOTPROVIDED) maxorder = spectralOrders.getMaxorder();
 		if(ordernumber != NOTPROVIDED) {
@@ -477,7 +481,6 @@ int main(int argc, char *argv[])
 		comp->operaFITSImageClose();
         
         if(badpix) delete badpix;
-		if (fabperot) delete fabperot;
 		if (bias) delete bias;
 		if (flat) delete flat;
 		if (comp) delete comp;

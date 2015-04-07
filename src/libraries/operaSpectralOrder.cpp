@@ -420,9 +420,10 @@ void operaSpectralOrder::createSpectralEnergyDistributionElements(unsigned nElem
 	if (nElements == 0) {
 		throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
-	if (numberOfBeams == 0) {
+	// E. Martioli Mar 17 2015 -- this was causing some functions to crash. It should not be a problem if numberOfBeams=0.
+	/*if (numberOfBeams == 0) {
 		throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
+	}*/
     if(SpectralEnergyDistribution)
         delete SpectralEnergyDistribution;
     SpectralEnergyDistribution = new operaSpectralEnergyDistribution(nElements); // DT Jan 2013 added nElements
@@ -1674,7 +1675,6 @@ void operaSpectralOrder::setSpectralLines(operaFITSImage &masterCompImage, opera
 }
 
 void operaSpectralOrder::calculateXCorrBetweenIPandImage(operaFITSImage &Image, operaFITSImage &badpix, ostream *pout) {
-	
     if(!gethasInstrumentProfile()) {
         throw operaException("operaSpectralOrder::calculateXCorrBetweenIPandImage: ",operaErrorHasNoInstrumentProfile, __FILE__, __FUNCTION__, __LINE__);
     }
@@ -1682,68 +1682,64 @@ void operaSpectralOrder::calculateXCorrBetweenIPandImage(operaFITSImage &Image, 
         throw operaException("operaSpectralOrder::calculateXCorrBetweenIPandImage: ",operaErrorHasNoSpectralElements, __FILE__, __FUNCTION__, __LINE__);
     }    
     
-    unsigned NXPoints = InstrumentProfile->getNXPoints();		
-    unsigned NYPoints = InstrumentProfile->getNYPoints();
-    unsigned nMaxDataPoints = SpectralElements->getnSpectralElements();
+    const unsigned NXPoints = InstrumentProfile->getNXPoints();		
+    const unsigned NYPoints = InstrumentProfile->getNYPoints();
+    const unsigned nMaxDataPoints = SpectralElements->getnSpectralElements();
     
     for(unsigned indexElem=0;indexElem < nMaxDataPoints; indexElem++) {    
-        
         float xcenter =  SpectralElements->getphotoCenterX(indexElem);
         float ycenter =  SpectralElements->getphotoCenterY(indexElem);
         float distdElem = SpectralElements->getdistd(indexElem);
 		
-        float avgImg = 0, meanIP = 0;
-        unsigned npImg = 0;
+		int xCoords[NXPoints];
+        int yCoords[NYPoints];
+		for (unsigned j=0; j<NYPoints; j++) yCoords[j] = (int)(ycenter + InstrumentProfile->getIPixYCoordinate(j));
+		for (unsigned i=0; i<NXPoints; i++) xCoords[i] = (int)(xcenter + InstrumentProfile->getIPixXCoordinate(i));
         
-        for (unsigned j=0; j<NYPoints; j++) {	
-            float YCenterOfSubPixel = ycenter + InstrumentProfile->getIPixYCoordinate(j);				
-            unsigned yy = (unsigned)floor(YCenterOfSubPixel);             
-            for (unsigned i=0; i<NXPoints; i++) {
-                float XCenterOfSubPixel = xcenter + InstrumentProfile->getIPixXCoordinate(i);				
-                unsigned xx = (unsigned)floor(XCenterOfSubPixel); 
-                if (xx > 0 && xx < Image.getnaxis1() &&
-                    yy > 0 && yy < Image.getnaxis2() &&
-                    Image[yy][xx] < SATURATIONLIMIT && 
-                    badpix[yy][xx] == 1 && 
-                    (float)Image[yy][xx] > 0 ) {                    
-                    avgImg += (float)Image[yy][xx];
-                    meanIP += InstrumentProfile->getipDataFromPolyModel(distdElem,i,j);
+        unsigned iMin, jMin, iMax, jMax;
+        for (iMin=0; iMin < NXPoints; iMin++) if(xCoords[iMin] > 0) break; //find lowest index where xCoords[i] > 0
+        for (jMin=0; jMin < NYPoints; jMin++) if(yCoords[jMin] > 0) break; //find lowest index where yCoords[j] > 0
+		for (iMax=NXPoints; iMax > 0; iMax--) if(xCoords[iMax-1] < Image.getnaxis1()) break; //find highest index where xCoords[i] < naxis1
+		for (jMax=NYPoints; jMax > 0; jMax--) if(yCoords[jMax-1] < Image.getnaxis2()) break; //find highest index where yCoords[j] < naxis2
+		
+		bool validCoords[NYPoints][NXPoints];
+		for (unsigned j=jMin; j<jMax; j++) {	
+            for (unsigned i=iMin; i<iMax; i++) {
+				validCoords[j][i] = Image[yCoords[j]][xCoords[i]] > 0 && Image[yCoords[j]][xCoords[i]] < SATURATIONLIMIT && badpix[yCoords[j]][xCoords[i]];
+			}
+		}
+        
+        float ipvals[NYPoints][NXPoints];
+		float avgImg = 0, meanIP = 0;
+        unsigned npImg = 0;
+		for (unsigned j=jMin; j<jMax; j++) {	
+            for (unsigned i=iMin; i<iMax; i++) {
+                if (validCoords[j][i]) {                    
+                    avgImg += (float)Image[yCoords[j]][xCoords[i]];
+                    ipvals[j][i] = InstrumentProfile->getipDataFromPolyModel(distdElem,i,j);
+                    meanIP += ipvals[j][i];
                     npImg++;
                 }
             }
-        }            
-        
+        }
         avgImg /= (float)npImg;
         meanIP /= (float)npImg;
         
-        float Xcorr = 0;
-        float imgsqr = 0;
-        float ipsqr = 0;
-        
-        for (unsigned j=0; j<NYPoints; j++) {	
-            float YCenterOfSubPixel = ycenter + InstrumentProfile->getIPixYCoordinate(j);				
-            unsigned yy = (unsigned)floor(YCenterOfSubPixel);             
-            for (unsigned i=0; i<NXPoints; i++) {
-                float XCenterOfSubPixel = xcenter + InstrumentProfile->getIPixXCoordinate(i);				
-                unsigned xx = (unsigned)floor(XCenterOfSubPixel); 
-                if (xx > 0 && xx < Image.getnaxis1() &&
-                    yy > 0 && yy < Image.getnaxis2() &&
-                    Image[yy][xx] < SATURATIONLIMIT && 
-                    badpix[yy][xx] == 1 && 
-                    (float)Image[yy][xx] > 0 ) {                    
-                    Xcorr +=  ((float)Image[yy][xx] - avgImg) * (InstrumentProfile->getipDataFromPolyModel(distdElem,i,j) - meanIP);
-                    imgsqr += ((float)Image[yy][xx] - avgImg) * ((float)Image[yy][xx] - avgImg);
-                    ipsqr += (InstrumentProfile->getipDataFromPolyModel(distdElem,i,j) - meanIP) * (InstrumentProfile->getipDataFromPolyModel(distdElem,i,j) - meanIP);
+        float Xcorr = 0, imgsqr = 0, ipsqr = 0;
+		for (unsigned j=jMin; j<jMax; j++) {	
+            for (unsigned i=iMin; i<iMax; i++) {
+                if (validCoords[j][i]) {
+					const float ip = ipvals[j][i] - meanIP;
+					const float imgval = (float)Image[yCoords[j]][xCoords[i]] - avgImg;
+                    Xcorr +=  imgval * ip;
+                    imgsqr += imgval * imgval;
+                    ipsqr += ip * ip;
                 }
             }
         }      
         
-        if(Xcorr) {
-            Xcorr /= sqrt(imgsqr*ipsqr);
-        } else {
-            Xcorr = NAN;
-        }
-        
+        if(Xcorr) Xcorr /= sqrt(imgsqr*ipsqr);
+        else Xcorr = NAN;
         SpectralElements->setXCorrelation((double)Xcorr,indexElem);
         
         if (pout != NULL) {
@@ -1756,7 +1752,6 @@ void operaSpectralOrder::calculateXCorrBetweenIPandImage(operaFITSImage &Image, 
             << endl;			
         }
     }
-	
     SpectralElements->setHasXCorrelation(true);
 }
 
@@ -2363,7 +2358,8 @@ void operaSpectralOrder::extractRawSpectrum(operaFITSImage &objectImage, operaFI
     setSpectrumType(RawBeamSpectrum);
     SpectralElements->setSpectrumType(RawBeamSpectrum);
     SpectralElements->setHasRawSpectrum(true);
-    
+    sethasSpectralElements(true);
+
 	//    objectCloneImg.operaFITSImageSave();
 	//    objectCloneImg.operaFITSImageClose();
 }
@@ -2611,6 +2607,7 @@ void operaSpectralOrder::extractStandardSpectrum(operaFITSImage &objectImage, op
 	setSpectrumType(StandardBeamSpectrum);
     SpectralElements->setSpectrumType(StandardBeamSpectrum);
     SpectralElements->setHasOptimalSpectrum(true);
+    sethasSpectralElements(true);
 }
 
 /*
@@ -2709,6 +2706,7 @@ void operaSpectralOrder::extractStandardSpectrumNoBackground(operaFITSImage &obj
 	setSpectrumType(StandardBeamSpectrum);
     SpectralElements->setSpectrumType(StandardBeamSpectrum);
     SpectralElements->setHasOptimalSpectrum(true);
+    sethasSpectralElements(true);
 }
 
 /*
@@ -2815,7 +2813,8 @@ void operaSpectralOrder::extractOptimalSpectrum(operaFITSImage &objectImage, ope
     
 	setSpectrumType(OptimalBeamSpectrum);
     SpectralElements->setSpectrumType(OptimalBeamSpectrum);
-    SpectralElements->setHasOptimalSpectrum(true);   
+    SpectralElements->setHasOptimalSpectrum(true);
+    sethasSpectralElements(true);
 }
 
 void operaSpectralOrder::measureBeamSpatialProfiles(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, bool usePolynomialFit) {

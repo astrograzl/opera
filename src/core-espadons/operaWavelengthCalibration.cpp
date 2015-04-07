@@ -282,9 +282,9 @@ int main(int argc, char *argv[])
     
 	bool interactive = false;    
 	
-    unsigned minorder = 22;
+    unsigned minorder = 0;
     bool minorderprovided = false;
-    unsigned maxorder = 61;    
+    unsigned maxorder = MAXORDERS;
     bool maxorderprovided = false; 
     
     int ordernumber = NOTPROVIDED;	
@@ -1329,6 +1329,7 @@ int main(int argc, char *argv[])
                 if (verbose) {
                     printf("operaWavelengthCalibration: Order %d: has neither geometry nor wavelength reference calibration data. Wavelength calibration not possible.\n",  spectralOrder[order]->getorder());
                 }
+                spectralOrder[order]->sethasWavelength(false);
             }            
 		} // for (unsigned order=minorder; order<=maxorder; order++)
        

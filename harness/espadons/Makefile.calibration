@@ -109,7 +109,7 @@ calibrationslog: master.rlst
 			else \
 				echo "$(NIGHT) locked by `whoami`" >$(outdir)Lock_$(NIGHT) ; \
 				echo "$(pref) Starting parallel calibration $(NIGHT) using $(maxthreads) threads." ; \
-				$(ECHO) $(MAKE) -f $(makedir)Makefile RECHO=$(RECHO) DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory parcal TARGET=disp$(gzip) --jobs --no-print-directory; \
+				$(ECHO) $(MAKE) -f $(makedir)Makefile RECHO=$(RECHO) DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory parcal TARGET=wcal$(gzip) --jobs --no-print-directory; \
 				$(ECHO) $(MAKE) -f $(makedir)Makefile RECHO=$(RECHO) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory cleantmp unlock --jobs --no-print-directory; \
 				echo "$(pref) parallel calibration for $(NIGHT) complete in $(deltat)" ; \
 				if [ -s $(errfile) ] ; then \
@@ -140,7 +140,7 @@ calibratelog: master.rlst
 			else \
 				echo "$(NIGHT) locked by `whoami`" >$(outdir)Lock_$(NIGHT) ; \
 				echo "$(pref) Starting serial calibration $(NIGHT) using $(maxthreads) threads." ; \
-				$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" dispersioncalibrations --jobs --no-print-directory ; \
+				$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" wavelengthcalibrations --jobs --no-print-directory ; \
 				$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" cleantmp unlock --jobs --no-print-directory ; \
 				echo "$(pref) serial calibration for $(NIGHT) complete in $(deltat)" ; \
 				if [ -s $(errfile) ] ; then \
@@ -317,14 +317,6 @@ wcals wavelengthcalibrations: master.rlst
 	echo "$(pref) wavelength calibrations for $(NIGHT) complete in $(deltat)"
 
 #########################################################################################
-# dispersioncalibrations
-#########################################################################################
-disps dispersioncalibrations: master.rlst
-	@start=$$SECONDS; \
-	$(call doAllCalibrationModes,,disp$(gzip)) ; \
-	echo "$(pref) dispersion calibrations for $(NIGHT) complete in $(deltat)"
-
-#########################################################################################
 # resolutions
 #########################################################################################
 resolutions: master.rlst
@@ -471,12 +463,12 @@ else
 %.flst: directoriescreated
 	@if [ ! -e $(byproductsdir)$@ ] ;  then \
 		if [[ "$(WHERE)" == "" ]] ; then \
-			find $(DATADIR) -name '$(ALLFILEPATTERN)' -print | sed -e 's:\([.]*\([0-9]*\)[oabcf].fits\):\1 \2:' | awk '{printf("%s %s\n",  $$2, $$1)}' | sort -n | awk '{print $$2}' >$(byproductsdir)$@ ; \
+			find $(DATADIR) \( -name '$(ALLFILEPATTERN)' -o -name '$(ALLFILEPATTERNB)' \) -print | sed -e 's:\([.]*\([0-9]*\)[oabcf].fits\(.gz\)\{0,1\}\):\1 \2:' | awk '{printf("%s %s\n",  $$2, $$1)}' | sort -n | awk '{print $$2}' >$(byproductsdir)$@ ; \
 			if [ ! -s $(byproductsdir)$@ ] ; then \
 				echo "$(epref) *** error: No odometer image files exist in $(DATADIR)." 2>&1 | tee -a $(errfile) ; \
 			fi ; \
 		else \
-			files=`find $(DATADIR) -name '$(ALLFILEPATTERN)' -print | sed -e 's:\([.]*\([0-9]*\)[oabcf].fits\):\1 \2:' | awk '{printf("%s %s\n",  $$2, $$1)}' | sort -n | awk '{print $$2}'` ; \
+			files=`find $(DATADIR) \( -name '$(ALLFILEPATTERN)' -o -name '$(ALLFILEPATTERNB)' \) -print | sed -e 's:\([.]*\([0-9]*\)[oabcf].fits\(.gz\)\{0,1\}\):\1 \2:' | awk '{printf("%s %s\n",  $$2, $$1)}' | sort -n | awk '{print $$2}'` ; \
 			for file in $${files} ; do \
 				case $${file} in \
 					*o.fits) for clause in $(WHERE) ; do \
@@ -880,8 +872,12 @@ masterfluxcalibration_$(QUALIFIERS).fcal$(gzip):
 			for seq in 1 2 3 4 ; do \
 				for fcal in $${fcals} ; do \
 					odometer=`echo $(basename $${fcal}) | sed -e 's:i.fcal$(gzip)::'` ; \
-					mode=`$(bindir)operagetmode $(DATADIR)/$${odometer}o.$(FITS)$(inextension)`; \
-					sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$${odometer}o.$(FITS)$(inextension)`; \
+					inputfits="$(DATADIR)/$${odometer}o.$(FITS)" ; \
+					if [ -e $(DATADIR)/$${odometer}o.$(FITS)$(inextension) ] ; then \
+						inputfits="$(DATADIR)/$${odometer}o.$(FITS)$(inextension)" ; \
+					fi ; \
+					mode=`$(bindir)operagetmode $${inputfits}`; \
+					sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
 					if [[ "$(MODE)" == "$${mode}" && "$${seq}" == "$${sequence}" ]] ; then \
 						inputfcals="$$inputfcals --inputfcal=$(calibrationdir)$$fcal" ; \
 					fi ; \
@@ -917,7 +913,11 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 		else \
 			for fcal in $${fcals} ; do \
 				odometer=`echo $(basename $${fcal}) | sed -e 's:i.fcal$(gzip)::'` ; \
-				mode=`$(bindir)operagetmode $(DATADIR)/$${odometer}o.$(FITS)$(inextension)`; \
+				inputfits="$(DATADIR)/$${odometer}o.$(FITS)" ; \
+				if [ -e $(DATADIR)/$${odometer}o.$(FITS)$(inextension) ] ; then \
+					inputfits="$(DATADIR)/$${odometer}o.$(FITS)$(inextension)" ; \
+				fi ; \
+				mode=`$(bindir)operagetmode $${inputfits}`; \
 				if [[ "$(MODE)" == "$${mode}" ]] ; then \
 					inputfcals="$$inputfcals --inputfcal=$(calibrationdir)$$fcal" ; \
 				fi ; \
@@ -1078,17 +1078,17 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			pargs="--plotfilename=$(visualsdir)$*prof.eps --datafilename=$(byproductsdir)$*prof.pdat --scriptfilename=$(byproductsdir)$*prof.gnu" ; \
 		fi ; \
-		fabparm="" ; \
+		compparm="--mastercomparison=$(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension)" ; \
 		IPmethod=$(IPDefaultMethod) ; \
 		if [[ -e $(calibrationdir)masterfabperot_$(QUALIFIERS).$(FITS)$(extension) ]] ; then \
-			fabparm="--masterfabperot=$(calibrationdir)masterfabperot_$(QUALIFIERS).$(FITS)$(extension)" ; \
+			compparm="--masterfabperot=$(calibrationdir)masterfabperot_$(QUALIFIERS).$(FITS)$(extension)" ; \
 			IPmethod=$(IPUsingFabPerotMethod) ; \
 		fi; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaInstrumentProfileCalibration \
 --geometryfilename=$(calibrationdir)$*.geom$(gzip) \
 --masterbias=$(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) \
 --masterflat=$(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) \
---mastercomparison=$(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension) \
+$${compparm} \
 --badpixelmask=$(badpixelmask) \
 --xSize=$(IPXSize) \
 --ySize=$(IPYSize) \
@@ -1105,7 +1105,6 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --DetectionThreshold=$(DetectionThreshold) \
 --MinPeakDepth=$(MinPeakDepth) \
 $${pargs} \
-$${fabparm} \
 --spectralElementHeight=$(spectralElementHeight) \
 --maxthreads=$(maxthreads) \
 --outputProf=$(calibrationdir)$@ \
@@ -1196,31 +1195,6 @@ $${pargs} \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) Wavelength refinement with operaStitchOrders for $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
-
-#########################################################################################
-# Calculate the Echelle Dispersion Polynomial
-#########################################################################################
-%.disp$(gzip): %.wcal$(gzip)
-	@start=$$SECONDS; \
-#	if [ ! -e $(calibrationdir)$@ ] ; then \
-#		echo "$(pref) Starting Echelle Dispersion Polynomial calibration for $(QUALIFIERS)" ;\
-#		if [[ "$(PLOT)" != "0" ]] ; then \
-#			pargs="--plotfilename=$(visualsdir)$*disp.eps --datafilename=$(byproductsdir)$*disp.pdat --scriptfilename=$(byproductsdir)$*disp.gnu" ; \
-#		fi ; \
-#		wcal="$(configdir)wcal_ref.dat$(gzip)" ; \
-#		if [ -e $(calibrationdir)$(QUALIFIERS).wcal$(gzip) ] ; then \
-#			wcal=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-#		fi ; \
-#		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaEchelleDispersionCalibration \
-#--inputWaveFile=$${wcal} \
-#--outputDispFile=$(calibrationdir)$@ \
-#--minorderOfLaurentPolynomial=$(dispminorderOfLaurentPolynomial) \
-#--maxorderOfLaurentPolynomial=$(dispmaxorderOfLaurentPolynomial) \
-#--maxorderofpolynomial=$(wcalmaxorderofpolynomial) \
-#$${pargs} \
-#$(optargs)" 2>&1 | tee -a $(logfile) ; \
-#		echo "$(pref) Echelle Dispersion Polynomial calibration for $(QUALIFIERS) complete in $(deltat)" ; \
-#	fi
 
 #########################################################################################
 # Calculate the Resolution

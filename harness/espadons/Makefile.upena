@@ -225,6 +225,10 @@ snr:
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Basic Intensity product creation in $@ $(QUALIFIERS)" ; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
 		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
 			rvel="$(calibrationdir)$*i.rvel$(extension)" ; \
 		fi ; \
@@ -240,7 +244,7 @@ snr:
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
 --centralsnr \
 --compressiontype=$(compressiontype) \
---input=$(DATADIR)/$*o.$(FITS)$(inextension) \
+--input=$${inputfits} \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if  (( $(TRACE) != 1 )) ; then echo "$(pref) fits `$(bindir)operafitsverify $(VERBOSE) $(spectradir)$@`"; fi; \
 		echo "$(pref) Intensity product $@ $(QUALIFIERS) complete in $(deltat)" ; \
@@ -259,6 +263,10 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Polarimetry product creation in $@ $(QUALIFIERS)" ; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
 --ufile=$(spectradir)$*pu.s$(extension) \
 --nfile=$(spectradir)$*pn.s$(extension) \
@@ -269,7 +277,7 @@ endif
 --date=\"$(shell date)\" \
 --compressiontype=$(compressiontype) \
 --centralsnr \
---input=$(DATADIR)/$*o.$(FITS)$(inextension) \
+--input=$${inputfits} \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if  (( $(TRACE) != 1 )) ; then echo "$(pref) fits `$(bindir)operafitsverify $(VERBOSE) $(spectradir)$@`"; fi; \
 		echo "$(pref) Polarimetry product $@ $(QUALIFIERS) complete in $(deltat)" ; \
@@ -286,7 +294,11 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting LE SNR creation for $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaSNR \
 --input=$(spectradir)$*.e$(extension) \
 --wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(extension) \
@@ -304,14 +316,19 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting un-normalized spectrum creation for $* $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
+		mode=`$(bindir)operagetmode $${inputfits}`; \
 		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
 --wavelengthType=$(RVCorrectedWavelengthInNM) \
@@ -332,14 +349,19 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting normalization of $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
+		mode=`$(bindir)operagetmode $${inputfits}`; \
 		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
 --wavelengthType=$(RVCorrectedWavelengthInNM) \
@@ -360,14 +382,19 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting un-normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
+		mode=`$(bindir)operagetmode $${inputfits}`; \
 		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
 --wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
@@ -388,14 +415,19 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
-		mode=`$(bindir)operagetmode $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
+		mode=`$(bindir)operagetmode $${inputfits}`; \
 		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $(DATADIR)/$*o.$(FITS)$(inextension)`; \
+			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
 --wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
@@ -416,7 +448,11 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Un-normalized polarimetry for $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
@@ -440,7 +476,11 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Un-normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
@@ -465,7 +505,11 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Normalized polarimetry for $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
@@ -489,7 +533,11 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $(DATADIR)/$*o.$(FITS)$(inextension)` ; \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \

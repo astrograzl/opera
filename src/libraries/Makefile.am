@@ -114,7 +114,7 @@ libPolynomial_la_LDFLAGS = -version-info 1:0:0
 liboperaSpectralLines_la_SOURCES = operaSpectralLines.cpp operaSpectralLines.h
 liboperaSpectralLines_la_LDFLAGS = -version-info 1:0:0
 
-liboperaCCD_la_SOURCES = operaCCD.c operaCCD.h operaLibCommon.h
+liboperaCCD_la_SOURCES = operaCCD.cpp operaCCD.h operaLibCommon.h
 liboperaCCD_la_LDFLAGS = -version-info 1:0:0
 
 liboperaMath_la_SOURCES = operaMath.c operaMath.h operaLibCommon.h

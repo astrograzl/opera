@@ -102,9 +102,9 @@ string badpixelmask;
 
 int ordernumber = NOTPROVIDED;
 
-int minorder = 22;
+int minorder = 0;
 bool minorderprovided = false;
-int maxorder = 62;
+int maxorder = MAXORDERS;
 bool maxorderprovided = false;
 
 unsigned backgroundBinsize = 1;
@@ -211,6 +211,8 @@ void *processOrder(void *argument) {
         if(starplusskymode) {
             spectralOrder->calculateStarAndSkyElements(starplusskyInvertSkyFiber, NULL);
         }
+    } else {
+        spectralOrder->sethasSpectralElements(false);
     }
 	return NULL;
 }

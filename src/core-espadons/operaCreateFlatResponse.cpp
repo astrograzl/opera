@@ -103,6 +103,7 @@ int main(int argc, char *argv[])
     const int NOT_PROVIDED = -999;
     
 	string inputUncalibratedSpectrum;
+    string inputSpectrumFITSImage;
 	string inputCalibratedSpectrum;
     string inputFlatFluxCalibration;
 	string inputWaveFile;
@@ -117,25 +118,32 @@ int main(int argc, char *argv[])
     unsigned numberOfPointsInUniformRefSample = 70;
     unsigned binsize = 100;
 	
-	args.AddRequiredArgument("inputUncalibratedSpectrum", inputUncalibratedSpectrum, "Spectrophotometric standard extracted uncalibrated spectrum");
+    bool outputFITS = false;
+    
+    args.AddRequiredArgument("inputUncalibratedSpectrum", inputUncalibratedSpectrum, "Spectrophotometric standard extracted uncalibrated spectrum");
+    args.AddRequiredArgument("inputSpectrumFITSImage", inputSpectrumFITSImage, "Raw FITS image for input uncalibrated spectrum");
 	args.AddRequiredArgument("inputCalibratedSpectrum", inputCalibratedSpectrum, "Spectrophotometric standard template calibrated spectrum");
-	args.AddRequiredArgument("inputFlatFluxCalibration", inputFlatFluxCalibration, "");
+	args.AddRequiredArgument("inputFlatFluxCalibration", inputFlatFluxCalibration, "Flat flux calibration data file (.fcal.gz)");
 	args.AddRequiredArgument("inputWaveFile", inputWaveFile, "Input wavelength calibration file");
-	args.AddRequiredArgument("inputWavelengthMaskForRefContinuum", inputWavelengthMaskForRefContinuum, "");
-	args.AddRequiredArgument("inputWavelengthMaskForUncalContinuum", inputWavelengthMaskForUncalContinuum, "");
-	args.AddRequiredArgument("outputFlatResponseFile", outputFlatResponseFile, "Output flux calibration conversion file");
+	args.AddRequiredArgument("inputWavelengthMaskForRefContinuum", inputWavelengthMaskForRefContinuum, "Wavelength mask to detect continuum in reference spectrum");
+	args.AddRequiredArgument("inputWavelengthMaskForUncalContinuum", inputWavelengthMaskForUncalContinuum, "Wavelength mask to detect continuum in uncalibrated spectrum");
+	args.AddRequiredArgument("outputFlatResponseFile", outputFlatResponseFile, "Output flat response data file");
 	
 	args.AddOptionalArgument("wavelengthForNormalization", wavelengthForNormalization, 548, "Wavelength (nm) for normalization of reference spectrum");
 	args.AddOptionalArgument("ordernumber", ordernumber, NOT_PROVIDED, "Absolute order number to extract (default=all)");
 	args.AddOptionalArgument("minorder", minorder, NOT_PROVIDED, "Define minimum order number");
 	args.AddOptionalArgument("maxorder", maxorder, NOT_PROVIDED, "Define maximum order number");
-	args.AddOptionalArgument("numberOfPointsInUniformSample", numberOfPointsInUniformSample, 200, "Define lowest order to consider in the fit across orders");
-	args.AddOptionalArgument("numberOfPointsInUniformRefSample", numberOfPointsInUniformRefSample, 70, "Define highest order to consider in the fit across orders");
+	args.AddOptionalArgument("numberOfPointsInUniformSample", numberOfPointsInUniformSample, 200, "Define number of points in output data file");
+	args.AddOptionalArgument("numberOfPointsInUniformRefSample", numberOfPointsInUniformRefSample, 70, "Define number of poins in reference sample");
 	args.AddOptionalArgument("binsize", binsize, 100, "Number of points to bin for continuum estimate");
 	
+    args.AddSwitch("outputFITS", outputFITS, "output data as FITS file? otherwise output is in ASCII LE format");
+
+    
 	//"Example: "+string(modulename)+" --inputCalibratedSpectrum=HR1544_operaFluxCal.dat --inputUncalibratedSpectrum=1515004.e.gz --inputWaveFile=/Users/edermartioli/opera/calibrations/GalileanMoons/OLAPAa_pol_Normal.wcar.gz --outputFlatResponseFile=1515004.fcal.gz --normalizeCalibratedSpectrum=1 --binsize=210 --spectrumDataFilename=1515004.spec --continuumDataFilename=1515004.cont --scriptfilename=1515004fcal.gnu -v"
 	
 	try {
+		args.Parse(argc, argv);
 		// we need an input uncalibrated spectrum...
 		if (inputUncalibratedSpectrum.empty()) {
 			throw operaException("operaCreateFlatResponse: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -144,6 +152,13 @@ int main(int argc, char *argv[])
 		if (inputCalibratedSpectrum.empty()) {
 			throw operaException("operaCreateFlatResponse: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
+        
+        if(outputFITS) {
+            // if output is FITS then we need the input FITS image of the spectrum to grab header info...
+            if (inputSpectrumFITSImage.empty()) {
+                throw operaException("operaCreateFlatResponse: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+            }
+        }
 		// we need an input flat flux calibration spectrum...
 		if (inputFlatFluxCalibration.empty()) {
 			throw operaException("operaCreateFlatResponse: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
@@ -164,6 +179,7 @@ int main(int argc, char *argv[])
 		if (outputFlatResponseFile.empty()) {
 			throw operaException("operaCreateFlatResponse: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
         }
+
         
 		if (args.verbose) {
 			cout << "operaCreateFlatResponse: input uncalibrated spectrum file = " << inputUncalibratedSpectrum << endl;
@@ -254,19 +270,43 @@ int main(int argc, char *argv[])
         for(unsigned i=0;i<numberOfPointsInUniformSample;i++) {
             flatResp[i] = uniform_flux[i]/calibratedModelFlux[i];
         }
+        
         double flatRespForNormalization = getFluxAtWavelength(numberOfPointsInUniformSample,uniform_wl,flatResp,wavelengthForNormalization);
 
-        /*
-         * and write out flatresponse (LE *.s)
-         */
-		ofstream frespoutput(outputFlatResponseFile.c_str());
-        frespoutput << "***" << endl;
-        frespoutput << numberOfPointsInUniformSample << " 1" << endl;
-        for(unsigned i=0;i<numberOfPointsInUniformSample;i++) {
-            flatResp[i] /= flatRespForNormalization;
-            frespoutput << uniform_wl[i] << ' ' << flatResp[i] << endl;
+        if(outputFITS) {
+            /*
+             * and write out flatresponse (FITS *.fits.gz)
+             */
+            operaFITSImage inImage(inputSpectrumFITSImage, tfloat, READONLY);
+            operaFITSImage outFlatResp(outputFlatResponseFile, numberOfPointsInUniformSample, 2, tfloat);
+            outFlatResp.operaFITSImageCopyHeader(&inImage);
+            for(unsigned i=0;i<numberOfPointsInUniformSample;i++) {
+                flatResp[i] /= flatRespForNormalization;
+                outFlatResp.setpixel(uniform_wl[i],i,0);
+                outFlatResp.setpixel(flatResp[i],i,1);
+            }
+            
+            outFlatResp.operaFITSAddComment("Created by the OPERA 1.0");
+            outFlatResp.operaFITSAddComment("Flat response calibration file");
+            outFlatResp.operaFITSAddComment("1st row: Wavelength [nm]");
+            outFlatResp.operaFITSAddComment("2nd row: Relative flat response [abitrary units]");
+            
+            outFlatResp.operaFITSImageSave();
+            outFlatResp.operaFITSImageClose();
+            
+        } else {
+            /*
+             * and write out flatresponse (LE *.s)
+             */
+            ofstream frespoutput(outputFlatResponseFile.c_str());
+            frespoutput << "***" << endl;
+            frespoutput << numberOfPointsInUniformSample << " 1" << endl;
+            for(unsigned i=0;i<numberOfPointsInUniformSample;i++) {
+                flatResp[i] /= flatRespForNormalization;
+                frespoutput << uniform_wl[i] << ' ' << flatResp[i] << endl;
+            }
+            frespoutput.close();
         }
-        frespoutput.close();
         
 	}
 	catch (operaException e) {

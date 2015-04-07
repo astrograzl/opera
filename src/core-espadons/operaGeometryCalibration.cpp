@@ -347,48 +347,66 @@ int main(int argc, char *argv[])
         /*
 		 * open input images and load data into an in-memory image
 		 */
-		
 		unsigned x1 = subformat.x1;
 		unsigned y1 = subformat.y1;
 		unsigned nx = subformat.x2 - subformat.x1;
 		unsigned ny = subformat.y2 - subformat.y1;
         
-        operaFITSImage flat(masterflat, tfloat, READONLY);
+        operaFITSImage *flat = new operaFITSImage(masterflat, tfloat, READONLY);
         
         operaFITSImage *bias = NULL;
         
 		if (!masterbias.empty()){
 			bias = new operaFITSImage(masterbias, tfloat, READONLY);
 		} else {
-            bias = new operaFITSImage(flat.getnaxis1(),flat.getnaxis2(),tfloat);
+            bias = new operaFITSImage(flat->getnaxis1(),flat->getnaxis2(),tfloat);
             *bias = 0.0;
         }
+        //---
         
-		flat -= (*bias);			// remove bias from masterflat
+        /*
+         * Remove bias from masterflat
+         */
+		(*flat) -= (*bias);
         if(bias) {
             delete bias;
 		}
+        //---
+        
+        /*
+         * Open badpixel mask
+         */
         operaFITSImage *badpix = NULL;
         
 		if (!badpixelmask.empty()){
 			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
 		} else {
-            badpix = new operaFITSImage(flat.getnaxis1(),flat.getnaxis2(),tfloat);
+            badpix = new operaFITSImage(flat->getnaxis1(),flat->getnaxis2(),tfloat);
             *badpix = 1.0;
         }
-		
+		//---
+        
 		if (verbose) {
 			cout << "operaGeometryCalibration: x1,y1,nx,ny = " << x1 << ' ' << y1 << ' ' << nx  << ' ' << ny << '\n';
 		}
 		
+        /*
+         * Setup slit aperture, and create spectral order vector object.
+         */
         double slit = (double)aperture;
         unsigned uslit = (unsigned)aperture;
-        double sigma = slit/4.0;
-        
-        double threshold = DETECTTHRESHOLD;
         
 		operaSpectralOrderVector spectralOrders(MAXORDERS, ny, ny, 0);
-		spectralOrders.readOrderSpacingPolynomial(inputOrderSpacing);
+		//---
+        
+        /*
+         * read order spacing polynomial
+         */
+        spectralOrders.readOrderSpacingPolynomial(inputOrderSpacing);
+        unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
+        double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();
+        //---
+        
 		/*
 		 * read gain and noise
 		 */
@@ -400,34 +418,33 @@ int main(int argc, char *argv[])
 		}
 		if (verbose)
 			cout << "operaGeometryCalibration: gain="<< gain << " noise=" << noise << endl;
+        //---
         
-		unsigned newnords=0;
-        
-		float xord[MAXORDERS],fluxValue[MAXORDERS],xerrord[MAXORDERS];
-		float x0prev=0;
-		int AbsOrdNumber[MAXORDERS], AbsPrevOrdNumber;
-        
+        /*
+         * Set up variables in Geometry class
+         */
         for (unsigned order=0; order<MAXORDERS; order++) {
 			spectralOrders.GetSpectralOrder(order)->getGeometry()->setapertureWidth(aperture);
 			spectralOrders.GetSpectralOrder(order)->getGeometry()->setdispersionDirection(colDispersion);
 			spectralOrders.GetSpectralOrder(order)->getGeometry()->setNumberofPointsToBinInYDirection(binsize);
             spectralOrders.GetSpectralOrder(order)->getGeometry()->setYmin(subformat.y1);
             spectralOrders.GetSpectralOrder(order)->getGeometry()->setYmax(subformat.y2);
-			AbsOrdNumber[order] = 0;
 		}
-		
+		//---
+        
+        /*
+         * Measure instrument spatial profile from several samples of rows
+         */
         float *ipfunc = new float[uslit];
         float *ipx = new float[uslit];
         float *iperr = new float[uslit];
-		
-        spectralOrders.measureIPAlongRowsFromSamples(flat, *badpix, slit, nsamples, FFTfilter,(float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, ipfunc, ipx, iperr);
-		
-#ifdef PRINT_DEBUG
-        for(unsigned i=0;i<uslit;i++) {
-            cout << ((float)i - slit/2) <<  " " << ipx[i] <<  " " << ipfunc[i] << " " << iperr[i] << endl;
-        }
-#endif
         
+        spectralOrders.measureIPAlongRowsFromSamples(*flat, *badpix, slit, nsamples, FFTfilter,(float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, ipfunc, ipx, iperr);
+		//---
+        
+        /*
+         * Apply centering corrections to the measured spatial profile
+         */
         bool applyXcenterCorrection = TRUE;
         float xnewcenter = calculatePhotoCenter(uslit, ipx, ipfunc, iperr, applyXcenterCorrection);
         
@@ -440,28 +457,31 @@ int main(int argc, char *argv[])
 #endif
         }
         
-		/*
-		 * The loop below scans the entire image passing each row y to detect orders
-		 */
+#ifdef PRINT_DEBUG
+        for(unsigned i=0;i<uslit;i++) {
+            cout << ((float)i - slit/2) <<  " " << ipx[i] <<  " " << ipfunc[i] << " " << iperr[i] << endl;
+        }
+#endif
+        //---
         
+        /*
+         * Set up memory for variables, binsize and number of samples
+         */
 		unsigned NumberOfySamples;
 		unsigned NumberofPointsToBinInYDirection = binsize;
         unsigned NumberofPointsToBinInYForReference = 2*NumberofPointsToBinInYDirection;
 
-        float *fx = new float[nx];
-        float *fy = new float[ny];
-        float *fytmp = new float[ny];
-		float *fysample = new float[NumberofPointsToBinInYForReference];
-        float xmean[MAXORDERS],xmeanerr[MAXORDERS],ymean[MAXORDERS];  		
-		float ysample = 0.0;
+        float *fxref = new float[nx];
+        float *fyref = new float[ny];
+        float xmean[MAXORDERS],xmeanerr[MAXORDERS],ymean[MAXORDERS];
 
-		NumberOfySamples = (unsigned)ceil((float)(ny-y1)/(float)NumberofPointsToBinInYDirection); 
+		NumberOfySamples = (unsigned)ceil((float)(ny-y1)/(float)NumberofPointsToBinInYDirection);
+        //---
         
         /*
-         * The first loop below is just to figure out the absolute number of first order
+         * First pass only using rows around reference row to figure out a reference order map.
          */
-        
-        // for reference we use twice more points to obain higher SNR
+        // Note: for the reference sample we use twice more points to obain higher SNR
         unsigned firstY = y1;
         unsigned lastY = ny;
         if(referenceOrderSamplePosition >= NumberofPointsToBinInYForReference/2) {
@@ -471,205 +491,145 @@ int main(int argc, char *argv[])
             lastY = referenceOrderSamplePosition + NumberofPointsToBinInYForReference/2;
         }
         
-        unsigned np=0;
-        for (unsigned xx=x1; xx<nx; xx++) {
-            unsigned ns=0;
-            ysample=0.0;
-            for (unsigned yy=firstY; yy<lastY ; yy++) {
-                fysample[ns++] = flat[yy][xx];
-                ysample += (float)yy + 0.5;
+        float y = 0;
+        unsigned np = getRowBinnedData(flat,x1,nx,nx,firstY,lastY,ny,fxref,fyref,&y,FFTfilter);
+        
+        if(debug) {
+            for (unsigned i=0;i<np;i++) {
+                cout << fxref[i] << " " << fyref[i] << endl;
             }
-            ysample /= (float)ns;
-            fx[np] = (float)xx + 0.5;
-            
-            if(FFTfilter){
-                fytmp[np] = operaArrayMedian(ns,fysample);
-            } else {
-                fy[np] = operaArrayMedian(ns,fysample);
-            }
-            // printf("%lf\t%lf\n",fx[np],fy[np]);
-            np++;
         }
         
-        if(FFTfilter){
-            operaFFTLowPass(np,fytmp,fy,0.1);
-        }
-        
-        unsigned nords = 0;
-        
-        if(detectionMethod == 1) {
-            nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean);
-        } else if (detectionMethod == 2) {
-            if (graces) {
-                nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),(float)gain,threshold,xmean,ymean);
-            } else {
-            // The function below does not work on GRACES data. The one above should be better but
-            // it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
-                nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean);
-            }
-        } else if (detectionMethod == 3) {
-            nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean);
-        }
-        
-        // Call function to find missing orders based on polynomial fit to spacing between orders
-        // this function also returns the absolute number for each order
-        unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
-        double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();
-        
-        newnords = operaCCDDetectMissingOrdersNew(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,MINIMUMORDERTOCONSIDER,x0prev,maxorders);
-        
-      /*  for (unsigned i=0;i<newnords;i++) {
-            cout << AbsOrdNumber[i] << " "
-            << xord[i] << " "
-            << fluxValue[i] << " "
-            << xerrord[i] << endl;
-        }*/
-        
-        float *OrderPosition = new float[MAXORDERS];
-        float *OrderSeparation = new float[MAXORDERS];
-        unsigned npts=0;
-        for(unsigned i=0; i<newnords-1; i++) {
-            //if(AbsOrdNumber[i] > minordertouse + 5 && AbsOrdNumber[i] < minordertouse + maxorders - 5){
-                OrderPosition[npts] = float(xord[i] + (xord[i+1] - xord[i]) / 2.0);
-                OrderSeparation[npts] = float(xord[i+1] - xord[i]);
-                
-               // cout <<  OrderPosition[npts] << ' ' << OrderSeparation[npts] << endl;
-                
-                npts++;
-            //}
-           
-        }
-        float am,bm,abdevm;
-        //--- Robust linear fit
-        ladfit(OrderPosition,OrderSeparation,npts,&am,&bm,&abdevm); /* robust linear fit: f(x) =  a + b*x */
-        
-        par[0] = (double)am;
-        par[1] = (double)bm;
-        npars = 2;
-        
-       /* for(unsigned i=0;i<npts;i++) {
-            cout <<  OrderPosition[i] << ' ' << OrderSeparation[i] << ' ' << PolynomialFunction(OrderPosition[i],par,npars) << endl;
-        }*/
-        
-        int firstOrder = AbsOrdNumber[0];
-        
-        /* 
-         * Reset absolute order number, newords and x0prev
-         */
-        for (unsigned order=0; order<MAXORDERS; order++) {
-			AbsOrdNumber[order] = 0;
-		}
-		newnords=0;
-		x0prev=0;
-        
+        unsigned nords = geometryDetectOrders(np,fxref,fyref,slit,ipfunc,binsize,(float)noise,(float)gain,xmean,ymean,xmeanerr,detectionMethod, witherrors, graces);
 
+        float *xref = new float[MAXORDERS];
+        float *yref = new float[MAXORDERS];
+        float *xreferr = new float[MAXORDERS];
+        int *AbsRefOrdNumber = new int[MAXORDERS];
+        
+        unsigned nrefs = operaCCDDetectOrderMapBasedOnSpacingPolynomial(np,fxref,fyref,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xref,yref,xreferr,AbsRefOrdNumber,minordertouse,maxorders);
+        // -- End of reference map
+        if(debug) {
+            for (unsigned i=0;i<nrefs;i++) {
+                cout << AbsRefOrdNumber[i] << " " << xref[i] << " " << yref[i] << " " << xreferr[i] << endl;
+            }
+        }
+        //---
+        
         /*
-         * Once first order is figured out, then it will save the data into each order. Note that 
+         * Create memory space to save data obtained from samples
+         */
+        
+        float *fx = new float[nx];
+        float *fy = new float[ny];
+        
+        float *xord_tmp = new float[MAXORDERS];
+        float *yord_tmp = new float[MAXORDERS];
+        float *xerrord_tmp = new float[MAXORDERS];
+        int *AbsOrdNumber_tmp = new int[MAXORDERS];
+        
+        float *ypos = new float[NumberOfySamples];
+        unsigned *newnords = new unsigned[NumberOfySamples];
+
+        float *xords[NumberOfySamples];
+        float *yords[NumberOfySamples];
+        float *xerrords[NumberOfySamples];
+        int *AbsOrdNumbers[NumberOfySamples];
+        
+        for(unsigned k=0;k<NumberOfySamples;k++){
+            xords[k] = new float[MAXORDERS];
+            yords[k] = new float[MAXORDERS];
+            xerrords[k] = new float[MAXORDERS];
+            AbsOrdNumbers[k] = new int[MAXORDERS];
+            newnords[k] = 0;
+        }
+        //---
+        
+        /*
+         * Once first order is figured out, then we save the data for each order. Note that
          * the absolute order number is important to make sure the data are always associated
          * to the correct order number. 
          */
         
-		for(unsigned k=0;k<NumberOfySamples;k++){
-//		for(unsigned k=NumberOfySamples/2;k<NumberOfySamples/2+1;k++){
+        //-- Figure out which bin contains the reference order
+        unsigned kref = (unsigned)round(float(referenceOrderSamplePosition - y1)/(float)NumberofPointsToBinInYDirection);
+        
+        //-- Start detecting orders in samples ABOVE reference row
+        for (unsigned i=0;i<nrefs;i++) {
+            xord_tmp[i] = xref[i];
+            yord_tmp[i] = yref[i];
+            xerrord_tmp[i] = xreferr[i];
+            AbsOrdNumber_tmp[i] = AbsRefOrdNumber[i];
+        }
+        for(unsigned k=kref;k<NumberOfySamples;k++){
+            unsigned firstY = y1 + NumberofPointsToBinInYDirection*(k);
+            unsigned lastY =  y1 + NumberofPointsToBinInYDirection*(k+1);
+            if(lastY >= ny) break;
             
-			unsigned firstY = y1 + NumberofPointsToBinInYDirection*(k);
-			unsigned lastY =  y1 + NumberofPointsToBinInYDirection*(k+1);
-			
-			if(lastY >= ny) break;
-			
-			unsigned np=0;
-			for (unsigned xx=x1; xx<nx; xx++) {			
-				unsigned ns=0;
-				ysample=0.0;
-				
-				for (unsigned yy=firstY; yy<lastY ; yy++) {
-					fysample[ns++] = flat[yy][xx];
-					ysample += (float)yy + 0.5;
-				}
-				ysample /= (float)ns;
-				fx[np] = (float)xx + 0.5;
-				
-				if(FFTfilter){
-					fytmp[np] = operaArrayMedian(ns,fysample);
-				} else {
-					fy[np] = operaArrayMedian(ns,fysample);	
-				}
-				
-#ifdef PRINT_DEBUG
-				if(FFTfilter){
-					cout << fx[np]  << " " << fytmp[np] << endl;
-				} else {
-					cout << fx[np]  << " " << fy[np] << endl;	
-				}				
-#endif	
-				np++;
-			}
-			float y = ysample;
-			
-			if(FFTfilter){
-				operaFFTLowPass(np,fytmp,fy,0.1);
-			}
-			
-            unsigned nords = 0;
+            unsigned np = getRowBinnedData(flat,x1,nx,nx,firstY,lastY,ny,fx,fy,&ypos[k],FFTfilter);
+            unsigned nords = geometryDetectOrders(np,fx,fy,slit,ipfunc,binsize,(float)noise,(float)gain,xmean,ymean,xmeanerr,detectionMethod, witherrors, graces);
             
-			if(detectionMethod == 1) {
-				if (witherrors) {
-					nords = operaCCDDetectPeaksWithErrorsUsingGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean,xmeanerr);
-				} else {
-					nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean);
-				}
-			} else if (detectionMethod == 2) {	
-				if (witherrors) {
-					nords = operaCCDDetectPeaksWithErrorsUsingIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean,xmeanerr);
-				} else {
-                    if(graces) {
-                        nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),(float)gain,threshold,xmean,ymean);
-                    } else {
-                        /*
-                     * The function below does not work on GRACES data. The one above should be better but
-                     * it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
-                     */
-                        nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean);
-                    }
-				}
-			} else if (detectionMethod == 3) {
-				if (witherrors) {
-					nords = operaCCDDetectPeaksWithErrorsUsingTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean,xmeanerr);
-				} else {
-					nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean);
-				}
-			}
-			
-#ifdef PRINT_DEBUG
-			for(unsigned i=0;i<nords;i++) {
-				cout << xmean[i] << " " << y << " " << xmeanerr[i] << " " << ymean[i] << endl;
-			}			
-#endif
-			if(x0prev == 0) { // if this is the first pass, then set prev row 1st order number as firstOrder
-				AbsPrevOrdNumber = firstOrder;
-			} else {					// else use 1st order number from previous row
-				AbsPrevOrdNumber = AbsOrdNumber[0];
-			}
-			
-			// Call function to find missing orders based on polynomial fit to spacing between orders
-			// this function also returns the absolute number for each order
-			
-			newnords = operaCCDDetectMissingOrders(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev);
-//            newnords = operaCCDDetectMissingOrdersNew(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,xord,fluxValue,xerrord,AbsOrdNumber,AbsPrevOrdNumber,x0prev,maxorders);
+            newnords[k] = operaCCDDetectMissingOrdersUsingNearMap(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,nrefs,xord_tmp,yord_tmp,AbsOrdNumber_tmp,xords[k],yords[k],xerrords[k],AbsOrdNumbers[k]);
             
-            if (fdata != NULL) {
-                for(unsigned i=0;i<newnords;i++) {
-                    *fdata << k << " " <<  AbsOrdNumber[i] << " " << xord[i] << " " << y << " " << xerrord[i] << " " << fluxValue[i] << endl;
+            if(debug) {
+                for (unsigned i=0;i<newnords[k];i++) {
+                    cout << xords[k][i] << " " << yords[k][i] << " " << xerrords[k][i]<< endl;
                 }
             }
-			
-			//print out the absolute number for each order and the corresponding centers for each row
+
+            //-- save current sample in the tmp to be used in the next loop around
+            for (unsigned i=0;i<nrefs;i++) {
+                xord_tmp[i] = xords[k][i];
+                yord_tmp[i] = yords[k][i];
+                xerrord_tmp[i] = xerrords[k][i];
+                AbsOrdNumber_tmp[i] = AbsOrdNumbers[k][i];
+            }
+        }
+        
+        //-- Then detect orders in samples BELOW reference row
+        for (unsigned i=0;i<nrefs;i++) {
+            xord_tmp[i] = xref[i];
+            yord_tmp[i] = yref[i];
+            xerrord_tmp[i] = xreferr[i];
+            AbsOrdNumber_tmp[i] = AbsRefOrdNumber[i];
+        }
+        for(unsigned k=kref-1;k>0;k--){
+            unsigned firstY = y1 + NumberofPointsToBinInYDirection*(k);
+            unsigned lastY =  y1 + NumberofPointsToBinInYDirection*(k+1);
+            if(lastY >= ny) break;
+            
+            unsigned np = getRowBinnedData(flat,x1,nx,nx,firstY,lastY,ny,fx,fy,&ypos[k],FFTfilter);
+            unsigned nords = geometryDetectOrders(np,fx,fy,slit,ipfunc,binsize,(float)noise,(float)gain,xmean,ymean,xmeanerr,detectionMethod, witherrors, graces);
+        
+            newnords[k] = operaCCDDetectMissingOrdersUsingNearMap(np,fx,fy,uslit,ipfunc,ipx,slit,(float)noise,(float)gain,npars,par,nords,xmean,ymean,xmeanerr,nrefs,xord_tmp,yord_tmp,AbsOrdNumber_tmp,xords[k],yords[k],xerrords[k],AbsOrdNumbers[k]);
+            
+            //-- save current sample in the tmp to be used in the next loop around
+            for (unsigned i=0;i<nrefs;i++) {
+                xord_tmp[i] = xords[k][i];
+                yord_tmp[i] = yords[k][i];
+                xerrord_tmp[i] = xerrords[k][i];
+                AbsOrdNumber_tmp[i] = AbsOrdNumbers[k][i];
+            }
+        }
+        //---
+        
+        
+        /*
+         * Now put data into plot file and geometry class, so it can fit the tracing polynomials
+         */
+		for(unsigned k=0;k<NumberOfySamples;k++){
+            if (fdata != NULL) {
+                for(unsigned i=0;i<newnords[k];i++) {
+                    *fdata << k << " " <<  AbsOrdNumbers[k][i] << " " << xords[k][i] << " " << ypos[k] << " " << xerrords[k][i] << " " << yords[k][i] << endl;
+                }
+            }
+
 			unsigned lastorder = 0;
 			unsigned order = 0;
-			for (unsigned i=0;i<newnords;i++) {	
+			for (unsigned i=0;i<newnords[k];i++) {
 				operaSpectralOrder *SpectralOrder = NULL;
 				for (order=lastorder; order<MAXORDERS; order++) {
-					if (spectralOrders.GetSpectralOrder(order)->getorder() == (unsigned)AbsOrdNumber[i]) {
+					if (spectralOrders.GetSpectralOrder(order)->getorder() == (unsigned)AbsOrdNumbers[k][i]) {
 						SpectralOrder = spectralOrders.GetSpectralOrder(order);
 						lastorder = order+1;
 						break;
@@ -677,80 +637,64 @@ int main(int argc, char *argv[])
 				}
 				// SpectralOrder should always be found, but...
 				if (SpectralOrder) {
-					SpectralOrder->getGeometry()->addOrderCenterValue(xord[i], y, fluxValue[i], xerrord[i]);
-					//SpectralOrder->getGeometry()->setNdatapoints(SpectralOrder->getGeometry()->getNdatapoints()+1);
+					SpectralOrder->getGeometry()->addOrderCenterValue(xords[k][i], ypos[k], yords[k][i], xerrords[k][i]);
 				}
 			}
-			
-			// save first order position as reference for numbering orders in following rows
-			x0prev = xord[0];
-		}
-        
-        if(debug) {
-            for (unsigned i=0;i<newnords;i++) {
-                cout << "operaGeometryCalibration: AbsOrdNumber[" << i << "] = " << AbsOrdNumber[i] <<  endl;
-            }
         }
-		//
-		// We have a problem if we could not find any orders...
-		//
-		if (newnords == 0) {
-			throw operaException("operaGeometryCalibration: ", operaErrorGeometryNoOrdersFound);	
-		}
-		//
+        //---
         
+        /*
+         * Now calculate the polynomials for each order
+         */
         Polynomial *polynomials[MAXORDERS]; // for plot
-        // now calculate the polynomials for each order
-		
+
+        int *LastAbsOrdNumbers = new int[MAXORDERS];
+        
 		unsigned ordercount = 0;
 		for (unsigned i=0;i<maxorders;i++) {
 			double chisqr;	// NOTE: The chisqr is not used here, but it is saved in the polynomial itself
             
-            AbsOrdNumber[i] = minordertouse + (int)i;
+            LastAbsOrdNumbers[i] = minordertouse + (int)i;
             
-			if (spectralOrders.GetSpectralOrder(AbsOrdNumber[i])->getGeometry()->getNdatapoints() > orderOfTracingPolynomial) {	// i.e. we did add data to this order
-				
-                spectralOrders.GetSpectralOrder(AbsOrdNumber[i])->getGeometry()->traceOrder(orderOfTracingPolynomial, chisqr, witherrors);		// i.e. fit polynomial to the data of a single order
-				spectralOrders.setMaxorder(AbsOrdNumber[i]);
-				spectralOrders.GetSpectralOrder(AbsOrdNumber[i])->sethasGeometry(true);
+			if (spectralOrders.GetSpectralOrder(LastAbsOrdNumbers[i])->getGeometry()->getNdatapoints() > orderOfTracingPolynomial) {	// i.e. we did add data to this order
+                spectralOrders.GetSpectralOrder(LastAbsOrdNumbers[i])->getGeometry()->traceOrder(orderOfTracingPolynomial, chisqr, witherrors);		// i.e. fit polynomial to the data of a single order
+				spectralOrders.setMaxorder(LastAbsOrdNumbers[i]);
+				spectralOrders.GetSpectralOrder(LastAbsOrdNumbers[i])->sethasGeometry(true);
 				
                 if (ordercount == 0) {
-					spectralOrders.setMinorder(AbsOrdNumber[i]);
+					spectralOrders.setMinorder(LastAbsOrdNumbers[i]);
 				}
-				
-                polynomials[ordercount] = spectralOrders.GetSpectralOrder(AbsOrdNumber[i])->getGeometry()->getCenterPolynomial(); 
-                
+                polynomials[ordercount] = spectralOrders.GetSpectralOrder(LastAbsOrdNumbers[i])->getGeometry()->getCenterPolynomial();
                 ordercount++;
 			}
         }
                 
 		spectralOrders.setCount(ordercount);
-
+        //---
         if (fdata != NULL) {
             fdata->close();
             if (!scriptfilename.empty()) {
-                GenerateGeometryPlot(scriptfilename, plotfilename, datafilename, ordercount, polynomials, interactive,subformat.x1,subformat.x2,subformat.y1,subformat.y2,AbsOrdNumber);
+                GenerateGeometryPlot(scriptfilename, plotfilename, datafilename, ordercount, polynomials, interactive,subformat.x1,subformat.x2,subformat.y1,subformat.y2,LastAbsOrdNumbers);
             }
         }
 		
-        //
-		// write out the geometry info
-		//
+        /*
+         * Write out geometry calibration file
+         */
 		if (!outputGeomFile.empty()) {
 			spectralOrders.WriteSpectralOrders(outputGeomFile, Geom);
 		}
+        //---
         
         if(badpix)
             delete badpix;
-		flat.operaFITSImageClose();
+		flat->operaFITSImageClose();
 		
         delete[] ipfunc;
         delete[] ipx;
         delete[] iperr;  
         delete[] fx;
         delete[] fy;
-        delete[] fytmp;
-		delete[] fysample;         
 	}
 	catch (operaException e) {
 		cerr << "operaGeometryCalibration: " << e.getFormattedMessage() << endl;
@@ -949,4 +893,97 @@ float calculatePhotoCenter(unsigned np, float *ipx, float *ipfunc, float *iperr,
     
     return xphotocenter;
 }
+
+
+unsigned getRowBinnedData(operaFITSImage *flat,unsigned x1,unsigned x2,unsigned nx,unsigned y1,unsigned y2,unsigned ny,float *fx,float *fy,float *yout, bool FFTfilter) {
+    
+    unsigned ybinsize = (unsigned)fabs(y2 - y1);
+    
+    float *fytmp = new float[ny];
+    float *fysample = new float[ybinsize];
+
+    unsigned np = 0;
+    
+    for (unsigned xx=x1; xx<x2; xx++) {
+        unsigned ns=0;
+        float ysample=0.0;
+        
+        for (unsigned yy=y1; yy<y2 ; yy++) {
+            fysample[ns++] = (*flat)[yy][xx];
+            ysample += (float)yy + 0.5;
+        }
+        ysample /= (float)ns;
+        fx[np] = (float)xx + 0.5;
+        
+        if(FFTfilter){
+            fytmp[np] = operaArrayMedian(ns,fysample);
+        } else {
+            fy[np] = operaArrayMedian(ns,fysample);
+        }
+        
+#ifdef PRINT_DEBUG
+        if(FFTfilter){
+            cout << fx[np]  << " " << fytmp[np] << endl;
+        } else {
+            cout << fx[np]  << " " << fy[np] << endl;
+        }
+#endif
+        *yout = ysample;
+        np++;
+    }
+    
+    if(FFTfilter){
+        operaFFTLowPass(np,fytmp,fy,0.1);
+    }
+    
+    delete[] fysample;
+    delete[] fytmp;
+    
+    return np;
+}
+
+unsigned geometryDetectOrders(unsigned np,float *fx,float *fy,unsigned uslit,float *ipfunc, unsigned binsize, float noise,float gain,float *xmean,float *ymean,float *xmeanerr,int detectionMethod, bool witherrors, bool graces) {
+    
+    unsigned nords = 0;
+    
+    double slit = (double)uslit;
+    double sigma = slit/4.0;
+    double threshold = DETECTTHRESHOLD;
+    
+    if(detectionMethod == 1) {
+        if (witherrors) {
+            nords = operaCCDDetectPeaksWithErrorsUsingGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean,xmeanerr);
+        } else {
+            nords = operaCCDDetectPeaksWithGaussian(np,fx,fy,sigma,(float)noise,(float)gain,threshold,xmean,ymean);
+        }
+    } else if (detectionMethod == 2) {
+        if (witherrors) {
+            nords = operaCCDDetectPeaksWithErrorsUsingIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean,xmeanerr);
+        } else {
+            if(graces) {
+                nords = operaCCDDetectPeaksByXCorrWithIP(np,fx,fy,uslit,ipfunc,(float)noise/sqrt((float)binsize),(float)gain,threshold,xmean,ymean);
+            } else {
+                /*
+                 * The function below does not work on GRACES data. The one above should be better but
+                 * it hasn't been tested yet for ESPaDOnS@CFHT. E. Martioli May 14 2014.
+                 */
+                nords = operaCCDDetectPeaksWithIP(np,fx,fy,uslit,ipfunc,(float)noise,(float)gain,threshold/2,xmean,ymean);
+            }
+        }
+    } else if (detectionMethod == 3) {
+        if (witherrors) {
+            nords = operaCCDDetectPeaksWithErrorsUsingTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean,xmeanerr);
+        } else {
+            nords = operaCCDDetectPeaksWithTopHat(np,fx,fy,uslit,(float)noise,(float)gain,threshold,xmean,ymean);
+        }
+    }
+
+#ifdef PRINT_DEBUG
+    for(unsigned i=0;i<nords;i++) {
+        cout << xmean[i] << " " << y << " " << xmeanerr[i] << " " << ymean[i] << endl;
+    }
+#endif
+    return nords;
+}
+
 

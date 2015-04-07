@@ -49,16 +49,11 @@
 #include "libraries/operaHelio.h"					// for sexigesimal conversion
 #include "../sofa/20120301_a/c/src/sofa.h"           // for sofa routines
 #include "../sofa/20120301_a/c/src/sofam.h"          // for sofa routines
-#include "core-espadons/operaBarycentricWavelengthCorrection.h"
+#include "libraries/operaArgumentHandler.h"
 
 template <typename T> inline int sign(const T& value) {
     return value < 0 ? -1 : value > 0;
 }
-
-#ifndef NOTPROVIDED
-#define NOTPROVIDED -999
-#endif
-
 
 //#ifndef TWO_PI
 //#define TWO_PI 6.141592653589793238462643383279  //Wrong Value!! Change for TWOPI from operaLibCommon.h
@@ -84,148 +79,62 @@ using namespace std;
  * \ingroup core
  */
 
-
 void GenerateBarycentricWavelengthCorrectionPlot(const char *gnuScriptFileName, const char *outputPlotEPSFileName,const char *dataFileName, bool display);
 
 int main(int argc, char *argv[])
 {
-	int opt;
-    
+	operaArgumentHandler args;
+	
 	string inputWaveFile;
 	string outputRVelFile;
-	   
-    /*
-     * Parameters for Barycentric wavelength correction
-     */
     double JDTime = 0.0;
     double MJDTime = 0.0;
     double etime=0.0;
-
-    skycoord_t object_coords = {0, 0, 0.0, 0, 0, 0.0};
-    double ra, dec;
-    geocoord_t observatory_coords = {19, 49, 41.86, -155, 28, 18.00};
-    hacoord_t ha_start = {0, 0, 0.0};
-
-    double observatory_elevation = 4200;
-	int ordernumber = NOTPROVIDED;
-    
-    int minorder = 22;
-    bool minorderprovided = false;
-    int maxorder = 62;
-    bool maxorderprovided = false;
-    
-	bool debug=false, verbose=false, trace=false;
-    
-	struct option longopts[] = {
-		{"inputWaveFile",				1, NULL, 'i'},    // input wavelength calibration file (.wcal)
-        {"outputRVelFile",				1, NULL, 'o'},    // output radial velocity correction file (.rvel)
- 		
-		{"JDTime",						1, NULL, 'J'},    // time in julian date
-		{"MJDTime",						1, NULL, 'D'},    // time in modified julian date
-		{"object_coords",				1, NULL, 'K'},    // object sky coordinates
-		{"observatory_coords",			1, NULL, 'G'},    // observatory geographic coordinates
-		{"observatory_elevation",		1, NULL, 'E'},    // observatory elevation in meters
-        {"ha_start",		            1, NULL, 'F'},    // Hour angle at start
-        {"etime",		                1, NULL, 'L'},    // Exposure time (shutter open)
-
-		{"ordernumber",					1, NULL, 'O'},
-		{"minorder",					1, NULL, 'M'},
-		{"maxorder",					1, NULL, 'X'},
-        
-		{"plot",						0, NULL, 'p'},
-		{"verbose",						0, NULL, 'v'},
-		{"debug",						0, NULL, 'd'},
-		{"trace",						0, NULL, 't'},
-		{"help",						0, NULL, 'h'},
-		{0,0,0,0}};
+    string observatory_coords_s;
+    string object_coords_s;
+    string ha_start_s;
+    double observatory_elevation = 0.0;
 	
-	while((opt = getopt_long(argc, argv, "i:o:J:D:K:G:E:F:L:O:M:X:p::v::d::t::h",
-							 longopts, NULL))  != -1)
-	{
-		switch(opt)
-		{
-			case 'i':
-				inputWaveFile = optarg;
-				break;
-			case 'o':
-				outputRVelFile = optarg;
-				break;
-                
-            case 'J':		// time in julian date
-				JDTime = atof(optarg);
-				break;
-            case 'D':		// time in modified julian date
-				MJDTime = atof(optarg);
-				break;
-            case 'K':		// sky coordinates "RA Dec"
-                if (strlen(optarg)) {
-					struct time_coord sexigesimal = {0,0,0};
-					sscanf(optarg, "%lf %lf", &ra, &dec);
-                    ra = ra * (24.0/360.0);
-                    
-					dec_to_sexigesimal(ra, &sexigesimal);
-					object_coords.ra_h = (int)sexigesimal.hh;
-					object_coords.ra_m = (int)sexigesimal.mm;
-					object_coords.ra_s = sexigesimal.ss;
-					dec_to_sexigesimal(dec, &sexigesimal);
-					object_coords.dec_d = (int)sexigesimal.hh;
-					object_coords.dec_m = (int)sexigesimal.mm;
-					object_coords.dec_s = sexigesimal.ss;
-                    //sscanf(optarg, "%d:%d:%lf %d:%d:%lf", &object_coords.ra_h, &object_coords.ra_m, &object_coords.ra_s, &object_coords.dec_d, &object_coords.dec_m, &object_coords.dec_s);
-				}
-				break;
-            case 'G':		// geographical coordinates "latitude longitude"
-                if (strlen(optarg)) {
-                    sscanf(optarg, "%d:%d:%lf %d:%d:%lf",&observatory_coords.latitude_d, &observatory_coords.latitude_m, &observatory_coords.latitude_s, &observatory_coords.longitude_d, &observatory_coords.longitude_m, &observatory_coords.longitude_s);
-                }
-                break;
-			case 'E':
-				observatory_elevation = atof(optarg);
-				break;
-            case 'F':		// HA value
-                if (strlen(optarg)) {
-                    sscanf(optarg, "%d:%d:%lf",&ha_start.ha_d, &ha_start.ha_m, &ha_start.ha_s);
-                }    
-                break;
-            case 'L':
-                etime = atof(optarg);
-                break;
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'p':
-				break;
-			case 'd':
-				debug = true;
-				break;
-			case 't':
-				trace = true;
-				break;
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}
-	
-	/*Start the module here*/
-	
+	args.AddRequiredArgument("inputWaveFile", inputWaveFile, "input wavelength calibration file (.wcal)");
+	args.AddRequiredArgument("outputRVelFile", outputRVelFile, "output radial velocity correction file (.rvel)");
+    args.AddOptionalArgument("JDTime", JDTime, 0.0, "time in julian date");
+    args.AddOptionalArgument("MJDTime", MJDTime, 0.0, "time in modified julian date");
+    args.AddOptionalArgument("object_coords", object_coords_s, "0.0 0.0", "object sky coordinates \"RA Dec\"");
+    args.AddOptionalArgument("observatory_coords", observatory_coords_s, "19:49:41.86 -155:28:18.00", "observatory geographic coordinates \"latitude longitude\"");
+    args.AddOptionalArgument("observatory_elevation", observatory_elevation, 4200, "observatory elevation in meters");
+    args.AddOptionalArgument("ha_start", ha_start_s, "00:00:00", "hour angle at start");
+    args.AddOptionalArgument("etime", etime, 0.0, "exposure time (shutter open)");
+	//" Example: "+string(modulename)+" ----inputWaveFile=/Users/lisonmalo/opera//calibrations/13BQ08-Nov25/OLAPAa_sp2_Normal.wcal.gz --observatory_coords=\"19:49:36 -155:28:18\" --object_coords=\"130.806167 3.398667\" --observatory_elevation=4207 --MJDTime=56622.6666429  --ha_start=1:17:50.06  --etime=30.0  --outputRVelFile=/Users/lisonmalo/opera//calibrations/13BQ08-Nov25/1671579i.rvel.gz -v\n\n"
+
 	try {
+		args.Parse(argc, argv);
+		
+		double ra = 0.0, dec = 0.0;
+		skycoord_t object_coords = {0, 0, 0.0, 0, 0, 0.0};
+		geocoord_t observatory_coords = {0, 0, 0.0, 0, 0, 0.0};
+		hacoord_t ha_start = {0, 0, 0.0};
+		
+		if (!object_coords_s.empty()) {
+			struct time_coord sexigesimal = {0,0,0};
+			sscanf(object_coords_s.c_str(), "%lf %lf", &ra, &dec);
+			ra = ra * (24.0/360.0);
+			
+			dec_to_sexigesimal(ra, &sexigesimal);
+			object_coords.ra_h = (int)sexigesimal.hh;
+			object_coords.ra_m = (int)sexigesimal.mm;
+			object_coords.ra_s = sexigesimal.ss;
+			dec_to_sexigesimal(dec, &sexigesimal);
+			object_coords.dec_d = (int)sexigesimal.hh;
+			object_coords.dec_m = (int)sexigesimal.mm;
+			object_coords.dec_s = sexigesimal.ss;
+		}
+		if (!observatory_coords_s.empty()) {
+			sscanf(observatory_coords_s.c_str(), "%d:%d:%lf %d:%d:%lf", &observatory_coords.latitude_d, &observatory_coords.latitude_m, &observatory_coords.latitude_s, &observatory_coords.longitude_d, &observatory_coords.longitude_m, &observatory_coords.longitude_s);
+		}
+		if (!ha_start_s.empty()) {
+			sscanf(ha_start_s.c_str(), "%d:%d:%lf", &ha_start.ha_d, &ha_start.ha_m, &ha_start.ha_s);
+		}
+		
         cout.precision(6);
         cout << fixed;
         
@@ -238,34 +147,15 @@ int main(int argc, char *argv[])
 			throw operaException("operaBarycentricWavelengthCorrection: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
 		}
   
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaBarycentricWavelengthCorrection: inputWaveFile = " << inputWaveFile << endl;
 			cout << "operaBarycentricWavelengthCorrection: outputRVelFile = " << outputRVelFile << endl;
 			cout << "operaBarycentricWavelengthCorrection: sky coordinates RA = " << object_coords.ra_h << ":" << object_coords.ra_m << ":"<< object_coords.ra_s  << " Dec=" << object_coords.dec_d << ":" << object_coords.dec_m << ":"<< object_coords.dec_s << "\n";
 			cout << "operaBarycentricWavelengthCorrection: geographic coordinates Latitude = " << observatory_coords.latitude_d << ":" << observatory_coords.latitude_m << ":"<< observatory_coords.latitude_s  << " Longitude=" << observatory_coords.longitude_d << ":" << observatory_coords.longitude_m << ":"<< observatory_coords.longitude_s << "\n";
             cout << "operaBarycentricWavelengthCorrection: observatory_elevation = " << observatory_elevation << " m" << endl;
-            if(ordernumber != NOTPROVIDED) {
-                cout << "operaBarycentricWavelengthCorrection: ordernumber = " << ordernumber << endl;
-            }
 		}
         
 		operaSpectralOrderVector spectralOrders(inputWaveFile);
-        
-
-        if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();
-        }
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-		
-        if (verbose)
-			cout << "operaBarycentricWavelengthCorrection: minorder = "<< minorder << " maxorder = " << maxorder << endl;
 
         double rvCorrection, timeCorrection;
 
@@ -281,7 +171,7 @@ int main(int argc, char *argv[])
         //    longitudeInRadians = TWOPI + longitudeInRadians;
         //}
         
-        if(debug) {
+        if(args.debug) {
             cout << endl;
             cout << "operaBarycentricWavelengthCorrection: Latitude (deg, (+) North, (-) South) = " << dbl_latitude << endl;
             cout << "operaBarycentricWavelengthCorrection: Longitude (deg, +East) = " << longitudeInRadians * (360/TWOPI) << endl;
@@ -293,7 +183,7 @@ int main(int argc, char *argv[])
         
         iauEform (WGS84,&earthEquatorialRadius,&earthFlattening);
         
-        if(debug) {
+        if(args.debug) {
             cout << endl;
             cout << "operaBarycentricWavelengthCorrection: (ref: IAU-SOFA WGS84) earthFlattening = " << earthFlattening  << endl; // f = 1.0 / 298.257223563 
             cout << "operaBarycentricWavelengthCorrection: (ref: IAU-SOFA WGS84) earthEquatorialRadius = " << earthEquatorialRadius/1000 << " km" << endl; // a = 6378137.0
@@ -305,14 +195,14 @@ int main(int argc, char *argv[])
         
         iauGd2gce(earthEquatorialRadius,earthFlattening, elong, phi, observatory_elevation, xyz);
         
-        if(debug) {
+        if(args.debug) {
             cout << endl;            
             cout << "operaBarycentricWavelengthCorrection: x_geo = " << xyz[0]/1000 << " km" << endl;
             cout << "operaBarycentricWavelengthCorrection: y_geo = " << xyz[1]/1000 << " km" << endl;
             cout << "operaBarycentricWavelengthCorrection: z_geo = " << xyz[2]/1000 << " km" << endl;
         }
         
-        if(debug) {
+        if(args.debug) {
             cout << endl;            
             cout << "operaBarycentricWavelengthCorrection: Right Ascension (hr, 0-24) = " << ra <<  " hr" << endl;
             cout << "operaBarycentricWavelengthCorrection: Right Ascension (deg, +East) = " << ra*(360/24) <<  " deg" << endl;
@@ -328,7 +218,7 @@ int main(int argc, char *argv[])
             throw operaException("operaBarycentricWavelengthCorrection: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
         }
         
-        if (verbose) {
+        if (args.verbose) {
             cout << "operaBarycentricWavelengthCorrection: time in JD = " << JDTime << endl;
             cout << "operaBarycentricWavelengthCorrection: time in MJD = " << MJDTime << endl;
         }
@@ -348,7 +238,7 @@ int main(int argc, char *argv[])
 //        // Time scale transformation:  Universal Time, UT1, to Terrestrial Time, TT.
 //        iauUt1tt(JDTime1,mjd,deltat,&tt1,&tt2);
                 
-//        if(debug) {
+//        if(args.debug) {
 //            cout << endl;
 //            cout << "operaBarycentricWavelengthCorrection:  JDTime= " << JDTime << " JDTime1= " << JDTime1 << " mjd= " << mjd << endl;
 //            cout << "operaBarycentricWavelengthCorrection:  UT = " << iyear << " / " << imonth << " / " << (double)iday + fractionday << endl;
@@ -371,7 +261,7 @@ int main(int argc, char *argv[])
 //        if(useSOFAiaugmst) {
 //            gmst = iauGmst00(JDTime1,mjd,tt1,tt2)*(24/TWOPI);
 //
-//            if(debug) {
+//            if(args.debug) {
 //                struct time_coord gmst_sexigesimal = {0,0,0};
 //                dec_to_sexigesimal(gmst, &gmst_sexigesimal);
 //                cout << "operaBarycentricWavelengthCorrection: Greenwich Mean Sidereal Time (GMST, iauGmst00) = " << (int)gmst_sexigesimal.hh <<  ":" << (int)gmst_sexigesimal.mm << ":" << gmst_sexigesimal.ss<< endl;
@@ -389,7 +279,7 @@ int main(int argc, char *argv[])
 //            double julianCenturies = (JDTime - julian2000) / 36525;  /* centuries since J2000 */
 //            gmst = 18.697374558 + 24.06570982441908 * julianCenturies * 36525;
 //            gmst = ((gmst/24) - (double)floor(gmst/24))*24;
-//            if(debug) {
+//            if(args.debug) {
 //                struct time_coord gmst_sexigesimal = {0,0,0};
 //                dec_to_sexigesimal(gmst, &gmst_sexigesimal);
 //                cout << "operaBarycentricWavelengthCorrection: Greenwich Mean Sidereal Time (GMST, formula) = " << (int)gmst_sexigesimal.hh <<  ":" << (int)gmst_sexigesimal.mm << ":" << gmst_sexigesimal.ss<< endl;
@@ -399,7 +289,7 @@ int main(int argc, char *argv[])
 //        double ee00b = iauEe00b(JDTime1,mjd);
 //        double gst = iauAnp(gmst*(TWOPI/24) + ee00b); // This is equivalent to routine iauGst00a
         
-//        if(debug) {
+//        if(args.debug) {
 //            struct time_coord gst_sexigesimal = {0,0,0};
 //            dec_to_sexigesimal(gst*(24/TWOPI), &gst_sexigesimal);
             
@@ -412,7 +302,7 @@ int main(int argc, char *argv[])
 //        // Earth rotation angle (IAU 2000 model)
 //        double era = iauEra00(JDTime1,mjd);
         
-//        if(debug) {
+//        if(args.debug) {
 //            cout << "operaBarycentricWavelengthCorrection: Earth rotation angle (ERA, iauEra00) = " << era*(24/TWOPI) <<  " hr" << endl;
 //            cout << "operaBarycentricWavelengthCorrection: Earth rotation angle (ERA, iauEra00) = " << era*(360/TWOPI) <<  " deg" << endl;
 //            cout << endl;
@@ -423,7 +313,7 @@ int main(int argc, char *argv[])
 //        struct time_coord lst_sexigesimal = {0,0,0};
 //        dec_to_sexigesimal(lst*(24/TWOPI), &lst_sexigesimal);
 
-//        if(debug) {
+//        if(args.debug) {
 //            cout << "operaBarycentricWavelengthCorrection: Local Sidereal Time (LST) = " << (int)lst_sexigesimal.hh <<  ":" << (int)lst_sexigesimal.mm << ":" << lst_sexigesimal.ss<< endl;
 //            cout << "operaBarycentricWavelengthCorrection: Local Sidereal Time (LST) := GST + longitude = " << lst*(24/TWOPI) <<  " hr" << endl;
 //            cout << endl;
@@ -434,7 +324,7 @@ int main(int argc, char *argv[])
         struct time_coord ha_sexigesimal = {0,0,0};
         dec_to_sexigesimal(ha*(24/TWOPI), &ha_sexigesimal);
         
-        if(debug) {
+        if(args.debug) {
             cout << "operaBarycentricWavelengthCorrection: Hour Angle (HA) = " << (int)ha_sexigesimal.hh <<  ":" << (int)ha_sexigesimal.mm << ":" << ha_sexigesimal.ss<< endl;            
             cout << "operaBarycentricWavelengthCorrection: Hour Angle (HA):= LST - RA = " << ha*(24/TWOPI) <<  " hr" << endl;
             cout << endl;            
@@ -445,7 +335,7 @@ int main(int argc, char *argv[])
          */
         heliocentric_correction(JDTime,ra,dec,ha,dbl_latitude,observatory_elevation, &timeCorrection, &rvCorrection);
         
-     //   if(debug) {
+     //   if(args.debug) {
             cout << "operaBarycentricWavelengthCorrection: TOTAL velocity correction (operaHelio library) = " << rvCorrection <<  " km/s" << endl;            
             cout << endl;            
       //  }
@@ -466,13 +356,13 @@ int main(int argc, char *argv[])
         // According to IERS Numerical Standards (IAG 1999) w=7.2921150(1)e-5 rad/s
         double angularRotationRate = TWOPI/SIDEREALDAY_IN_SECONDS;
 
-        if(debug)
+        if(args.debug)
             cout << "operaBarycentricWavelengthCorrection: angularRotationRate = " << angularRotationRate << " rad/s" << endl;
         
         // Geocentric radius at altitude H, in units of km
         double  geocentricRadius = sqrt(xyz[0]*xyz[0]+xyz[2]*xyz[2])/1000;
         
-        if(debug)
+        if(args.debug)
             cout << "operaBarycentricWavelengthCorrection: geocentric radius = " << geocentricRadius << " km" << endl; 
         
         
@@ -480,7 +370,7 @@ int main(int argc, char *argv[])
         // at declination = decInRadians and at hour angle = haInRadians, in units of km/s
         double diurnal_rvcorr = - angularRotationRate * geocentricRadius * cos(decInRadians) * sin(haInRadians);
 
-        if(verbose) {
+        if(args.verbose) {
             cout << endl;
             cout << "\noperaBarycentricWavelengthCorrection: DIURNAL velocity correction (SOFA) = " << diurnal_rvcorr << " km/s" << endl;
         }
@@ -532,7 +422,7 @@ int main(int argc, char *argv[])
 
         double barycentric_rvcorr = VxProjection + VyProjection + VzProjection;
         
-		if(debug) {
+		if(args.debug) {
 			cout << "operaBarycentricWavelengthCorrection: alpha = " << raInRadians << endl;
 			cout << "operaBarycentricWavelengthCorrection: delta = " << decInRadians << endl;
 			cout << "operaBarycentricWavelengthCorrection: Vr.x = " << VxProjection << " km/s  " << endl;
@@ -540,13 +430,13 @@ int main(int argc, char *argv[])
 			cout << "operaBarycentricWavelengthCorrection: Vr.z = " << VzProjection << " km/s  " << endl;
 		}
         
-        if(verbose) {
+        if(args.verbose) {
             cout << endl;
             cout << "operaBarycentricWavelengthCorrection: BARYCENTRIC velocity correction (SOFA) = " << barycentric_rvcorr << " km/s  " << endl;
         }
         double sofaRVCorrection = barycentric_rvcorr + diurnal_rvcorr;
         
-		if(verbose) {
+		if(args.verbose) {
             cout << endl;
             cout << "operaBarycentricWavelengthCorrection: TOTAL velocity correction (SOFA library) = " << sofaRVCorrection <<  " km/s" << endl;
 		}
@@ -570,33 +460,3 @@ int main(int argc, char *argv[])
 	}
 	return EXIT_SUCCESS;
 }
-
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" +
-	" --inputWaveFile=<WAVE_FILE>"
-	" --outputWaveFile=<WAVE_FILE>"
-	" --object_coords=<\"RA_DBL_VALUE DEC_DBL_VALUE\">"
-	" --observatory_coords=<\"UNS_VALUE:UNS_VALUE:DBL_VALUE UNS_VALUE:UNS_VALUE:DBL_VALUE\">"
-	" --observatory_elevation=<DBL_VALUE>"
-    " --MJDTime=<DBL_VALUE>"
-    " --ha_start=<\"HA_DBL_VALUE\">"
-	" --etime=<INT_VALUE>"
-	" Example: "+string(modulename)+" ----inputWaveFile=/Users/lisonmalo/opera//calibrations/13BQ08-Nov25/OLAPAa_sp2_Normal.wcal.gz --observatory_coords=\"19:49:36 -155:28:18\" --object_coords=\"130.806167 3.398667\" --observatory_elevation=4207 --MJDTime=56622.6666429  --ha_start=1:17:50.06  --etime=30.0  --outputRVelFile=/Users/lisonmalo/opera//calibrations/13BQ08-Nov25/1671579i.rvel.gz -v\n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -i, --inputWaveFile=<WAVE_FILE>, Input wavelength calibration file \n"
-	"  -o, --outputWaveFile=<WAVE_FILE>, Output wavelength calibration file to store final solution\n"
-	"  -J, --JDTime=<DBL_VALUE>, Time in julian date \n"
-	"  -K, --object_coords=<\"RA_DBL_VALUE DEC_DBL_VALUE\">, Object sky coordinates \n"
-	"  -G, --observatory_coords=<\"UNS_VALUE:UNS_VALUE:DBL_VALUE UNS_VALUE:UNS_VALUE:DBL_VALUE\">, Observatory geographic coordinates <latitude longitude>\n"
-	"  -E, --observatory_elevation=<DBL_VALUE>, Observatory elevation above sea level in meters\n"
-    "  -O, --ordernumber=<INT_VALUE>, Absolute order number to extract (default=all)\n"
-	"  -N, --minorder=<INT_VALUE>, Define minimum order number\n"
-	"  -X, --maxorder=<INT_VALUE>, Define maximum order number\n\n";
-}
-

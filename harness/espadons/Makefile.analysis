@@ -593,6 +593,9 @@ endef
 			rm -f $(tmpdir)$(basename $(thorium_argon_atlas_lines)) ; \
 			rm -f $(tmpdir)$(basename $(telluric_reference_spectrum)) ; \
 		fi ; \
+		if [ -e $(spectradir)$${spectrum}$(gzip) ] ; then \
+			rm -f $(spectradir)$${spectrum} ; \
+		fi ; \
 	fi
 
 #########################################################################################
@@ -680,6 +683,9 @@ endef
 			rm -f $(spectradir)$${spectrum} ; \
 			rm -f $(tmpdir)$(basename $(thorium_argon_atlas_lines)) ; \
 			rm -f $(tmpdir)$(basename $(telluric_reference_spectrum)) ; \
+		fi ; \
+		if [ -e $(spectradir)$${spectrum}$(gzip) ] ; then \
+			rm -f $(spectradir)$${spectrum} ; \
 		fi ; \
 	fi
 

@@ -53,6 +53,10 @@
 #include "libraries/operaHelio.h"					// for sexigesimal conversion
 #include "libraries/operaSpectralTools.h"			// 
 #include "libraries/operaFit.h"						// for operaLMFitPolynomial
+#include "libraries/operaCCD.h"						// for MAXORDERS
+
+
+unsigned readLEorderwavelength(string LEorderwavelength, int *orders, double *wl0, double *wlf);
 
 /*! \file operaGenerateLEFormats.cpp */
 
@@ -82,7 +86,8 @@ int main(int argc, char *argv[])
     
 	string inputOperaSpectrum; 
 	string outputLEfilename;
-	string object = "Nowhere";
+    string LEorderwavelength;
+    string object = "Nowhere";
 
     operaSpectralOrder_t LibreEspritSpectrumType = LibreEspritsp2Spectrum;
     /*  Available LibreEspritSpectrumType options for LE formats are:
@@ -109,8 +114,8 @@ int main(int argc, char *argv[])
     
 	int ordernumber = NOTPROVIDED;
     
-    int minorder = 22;
-    int maxorder = 62;    
+    int minorder = 0;
+    int maxorder = 0;
     bool minorderprovided = false;
     bool maxorderprovided = false; 
     
@@ -119,6 +124,7 @@ int main(int argc, char *argv[])
 	struct option longopts[] = {
 		{"inputOperaSpectrum",          1, NULL, 'i'},	// .spc
 		{"outputLEfilename",            1, NULL, 'l'},  // .s
+        {"LEorderwavelength",           1, NULL, 'w'},  // Table with LE order wavelength ranges
 		{"object",                      1, NULL, 'o'},  // object name
 		{"LibreEspritSpectrumType",		1, NULL, 'S'},	// spectrum type
 		{"fluxType",                    1, NULL, 'F'},	// flux type
@@ -135,7 +141,7 @@ int main(int argc, char *argv[])
 		{"help",						0, NULL, 'h'},
 		{0,0,0,0}};
 	
-	while((opt = getopt_long(argc, argv, "i:l:o:S:F:W:O:M:X:p::v::d::t::h", 
+	while((opt = getopt_long(argc, argv, "i:l:w:o:S:F:W:O:M:X:p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		switch(opt) 
@@ -145,7 +151,10 @@ int main(int argc, char *argv[])
 				break;   
 			case 'l':
 				outputLEfilename = optarg;
-                break; 		
+                break;
+            case 'w':
+                LEorderwavelength = optarg;
+                break;
 			case 'o':
 				object = optarg;
                 break;
@@ -202,10 +211,10 @@ int main(int argc, char *argv[])
 			throw operaException("operaGenerateLEFormats: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
 		}
         
-        
 		if (verbose) {
 			cout << "operaGenerateLEFormats: inputOperaSpectrum = " << inputOperaSpectrum << endl; 
-			cout << "operaGenerateLEFormats: outputLEfilename = " << outputLEfilename << endl;
+            cout << "operaGenerateLEFormats: outputLEfilename = " << outputLEfilename << endl;
+            cout << "operaGenerateLEFormats: LEorderwavelength = " << LEorderwavelength << endl;
 			cout << "operaGenerateLEFormats: object = " << object << endl;
 			cout << "operaGenerateLEFormats: LibreEspritSpectrumType = " << LibreEspritSpectrumType << endl;
 			cout << "operaGenerateLEFormats: fluxType = " << fluxType << endl;
@@ -231,10 +240,78 @@ int main(int argc, char *argv[])
         if (verbose)
 			cout << "operaGenerateLEFormats: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         
+        unsigned LEnp = 0;
+        
+        int *LEorders = new int[MAXORDERS];
+        double *LEwl0 = new double[MAXORDERS];
+        double *LEwlf = new double[MAXORDERS];
+        
+        if (!LEorderwavelength.empty()) {
+            LEnp = readLEorderwavelength(LEorderwavelength,LEorders,LEwl0,LEwlf);
+        }
+
 		for (int order=minorder; order<=maxorder; order++) {
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-			if (spectralOrder->gethasSpectralElements() ) {
+            
+			if (spectralOrder->gethasSpectralElements()) {
                 operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
+                unsigned nElements = spectralElements->getnSpectralElements();
+                
+                double wl0 = spectralElements->getwavelength(0);
+                double wlf = spectralElements->getwavelength(nElements-1);
+                
+                for (unsigned i=0; i<LEnp; i++) {
+                    if(order==LEorders[i]) {
+                        if (LEwl0[i] > wl0 && LEwl0[i] < wlf) {
+                            wl0 = LEwl0[i];
+                        }
+                        if (LEwlf[i] < wlf && LEwlf[i] > wl0) {
+                            wlf = LEwlf[i];
+                        }
+                        break;
+                    }
+                }
+                
+                unsigned newIndexElem = 0;
+                
+                for(unsigned indexElem=0;indexElem<nElements;indexElem++) {
+                    
+                    double wl = spectralElements->getwavelength(indexElem);
+                    
+                    double flux = spectralElements->getFlux(indexElem);
+                    double fluxVariance = spectralElements->getFluxVariance(indexElem);
+                    
+                    double tell = spectralElements->gettell(indexElem);
+                    double rvel = spectralElements->getrvel(indexElem);
+                    double normalizedFlux = spectralElements->getnormalizedFlux(indexElem);
+                    double fcalFlux = spectralElements->getfcalFlux(indexElem);
+                    double rawFlux = spectralElements->getrawFlux(indexElem);
+                    
+                    
+                    if (wl > wl0 && wl < wlf) {
+                        
+                        spectralElements->setwavelength(wl,newIndexElem);
+                        spectralElements->setFlux(flux,newIndexElem);
+                        spectralElements->setFluxVariance(fluxVariance,newIndexElem);
+                        
+                        spectralElements->settell(tell,newIndexElem);
+                        spectralElements->setrvel(rvel,newIndexElem);
+                        spectralElements->setnormalizedFlux(normalizedFlux,newIndexElem);
+                        spectralElements->setfcalFlux(fcalFlux,newIndexElem);
+                        spectralElements->setrawFlux(rawFlux,newIndexElem);
+
+                        spectralElements->setnormalizedFluxVariance(fluxVariance,newIndexElem);
+                        spectralElements->setfcalFluxVariance(fluxVariance,newIndexElem);
+                        spectralElements->setrawFluxVariance(fluxVariance,newIndexElem);
+                        
+                        newIndexElem++;
+                    } else if (wl > wl0 && wl > wlf) {
+                        break;
+                    }
+                }
+                
+                spectralElements->setnSpectralElements(newIndexElem);
+                
                 if (spectralElements->getHasExtendedBeamFlux()){
                     
                     switch (fluxType) {
@@ -294,9 +371,43 @@ static void printUsageSyntax(char * modulename) {
 	"\n"
 	" Usage: "+string(modulename)+"  [-vdth]" +
 	"  -i, --inputOperaSpectrum=<EXTENDED OPERA .SPC>"
-	"  -l, --outputLEfilename=<FILE_NAME>"
+    "  -l, --outputLEfilename=<FILE_NAME>"
+    "  -w, --LEorderwavelength=<FILE_NAME>"
 	"  -o, --object=<UNS_VALUE>"
 	"  -S, --LibreEspritSpectrumType=<FITS_IMAGE>, .e\n"
 	"  -F, --fluxType=<UNS_VALUE>, Method for extraction\n"
 	"  -W, --wavelengthType=<FILE_NAME>, wavelength calibration polynomials\n\n";
+}
+
+/*
+ * Read LE order wavelength ranges
+ */
+unsigned readLEorderwavelength(string LEorderwavelength, int *orders, double *wl0, double *wlf) {
+    ifstream astream;
+    string dataline;
+    
+    int tmporder = 0;
+    double tmpwl0 = -1.0;
+    double tmpwlf = -1.0;
+    unsigned np = 0;
+    
+    astream.open(LEorderwavelength.c_str());
+    if (astream.is_open()) {
+        while (astream.good()) {
+            getline(astream, dataline);
+            if (strlen(dataline.c_str())) {
+                if (dataline.c_str()[0] == '#') {
+                    // skip comments
+                } else {
+                    sscanf(dataline.c_str(), "%d %lf %lf", &tmporder, &tmpwl0, &tmpwlf);
+                    orders[np] = tmporder,
+                    wl0[np] = tmpwl0;
+                    wlf[np] = tmpwlf;
+                    np++;
+                }	// skip comments
+            }
+        } // while (astream.good())
+        astream.close();
+    }	// if (astream.open())
+    return np;
 }

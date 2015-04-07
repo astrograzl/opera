@@ -363,7 +363,12 @@ public:
     
     unsigned getSpectrumWithinTelluricMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double *wavelength, double *spectrum, double *variance);
     void calculateRawFluxQuantities(int Minorder, int Maxorder, double *integratedFlux, double *meanFlux, double *maxSNR, double *meanSNR);
-    void readLibreEspritFlatResponseIntoSED(string filename,int Minorder, int Maxorder);
+
+    void readFlatResponseIntoSED(string filename,int Minorder, int Maxorder, bool FITSformat);
+    unsigned readFITSFlatResponse(string filename,float *frwavelength,float *flatresp);
+    unsigned readLibreEspritFlatResponse(string filename,float *frwavelength,float *flatresp);
+
+    void normalizeOrderbyOrderAndSaveFluxINTOExtendendSpectra(unsigned normalizationBinsize, int Minorder, int Maxorder, bool normalizeBeams);
 
 };
 

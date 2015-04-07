@@ -949,10 +949,23 @@ CMatrix operaInstrumentProfile::getipDataFromPolyModel(float d) {
 float operaInstrumentProfile::getipDataFromPolyModel(float d, unsigned i, unsigned j) {
 	
 	PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
-	Polynomial polyn(pp);  
-	float modelValue = (float)polyn.Evaluate((double)d);	
 	
-	return modelValue;
+	//Commented out the original way of doing this
+	/*Polynomial polyn(pp);  
+	float modelValue = (float)polyn.Evaluate((double)d);	
+	return modelValue;*/
+	
+	//Switched to inline polynomial evaluation to optimize for operaExtraction
+	int polyOrder = pp->orderofPolynomial;
+	float* polyCoeffs = pp->p;
+	
+	double eval = polyCoeffs[0];
+	double x_to_i = d;
+	for (unsigned i=1; i<polyOrder; i++) {
+		eval += polyCoeffs[i]*x_to_i;
+		x_to_i *= d;
+	}
+	return (float)eval;
 }
 
 float operaInstrumentProfile::getipDataFromPolyModel(unsigned i, unsigned j, unsigned index) {

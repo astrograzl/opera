@@ -27,6 +27,9 @@ import espadons
 
 parser = OptionParser()
 parser.add_option("-N", "--night", dest="night", help="night directory",type='string',default="")
+parser.add_option("-D", "--datarootdir", dest="datarootdir", help="data root directory",type='string',default="/data/espadons/")
+parser.add_option("-O", "--pipelinehomedir", dest="pipelinehomedir", help="pipeline directory",type='string',default="/Users/edermartioli/opera-1.0/")
+parser.add_option("-P", "--productrootdir", dest="productrootdir", help="data product root directory",type='string',default="/Users/edermartioli/Reductions/Espadons/")
 parser.add_option("-T", "--product", dest="product", help='target product: "CALIBRATIONS", "OBJECTS" (default) or "LIBRE-ESPRIT"',type='string',default="OBJECTS")
 parser.add_option("-a", action="store_true", dest="cleanall", help="JUST clean all products",default=False)
 parser.add_option("-c", action="store_true", dest="clean", help="clean products",default=False)
@@ -40,20 +43,16 @@ try:
 except:
     print "Error: check usage with opera.py -h ";sys.exit(1);
 
-pipelinehomedir = "/Users/edermartioli/opera-1.0/"
-datarootdir ="/data/espadons/"
-productrootdir = "/Users/edermartioli/Reductions/Espadons/"
-
 if options.verbose:
-    print 'PIPELINE HOME DIR: ', pipelinehomedir
-    print 'DATA ROOT DIR: ', datarootdir
-    print 'PRODUCT ROOT DIR: ', productrootdir
+    print 'PIPELINE HOME DIR: ', options.pipelinehomedir
+    print 'DATA ROOT DIR: ', options.datarootdir
+    print 'PRODUCT ROOT DIR: ', options.productrootdir
     print 'NIGHT: ', options.night
 
 """
 Set up directories:
 """
-Dirs = espadons.Directories(pipelinehomedir,datarootdir,productrootdir,options.night)
+Dirs = espadons.Directories(options.pipelinehomedir,options.datarootdir,options.productrootdir,options.night)
 """
 Set up config files:
 """

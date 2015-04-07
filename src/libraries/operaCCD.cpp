@@ -8,7 +8,7 @@
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
  Date: Jan/2011
- Contact: teeple@cfht.hawaii.edu
+ Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -335,8 +335,8 @@ void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean,
 	float *my = (float *) malloc (nords * sizeof(float));
 	memset(my, 0, sizeof(float)*nords);
 	
-	float *mx = (float *) malloc (nords * sizeof(float));	
-	memset(mx, 0, sizeof(float)*nords);	
+	float *mx = (float *) malloc (nords * sizeof(float));
+	memset(mx, 0, sizeof(float)*nords);
 	
 	float *bkg, *xbkg;
 	bkg = (float *) malloc (2*slit * sizeof(float));
@@ -354,7 +354,7 @@ void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean,
 	
 	j=0;
 	
-    // loop over given cross-section
+	// loop over given cross-section
 	for(i=0;i<np;i++){
 		
 		if (x[i] >= x[np-1] - 2*(float)slit || j>nords-1) {
@@ -363,7 +363,7 @@ void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean,
 		if((x[i] >= xmean[j] - (float)slit && x[i] <= xmean[j] - (float)slit/2) ||
 		   (x[i] >= xmean[j] + (float)slit/2 && x[i] <= xmean[j] + (float)slit)) {
 			xbkg[nbkg] = x[i];
-			bkg[nbkg] = y[i];			
+			bkg[nbkg] = y[i];
 			nbkg++;
 		} else if (x[i] > xmean[j] - (float)(slit/2) && x[i] < xmean[j] + (float)(slit/2)) {
 			if(nin < (float)slit) {
@@ -375,19 +375,17 @@ void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean,
 			
 			ladfit(xbkg,bkg,nbkg,&a,&b,&abdev);
 			
-			//			ipf[j] = (float *) malloc (nin * sizeof(float));
-			
 			float totredflux=0;
 			for(k=0;k<nin;k++) {
-				totredflux += (yin[k] - (a + b*xin[k])); 
-			}			
+				totredflux += (yin[k] - (a + b*xin[k]));
+			}
 			
 			for(k=0;k<nin;k++) {
 				mx[j] += xin[k]*(yin[k] - (a + b*xin[k]))/totredflux;
-				ipf[k][j] = (yin[k] - (a + b*xin[k]))/totredflux; 
+				ipf[k][j] = (yin[k] - (a + b*xin[k]))/totredflux;
 				//				printf("%u\t%u\t%f\t%f\n",j,k,xin[k],ipf[j][k]);
 			}
-            for(k=0;k<nin;k++) {
+			for(k=0;k<nin;k++) {
 				ipxout[k][j] = xin[k] - mx[j];
 			}
 			
@@ -396,12 +394,12 @@ void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean,
 			j++;
 			i -= slit/2;
 		}
-	}	
+	}
 	
 	float totflux = 0;
 	for(k=0;k<slit;k++) {
 		ipfunc[k] = operaArrayMedian(nords,ipf[k]);
-        ipx[k] = operaArrayMean(nords,ipxout[k]);
+		ipx[k] = operaArrayMean(nords,ipxout[k]);
 		iperr[k] = operaArrayMedianSigma(nords,ipf[k],ipfunc[k]);
 		if(ipfunc[k] < 0) {
 			ipfunc[k] = 0;
@@ -412,120 +410,598 @@ void operaCCDFitIP(unsigned np, float *x,float *y, unsigned nords, float *xmean,
 	
 	for(k=0;k<slit;k++) {
 		ipfunc[k] /= totflux;
-		//		printf("%u\t%f\t%f\n",k,ip[k],iperr[k]); 
 		//		printf("%d\t%f\n",(int)k-(int)slit/2,ipfunc[k]); 		
-	}	
+	}
 }
 
+/*
+ * This function constructs an order map based on the crosscorrelation between a reference oder
+ * map and the current one. This has proven to be unreliable for espadons, since the spaces between
+ * orders vary very slowly and sometimes the orders matched can be misleading. -- E. Martioli Mar 11, 2015
+ */
 
-int operaCCDDetectMissingOrdersNew(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,unsigned minordertouse,float minorderx0, unsigned maxorders)
-{
-    float xPredTmp[MAXORDERS], xPred[MAXORDERS];
-    float orderMap[MAXORDERS];
+int operaCCDDetectMissingOrdersUsingRefMap(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,unsigned nrefs,float *xref,float *yref,int *AbsRefOrdNumber,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,float xrange,float xstep) {
     
-    xPredTmp[0] = minorderx0;
-    orderMap[0] = minordertouse;
-    
-    for (unsigned o=1;o<=maxorders;o++) {
-        orderMap[o] = minordertouse + o;
-        xPredTmp[o] = xPredTmp[o-1] + (float)PolynomialFunction((double)orderMap[o],par,npar);
-    }
+    double dx = operaXCorrelationWithRefOrders(np,fx,fy,nrefs,xref,yref,nords,xmean,ymean,slit,xrange,xstep);
+
+    unsigned NumberOfOrdersInRow = 0;
+    unsigned j0 = 0;
+
+    for (unsigned i=0; i<nrefs; i++) {
+        bool refMatched = false;
         
-    float minsum = BIG;
-    float bestDx = 0;
-    
-    float dxrange=(float)np/5;
-    float dxprecision = 1.0;
-    
-    if(minorderx0) {
-        dxrange = slit/6;
-        dxprecision = 0.2;
-    }
-    
-    
-    for(float dx=-dxrange; dx<dxrange; dx+=dxprecision) {
+        // Avoid exceeding the image bound.
+        if(xref[i] + dx > fx[np-1] - slit) {
+            break;
+        }
         
-        float sum = 0;
+        // Try to match input reference map
+        for (unsigned j=j0; j<nords; j++) {
+            if(fabs(xmean[j] - (xref[i] + dx)) < slit/2) {
+                /*
+                if(i==0 && j>0) {
+                    for (jj==j-1; j>=0; j--) {
+                        float predX = xord[NumberOfOrdersInRow-1] + (float)PolynomialFunction((double)AbsOrdNumber[NumberOfOrdersInRow-1],par,npar);
+
+                        if(fabs(xmean[j] -)
+                    }
+                }
+                */
+                float xtmp = xmean[j];
+                float ytmp = ymean[j];
+                float xerr = slit/4;
+                int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+                if(isItAboveNoise) {
+                    xord[NumberOfOrdersInRow] = xtmp;
+                    yord[NumberOfOrdersInRow] = ytmp;
+                    xerrord[NumberOfOrdersInRow] = xerr;
+                } else {
+                    xord[NumberOfOrdersInRow] = xref[i] + dx;
+                    yord[NumberOfOrdersInRow] = yref[i];
+                    xerrord[NumberOfOrdersInRow] = slit/4;
+                }
+                AbsOrdNumber[NumberOfOrdersInRow] = AbsRefOrdNumber[i];
+                NumberOfOrdersInRow++;
+                j0 = j+1;
+                refMatched = true;
+                break;
+            }
+        }
         
-        for(unsigned i=0; i< nords; i++) {
-            float mindelta = BIG;
-            float currentX = 0;
-            for (unsigned o=0;o<=maxorders;o++) {
-                if(fabs(xmean[i] - (xPredTmp[o] + dx)) < mindelta) {
-                    mindelta = fabs(xmean[i] - (xPredTmp[o] + dx));
-                    currentX = xPredTmp[o] + dx;
+        // If order couldn't be matched then try to detect again using the ref map position or
+        // force point to exist by inputing map-corrected coordinates
+        if(refMatched == false) {
+            float xtmp = xref[i] + dx;
+            float ytmp = yref[i];
+            float xerr = slit/4;
+            int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+            if(isItAboveNoise) {
+                xord[NumberOfOrdersInRow] = xtmp;
+                yord[NumberOfOrdersInRow] = ytmp;
+                xerrord[NumberOfOrdersInRow] = xerr;
+            } else {
+                xord[NumberOfOrdersInRow] = xref[i] + dx;
+                yord[NumberOfOrdersInRow] = yref[i];
+                xerrord[NumberOfOrdersInRow] = slit/4;
+            }
+            AbsOrdNumber[NumberOfOrdersInRow] = AbsRefOrdNumber[i];
+            NumberOfOrdersInRow++;
+            refMatched = true;
+        }
+        
+        // If we are out of detected orders then continue to input orders in the map
+        if(j0==nords) {
+            for (unsigned ii=i+1; ii<nrefs; ii++) {
+                float xtmp = xref[ii] + dx;
+                float ytmp = yref[ii];
+                float xerr = slit/4;
+                int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+                if(isItAboveNoise) {
+                    xord[NumberOfOrdersInRow] = xtmp;
+                    yord[NumberOfOrdersInRow] = ytmp;
+                    xerrord[NumberOfOrdersInRow] = xerr;
+                } else {
+                    xord[NumberOfOrdersInRow] = xref[ii] + dx;
+                    yord[NumberOfOrdersInRow] = yref[ii];
+                    xerrord[NumberOfOrdersInRow] = slit/4;
+                }
+                AbsOrdNumber[NumberOfOrdersInRow] = AbsRefOrdNumber[i];
+                NumberOfOrdersInRow++;
+            }
+            break;
+        
+        } else if (j0 < nords-1 && i == nrefs-1) {
+            
+            // Here the map is out of orders but there is still detcted orders, so we continue
+            // inputting them as long as they agree within an error of slit/2 with the predicted
+            // order position using the spacing polynomial.
+            
+            for (unsigned j=j0; j<nords; j++) {
+                float predX = xord[NumberOfOrdersInRow-1] + (float)PolynomialFunction((double)AbsOrdNumber[NumberOfOrdersInRow-1],par,npar);
+                if(predX < fx[np-1] - slit) {
+                    if(fabs(xmean[j] - predX) < slit/2) {
+                        float xtmp = xmean[j];
+                        float ytmp = ymean[j];
+                        float xerr = slit/4;
+                        int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+                        if(isItAboveNoise) {
+                            xord[NumberOfOrdersInRow] = xtmp;
+                            yord[NumberOfOrdersInRow] = ytmp;
+                            xerrord[NumberOfOrdersInRow] = xerr;
+                        } else {
+                            xord[NumberOfOrdersInRow] = predX;
+                            yord[NumberOfOrdersInRow] = yord[NumberOfOrdersInRow-1];
+                            xerrord[NumberOfOrdersInRow] = slit/4;
+                        }
+                        NumberOfOrdersInRow++;
+                    } else {
+                        float xtmp = predX;
+                        float ytmp = yord[NumberOfOrdersInRow-1];
+                        float xerr = slit/4;
+                        int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+                        if(isItAboveNoise) {
+                            xord[NumberOfOrdersInRow] = xtmp;
+                            yord[NumberOfOrdersInRow] = ytmp;
+                            xerrord[NumberOfOrdersInRow] = xerr;
+                        } else {
+                            xord[NumberOfOrdersInRow] = predX;
+                            yord[NumberOfOrdersInRow] = yord[NumberOfOrdersInRow-1];
+                            xerrord[NumberOfOrdersInRow] = slit/4;
+                        }
+                        NumberOfOrdersInRow++;
+                    }
+                } else {
+                    break;
                 }
             }
-            sum += fabs(xmean[i] - currentX);
-        }
-        
-        if(sum < minsum) {
-            minsum = sum;
-            bestDx = dx;
-        }
-        //printf("%lf\t%lf\n",dx,sum);
-    }
-    
-    for (unsigned o=0;o<=maxorders;o++) {
-        xPred[o] = xPredTmp[o] + bestDx;
-    }
-    
-    unsigned oIndex[MAXORDERS];
-    
-    for(unsigned i=0; i< nords; i++) {
-        
-        unsigned orderIndexWithMinDelta = 0;
-        float mindelta = BIG;
-        
-        for (unsigned o=0;o<=maxorders;o++) {
-            if(fabs(xmean[i] - xPred[o]) < mindelta) {
-                mindelta = fabs(xmean[i] - xPred[o]);
-                orderIndexWithMinDelta = o;
-            }
-        }
-        oIndex[i] = orderIndexWithMinDelta;
-    }
-    
-    float xerrorsqrd = 0;
-    for(unsigned i=0; i< nords; i++) {
-        xerrorsqrd = (xPred[oIndex[i]] - xmean[i])*(xPred[oIndex[i]] - xmean[i])/(float)nords;
-        //printf("%lf\t%lf\t%lf\t%lf\n",orderMap[oIndex[i]],xPred[oIndex[i]],xmean[i],ymean[i]);
-    }
-    float xerror = sqrt(xerrorsqrd);
-    
-    unsigned ordNumberinRow = 0;
-    
-    for (unsigned o=0;o<=maxorders;o++) {
-        if(xPred[o] > fx[0] + slit/2.0 && xPred[o] < fx[np-1] - slit/2.0) {
-            float xmtmp = xPred[o];
-            float xerrtmp = 0;
-            float ymtmp = 0;
             
-            int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xmtmp,&ymtmp,&xerrtmp);
+            float predX = xord[NumberOfOrdersInRow-1] + (float)PolynomialFunction((double)AbsOrdNumber[NumberOfOrdersInRow-1],par,npar);
+            while (predX < fx[np-1] - slit) {
+                float xtmp = predX;
+                float ytmp = yord[NumberOfOrdersInRow-1];
+                float xerr = slit/4;
+                int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+                if(isItAboveNoise) {
+                    xord[NumberOfOrdersInRow] = xtmp;
+                    yord[NumberOfOrdersInRow] = ytmp;
+                    xerrord[NumberOfOrdersInRow] = xerr;
+                } else {
+                    xord[NumberOfOrdersInRow] = predX;
+                    yord[NumberOfOrdersInRow] = yord[NumberOfOrdersInRow-1];
+                    xerrord[NumberOfOrdersInRow] = slit/4;
+                }
+                NumberOfOrdersInRow++;
 
-            if(isItAboveNoise) {
-                xord[ordNumberinRow] = xmtmp;
-                xerrord[ordNumberinRow] = xerrtmp;
-                yord[ordNumberinRow] = ymtmp;
-            } else {
-                xord[ordNumberinRow] = xPred[o];
-                xerrord[ordNumberinRow] = xerror;
-                yord[ordNumberinRow] = noise/gain;
+                predX = xord[NumberOfOrdersInRow-1] + (float)PolynomialFunction((double)AbsOrdNumber[NumberOfOrdersInRow-1],par,npar);
             }
-            
-            AbsOrdNumber[ordNumberinRow] = orderMap[o];
-            ordNumberinRow++;
         }
     }
-        
- 	return ordNumberinRow;
+    
+    //cout << dx << " " << xord[0] << " "  << NumberOfOrdersInRow << endl;
+    
+    return NumberOfOrdersInRow;
 }
 
+/*
+ * This is now the main function to construct an order map, where the order numbers must match 
+ * the numbers of orders in a reference map. Note that the reference map must be displaced by 
+ * at most slit/2 +/- xerror from the current map, otherwise it won't work. This function should
+ * be used interactively where the current map should be used as the reference map to detect 
+ * orders in an adjacent row or sample. This is the most reliable approach, since any other 
+ * attempt to match order numbers eventually fails. -- E. Martioli Mar 11, 2015
+ */
+int operaCCDDetectMissingOrdersUsingNearMap(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,unsigned nrefs,float *xref,float *yref,int *AbsRefOrdNumber,float *xord,float *yord, float *xerrord, int *AbsOrdNumber) {
+    
+    // Find the FIRST order to match a near map and save the reference order
+    float mindist = BIG;
+    bool neverin = true;
+    unsigned jref = 0;
+    unsigned iref = 0;
+    
+    for (unsigned i=0; i<nrefs; i++) {
+        for (unsigned j=0; j<nords; j++) {
+            float dist = fabs(xmean[j] - (xref[i]));
+            if(dist < slit/2) {
+                if(dist < mindist) {
+                    mindist = dist;
+                    jref = j;
+                    iref = i;
+                }
+                neverin = false;
+            } else if (dist > slit/2 && neverin == false) {
+                break;
+            }
+        }
+    }
+    
+    int refOrderNumber = AbsRefOrdNumber[iref];
+
+    //cout << jref << " " << iref << " " << refOrderNumber << " " << xmean[jref] << " " << xref[iref] << endl;
+
+    unsigned NumberOfOrdersInRow = 0;
+    
+    /*
+     * First figure out orders lying before reference order:
+     */
+    float *xord_b = new float[MAXORDERS];
+    float *yord_b = new float[MAXORDERS];
+    float *xerr_b = new float[MAXORDERS];
+    float *AbsOrdNumber_b = new float[MAXORDERS];
+    
+    float predX = xmean[jref] - (float)PolynomialFunction((double)refOrderNumber,par,npar);
+    float yRef = ymean[jref];
+
+    unsigned nOrdsBefore = 0;
+    
+    while(predX > fx[0] + slit) {
+        float xtmp = predX;
+        float ytmp = yRef;
+        float xerr = slit/4;
+        int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+        if(isItAboveNoise) {
+            xord_b[nOrdsBefore] = xtmp;
+            yord_b[nOrdsBefore] = ytmp;
+            xerr_b[nOrdsBefore] = xerr;
+        } else {
+            xord_b[nOrdsBefore] = predX;
+            yord_b[nOrdsBefore] = yRef;
+            xerr_b[nOrdsBefore] = slit/4;
+        }
+        AbsOrdNumber_b[nOrdsBefore] = refOrderNumber - 1 - nOrdsBefore;
+        predX = xord_b[nOrdsBefore] - (float)PolynomialFunction((double)AbsOrdNumber_b[nOrdsBefore],par,npar);
+        nOrdsBefore++;
+    }
+    
+    for (unsigned i=0; i<nOrdsBefore; i++) {
+        unsigned backwrd_i = nOrdsBefore-i-1;
+        
+        xord[NumberOfOrdersInRow] = xord_b[backwrd_i];
+        yord[NumberOfOrdersInRow] = yord_b[backwrd_i];
+        xerrord[NumberOfOrdersInRow] = xerr_b[backwrd_i];
+        AbsOrdNumber[NumberOfOrdersInRow] = AbsOrdNumber_b[backwrd_i];
+        
+        //cout << refOrderNumber << " " << AbsOrdNumber_b[backwrd_i] << " " << xord_b[backwrd_i] << " " << yord_b[backwrd_i] << endl;
+        NumberOfOrdersInRow++;
+    }
+    
+    /*
+     * Then assign reference order:
+     */
+    float xtmp = xmean[jref];
+    float ytmp = ymean[jref];
+    float xerr = xmeanerr[jref];
+    int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+    if(isItAboveNoise) {
+        xord[NumberOfOrdersInRow] = xtmp;
+        yord[NumberOfOrdersInRow] = ytmp;
+        xerrord[NumberOfOrdersInRow] = xerr;
+    } else {
+        xord[NumberOfOrdersInRow] = xmean[jref];
+        yord[NumberOfOrdersInRow] = ymean[jref];
+        xerrord[NumberOfOrdersInRow] = xmeanerr[jref];
+    }
+    AbsOrdNumber[NumberOfOrdersInRow] = refOrderNumber;
+    NumberOfOrdersInRow++;
+
+    /*
+     * Finally figure out orders lying after reference order:
+     */
+    predX = xord[NumberOfOrdersInRow-1] + (float)PolynomialFunction((double)AbsOrdNumber[NumberOfOrdersInRow-1],par,npar);
+    float predY = yord[NumberOfOrdersInRow-1];
+    float predXerr = xerrord[NumberOfOrdersInRow-1];
+
+    unsigned jcurr = jref+1;
+    if(fabs(xmean[jcurr] - predX) < slit/2) {
+        predX = xmean[jcurr];
+        predY = ymean[jcurr];
+        predXerr = xmeanerr[jcurr];
+    }
+    
+    while(predX < fx[np-1] - slit) {
+        float xtmp = predX;
+        float ytmp = predY;
+        float xerr = predXerr;
+        int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+        if(isItAboveNoise) {
+            xord[NumberOfOrdersInRow] = xtmp;
+            yord[NumberOfOrdersInRow] = ytmp;
+            xerrord[NumberOfOrdersInRow] = xerr;
+        } else {
+            xord[NumberOfOrdersInRow] = predX;
+            yord[NumberOfOrdersInRow] = predY;
+            xerrord[NumberOfOrdersInRow] = predXerr;
+        }
+        AbsOrdNumber[NumberOfOrdersInRow] = AbsOrdNumber[NumberOfOrdersInRow-1] + 1;
+
+        // -- increment general order count
+        NumberOfOrdersInRow++;
+        // --------------
+
+        predX = xord[NumberOfOrdersInRow-1] + (float)PolynomialFunction((double)AbsOrdNumber[NumberOfOrdersInRow-1],par,npar);
+        predY = yord[NumberOfOrdersInRow-1];
+        predXerr = xerrord[NumberOfOrdersInRow-1];
+        
+        // -- use existing detected orders as long as they last
+        jcurr++;
+        if(jcurr < nords) {
+            for(unsigned j=jcurr;j<nords;j++) {
+                if(fabs(xmean[j] - predX) < slit/2) {
+                    predX = xmean[j];
+                    predY = ymean[j];
+                    predXerr = xmeanerr[j];
+                    jcurr = j;
+                    break;
+                }
+            }
+        }
+    }
+    
+    return NumberOfOrdersInRow;
+}
+
+/*
+ *  This constructs an order map based on an input set of detected orders and 
+ *  on the order spacing polynomial. -- E. Martioli Mar 11, 2015
+ */
+int operaCCDDetectOrderMapBasedOnSpacingPolynomial(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,unsigned minordertouse, unsigned maxorders)
+{
+    float *orderMap = new float[MAXORDERS];
+    float *ordSepPred = new float[MAXORDERS];
+    float *ordXPosPred = new float[MAXORDERS];
+    float *ordYValue = new float[MAXORDERS];
+    unsigned *ordIndex = new unsigned[MAXORDERS];
+
+    double leastSqr = BIG;
+    unsigned jmin = 0;
+    unsigned nAccHops = 5;
+    float xiSqr = 0;
+    
+    for (unsigned j=0;j<nords;j++) {
+        
+        xiSqr = 0;
+        
+        unsigned newmaxorders = matchMeasuredOrdersWithMap(np,fx,fy,slit,npar,par,nords,xmean,ymean,orderMap,ordSepPred,ordXPosPred,ordYValue,ordIndex,j,nAccHops,minordertouse,maxorders,&xiSqr);
+        
+        // cout << j << " " << xiSqr << endl;
+        
+        if(xiSqr < leastSqr){
+            leastSqr = xiSqr;
+            jmin = j;
+        }
+    }
+    
+    unsigned NumberOfOrdersInRow = matchMeasuredOrdersWithMap(np,fx,fy,slit,npar,par,nords,xmean,ymean,orderMap,ordSepPred,ordXPosPred,ordYValue,ordIndex,jmin,nAccHops,minordertouse,maxorders,&xiSqr);
+    
+    for (unsigned o=0;o<NumberOfOrdersInRow;o++) {
+        
+        float xtmp = ordXPosPred[o];
+        float ytmp = ordYValue[o];
+        float xerr = slit/4;
+
+        int isItAboveNoise = operaCCDRecenterOrderUsingXCorrWithIP(np,fx,fy,npip,ipiny,ipinx,noise,gain,&xtmp,&ytmp,&xerr);
+
+        if(isItAboveNoise) {
+            xord[o] = xtmp;
+            yord[o] = ytmp;
+            xerrord[o] = xerr;
+        } else {
+            xord[o] = ordXPosPred[o];
+            yord[o] = ordYValue[o];
+            xerrord[o] = slit/4;
+        }
+
+        AbsOrdNumber[o] = (int)orderMap[o];
+        // cout << orderMap[o] << " " << ordSepPred[o] << " " << ordXPosPred[o] << " " << ordIndex[o] << endl;
+    }
+    
+    //cout << orderMap[0] << " " << ordXPosPred[0] << " " << ordIndex[0] << endl;
+    return NumberOfOrdersInRow;
+}
+
+/*
+ * This function will match detected orders with a reference map, which is obtained 
+ * from a first pass using the spacing polynomial and a reference order, where it has better snr.
+ */
+unsigned matchMeasuredOrdersWithMap(unsigned np,float *fx,float *fy,float slit, unsigned npar,double *par,unsigned nords,float *xmean,float *ymean, float *orderMap, float *ordSepPred, float *ordXPosPred,float *ordYValue, unsigned *ordIndex, unsigned j, unsigned nAccHops,unsigned minordertouse, unsigned maxorders, float *xiSqr) {
+    
+    float sumOfsqrs = 0;
+    unsigned Nsqrs = 0;
+    unsigned NumberOfOrdersInRow = 0;
+    unsigned nhops = 0;
+    
+    for (unsigned o=0;o<=maxorders;o++) {
+        
+        orderMap[o] = minordertouse + o + j;
+        ordSepPred[o] = (float)PolynomialFunction((double)orderMap[o],par,npar);
+        
+        if (o==0) {
+            ordXPosPred[o] = xmean[0];
+            ordYValue[o] = ymean[0];
+            ordIndex[o] = o;
+            NumberOfOrdersInRow++;
+        } else if ((int)o-nhops > 0 && (int)o-nhops < (int)nords) {
+            
+            unsigned jj = (unsigned)(o-nhops);
+            // The condition below tests if next point is a valid order
+            if (fabs(xmean[jj] - (ordXPosPred[o-1] + ordSepPred[o-1])) < slit/2.0) {
+                // If order is valid then save order position
+                ordXPosPred[o] = xmean[jj];
+                ordYValue[o] = ymean[jj];
+                sumOfsqrs += (xmean[jj] - (ordXPosPred[o-1] + ordSepPred[o-1]))*(xmean[jj] - (ordXPosPred[o-1] + ordSepPred[o-1]));
+                ordIndex[o] = jj;
+                NumberOfOrdersInRow++;
+                Nsqrs++;
+            } else {
+                // Here we don't trust the measurements so we use the model and consider
+                // that there was a hop
+                ordXPosPred[o] = ordXPosPred[o-1] + ordSepPred[o-1];
+                ordYValue[o] = ymean[jj];
+                ordIndex[o] = MAXORDERS;
+                nhops++; // This will make it to reuse the same point
+                
+                if(ordXPosPred[o] > fx[np-1] - slit) {
+                    break; // break loop and don't increment NumberOfOrdersInRow
+                } else {
+                    NumberOfOrdersInRow++;
+                    
+                    // Test whether the current measured xmean matches any further predicted order,
+                    // which is to make sure the hop was an actual hop
+                    bool match = false;
+                    float predPos = ordXPosPred[o];
+                    
+                    for (unsigned hops=0; hops<nAccHops; hops++) {
+                        predPos += (float)PolynomialFunction((double)(orderMap[o]+hops),par,npar);
+                        if(predPos > fx[np-1] - slit) {
+                            break;
+                        }
+                        if (fabs(xmean[o-nhops] - predPos) < slit/2) {
+                            match = true;
+                            break;
+                        }
+                    }
+                    
+                    // If current measurent doesn't match any model position
+                    // then it was not a hop, so we throw away the current point and try the next one
+                    if (match==false) {
+                        if((int)(o+1)-(nhops-2)>=0){
+                            nhops -= 2;
+                        } else {
+                            nhops--;
+                        }
+                        
+                        if (o-nhops >= nords) {
+                            // There is no more points left, so accepts model position
+                            // and leave loop.
+                            break;
+                        } else {
+                            // Otherwise go back to previous point (o--) and try again,
+                            // since it's possible to find another
+                            NumberOfOrdersInRow--;
+                            o--;
+                        }
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+    *xiSqr = sumOfsqrs/(float)Nsqrs;
+    return NumberOfOrdersInRow;
+}
+
+/*
+ * The function below calculates the shift between two order maps in a given data for the
+ * maximum cross-correlation between these two maps. -- E. Martioli Mar 11, 2015
+ */
+float operaXCorrelationWithRefOrders(unsigned np,float *fx,float *fy,unsigned nrefs, float *xref,float *yref,unsigned nords, float *xmean,float *ymean, float slit, float xrange, float xstep) {
+
+    // First create a set of Gaussian parameters for reference orders and
+    // input measured orders
+    int n_par = 3;
+    
+    int n_totalpar_ref = (int)nrefs*n_par;
+    double *par_ref = new double[n_totalpar_ref];
+    for (unsigned i=0; i<nrefs; i++) {
+// the line below is commented because without a good flat-field correction
+// the order will have different flux levels at different detector positions
+// so, in order to keep only the information on the spacing between orders the
+// gaussian amplitudes were set to 1.0. But one could revert this by using the
+// the actual order fluxes> yref[i] and ymean[i]
+//        par_ref[0+i*n_par] = (double)yref[i];
+        par_ref[0+i*n_par] = 1.0;
+        par_ref[1+i*n_par] = (double)xref[i];
+        par_ref[2+i*n_par] = (double)slit/8.0;
+    }
+    
+    int n_totalpar_ords = (int)nords*n_par;
+    double *par_ords = new double[n_totalpar_ords];
+    for (unsigned i=0; i<nords; i++) {
+//        par_ords[0+i*n_par] = (double)ymean[i];
+        par_ords[0+i*n_par] = 1.0;
+        par_ords[1+i*n_par] = (double)xmean[i];
+        par_ords[2+i*n_par] = (double)slit/8.0;
+    }
+    
+    // Then create a synthetic data set for each order map
+    double *reffy = new double[np];
+    double *ordsfy = new double[np];
+
+    for (unsigned i=0; i<np; i++) {
+        reffy[i] = GaussianFunction((double)fx[i],par_ref,n_totalpar_ref);
+        ordsfy[i] = GaussianFunction((double)fx[i],par_ords,n_totalpar_ords);
+        //cout << fx[i] << " " << fy[i] << " " << reffy[i] << " " << ordsfy[i] << endl;
+    }
+    double maxcorrelation = -BIG;
+    float maxdx = 0;
+    
+    for(float dx = -xrange/2.0; dx < +xrange/2.0; dx+=xstep) {
+        
+        for (unsigned i=0; i<np; i++) {
+            reffy[i] = GaussianFunction((double)(fx[i] + dx),par_ref,n_totalpar_ref);
+        }
+    
+        double corr = operaCrossCorrelation(np,reffy,ordsfy);
+        
+        if (corr > maxcorrelation) {
+            maxcorrelation = corr;
+            maxdx = dx;
+        }
+        // cout << dx << " " << corr << endl;
+    }
+    
+    /*
+    for (unsigned i=0; i<np; i++) {
+        reffy[i] = GaussianFunction((double)(fx[i] + maxdx),par_ref,n_totalpar_ref);
+        ordsfy[i] = GaussianFunction((double)fx[i],par_ords,n_totalpar_ords);
+        cout << fx[i] << " " << fy[i] << " " << reffy[i] << " " << ordsfy[i] << endl;
+    }
+    */
+    return maxdx;
+}
+
+/*
+ * This function is the first reliable version of opera geometry algorithms to construct
+ * a numbered order map. This is still a realiable tool, altough there is an issue that
+ * turned into a problem for Espadons. It relies on the model for the spacing between orders
+ * versus detector position. For Espadons this function cannot be modeled by a simple poynomial
+ * and on previous versions of opera we approximated it to a linear model. This works well
+ * for **most** of the case, but in the very few cases where it doesn't work it was assigning 
+ * misleading order numbers and consequently causing errors in the geometry calibration. 
+ * -- E. Martioli Mar 11, 2015
+ */
 int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,float *ipiny,float *ipinx,float slit,float noise,float gain, unsigned npar,double *par,unsigned nords, float *xmean,float *ymean,float *xmeanerr,float *xord,float *yord, float *xerrord, int *AbsOrdNumber,int AbsPrevOrdNumber,float x0prev)
 {
+    /*
+     * The portion below is a fix to convert the dependency of spacing polynomial from detector x-position 
+     * to ordernumber. the definition of this polynomial used to be spacing versus detector postion and now 
+     * order spacing versus order number.
+     */
+    float *OrderPosition = new float[MAXORDERS];
+    float *OrderSeparation = new float[MAXORDERS];
+    unsigned npts=0;
+    for(unsigned i=0; i<nords-1; i++) {
+        OrderPosition[npts] = float(xmean[i] + (xmean[i+1] - xmean[i]) / 2.0);
+        OrderSeparation[npts] = float(xmean[i+1] - xmean[i]);
+        npts++;
+    }
+    float am,bm,abdevm;
+    //--- Robust linear fit
+    ladfit(OrderPosition,OrderSeparation,npts,&am,&bm,&abdevm); // robust linear fit: f(x) =  a + b*x
+    double *par_tmp = new double[npar];
+    unsigned npars_tmp = npar;
+    for (unsigned i=0;i<npars_tmp; i++) {
+        par_tmp[i] = par[i];
+    }
+    par[0] = (double)am;
+    par[1] = (double)bm;
+    npar = 2;
+    //--- end of fix to spacing polynomial
+    
 	unsigned i;
 	float xloword[MAXORDERS],yloword[MAXORDERS],xerrloword[MAXORDERS];
-	float xhiord[MAXORDERS],yhiord[MAXORDERS],xerrhiord[MAXORDERS];	
+	float xhiord[MAXORDERS],yhiord[MAXORDERS],xerrhiord[MAXORDERS];
 	int ordNumberinRow=0;
 	unsigned nloword, nhiord;		
 	float xmmin, xmmintmp, xerrmin;
@@ -655,6 +1131,11 @@ int operaCCDDetectMissingOrders(unsigned np,float *fx,float *fy,unsigned npip,fl
 		AbsOrdNumber[i] = firstorderinrow + (int)i;				
 		//		cout << AbsOrdNumber[i] << " " << xord[i] << " " << y << " " << yord[i] << endl;		
 	}
+	
+    npar = npars_tmp;
+    for (unsigned i=0;i<npar; i++) {
+        par[i] = par_tmp[i];
+    }
 	
 	return ordNumberinRow;
 }

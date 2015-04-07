@@ -52,6 +52,7 @@
 #include "libraries/operaLibCommon.h"               // for anglecoord_t and timecoord_t
 #include "libraries/operaHelio.h"					// for sexigesimal conversion
 #include "libraries/operaSpectralTools.h"			//
+#include "libraries/operaCCD.h"						// for MAXORDERS
 
 #define NOTPROVIDED -999
 
@@ -117,8 +118,8 @@ int main(int argc, char *argv[])
 
 	int ordernumber = NOTPROVIDED;
     
-    int minorder = 22;
-    int maxorder = 62;    
+    int minorder = 0;
+    int maxorder = 0;
     bool minorderprovided = false;
     bool maxorderprovided = false; 
     
@@ -334,22 +335,16 @@ int main(int argc, char *argv[])
 		/*
 		 * Down to business, read in all the source and calibration data.
 		 */
-		operaSpectralOrderVector spectralOrders(input);
-        spectralOrders.ReadSpectralOrders(wavelengthCalibration);
 
+        operaSpectralOrderVector spectralOrders(input);
+        spectralOrders.ReadSpectralOrders(wavelengthCalibration);
+        
 		if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();
         }
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}        
-		
-		if(!maxorderprovided) {
-            maxorderprovided = spectralOrders.getMaxorder();
+        if(!maxorderprovided) {
+            maxorder = spectralOrders.getMaxorder();
         }
-        
         if(ordernumber != NOTPROVIDED) {
 			minorder = ordernumber;
 			maxorder = ordernumber;
@@ -359,11 +354,14 @@ int main(int argc, char *argv[])
 			cout << "operaStarOnly: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         }
         
-        unsigned NumberofBeams = spectralOrders.getNumberofBeams(minorder, maxorder);
-
+        int minPossibleOrder = 0;
+        int maxPossibleOrder = 0;
+        
         for (int order=minorder; order<=maxorder; order++) {
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-			if (spectralOrder->gethasSpectralElements()) {
+            
+			if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
+                
 				spectralOrder->getSpectralElements()->CreateExtendedvectors(spectralOrder->getSpectralElements()->getnSpectralElements());
                 
                 // Save the raw flux for later
@@ -371,14 +369,32 @@ int main(int argc, char *argv[])
                 spectralOrder->getSpectralElements()->copyTOnormalizedFlux();
                 spectralOrder->getSpectralElements()->copyTOfcalFlux();
                 
-                if(spectralOrder->gethasWavelength()) {
-                    operaWavelength *Wavelength = spectralOrder->getWavelength();
-                    spectralOrder->getSpectralElements()->setwavelengthsFromCalibration(Wavelength);
-                    spectralOrder->getSpectralElements()->copyTOtell();
+                operaWavelength *Wavelength = spectralOrder->getWavelength();
+                spectralOrder->getSpectralElements()->setwavelengthsFromCalibration(Wavelength);
+                spectralOrder->getSpectralElements()->copyTOtell();
+                
+                if(order < minPossibleOrder || minPossibleOrder==0) {
+                    minPossibleOrder = order;
                 }
-			}
+                if(order > maxPossibleOrder) {
+                    maxPossibleOrder = order;
+                }
+            }
 		}
         
+        if(minPossibleOrder > minorder) {
+            minorder = minPossibleOrder;
+            if (verbose)
+                cout << "operaStarOnly: minorder reset to " << minorder << endl;
+        }
+        if(maxPossibleOrder < maxorder) {
+            maxorder = maxPossibleOrder;
+            if (verbose)
+                cout << "operaStarOnly: maxorder reset to " << maxorder << endl;
+        }
+        
+        unsigned NumberofBeams = spectralOrders.getNumberofBeams(minorder, maxorder);
+
         //---------------------------------
         // Load telluric corrected wavelength calibration
 		if (!telluriccorrection.empty()) {
@@ -408,6 +424,8 @@ int main(int argc, char *argv[])
             } else {
                 spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
             }
+        } else {
+            spectralOrders.normalizeOrderbyOrderAndSaveFluxINTOExtendendSpectra(normalizationBinsize, minorder, maxorder, false);
         }
         
         // output a wavelength calibrated spectrum...
