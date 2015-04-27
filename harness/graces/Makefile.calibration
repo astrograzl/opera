@@ -1046,7 +1046,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --badpixelmask=$(badpixelmask) \
 $${gains} \
 --subformat=\"$(geomsubformat)\" \
---aperture=$(aperture) \
+--aperture=$(orderspacing_aperture) \
 --numberOfsamples=$(ordpnumberOfsamples) \
 --orderspacingoutput=$(calibrationdir)$@ \
 --sampleCenterPosition=$(sampleCenterPosition) \
@@ -1078,7 +1078,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --badpixelmask=$(badpixelmask) \
 $${gains} \
 --subformat=\"$(geomsubformat)\" \
---aperture=$(aperture) \
+--aperture=$(geom_aperture) \
 --detectionMethod=$(detectionMethod) \
 --FFTfilter=$(FFTfilter) \
 --graces=$(gracesOption) \
@@ -1196,6 +1196,8 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --normalizeUncalibratedSpectrum=$(wcal_normalizeUncalibratedSpectrum) \
 --normalizationBinSize=$(wcal_normalizationBinSize) \
 --LocalMaxFilterWidth=$(wcal_LocalMaxFilterWidth) \
+--DetectionThreshold=$(wcal_DetectionThreshold) \
+--MinPeakDepth=$(wcal_MinPeakDepth) \
 $${pargs} \
 --outputWaveFile=$(calibrationdir)$@ \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \

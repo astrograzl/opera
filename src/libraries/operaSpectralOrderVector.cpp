@@ -93,6 +93,7 @@ instrumentmode(MODE_UNKNOWN),
 count(0),
 gainBiasNoise(NULL),
 BarycentricRadialVelocityCorrection(0.0),
+TelluricRadialVelocityCorrection(0.0),
 first(NULL),
 last(NULL)
 {
@@ -127,6 +128,7 @@ instrumentmode(MODE_UNKNOWN),
 count(0),
 gainBiasNoise(NULL),
 BarycentricRadialVelocityCorrection(0.0),
+TelluricRadialVelocityCorrection(0.0),
 first(NULL),
 last(NULL)
 {
@@ -170,6 +172,7 @@ instrumentmode(MODE_UNKNOWN),
 count(0),
 gainBiasNoise(NULL),
 BarycentricRadialVelocityCorrection(0.0),
+TelluricRadialVelocityCorrection(0.0),
 first(NULL),
 last(NULL)
 {
@@ -264,11 +267,19 @@ double operaSpectralOrderVector::getBarycentricRadialVelocityCorrection() {
 }
 
 /* 
- * void getBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
+ * void setBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
  * \brief sets the double BarycentricRadialVelocityCorrection.
  */
-void operaSpectralOrderVector::setBarycentricRadialVelocityCorrection(double theBarycentricRadialVelocityCorrection) {
-	BarycentricRadialVelocityCorrection = theBarycentricRadialVelocityCorrection;
+void operaSpectralOrderVector::setBarycentricRadialVelocityCorrection(double newBarycentricRadialVelocityCorrection) {
+	BarycentricRadialVelocityCorrection = newBarycentricRadialVelocityCorrection;
+}
+
+/*
+ * void setTelluricRadialVelocityCorrection(double TelluricRadialVelocityCorrection);
+ * \brief sets the double TelluricRadialVelocityCorrection.
+ */
+void operaSpectralOrderVector::setTelluricRadialVelocityCorrection(double newTelluricRadialVelocityCorrection) {
+	TelluricRadialVelocityCorrection = newTelluricRadialVelocityCorrection;
 }
 
 /* 
@@ -442,6 +453,9 @@ void operaSpectralOrderVector::ReadSpectralOrders(string Filename) {
 			if (!dataline.compare("#!rvel")) {
 				format = RVel;
 			}            
+			if (!dataline.compare("#!tell")) {
+				format = Tell;
+			}            
 			if (!dataline.compare("#!rawspectrum")) {
 				format = RawSpectrum;
 			}
@@ -554,6 +568,9 @@ void operaSpectralOrderVector::ReadSpectralOrders(string Filename) {
 			break;            
 		case RVel:
 			readRadialVelocityCorrection(Filename);
+			break;
+		case Tell:
+			readTelluricRVCorrection(Filename);
 			break;
 		case RawSpectrum:
 		case StandardSpectrum:
@@ -1584,6 +1601,16 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "#\n";
 				fout << "######################################################################\n";
 				fout << BarycentricRadialVelocityCorrection << endl;
+			}
+				break;
+			case Tell: {
+				fout << "#!tell\n";
+				fout << "######################################################################\n";
+				fout << "# Telluric Radial Velocity Correction (km/s) format is:\n";
+				fout << "# <radialvelocity> <newline>\n";
+				fout << "#\n";
+				fout << "######################################################################\n";
+				fout << TelluricRadialVelocityCorrection << endl;
 			}
 				break;
 			case Polarimetry: {
@@ -5321,7 +5348,6 @@ void operaSpectralOrderVector::readRadialVelocityCorrection(string filename) {
 		operaistream flist(filename.c_str());
 		if (flist.is_open()) {
 			double rvel;
-            
 			while (flist.good()) {
 				getline (flist,dataline);
 				if (strlen(dataline.c_str())) {
@@ -5330,6 +5356,28 @@ void operaSpectralOrderVector::readRadialVelocityCorrection(string filename) {
 					} else {
 						sscanf(dataline.c_str(), "%lf", &rvel);
                         setBarycentricRadialVelocityCorrection(rvel);
+					}
+				}									
+			}	
+			
+		}
+	}		
+}
+
+void operaSpectralOrderVector::readTelluricRVCorrection(string filename) {
+	string dataline;
+	if (!filename.empty()) {
+		operaistream flist(filename.c_str());
+		if (flist.is_open()) {
+			double rvel;
+			while (flist.good()) {
+				getline (flist,dataline);
+				if (strlen(dataline.c_str())) {
+					if (dataline.c_str()[0] == '#') {
+						// skip comments
+					} else {
+						sscanf(dataline.c_str(), "%lf", &rvel);
+						setTelluricRadialVelocityCorrection(rvel);
 					}
 				}									
 			}	
@@ -7078,6 +7126,27 @@ void operaSpectralOrderVector::readTelluricWavelengthINTOExtendendSpectra(string
             operaWavelength *wavelength = spectralOrder->getWavelength();
             operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
             spectralElements->setwavelengthsFromCalibration(wavelength);
+            spectralElements->copyTOtell();	// Save the tell
+            spectralElements->setHasWavelength(true);
+        }
+    }
+}
+
+// Load wavelength calibration into extended spectra and apply radial velocity telluric correction
+void operaSpectralOrderVector::readTelluricRVINTOExtendendSpectra(string telluriccorrection, int Minorder, int Maxorder) {
+    if (telluriccorrection.empty()) {
+        throw operaException("operaSpectralOrderVector: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    ReadSpectralOrders(telluriccorrection);
+    
+    for (int order=Minorder; order<=Maxorder; order++) {
+        operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
+        if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
+            operaWavelength *wavelength = spectralOrder->getWavelength();
+            operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
+            spectralElements->setwavelengthsFromCalibration(wavelength);
+            spectralOrder->applyRVWavelengthCorrection(TelluricRadialVelocityCorrection);
             spectralElements->copyTOtell();	// Save the tell
             spectralElements->setHasWavelength(true);
         }

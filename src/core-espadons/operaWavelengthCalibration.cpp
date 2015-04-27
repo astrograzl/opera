@@ -191,6 +191,8 @@ static void printUsageSyntax(char * modulename) {
 	" --dampingFactor=<FLT_VALUE>"
 	" --initialAcceptableMismatch=<FLT_VALUE>"
 	" --nsigclip=<FLT_VALUE>"
+	" --DetectionThreshold=<FLT_VALUE>"
+	" --MinPeakDepth=<FLT_VALUE>"
     " --ordernumber=<INT_VALUE"
 	" --minorder=<INT_VALUE>"
 	" --maxorder=<INT_VALUE>"
@@ -229,6 +231,8 @@ static void printUsageSyntax(char * modulename) {
 	"  -D, --dampingFactor=<FLT_VALUE>, Damping factor for shrinking the size of the acceptableMismatch on each iteration.  This factor may be set between 0 and 1\n"
 	"  -A, --initialAcceptableMismatch=<FLT_VALUE>, Initial acceptable mismatch difference between atlas and comparison lines (in units of line width)\n"
 	"  -C, --nsigclip=<FLT_VALUE>, Threshold (in units of rms) for clipping lines.\n"
+	"  -y  --DetectionThreshold=<FLT_VALUE>, threshold to regulate the sensitivity of line detection. Must be between 0 and 1."
+	"  -z  --MinPeakDepth=<FLT_VALUE>, limit that also regulates the sensitity of line detection in units of noise."
     "  -O, --ordernumber=<INT_VALUE>, Absolute order number to extract (default=all)\n"
 	"  -N, --minorder=<INT_VALUE>, Define minimum order number\n"
 	"  -X, --maxorder=<INT_VALUE>, Define maximum order number\n"
@@ -306,7 +310,7 @@ int main(int argc, char *argv[])
     unsigned maxorderofpolynomial = 4;      // maximum degree of polynomial for wavelength solution
     double dampingFactor = 0.90;            // Damping factor to shrink the size of the quantity acceptableMismatch on each iteration.  This factor may be set between 0 to 1.
     double initialAcceptableMismatch = 1.0; // initial acceptable mismatch difference between atlas and comparison lines. Used for identification. In units of line width.
-    double nsig = 3.0;						// Threshold (in units of rms) for clipping lines.
+    double nsigclip = 3.0;						// Threshold (in units of rms) for clipping lines.
     
 	struct option longopts[] = {
 		{"atlas_lines",1, NULL, 'a'},
@@ -329,6 +333,8 @@ int main(int argc, char *argv[])
 		{"dampingFactor",1, NULL, 'D'},                 // Damping factor to shrink the size of the quantity acceptableMismatch on each iteration.  This factor may be set between 0 to 1.
 		{"initialAcceptableMismatch",1, NULL, 'A'},     // initial acceptable mismatch difference between atlas and comparison lines. Used for identification. In units of line width.
 		{"nsigclip",1, NULL, 'C'},                      // Threshold (in units of rms) for clipping lines.		{"initialAcceptableMismatch",1, NULL, 'A'},     // initial acceptable mismatch difference between atlas and comparison lines. Used for identification. In units of line width.
+		{"DetectionThreshold",1, NULL, 'y'},
+		{"MinPeakDepth",1, NULL, 'z'},
         {"ordernumber",1, NULL, 'O'},
 		{"minorder",1, NULL, 'N'},
 		{"maxorder",1, NULL, 'X'},
@@ -352,7 +358,7 @@ int main(int argc, char *argv[])
 		{"help",		no_argument, NULL, 'h'},
 		{0,0,0,0}};
 
-	while((opt = getopt_long(argc, argv, "a:s:l:u:w:g:r:o:e:n:B:W:R:T:M:L:Y:D:A:C:O:N:X:P:Q:S:U:E:K:F:G:H:J:I:p::v::d::t::h",
+	while((opt = getopt_long(argc, argv, "a:s:l:u:w:g:r:o:e:n:B:W:R:T:M:L:Y:D:A:C:y:z:O:N:X:P:Q:S:U:E:K:F:G:H:J:I:p::v::d::t::h",
 							 longopts, NULL))  != -1)
 	{
 		switch(opt) 
@@ -415,7 +421,13 @@ int main(int argc, char *argv[])
 				initialAcceptableMismatch = atof(optarg);
 				break;
 			case 'C':
-				nsig = atof(optarg);
+				nsigclip = atof(optarg);
+				break;
+			case 'y':
+				DetectionThreshold = atof(optarg);
+				break;
+			case 'z':
+				MinPeakDepth = atof(optarg);
 				break;
 			case 'O':
 				ordernumber = atoi(optarg);
@@ -525,7 +537,9 @@ int main(int argc, char *argv[])
 			cerr << "operaWavelengthCalibration: maxorderofpolynomial = " << maxorderofpolynomial << endl;
 			cerr << "operaWavelengthCalibration: dampingFactor = " << dampingFactor << endl;
 			cerr << "operaWavelengthCalibration: initialAcceptableMismatch = " << initialAcceptableMismatch << endl;
-			cerr << "operaWavelengthCalibration: nsig = " << nsig << endl;
+			cerr << "operaWavelengthCalibration: nsigclip = " << nsigclip << endl;
+			cerr << "operaWavelengthCalibration: DetectionThreshold = " << DetectionThreshold << endl;
+			cerr << "operaWavelengthCalibration: MinPeakDepth = " << MinPeakDepth << endl;
             if(ordernumber != NOTPROVIDED) {
                 cerr << "operaWavelengthCalibration: ordernumber = " << ordernumber << endl;            
             }
@@ -807,7 +821,7 @@ int main(int argc, char *argv[])
                             double *sigma = currentFeature->getGaussianFit()->getSigmaVector();
                             double *amplitude = currentFeature->getGaussianFit()->getAmplitudeVector();
                             for(unsigned l=0; l<currentFeature->getnLines(); l++) {
-                                if(sigma[l] > rawlinewidth - (double)nsig*rawlinewidth_err && sigma[l] < rawlinewidth + (double)nsig*rawlinewidth_err) {
+                                if(sigma[l] > rawlinewidth - (double)nsigclip*rawlinewidth_err && sigma[l] < rawlinewidth + (double)nsigclip*rawlinewidth_err) {
                                     rawlinecenter[line] = center[l];
                                     rawlinecenterError[line] = centerError[l];
                                     rawlineflux[line] = amplitude[l];
@@ -1072,7 +1086,7 @@ int main(int argc, char *argv[])
                         
 						wavelength->matchAtlaswithComparisonLines(acceptableMismatch);
                         
-						wavelength->filterDataPointsBySigmaClip((double)nsig);
+						wavelength->filterDataPointsBySigmaClip((double)nsigclip);
 						
 						wavelength->RefineWavelengthSolution(bestnpar,false);
 						
@@ -1197,7 +1211,7 @@ int main(int argc, char *argv[])
 					if(wavelength->getnDataPoints() <= bestnpar) {
 						bestnpar = wavelength->getnDataPoints()-1;
 					}
-                    wavelength->filterDataPointsBySigmaClip((double)nsig/2);
+                    wavelength->filterDataPointsBySigmaClip((double)nsigclip/2);
 					wavelength->CalculateWavelengthSolution(bestnpar,false);
                     
                     double ComparisonMatchPercentage =  wavelength->getPerCentageOfComparisonMatch();

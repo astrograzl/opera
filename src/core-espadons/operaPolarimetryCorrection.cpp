@@ -434,7 +434,7 @@ int main(int argc, char *argv[])
         //---------------------------------
         // Load telluric corrected wavelength calibration
 		if (!telluriccorrection.empty()) {
-            spectralOrders.readTelluricWavelengthINTOExtendendSpectra(telluriccorrection, minorder, maxorder);
+            spectralOrders.readTelluricRVINTOExtendendSpectra(telluriccorrection, minorder, maxorder);
 		}
 
         //---------------------------------

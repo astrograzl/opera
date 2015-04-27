@@ -2546,3 +2546,19 @@ Apr 8 2015
   - Updated each reference spectrum of standards (../config/standards/*_operaFluxCal.dat) to cover a wider wavelength range because the first order used now (#22) exceeds the previous range
   - Updated wavelengthMaskForUncalContinuumDetection.txt and wavelengthMaskForRefContinuumDetection.txt to cover a wider range as well
   - Updated installation instructions
+
+Apr 28 2015
+  - Added wavelength calibration parameters for DetectionThreshold and MinPeakDepth (operaWavelengthCalibration)
+  - Fixed issue where harness was using the wrong parameter names for plots in operaPolarimetryCorrection
+  - Fixed issue where harness was not passsing .rvel or .tell files to operaCreateProduct for all modes
+  - Fixed harness to say "Heliocentric" instead of "Barycentric"
+  - Fixed various order numbering problems caused by LE_order_wavelength.dat and wcal_ref.dat.gz files, as well as referenceOrderNumber and stitch_orderOfReference parameters
+  - Updated more modules to use operaArgumentHandler (operaBias, operaCalculateSpectraclResolution)
+  - Updated the way telluric wavelength corrections are applied so the .tell file contains a radial velocity shift instead of wavelength calibration coefficients (operaTelluricWavelengthCorrection, operaSpectralOrder, operaSpectralOrderVector, operaPolarIntensity, operaPolarimetryCorrection, operaStarOnly, operaStarPlusSky)
+  - Updated FITS output file to contain header keyword "TELLRV" (operaCreateProduct)
+  - Updated FITS output file to no longer contain comments with redundant column descriptions (operaCreateProduct)
+  - Updated telluric region mask (wavelengthMaskForTelluricAbsorption.txt)
+  - Updated harness to be able to use LE order wavelength ranges for generating LE polarimetry products
+  - Updated harness parameters in geometry calibration, instrumpent profile calibration, and polarimetry extraction
+  - Updated harness to set x/y-ranges for plots of LE products
+  - Updated GRACES harness with modifications similiar to the ones made for ESPaDOnS

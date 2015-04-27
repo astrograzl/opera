@@ -3,7 +3,7 @@
  *******************************************************************
  Module name: operaBias
  Version: 1.0
- Description: This module calculates the chip bias.
+ Description: Calculate the chip bias.
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
@@ -35,20 +35,16 @@
 // $Locker$
 // $Log$
 
-#include <string.h>
-#include <getopt.h>
-
 #include "globaldefines.h"
 #include "operaError.h"
-#include "core-espadons/operaBias.h"
-#include "core-espadons/operaGain.h"							// for MAXIMAGES
+#include "core-espadons/operaGain.h" // for MAXIMAGES
 #include "libraries/operaException.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaFITSImage.h"
-
 #include "libraries/operaImage.h"
 #include "libraries/operaStats.h"
 #include "libraries/operaLibCommon.h"
+#include "libraries/operaArgumentHandler.h"
 
 /*! \file operaBias.cpp */
 
@@ -69,149 +65,108 @@ using namespace std;
  * \return EXIT_STATUS
  */
 
-int main(int argc, char *argv[])
-{
-	int opt;
-	string gainNoiseBias;
-	string output;
-	string biasimgs[MAXIMAGES];			
-	unsigned namps = 0;
-	unsigned index = 0;
-	unsigned nampsexpected = 1;
+unsigned short CalculateMedianBiases(string filename, const bool dooverscan, unsigned short& medianBiasA, unsigned short& medianBiasB) {
 	const unsigned overscan = 20;
 	const unsigned AmpBStartCol = 1045;
 	const unsigned AmpBEndCol = 2068;
 	const unsigned CCDX = 2080;
 	const unsigned CCDY = 4608;
-	bool dooverscan = false;			// whether to use the median of the whole array or just the ast column
-										// of ampA and the first column of ampB (reduce troughing)
+	operaFITSImage bias(filename, READONLY);
+	if (dooverscan) {
+		// ampA
+		unsigned short *pixels = new unsigned short[CCDY * overscan];
+		unsigned short *p = pixels;
+		for (unsigned y=0; y<CCDY; y++) {
+			for (unsigned x=0; x<overscan; x++) {
+				*p++ = bias.getpixelUSHORT(x, y);
+			}
+		}
+		medianBiasA = operaArrayMedianQuickUSHORT(CCDY, pixels);	// scrambles the pixels
+		// ampB
+		p = pixels;
+		for (unsigned y=0; y<CCDY; y++) {
+			for (unsigned x=AmpBEndCol; x<CCDX; x++) {
+				*p++ = bias.getpixelUSHORT(x, y);
+			}
+		}
+		medianBiasB = operaArrayMedianQuickUSHORT(CCDY, pixels);	// scrambles the pixels
+		delete[] pixels;
+	} else {
+		// ampA
+		unsigned short *pixels = new unsigned short[(AmpBStartCol-overscan) * CCDY];
+		unsigned short *p = pixels;
+		for (unsigned y=0; y<CCDY; y++) {
+			for (unsigned x=overscan; x<AmpBStartCol; x++) {
+				*p++ = bias.getpixelUSHORT(x, y);
+			}
+		}
+		medianBiasA = operaArrayMedianQuickUSHORT((AmpBStartCol-overscan) * CCDY, pixels);	// scrambles the pixels
+		// ampB
+		p = pixels;
+		for (unsigned y=0; y<CCDY; y++) {
+			for (unsigned x=AmpBStartCol; x<AmpBEndCol; x++) {
+				*p++ = bias.getpixelUSHORT(x, y);
+			}
+		}
+		medianBiasB = operaArrayMedianQuickUSHORT((AmpBEndCol-AmpBStartCol) * CCDY, pixels);	// scrambles the pixels
+		delete[] pixels;
+	}
+	bias.operaFITSImageClose();
+}
+
+int main(int argc, char *argv[])
+{
+	operaArgumentHandler args;
+	string biaslist;
+	string gainNoiseBias;
+	string output;
+	bool dooverscan; // whether to use the median of the whole array or just the last column of ampA and the first column of ampB (reduce troughing)
+	unsigned nampsexpected = 1;
 	
-	int debug=0, verbose=0, trace=0, plot=0;
-	
-	struct option longopts[] = {
-		{"bias",                1, NULL, 'b'},	// bias		
-		{"gain",                1, NULL, 'g'},	// gain file		
-		{"output",              1, NULL, 'o'},	// output .bias file		
-		{"overscan",            0, NULL, 's'},	// do overscan only	
-		{"numberofamplifiers",	1, NULL, 'a'},	// how many amps do we expect		
-		
-		{"plot",                optional_argument, NULL, 'p'},       
-		{"verbose",             optional_argument, NULL, 'v'},
-		{"debug",               optional_argument, NULL, 'd'},
-		{"trace",               optional_argument, NULL, 't'},
-		{"help",                no_argument, NULL, 'h'},
-		{0,0,0,0}};
+	args.AddRequiredArgument("bias", biaslist, "list of biases, separated by spaces");
+	args.AddRequiredArgument("gain", gainNoiseBias, "gain / noise / bias file");
+	args.AddRequiredArgument("output", output, "output .bias file");
+	args.AddSwitch("overscan", dooverscan, "do overscan only");
+	args.AddRequiredArgument("numberofamplifiers", nampsexpected, "how many amps are expected");
+	//" Usage: operaBias --dooverscan=1|0 --gainNoiseBias=...gain.gz --nampsexpected=1|2 --output=... [--bias=image]* -[dvpth]\n";
 	
 	try  {
-		while ((opt = getopt_long(argc, argv, "g:b:a:o:sv::d::t::p::h", longopts, NULL))  != -1) {
-			switch (opt) {
-				case 'b':		// bias name
-					biasimgs[index++] = optarg;
-					break;						
-				case 's':
-					dooverscan = true;
-					break;						
-				case 'g':		// gain / noise / bias file
-					gainNoiseBias = optarg;
-					break;						
-				case 'a':		// setting expectations
-					nampsexpected = atoi(optarg);
-					break;						
-				case 'o':
-					output = optarg;
-					break;						
-					
-				case 'v':
-					verbose = 1;
-					break;
-				case 'p':
-					plot = 1;
-					break;
-				case 'd':
-					debug = true;
-					break;
-				case 't':
-					trace = true; 
-					break;         
-				case 'h':
-					printUsageSyntax();
-					exit(EXIT_SUCCESS);
-					break;
-				default:
-					printUsageSyntax();
-					exit(EXIT_SUCCESS);
-					break;
-			}	// switch
-		}	// while
-		
+		args.Parse(argc, argv);
+		vector<string> biasimgs;
+		if (!biaslist.empty()) { //split biaslist on spaces into vector
+			stringstream ss(biaslist);
+			string temp;
+			while (getline(ss, temp, ' ')) biasimgs.push_back(temp);
+		}
 		
 		if (output.empty()) {
 			throw operaException("operaBias: please specify an output ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
 		}
-		if (biasimgs[0].empty()) {
+		if (biasimgs.empty() || biasimgs[0].empty()) {
 			throw operaException("operaBias: please specify a bias ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
 		
-		operaSpectralOrderVector *spectralOrders = new operaSpectralOrderVector();
+		operaSpectralOrderVector spectralOrders;
+		unsigned namps = 0;
 		if (!gainNoiseBias.empty()) {
-			spectralOrders->readGainNoise(gainNoiseBias);
-			namps = spectralOrders->getGainBiasNoise()->getAmps();
+			spectralOrders.readGainNoise(gainNoiseBias);
+			namps = spectralOrders.getGainBiasNoise()->getAmps();
 		}
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaBias: gain " << gainNoiseBias << endl;
 			cout << "operaBias: namps " << namps << endl;
 			cout << "operaBias: nampsexpected " << nampsexpected << endl;
 			cout << "operaBias: do overscan only " << dooverscan << endl;
 		}
 		
-		for (unsigned i=0; i<index; i++) {
-			if (verbose) {
+		for (unsigned i=0; i<biasimgs.size(); i++) {
+			if (args.verbose) {
 				cout << "operaBias: bias " << biasimgs[i] << endl;
 			}
 			// get the two median bias levels
-			operaFITSImage bias(biasimgs[i], READONLY);
-			unsigned short medianBiasB = 0;
-			unsigned short medianBiasA = 0;
-			
-			if (dooverscan) {
-				// ampA
-				unsigned short *pixels = new unsigned short[CCDY * overscan];
-				unsigned short *p = pixels;
-				for (unsigned y=0; y<CCDY; y++) {
-					for (unsigned x=0; x<overscan; x++) {
-						*p++ = bias.getpixelUSHORT(x, y);
-					}
-				}
-				medianBiasA = operaArrayMedianQuickUSHORT(CCDY, pixels);	// scrambles the pixels
-																			// ampB
-				p = pixels;
-				for (unsigned y=0; y<CCDY; y++) {
-					for (unsigned x=AmpBEndCol; x<CCDX; x++) {
-						*p++ = bias.getpixelUSHORT(x, y);
-					}
-				}
-				medianBiasB = operaArrayMedianQuickUSHORT(CCDY, pixels);	// scrambles the pixels
-				free(pixels);
-			} else {
-				// ampA
-				unsigned short *pixels = new unsigned short[(AmpBStartCol-overscan) * CCDY];
-				unsigned short *p = pixels;
-				for (unsigned y=0; y<CCDY; y++) {
-					for (unsigned x=overscan; x<AmpBStartCol; x++) {
-						*p++ = bias.getpixelUSHORT(x, y);
-					}
-				}
-				medianBiasA = operaArrayMedianQuickUSHORT((AmpBStartCol-overscan) * CCDY, pixels);	// scrambles the pixels
-																									// ampB
-				p = pixels;
-				for (unsigned y=0; y<CCDY; y++) {
-					for (unsigned x=AmpBStartCol; x<AmpBEndCol; x++) {
-						*p++ = bias.getpixelUSHORT(x, y);
-					}
-				}
-				medianBiasB = operaArrayMedianQuickUSHORT((AmpBEndCol-AmpBStartCol) * CCDY, pixels);	// scrambles the pixels
-				free(pixels);
-			}
+			unsigned short medianBiasA;
+			unsigned short medianBiasB;
+			CalculateMedianBiases(biasimgs[i], dooverscan, medianBiasA, medianBiasB);
 			
 			if (isnan(medianBiasA))
 				throw operaException("operaBias: bias 0 : ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
@@ -221,21 +176,18 @@ int main(int argc, char *argv[])
 				throw operaException("operaBias: bias 1: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
 			if (isinf(medianBiasB))
 				throw operaException("operaBias: bias 1: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
-			if (verbose) {
-				cout << "operaBias: Changing Bias ampA from " << spectralOrders->getGainBiasNoise()->getBias(0) << " to " << medianBiasA  << endl;					
+			if (args.verbose) {
+				cout << "operaBias: Changing Bias ampA from " << spectralOrders.getGainBiasNoise()->getBias(0) << " to " << medianBiasA  << endl;					
 				if (nampsexpected > 1) {
-					cout << "operaBias: Changing Bias ampB from " << spectralOrders->getGainBiasNoise()->getBias(1) << " to " << medianBiasB  << endl;					
+					cout << "operaBias: Changing Bias ampB from " << spectralOrders.getGainBiasNoise()->getBias(1) << " to " << medianBiasB  << endl;					
 				}
 			}
-			// set the gain / noise / bias
-			spectralOrders->getGainBiasNoise()->setBias(0, medianBiasA);
-			spectralOrders->getGainBiasNoise()->setBias(1, medianBiasB);
-			bias.operaFITSImageClose();
+			// set the gain/noise/bias
+			spectralOrders.getGainBiasNoise()->setBias(0, medianBiasA);
+			spectralOrders.getGainBiasNoise()->setBias(1, medianBiasB);
 		}
-		if (namps < 2)
-			spectralOrders->getGainBiasNoise()->setAmps(nampsexpected);
-		spectralOrders->WriteSpectralOrders(output, GainNoise);
-		delete spectralOrders;
+		if (namps < 2) spectralOrders.getGainBiasNoise()->setAmps(nampsexpected);
+		spectralOrders.WriteSpectralOrders(output, GainNoise);
 	}
 	catch (operaException e) {
 		cerr << "operaBias: " << e.getFormattedMessage() << endl;
@@ -247,11 +199,3 @@ int main(int argc, char *argv[])
 	}
 	return EXIT_SUCCESS;
 }
-
-/* Print out the proper program usage syntax */
-static void printUsageSyntax() {
-	cout <<
-	"\n"
-	" Usage: operaBias --dooverscan=1|0 --gainNoiseBias=...gain.gz --nampsexpected=1|2 --output=... [--bias=image]* -[dvpth]\n";
-}	
-

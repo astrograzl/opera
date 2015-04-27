@@ -35,12 +35,6 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
-#include <fstream>
-#include <iostream>
-#include <string>
-
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
@@ -48,7 +42,9 @@
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/operaWavelength.h" // for MAXORDEROFWAVELENGTHPOLYNOMIAL
 #include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
+#include "libraries/operaArgumentHandler.h"
 #include "core-espadons/operaCalculateSpectralResolution.h"
+#include <fstream>
 
 /*! \file operaCalculateSpectralResolution.cpp */
 
@@ -74,132 +70,45 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
+	
 	string inputWaveFile;
+	string outputWaveFile;
 	string outputResolutionFile;
-    string outputWaveFile;
-    
     int minorderOfLaurentPolynomial = -3;
     int maxorderOfLaurentPolynomial = 0;
-	
+    unsigned maxorderofpolynomial = 4; // maximum degree of polynomial for wavelength solution
     unsigned binsizeToRemoveOutliers = 7;
-    float thresholdToRemoveOutliers = 2;
+    double thresholdToRemoveOutliers = 2;
 
-    unsigned maxorderofpolynomial = 4;      // maximum degree of polynomial for wavelength solution    
+    int minoutputorder = 22;
+    int maxoutputorder = 61;
+    int ordernumber = NOTPROVIDED;
 
-    unsigned minoutputorder = 22;
-    bool minorderprovided = false;
-    unsigned maxoutputorder = 61;
-    bool maxorderprovided = false;
-    int ordernumber = NOTPROVIDED;	    
-    
-    bool interactive = false;
-    
-	int debug=0, verbose=0, trace=0;
-    
-    int plot=0;
-    string plotfilename;	
-	string datafilename;	
-	string scriptfilename;	
-
-	struct option longopts[] = {
-		{"inputWaveFile",1, NULL, 'w'},
-		{"outputWaveFile",1, NULL, 'u'},
-		{"outputResolutionFile",1, NULL, 'o'},
-		{"minorderOfLaurentPolynomial",1, NULL, 'M'},
-		{"maxorderOfLaurentPolynomial",1, NULL, 'L'},
-		{"maxorderofpolynomial",1, NULL, 'Y'},          // maximum degree of polynomial for wavelength solution        
-		{"binsizeToRemoveOutliers",1, NULL, 'B'},
-		{"thresholdToRemoveOutliers",1, NULL, 'T'},
-        {"ordernumber",1, NULL, 'O'},
-		{"minoutputorder",1, NULL, 'N'},
-		{"maxoutputorder",1, NULL, 'X'},
-		{"plotfilename",1, NULL, 'P'},
-		{"datafilename",1, NULL, 'F'},
-		{"scriptfilename",1, NULL, 'S'},  
-		{"interactive",0, NULL, 'I'},
-        {"plot",		optional_argument, NULL, 'p'},
-		{"verbose",		optional_argument, NULL, 'v'},
-		{"debug",		optional_argument, NULL, 'd'},
-		{"trace",		optional_argument, NULL, 't'},
-		{"help",		no_argument, NULL, 'h'},
-		{0,0,0,0}};
+    string plotfilename;
+	string datafilename;
+	string scriptfilename;
+	bool interactive = false;
 	
-	while((opt = getopt_long(argc, argv, "w:u:o:M:L:B:T:Y:O:N:X:P:F:S:I:p::v::d::t::h",  longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'w':
-				inputWaveFile = optarg;
-				break;
-			case 'u':
-				outputWaveFile = optarg;
-				break;
-			case 'o':		// output
-				outputResolutionFile = optarg;
-				break;
-			case 'M':	
-				minorderOfLaurentPolynomial = atoi(optarg);
-				break;
-			case 'L':
-				maxorderOfLaurentPolynomial = atoi(optarg);
-				break;
-            case 'B':
-				binsizeToRemoveOutliers = atoi(optarg);
-				break;
-			case 'T':
-				thresholdToRemoveOutliers = atof(optarg);
-				break;
-			case 'Y':
-				maxorderofpolynomial = atoi(optarg);
-				break;
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;
-			case 'N':
-				minoutputorder = atoi(optarg);
-                minorderprovided = true;
-				break;
-			case 'X':
-				maxoutputorder = atoi(optarg);
-                maxorderprovided = true;
-				break;
-			case 'P':
-				plotfilename = optarg;
-				break; 		                
-			case 'F':
-				datafilename = optarg;
-				break; 	
-			case 'S':
-				scriptfilename = optarg;
-				break;  
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
-            case 'p':
-				plot = 1;
-				break;
-            case 'v':
-				verbose = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
+	args.AddRequiredArgument("inputWaveFile", inputWaveFile, "Input wavelength calibration file");
+	args.AddOptionalArgument("outputWaveFile", outputWaveFile, "", "Output wavelength calibration file with updated solution for all orders");
+	args.AddOptionalArgument("outputResolutionFile", outputResolutionFile, "", "Output echelle dispersion calibration file to store final solution");
+	args.AddRequiredArgument("minorderOfLaurentPolynomial", minorderOfLaurentPolynomial, "Minimum power of Laurent Polynomial solution. WARNING: Current version only supports fitting for min power negative");
+	args.AddRequiredArgument("maxorderOfLaurentPolynomial", maxorderOfLaurentPolynomial, "Maximum power of Laurent Polynomial solution. WARNING: Current version only supports fitting for max power = 0");
+	args.AddRequiredArgument("maxorderofpolynomial", maxorderofpolynomial, "Maximum degree of polynomial for input wavelength solution");
+	args.AddOptionalArgument("binsizeToRemoveOutliers", binsizeToRemoveOutliers, 7, "?");
+	args.AddOptionalArgument("thresholdToRemoveOutliers", thresholdToRemoveOutliers, 4, "?");
+	args.AddOptionalArgument("minoutputorder", minoutputorder, 22, "Define minimum output order number");
+	args.AddOptionalArgument("maxoutputorder", maxoutputorder, 61, "Define maximum output order number");
+	args.AddOptionalArgument("ordernumber", ordernumber, NOTPROVIDED, "Absolute order number to extract (default=all)");
+	args.AddOptionalArgument("plotfilename", plotfilename, "", "eps file");
+	args.AddOptionalArgument("datafilename", datafilename, "", "data file");
+	args.AddOptionalArgument("scriptfilename", scriptfilename, "", "gnuplot file");
+	args.AddSwitch("interactive", interactive, "For interactive plots");
+	//" Example: "+string(modulename)+" --inputWaveFile=/Users/edermartioli/opera/calibrations/PolarData/OLAPAa_pol_Normal.wcal.gz --minorderOfLaurentPolynomial=-3 --maxorderOfLaurentPolynomial=0 --outputResolutionFile=/Users/edermartioli/opera/calibrations/PolarData/OLAPAa_pol_Normal.disp.gz --datafilename=disp.dat --scriptfilename=disp.gnu\n\n"
 	
 	try {
+		args.Parse(argc, argv);
 		// we need an input...
 		if (inputWaveFile.empty()) {
 			throw operaException("operaCalculateSpectralResolution: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -208,7 +117,7 @@ int main(int argc, char *argv[])
 			throw operaException("operaCalculateSpectralResolution: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
 		}
 
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaCalculateSpectralResolution: inputWaveFile = " << inputWaveFile << endl;
 			cout << "operaCalculateSpectralResolution: outputWaveFile = " << outputWaveFile << endl;
 			cout << "operaCalculateSpectralResolution: outputResolutionFile = " << outputResolutionFile << endl;
@@ -220,7 +129,7 @@ int main(int argc, char *argv[])
             if(ordernumber != NOTPROVIDED) {
                 cerr << "operaWavelengthCalibration: ordernumber = " << ordernumber << endl;
             }
-            if(plot) {
+            if(args.plot) {
                 cout << "operaCalculateSpectralResolution: plotfilename = " << plotfilename << endl;
                 cout << "operaCalculateSpectralResolution: datafilename = " << datafilename << endl;
                 cout << "operaCalculateSpectralResolution: scriptfilename = " << scriptfilename << endl;                
@@ -312,13 +221,13 @@ int main(int argc, char *argv[])
             
             dispersionPolynomial[wlcoeffIndex]->FitModeltoData();
             
-            if(verbose){
+            if(args.verbose){
                 cout << "operaCalculateSpectralResolution: dispersion solution => ";
                 dispersionPolynomial[wlcoeffIndex]->printEquation(&cout);
             }
             
             double rms = dispersionPolynomial[wlcoeffIndex]->calculateRMSofResiduals();
-            if(verbose)
+            if(args.verbose)
                 cout << "operaCalculateSpectralResolution: RMS=" <<  rms << endl;
             
             PolynomialCoeffs_t *pc = dispersionPolynomial[wlcoeffIndex]->getLaurentPolynomialCoeffs();
@@ -335,19 +244,14 @@ int main(int argc, char *argv[])
             }
         }
         
-        if(!minorderprovided) {
-            minoutputorder = spectralOrdervector.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxoutputorder = spectralOrdervector.getMaxorder();
-        }
-		
+        if(minoutputorder == NOTPROVIDED) minoutputorder = spectralOrdervector.getMinorder();
+        if(maxoutputorder == NOTPROVIDED) maxoutputorder = spectralOrdervector.getMaxorder();
 		if(ordernumber != NOTPROVIDED) {
 			minoutputorder = ordernumber;
 			maxoutputorder = ordernumber;
 		}
 		
-		if (verbose) {
+		if (args.verbose) {
 			cerr << "operaWavelengthCalibration: minorder = " << minoutputorder << " maxorder = " << maxoutputorder << endl;
 		}
         
@@ -374,7 +278,7 @@ int main(int argc, char *argv[])
                     wavelengthPolynomial->setCoefficient(wlcoeffIndex, wavelengthPolynomialCoeff);
                     wavelengthPolynomial->setCoefficientError(wlcoeffIndex, wavelengthPolynomialError);
                 }
-                if (verbose) {
+                if (args.verbose) {
 					wavelengthPolynomial->printEquation(&cout);
 				}
             }
@@ -404,40 +308,6 @@ int main(int argc, char *argv[])
 	
 	return EXIT_SUCCESS;
 } 
-
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdthp]" +
-	" --inputWaveFile=<WAVE_FILE>"
-	" --outputWaveFile=<WAVE_FILE>"
-	" --outputResolutionFile=<DISP_FILE>"
-	" --minorderOfLaurentPolynomial=<INT_VALUE>"
-	" --maxorderOfLaurentPolynomial=<INT_VALUE>"
-	" --maxorderofpolynomial=<UNS_VALUE>"
-    " --ordernumber=<INT_VALUE"
-	" --minoutputorder=<INT_VALUE>"
-	" --maxoutputorder=<INT_VALUE>"
-    " --plotfilename=<EPS_FILE>"
-	" --datafilename=<DATA_FILE>"
-	" --scriptfilename=<GNUPLOT_FILE>"
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputWaveFile=/Users/edermartioli/opera/calibrations/PolarData/OLAPAa_pol_Normal.wcal.gz --minorderOfLaurentPolynomial=-3 --maxorderOfLaurentPolynomial=0 --outputResolutionFile=/Users/edermartioli/opera/calibrations/PolarData/OLAPAa_pol_Normal.disp.gz --datafilename=disp.dat --scriptfilename=disp.gnu\n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -w, --inputWaveFile=<WAVE_FILE>, Input wavelength calibration file\n"
-	"  -u, --outputWaveFile=<WAVE_FILE>, Output wavelength calibration file with updated solution for all orders \n"
-	"  -o, --outputResolutionFile=<DISP_FILE>, Output echelle dispersion calibration file to store final solution\n"
-	"  -M, --minorderOfLaurentPolynomial=<INT_VALUE>, Minimum power of Laurent Polynomial solution. WARNING: Current version only supports fitting for min power negative. \n"
-	"  -L, --maxorderOfLaurentPolynomial=<INT_VALUE>, Maximum power of Laurent Polynomial solution. WARNING: Current version only supports fitting for max power = 0. \n"
-    "  -Y, --maxorderofpolynomial=<UNS_VALUE>, Maximum degree of polynomial for input wavelength solution\n"    
-    "  -O, --ordernumber=<INT_VALUE>, Absolute order number to extract (default=all)\n"
-	"  -N, --minoutputorder=<INT_VALUE>, Define minimum output order number\n"
-	"  -X, --maxoutputorder=<INT_VALUE>, Define maximum output order number\n";
-}
 
 void GenerateSpectralResolutionPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileNames[], string origdataFileNames[], unsigned npolynomials, LaurentPolynomial *polynomials[], bool display)
 {

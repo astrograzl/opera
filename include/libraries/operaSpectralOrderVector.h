@@ -72,6 +72,7 @@ private:
 									// not the length of the vector (which will be MAXORDERS)
 	GainBiasNoise *gainBiasNoise;	// flat stats
 	double BarycentricRadialVelocityCorrection;
+	double TelluricRadialVelocityCorrection;
 
 public:
 	
@@ -143,10 +144,15 @@ public:
 	 */
 	double getBarycentricRadialVelocityCorrection();	
 	/*!
-	 * void getBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
+	 * void setBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
 	 * \brief sets the double BarycentricRadialVelocityCorrection.
 	 */
 	void setBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
+	/*!
+	 * void setTelluricRadialVelocityCorrection(double TelluricRadialVelocityCorrection);
+	 * \brief sets the double TelluricRadialVelocityCorrection.
+	 */
+	void setTelluricRadialVelocityCorrection(double TelluricRadialVelocityCorrection);
 	
 	/*! 
 	 * \sa method unsigned getCount();
@@ -318,6 +324,8 @@ public:
 	
 	void readRadialVelocityCorrection(string filename);
 	
+	void readTelluricRVCorrection(string filename);
+	
 	void readOrdersFromAperture(string filename, unsigned &count, unsigned &minorder, unsigned &maxorder);
 	
 	void readOrdersFromPolar(string filename, unsigned &count, unsigned &minorder, unsigned &maxorder);
@@ -351,6 +359,7 @@ public:
     void calculateCleanUniformSampleOfContinuum(int Minorder, int Maxorder, unsigned binsize, double delta_wl, string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, float *uniform_wl, float *uniform_flux,float *uniform_Beamflux[MAXNUMBEROFBEAMS], bool useBeams);
     
     void readTelluricWavelengthINTOExtendendSpectra(string telluriccorrection, int Minorder, int Maxorder);
+    void readTelluricRVINTOExtendendSpectra(string telluriccorrection, int Minorder, int Maxorder);
     void readRVCorrectionINTOExtendendSpectra(string Radialvelocitycorrection, string WavelengthCalibration, int Minorder, int Maxorder);
     void correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky);
     void correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky, bool starplusskyInvertSkyFiber);

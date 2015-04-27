@@ -45,5 +45,4 @@
 
 void GenerateSpectralResolutionPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileNames[], string origdataFileNames[], unsigned npolynomials, LaurentPolynomial *polynomials[], bool display);
 
-static void printUsageSyntax(char *prgname);
 #endif

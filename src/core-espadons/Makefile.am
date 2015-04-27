@@ -84,7 +84,7 @@ operaGeometryCalibration_SOURCES = operaGeometryCalibration.cpp operaGeometryCal
 
 operaSNR_SOURCES = operaSNR.cpp operaSNR.h
 
-operaBias_SOURCES = operaBias.cpp operaBias.h
+operaBias_SOURCES = operaBias.cpp
 
 operaMasterFlat_SOURCES = operaMasterFlat.cpp operaMasterFlat.h
 			

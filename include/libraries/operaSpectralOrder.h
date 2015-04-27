@@ -385,7 +385,7 @@ public:
 	/*
 	 * Barycentric Wavelength Correction
 	 */
-    void applyBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond);
+    void applyRVWavelengthCorrection(double RVcorrectionInKmPerSecond);
 	void setExtendedBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond);
     void applyBarycentricWavelengthCorrectionFromExtendedRvel(void);
 };

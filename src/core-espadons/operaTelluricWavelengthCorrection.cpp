@@ -353,37 +353,41 @@ int main(int argc, char *argv[])
         }
         //---------------------------------
         
-        /*
-         * Start loop over all orders to apply telluric wavelength correction
-         */
-        if(args.verbose) {
-            cout << "operaTelluricWavelengthCorrection: applying correction to all orders ... " << endl;
-        }
-        for (unsigned order=(unsigned)minorder; order<=(unsigned)maxorder; order++) {
-            if(args.debug) {
-                cout << "operaTelluricWavelengthCorrection: applying correction to order = " << order << endl;
-            }
-            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-            
-            if (spectralOrder->gethasWavelength()) {
-                operaWavelength *wavelength =  spectralOrder->getWavelength();
-                wavelength->applyRadialVelocityCorrection(rvshift);
-                
-                if(fspecdata!=NULL) {
-                    if(spectralOrder->gethasSpectralElements()) {
-                        operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
-                        spectralElements->setwavelengthsFromCalibration(wavelength);
-                    }
-                }
-            } else {
-                if(args.debug)
-                    cout << "operaTelluricWavelengthCorrection: order=" << order << " no wavelength calibration for order " << order << endl;
-                continue;
-            } // if (spectralOrder->gethasWavelength())
- 		}
-
-        // output a new wavelength calibration file
-        spectralOrders.WriteSpectralOrders(outputWaveFile, Wave);
+        // /*
+        //  * Start loop over all orders to apply telluric wavelength correction
+        //  */
+        // if(args.verbose) {
+        //     cout << "operaTelluricWavelengthCorrection: applying correction to all orders ... " << endl;
+        // }
+        // for (unsigned order=(unsigned)minorder; order<=(unsigned)maxorder; order++) {
+        //     if(args.debug) {
+        //         cout << "operaTelluricWavelengthCorrection: applying correction to order = " << order << endl;
+        //     }
+        //     operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+        //     
+        //     if (spectralOrder->gethasWavelength()) {
+        //         operaWavelength *wavelength =  spectralOrder->getWavelength();
+        //         wavelength->applyRadialVelocityCorrection(rvshift);
+        //         
+        //         if(fspecdata!=NULL) {
+        //             if(spectralOrder->gethasSpectralElements()) {
+        //                 operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
+        //                 spectralElements->setwavelengthsFromCalibration(wavelength);
+        //             }
+        //         }
+        //     } else {
+        //         if(args.debug)
+        //             cout << "operaTelluricWavelengthCorrection: order=" << order << " no wavelength calibration for order " << order << endl;
+        //         continue;
+        //     } // if (spectralOrder->gethasWavelength())
+ 		// }
+        // 
+ 		// 
+        // // output a new wavelength calibration file
+        // spectralOrders.WriteSpectralOrders(outputWaveFile, Wave);
+        //Apr 15, 2015 CU - Output rvel shift instead of wcal file
+        spectralOrders.setTelluricRadialVelocityCorrection(rvshift);
+        spectralOrders.WriteSpectralOrders(outputWaveFile, Tell);
         
         
         if(fspecdata!=NULL) {

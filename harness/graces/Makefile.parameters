@@ -199,10 +199,16 @@ gainHighestCount		:= 30000
 
 geom_limit						:= 0.2
 geomsubformat					:= 8 2040 3 4600
-maxorders						:= 45
+maxorders						:= 40
 colDispersion					:= 1
 invertOrders					:= 1
-aperture						:= 30		# width of aperture
+geom_aperture_sp1				:= 30		# width of aperture
+geom_aperture_sp2				:= 30		# width of aperture
+geom_aperture					:= $(geom_aperture_$(MODE))
+#aperture						:= 30		# width of aperture
+orderspacing_aperture_sp1		:= 30		# width of aperture for order spacing
+orderspacing_aperture_sp2		:= 30		# width of aperture for order spacing
+orderspacing_aperture			:= $(orderspacing_aperture_$(MODE))
 detectionMethod					:= 2		# 1 Gaussian, 2 Instrument Profile, 3 Top-hat
 FFTfilter_OLAPA_sp1				:= 0		# smooth using a low-pass FFT filters
 FFTfilter_OLAPA_sp2				:= 0		# smooth using a low-pass FFT filters
@@ -210,9 +216,9 @@ FFTfilter						:= $(FFTfilter_$(DETECTOR)_$(MODE))		# smooth using a low-pass FF
 geomnpar_Fast					:= 3		# max number of coefficents of polynomial (including zero)
 geomnpar_Slow					:= 3		# max number of coefficents of polynomial (including zero)
 geomnpar_Normal					:= 3		# max number of coefficents of polynomial (including zero)
-geombinsize						:= 10		# binning in y direction
+geombinsize						:= 25		# binning in y direction
 nsamples						:= 5		# number of samples for something or other
-minordertouse_OLAPA				:= 17		# the first order that geometry outputs
+minordertouse_OLAPA				:= 22		# the first order that geometry outputs
 minordertouse					:= $(minordertouse_$(DETECTOR))		# the first order that geometry outputs
 recenterIPUsingSliceSymmetry_sp1	:= 0		# refines the geometry
 recenterIPUsingSliceSymmetry_sp2	:= 0		# refines the geometry
@@ -220,9 +226,11 @@ recenterIPUsingSliceSymmetry	:= $(recenterIPUsingSliceSymmetry_$(MODE))
 totalNumberOfSlices_sp2			:= 4		# for recentering
 totalNumberOfSlices_sp1			:= 2		# for recentering
 totalNumberOfSlices				:= $(totalNumberOfSlices_$(MODE))
-referenceOrderNumber			:= 45
+referenceOrderNumber_sp1		:= 45
+referenceOrderNumber_sp2		:= 45
+referenceOrderNumber			:= $(referenceOrderNumber_$(MODE))
 referenceOrderSeparation_sp1	:= 58.0
-referenceOrderSeparation_sp2	:= 58.0
+referenceOrderSeparation_sp2	:= 56.0
 referenceOrderSeparation		:= $(referenceOrderSeparation_$(MODE))
 referenceOrderSamplePosition	:= 2300
 gracesOption                    := 1
@@ -259,6 +267,8 @@ wcal_uncalibrated_linewidth_pol := 2.0
 wcal_maxNIter_pol               := 40
 wcal_minNumberOfLines_pol		:= 40
 wcal_dampingFactor_pol			:= 0.9
+wcal_DetectionThreshold_pol		:= 0.05
+wcal_MinPeakDepth_pol			:= 0.25
 
 wcal_normalizeUncalibratedSpectrum_sp1 := 0
 wcal_normalizationBinSize_sp1   := 150
@@ -267,6 +277,8 @@ wcal_uncalibrated_linewidth_sp1 := 1.25
 wcal_maxNIter_sp1				:= 40
 wcal_minNumberOfLines_sp1		:= 40
 wcal_dampingFactor_sp1			:= 0.9
+wcal_DetectionThreshold_sp1		:= 0.05
+wcal_MinPeakDepth_sp1			:= 0.25
 
 wcal_normalizeUncalibratedSpectrum_sp2 := 0
 wcal_normalizationBinSize_sp2   := 180
@@ -275,6 +287,8 @@ wcal_uncalibrated_linewidth_sp2 := 1.5
 wcal_maxNIter_sp2				:= 40
 wcal_minNumberOfLines_sp2		:= 40
 wcal_dampingFactor_sp2			:= 0.85
+wcal_DetectionThreshold_sp2		:= 0.05
+wcal_MinPeakDepth_sp2			:= 1.00
 
 wcal_normalizeUncalibratedSpectrum := $(wcal_normalizeUncalibratedSpectrum_$(MODE))
 wcal_normalizationBinSize       := $(wcal_normalizationBinSize_$(MODE))
@@ -283,6 +297,8 @@ wcal_uncalibrated_linewidth     := $(wcal_uncalibrated_linewidth_$(MODE))
 wcalmaxNIter                    := $(wcal_maxNIter_$(MODE))
 wcalminNumberOfLines			:= $(wcal_minNumberOfLines_$(MODE))
 wcaldampingFactor				:= $(wcal_dampingFactor_$(MODE))
+wcal_DetectionThreshold			:= $(wcal_DetectionThreshold_$(MODE))
+wcal_MinPeakDepth				:= $(wcal_MinPeakDepth_$(MODE))
 
 #########################################################################################
 # telluric wavelength correction parameters
@@ -291,15 +307,23 @@ wcaldampingFactor				:= $(wcal_dampingFactor_$(MODE))
 telluric_atlas_lines			:= opera_HITRAN08-extracted.par.gz
 telluric_reference_spectrum		:= KPNO_atmtrans.dat.gz
 telluric_absorptionMask			:= wavelengthMaskForTelluricAbsorption.txt
-telluric_spectralResolution_sp1	:= 65000
-telluric_spectralResolution_sp2	:= 80000
-telluric_spectralResolution_pol	:= 65000
+telluric_spectralResolution_sp1	:= 40000
+telluric_spectralResolution_sp2	:= 67000
 telluric_spectralResolution		:= $(telluric_spectralResolution_$(MODE))
 telluric_radialVelocityRange	:= 5.0
 telluric_radialVelocityStep		:= 0.15
 telluric_XCorrelationThreshold	:= 0.1
 telluric_normalizationbinsize	:= 110
 telluric_useFitToFindMaximum	:= 1
+
+#########################################################################################
+# radial velocity parameters
+#########################################################################################
+rv_syntheticSpectrum			:= syntethicSpectra/Teff5500.spec
+rv_xcorrWavelengthMask			:= wavelengthMaskForRVxcorr.txt
+rv_searchRange					:= 200
+rv_searchStep					:= 0.5
+
 
 #########################################################################################
 # Stitch Orders
@@ -349,7 +373,7 @@ LocalMaxFilterWidth		:= 2.5
 #MinPeakDepth			:= 1.5*noise
 MinPeakDepth			:= 1.5
 IPtilt					:= -3.0
-IPminimumlines			:= 7
+IPminimumlines			:= 5
 IPBinsize				:= 100
 #methods of measuring instrument profile
 IPWeightedMeanMethod	:= 1
@@ -368,6 +392,12 @@ IPDefaultMethod			:= $(IPMedianMethod)
 CREATE_NORMALIZED_FLAT		:= 0
 normalizedflataperture		:= 28
 normalizedflatbinsize		:= 40
+
+#########################################################################################
+# flat response creation
+#########################################################################################
+
+flatresponse_normalizationWavelength := 700
 
 #########################################################################################
 # normalize
@@ -533,18 +563,6 @@ TelluricCorrectedWavelengthInNM         := 2
 RVCorrectedWavelengthInNM               := 3
 RVAndTelluricCorrectedWavelengthInNM    := 4
 
-#########################################################################################
-# Polarimetry
-#########################################################################################
-
-StokesI					:= 0
-StokesQ					:= 1
-StokesU					:= 2
-StokesV					:= 3
-stokesparameter			:= $(StokesQ)
-difference				:= 1
-ratio					:= 2
-polarmethod				:= $(ratio)
 
 #########################################################################################
 # Compression
@@ -586,10 +604,6 @@ Na		:= 589.0
 Na2		:= 589.6
 He		:= 587.5618
 
-#########################################################################################
-# operaBinPolarData
-#########################################################################################
-polarbinningsize	:= 750
 
 #########################################################################################
 #
@@ -597,7 +611,7 @@ polarbinningsize	:= 750
 #
 #########################################################################################
 # approval email recipients
-recipients					:= manset,forshay,tburd,moutou,malo
+recipients					:= moutou,malo
 
 # is fluxcalibration requested
 upenawantfcal				:= 0

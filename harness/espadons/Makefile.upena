@@ -232,6 +232,9 @@ snr:
 		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
 			rvel="$(calibrationdir)$*i.rvel$(extension)" ; \
 		fi ; \
+		if [ -s $(calibrationdir)$*i.tell$(gzip) ] ; then \
+			tell="$(calibrationdir)$*i.tell$(extension)" ; \
+		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
 --ufile=$(spectradir)$*iu.s$(extension) \
 --nfile=$(spectradir)$*in.s$(extension) \
@@ -239,6 +242,7 @@ snr:
 --nwfile=$(spectradir)$*inw.s$(extension) \
 --snr=$(spectradir)$*i.sn$(extension) \
 --rvel=$${rvel} \
+--tell=$${tell} \
 --version=\"$(versionstr)\" \
 --date=\"$(shell date)\" \
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
@@ -267,12 +271,20 @@ endif
 		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
 			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
 		fi ; \
+		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
+			rvel="$(calibrationdir)$*i.rvel$(extension)" ; \
+		fi ; \
+		if [ -s $(calibrationdir)$*i.tell$(gzip) ] ; then \
+			tell="$(calibrationdir)$*i.tell$(extension)" ; \
+		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
 --ufile=$(spectradir)$*pu.s$(extension) \
 --nfile=$(spectradir)$*pn.s$(extension) \
 --uwfile=$(spectradir)$*puw.s$(extension) \
 --nwfile=$(spectradir)$*pnw.s$(extension) \
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
+--rvel=$${rvel} \
+--tell=$${tell} \
 --version=\"$(versionstr)\" \
 --date=\"$(shell date)\" \
 --compressiontype=$(compressiontype) \
@@ -456,6 +468,7 @@ endif
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
 --wavelengthType=$(RVCorrectedWavelengthInNM) \
@@ -484,6 +497,7 @@ endif
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
 --wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
@@ -513,6 +527,7 @@ endif
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
 --wavelengthType=$(RVCorrectedWavelengthInNM) \
@@ -541,9 +556,10 @@ endif
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
+--LEorderwavelength=$(configdir)$(LEOrderWavelength) \
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
---wavelengthType=$(CalibratedFluxNormalizedToRefWavelength) \
+--wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pnw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \

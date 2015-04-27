@@ -199,7 +199,7 @@ gainHighestCount		:= 30000
 
 geom_limit						:= 0.2
 geomsubformat					:= 8 2040 3 4600
-maxorders						:= 42
+maxorders						:= 40
 colDispersion					:= 1
 invertOrders					:= 1
 geom_aperture_pol				:= 30		# width of aperture
@@ -224,7 +224,7 @@ geomnpar_Normal					:= 3		# max number of coefficents of polynomial (including z
 geombinsize						:= 25		# binning in y direction
 nsamples						:= 5		# number of samples for something or other
 minordertouse_EEV1				:= 20		# the first order that geometry outputs
-minordertouse_OLAPA				:= 20		# the first order that geometry outputs
+minordertouse_OLAPA				:= 22		# the first order that geometry outputs
 minordertouse					:= $(minordertouse_$(DETECTOR))		# the first order that geometry outputs
 recenterIPUsingSliceSymmetry_pol	:= 1		# refines the geometry
 recenterIPUsingSliceSymmetry_sp1	:= 1		# refines the geometry
@@ -234,9 +234,9 @@ totalNumberOfSlices_sp2			:= 6		# for recentering
 totalNumberOfSlices_sp1			:= 3		# for recentering
 totalNumberOfSlices_pol			:= 3		# for recentering
 totalNumberOfSlices				:= $(totalNumberOfSlices_$(MODE))
-referenceOrderNumber_pol		:= 49
-referenceOrderNumber_sp1		:= 49
-referenceOrderNumber_sp2		:= 49
+referenceOrderNumber_pol		:= 48
+referenceOrderNumber_sp1		:= 48
+referenceOrderNumber_sp2		:= 48
 referenceOrderNumber			:= $(referenceOrderNumber_$(MODE))
 referenceOrderSeparation_pol	:= 57.2
 referenceOrderSeparation_sp1	:= 57.5
@@ -276,6 +276,8 @@ wcal_uncalibrated_linewidth_pol := 1.8
 wcal_maxNIter_pol               := 40
 wcal_minNumberOfLines_pol		:= 40
 wcal_dampingFactor_pol			:= 0.9
+wcal_DetectionThreshold_pol		:= 0.05
+wcal_MinPeakDepth_pol			:= 0.25
 
 wcal_normalizeUncalibratedSpectrum_sp1 := 0
 wcal_normalizationBinSize_sp1   := 150
@@ -284,6 +286,8 @@ wcal_uncalibrated_linewidth_sp1 := 1.6
 wcal_maxNIter_sp1				:= 40
 wcal_minNumberOfLines_sp1		:= 40
 wcal_dampingFactor_sp1			:= 0.9
+wcal_DetectionThreshold_sp1		:= 0.05
+wcal_MinPeakDepth_sp1			:= 0.25
 
 wcal_normalizeUncalibratedSpectrum_sp2 := 0
 wcal_normalizationBinSize_sp2   := 180
@@ -292,6 +296,8 @@ wcal_uncalibrated_linewidth_sp2 := 1.6
 wcal_maxNIter_sp2				:= 40
 wcal_minNumberOfLines_sp2		:= 40
 wcal_dampingFactor_sp2			:= 0.85
+wcal_DetectionThreshold_sp2		:= 0.05
+wcal_MinPeakDepth_sp2			:= 1.00
 
 wcal_normalizeUncalibratedSpectrum := $(wcal_normalizeUncalibratedSpectrum_$(MODE))
 wcal_normalizationBinSize       := $(wcal_normalizationBinSize_$(MODE))
@@ -300,6 +306,8 @@ wcal_uncalibrated_linewidth     := $(wcal_uncalibrated_linewidth_$(MODE))
 wcalmaxNIter                    := $(wcal_maxNIter_$(MODE))
 wcalminNumberOfLines			:= $(wcal_minNumberOfLines_$(MODE))
 wcaldampingFactor				:= $(wcal_dampingFactor_$(MODE))
+wcal_DetectionThreshold			:= $(wcal_DetectionThreshold_$(MODE))
+wcal_MinPeakDepth				:= $(wcal_MinPeakDepth_$(MODE))
 
 #########################################################################################
 # telluric wavelength correction parameters
@@ -329,7 +337,7 @@ rv_searchStep					:= 0.5
 #########################################################################################
 # Stitch Orders
 #########################################################################################
-stitch_orderOfReference         := 37
+stitch_orderOfReference         := 36
 stitch_DWavelengthRange         := 0.2
 stitch_DWavelengthStep          := 0.00005
 stitch_XCorrelationThreshold    := 0.1
@@ -385,13 +393,13 @@ LocalMaxFilterWidth		:= 3.0
 #MinPeakDepth			:= 1.5*noise
 MinPeakDepth_Slow		:= 2.0
 MinPeakDepth_Normal		:= 1.5
-MinPeakDepth_Fast		:= 0.6
+MinPeakDepth_Fast		:= 1.5
 MinPeakDepth			:=$(MinPeakDepth_$(SPEED))
 IPtilt_pol				:= -2.0
 IPtilt_sp2				:= -2.0
 IPtilt_sp1				:= -1.0
 IPtilt					:= $(IPtilt_$(MODE))
-IPminimumlines			:= 10
+IPminimumlines			:= 5
 IPBinsize				:= 100
 #methods of measuring instrument profile
 IPWeightedMeanMethod	:= 1
@@ -571,7 +579,7 @@ starplusskymode				:= $(starplusskymode_$(MODE))
 
 extractor_normalizationBinsize			:= 750
 extractor_numberOfPointsInUniformSample	:= 150
-extractor_AbsoluteCalibration_pol		:= 1
+extractor_AbsoluteCalibration_pol		:= 0
 extractor_AbsoluteCalibration_sp1		:= 0
 extractor_AbsoluteCalibration_sp2		:= 0
 extractor_AbsoluteCalibration			:= $(extractor_AbsoluteCalibration_$(MODE))

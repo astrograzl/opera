@@ -4771,7 +4771,7 @@ void operaSpectralOrder::calculatePolarElements(ostream *poutspec) {
 /*
  * Barycentric Wavelength Correction
  */
-void operaSpectralOrder::applyBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond) {
+void operaSpectralOrder::applyRVWavelengthCorrection(double RVcorrectionInKmPerSecond) {
     if(gethasWavelength() && SpectralElements->getHasDistance() && !SpectralElements->getHasWavelength()) {
         SpectralElements->setwavelengthsFromCalibration(getWavelength());
     }

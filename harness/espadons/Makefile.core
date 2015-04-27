@@ -511,7 +511,7 @@ $${pargs} \
 		etime=`$(bindir)operagetheader --keyword=EXPTIME $${inputfits}` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--plotfilename=$(visualsdir)$*p.eps --datafilename=$(byproductsdir)$*p.sdat --scriptfilename=$(byproductsdir)$*p.gnu" ; \
+			pargs="--plotfilename=$(visualsdir)$*p.eps --spectrumDataFilename=$(byproductsdir)$*p.sdat --scriptfilename=$(byproductsdir)$*p.gnu" ; \
 		fi ; \
 		wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
 		if [ -s $(calibrationdir)$*p.tell$(gzip) ] ; then \
@@ -673,7 +673,7 @@ $${opt_switches} \
 --ha_start=$${startha} \
 --etime=$${exposure} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
-		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
+		echo "$(pref) Heliocentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################

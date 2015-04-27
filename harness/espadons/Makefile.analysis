@@ -548,7 +548,7 @@ endef
 # Note that xrange is in Distance units, not wl in the case of .e.gz
 #
 #########################################################################################
-%iu.s.eps %in.s.eps %iuw.s.eps %inw.s.eps : directoriescreated
+%iu.s.eps %iuw.s.eps : directoriescreated
 	@if [[ "$(GNU)" != "" ]] ; then \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operagnuplot $(GNU)"  ; \
 	else \
@@ -574,6 +574,7 @@ endef
 			$(bindir)catz <$(configdir)$(telluric_reference_spectrum) | awk '{printf("%.4f %g\n", $$2, $$3)}' >$(tmpdir)$(basename $(telluric_reference_spectrum)) ; \
 		fi ; \
 		$(call prelude,$${spectrum},'Wl(nm)',Flux) ; \
+		echo "set xrange[368:1050]" >>$(byproductsdir)$${spectrum}.gnu ; \
 		if [ -e $(tmpdir)/$${spectrum} ] ; then \
 			echo "plot $(withtelluriclines) $(withtelluricspectrum) \"$(spectradir)$${spectrum}\" using 1:2:3 title 'opera' with $${linestyle} linestyle 1, \"$(tmpdir)/$${spectrum}\" using 1:2:3 title 'upena' with $${linestyle} linestyle 2" >>$(byproductsdir)$${spectrum}.gnu; \
 		else \
@@ -597,6 +598,66 @@ endef
 			rm -f $(spectradir)$${spectrum} ; \
 		fi ; \
 	fi
+
+#########################################################################################
+# intensity plot of LE-compatible products, usually the script is given as $*.gnu
+# does a comparison of upena vs opera if the corresp. upena product exists.
+#
+# Note that xrange is in Distance units, not wl in the case of .e.gz
+#
+#########################################################################################
+%in.s.eps %inw.s.eps : directoriescreated
+	@if [[ "$(GNU)" != "" ]] ; then \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operagnuplot $(GNU)"  ; \
+	else \
+		spectrum=$(basename $@ .eps) ; \
+		upenadir=`echo $(spectradir) | sed -e 's:opera:upena:'` ; \
+		linestyle=$(linestyle) ; \
+		if [ -e $(spectradir)$${spectrum}$(gzip) ] ; then \
+			$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +11 | awk '{printf("%.4f %g %g %g %g %g\n", $$1, $$2, $$3, $$4, $$5, $$6);}' >$(spectradir)$${spectrum} ; \
+			if [ -e $${upenadir}/$${spectrum} ] ; then \
+				cols=`cat <$${upenadir}/$${spectrum} | head -2 | tail -1 | awk '{print $$2}'` ; \
+				object=`cat <$${upenadir}/$${spectrum} | head -1 | awk '{print $$4 $$5 $$6}'` ; \
+				if (( cols == 2 )) ; then \
+					cat <$${upenadir}/$${spectrum} | tail -n +3  | awk '{printf("%.4f %g %g\n", $$1, $$2, $$3);}' >$(tmpdir)$${spectrum} ; \
+				else \
+					cat <$${upenadir}/$${spectrum} | tail -n +3  | awk '{printf("%.4f %g %g\n", $$1, $$2, $$5);}' >$(tmpdir)$${spectrum} ; \
+				fi ; \
+			fi ; \
+		fi ; \
+		if [[ "$(withtelluriclines)" != "" ]] ; then \
+			$(bindir)catz <$(configdir)$(thorium_argon_atlas_lines) | awk '{printf("%.4f %g\n", $$2/10.0, log($$3))}' >$(tmpdir)$(basename $(thorium_argon_atlas_lines)) ; \
+		fi ; \
+		if [[ "$(withtelluricspectrum)" != "" ]] ; then \
+			$(bindir)catz <$(configdir)$(telluric_reference_spectrum) | awk '{printf("%.4f %g\n", $$2, $$3)}' >$(tmpdir)$(basename $(telluric_reference_spectrum)) ; \
+		fi ; \
+		$(call prelude,$${spectrum},'Wl(nm)',Flux) ; \
+		echo "set xrange[368:1050]" >>$(byproductsdir)$${spectrum}.gnu ; \
+		echo "set yrange[-2:2]" >>$(byproductsdir)$${spectrum}.gnu ; \
+		if [ -e $(tmpdir)/$${spectrum} ] ; then \
+			echo "plot $(withtelluriclines) $(withtelluricspectrum) \"$(spectradir)$${spectrum}\" using 1:2:3 title 'opera' with $${linestyle} linestyle 1, \"$(tmpdir)/$${spectrum}\" using 1:2:3 title 'upena' with $${linestyle} linestyle 2" >>$(byproductsdir)$${spectrum}.gnu; \
+		else \
+			echo "plot $(withtelluriclines) $(withtelluricspectrum) \"$(spectradir)$${spectrum}\" using 1:2:3 title 'opera' with $${linestyle} linestyle 1" >>$(byproductsdir)$${spectrum}.gnu; \
+		fi ; \
+		if [[ "$(I)" != "" ]] ; then \
+			echo "set terminal X11" >>$(byproductsdir)$${spectrum}.gnu; \
+			echo "set output" >>$(byproductsdir)$${spectrum}.gnu; \
+			echo "replot" >>$(byproductsdir)$${spectrum}.gnu; \
+			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operagnuplot -persist $(byproductsdir)$${spectrum}.gnu"  ; \
+		else \
+			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operagnuplot $(byproductsdir)$${spectrum}.gnu"  ; \
+		fi ; \
+		if [ -e $(tmpdir)/$${spectrum} ] ; then \
+			rm -f $(tmpdir)/$${spectrum} ; \
+			rm -f $(spectradir)$${spectrum} ; \
+			rm -f $(tmpdir)$(basename $(thorium_argon_atlas_lines)) ; \
+			rm -f $(tmpdir)$(basename $(telluric_reference_spectrum)) ; \
+		fi ; \
+		if [ -e $(spectradir)$${spectrum}$(gzip) ] ; then \
+			rm -f $(spectradir)$${spectrum} ; \
+		fi ; \
+	fi
+
 
 #########################################################################################
 # polarimetry plot, usually the script is given as $*.gnu

@@ -113,7 +113,7 @@ double readRadialVelocityCorrection(string filename) {
 }
 
 // Adds various information to the header of the FITS product.
-void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename, const string rvelfilename) {
+void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename, const string rvelfilename, const string tellfilename) {
 	Product.operaFITSDeleteHeaderKey("DATASEC");
 	Product.operaFITSDeleteHeaderKey("DETSEC");
 	Product.operaFITSAddComment("----------------------------------------------------");
@@ -123,25 +123,6 @@ void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, con
 	Product.operaFITSAddComment("Processing Date");
 	Product.operaFITSAddComment("---------------");
 	Product.operaFITSAddComment(date);
-	Product.operaFITSAddComment("------------------------------------------------------------------------");
-	Product.operaFITSAddComment("upena-compatible headers for column names in primary extension:");
-	Product.operaFITSAddComment("(1) Spectroscopy Star only mode");
-	Product.operaFITSAddComment("    First column = wavelength in nanometres");
-	Product.operaFITSAddComment("    Second column = intensity");
-	Product.operaFITSAddComment("    Third column = error bar");
-	Product.operaFITSAddComment("(2) Polarimetry");
-	Product.operaFITSAddComment("    1st col = wavelength in nanometres");
-	Product.operaFITSAddComment("    2d  col = intensity");
-	Product.operaFITSAddComment("    3rd col = polarisation (Q or U or V or W)");
-	Product.operaFITSAddComment("    4th col = Check Spectra #1");
-	Product.operaFITSAddComment("    5th col = Check Spectra #2");
-	Product.operaFITSAddComment("     6th col = error bar");
-	Product.operaFITSAddComment("(3) Spectroscopy Star + Sky");
-	Product.operaFITSAddComment("    1st col = wavelength");
-	Product.operaFITSAddComment("    2d  col = star spectra (sky subtracted)");
-	Product.operaFITSAddComment("    3rd col = star + sky spectra");
-	Product.operaFITSAddComment("    4th col = sky spectra");
-	Product.operaFITSAddComment("    5, 6, 7 = error bars for each column 2, 3, 4");
 	Product.operaFITSAddComment("------------------------------------------------------------------------");
 	Product.operaFITSAddComment(spectralOrderType);
 	Product.operaFITSAddComment("OPERA Processing Parameters");
@@ -174,8 +155,9 @@ void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, con
 		}
 	}
 	double rvcorr = readRadialVelocityCorrection(rvelfilename);
+	double tellcorr = readRadialVelocityCorrection(tellfilename);
 	Product.operaFITSSetHeaderValue("HRV", rvcorr, "heliocentric RV correction");
-	//Product.operaFITSSetHeaderValue("TELLRV", value, "telluric RV correction");
+	Product.operaFITSSetHeaderValue("TELLRV", tellcorr, "telluric RV correction");
 }
 
 int main(int argc, char *argv[])
@@ -488,7 +470,7 @@ int main(int argc, char *argv[])
 				UpdateProductFromLESpectrumFile(Product, uwfile, numcols/4, 1, datapoints);
 				UpdateProductFromLESpectrumFile(Product, nwfile, numcols/4, 0, datapoints);
 			}
-			AddFITSHeaderToProduct(Product, version, date, spectralOrderType, parametersfilename, snrfilename, rvelfilename);
+			AddFITSHeaderToProduct(Product, version, date, spectralOrderType, parametersfilename, snrfilename, rvelfilename, tellfilename);
 			Product.operaFITSImageSave();
 			Product.operaFITSImageClose();
 			if (args.verbose && instrumentmode == MODE_POLAR) cout << "operaCreateProduct: done polarimetry " << endl;

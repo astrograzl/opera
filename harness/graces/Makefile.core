@@ -599,7 +599,13 @@ $${pargs} \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting telluric correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--xcorrsplotfilename=$(visualsdir)$*itellxcor.eps --specplotfilename=$(visualsdir)$*itell.eps --xcorrdatafilename=$(byproductsdir)$*itellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*itellxcorrfit.pdat --specdatafile=$(byproductsdir)$*itell.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --xcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu" ; \
+			pargs="--xcorrsplotfilename=$(visualsdir)$*itellxcor.eps --specplotfilename=$(visualsdir)$*itell.eps --xcorrdatafilename=$(byproductsdir)$*itellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*itellxcorrfit.pdat --specdatafilename=$(byproductsdir)$*itell.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --xcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu" ; \
+		fi ; \
+		if [[ "$(telluric_useFitToFindMaximum)" != "0" ]] ; then \
+			opt_switches="${opt_switches} --useFitToFindMaximum"; \
+		fi ; \
+		if [[ "$(starplusskymode)" != "0" ]] ; then \
+			opt_switches="${opt_switches} --StarPlusSky"; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelluricWavelengthCorrection \
 --inputObjectSpectrum=$(spectradir)$*.e$(gzip) \
@@ -613,9 +619,8 @@ $${pargs} \
 --XCorrelationThreshold=$(telluric_XCorrelationThreshold) \
 --normalizationBinsize=$(telluric_normalizationbinsize) \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
---StarPlusSky=$(starplusskymode) \
---useFitToFindMaximum=$(telluric_useFitToFindMaximum) \
 $${pargs} \
+$${opt_switches} \
 --outputWaveFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Telluric Wavelength Correction $@ created in $(deltat)" ; \
 	fi
@@ -644,7 +649,7 @@ $${pargs} \
 --ha_start=$${startha} \
 --etime=$${exposure} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
-		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
+		echo "$(pref) Heliocentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################

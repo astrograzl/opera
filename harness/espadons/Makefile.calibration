@@ -781,11 +781,11 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		if [ -s $(byproductsdir)$*.glst ] ;  then \
 			echo "$(pref) Starting bias for $(QUALIFIERS)" ;\
-			biases=`cat <$(byproductsdir)$*.glst | sed -n '/b.$(FITS)/p' | sed -e 's:^:--bias=:' | tr '\n' ' '`; \
+			biases=`cat <$(byproductsdir)$*.glst | sed -n '/b.$(FITS)/p' | tr '\n' ' '`; \
 			count=`$(bindir)operacount "$${biases}"`; \
 			if (( count >= 1 )) ; then \
 				$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaBias \
-$$biases \
+--bias="$${biases}" \
 --overscan \
 --numberofamplifiers=$($(DETECTOR)$(AMPLIFIER)_namps) \
 --gain=$(calibrationdir)$*.gain$(gzip) \
@@ -1162,6 +1162,8 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --normalizeUncalibratedSpectrum=$(wcal_normalizeUncalibratedSpectrum) \
 --normalizationBinSize=$(wcal_normalizationBinSize) \
 --LocalMaxFilterWidth=$(wcal_LocalMaxFilterWidth) \
+--DetectionThreshold=$(wcal_DetectionThreshold) \
+--MinPeakDepth=$(wcal_MinPeakDepth) \
 $${pargs} \
 --outputWaveFile=$(calibrationdir)$@ \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \

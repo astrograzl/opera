@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
                                     spectralElements->setHasWavelength(true);
                                     spectralElements->setHasDistance(false);
                                     if (ApplyRadialVelocityCorrection) {
-                                        spectralOrder->applyBarycentricWavelengthCorrection(spectralOrders.getBarycentricRadialVelocityCorrection());
+                                        spectralOrder->applyRVWavelengthCorrection(spectralOrders.getBarycentricRadialVelocityCorrection());
                                     }
                                 }
                             }
