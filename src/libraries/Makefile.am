@@ -20,7 +20,7 @@ lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaFluxVector.la li
 	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectrumSimulation.la liboperaSpectralEnergyDistribution.la \
 	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la \
 	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la \
-	libArgumentHandler.la liboperaArgumentHandler.la
+	libArgumentHandler.la liboperaArgumentHandler.la liboperaCommonModuleElements.la
 
 liboperaInstrumentEnvironmentSetup_la_SOURCES = operaInstrumentEnvironmentSetup.cpp operaInstrumentEnvironmentSetup.h
 liboperaInstrumentEnvironmentSetup_la_LDFLAGS = -version-info 1:0:0
@@ -188,6 +188,10 @@ libArgumentHandler_la_LDFLAGS = -version-info 1:0:0
 liboperaArgumentHandler_la_SOURCES = operaArgumentHandler.cpp operaArgumentHandler.h
 liboperaArgumentHandler_la_LDFLAGS = -version-info 1:0:0
 liboperaArgumentHandler_la_LIBADD = libArgumentHandler.la
+
+liboperaCommonModuleElements_la_SOURCES = operaCommonModuleElements.cpp operaCommonModuleElements.h
+liboperaCommonModuleElements_la_LDFLAGS = -version-info 1:0:0
+liboperaCommonModuleElements_la_LIBADD = liboperaSpectralOrderVector.la
 
 #
 # if we want png plotting support, bring in the freetype includes

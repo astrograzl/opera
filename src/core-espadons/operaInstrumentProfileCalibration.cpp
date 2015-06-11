@@ -35,39 +35,11 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <pthread.h>
-
 #include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaInstrumentProfileCalibration.h"
-
-#include "libraries/operaException.h"
-#include "libraries/operaFITSImage.h"
-#include "libraries/operaFITSSubImage.h"
-#include "libraries/operaEspadonsImage.h"			// for imtype_t
-#include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
-#include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
-#include "libraries/operaInstrumentProfile.h"		// for operaInstrumentProfile
-#include "libraries/operaExtractionAperture.h"
-#include "libraries/operaSpectralLines.h"
-
-#include "libraries/operaMath.h"                    // for LengthofPolynomial
-#include "libraries/operaLibCommon.h"
-#include "libraries/operaLib.h"						// systemf
-#include "libraries/operaImage.h"
-#include "libraries/operaStats.h"
-#include "libraries/operaCCD.h"						// for MAXORDERS
-#include "libraries/operaFit.h"	
-#include "libraries/operaFFT.h"	
-#include "libraries/operaParameterAccess.h"
-#include "libraries/operaConfigurationAccess.h"
+#include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaArgumentHandler.h"
-
-#define NOTPROVIDED -999
+#include "libraries/operaCommonModuleElements.h"
 
 /*! \file operaInstrumentProfileCalibration.cpp */
 
@@ -88,73 +60,55 @@ using namespace std;
  * \ingroup core
  */
 
-/*
- * These variable have been made global for thread support.
- * Teeple Dec 20 2012
- */
- 
+void GenerateInstrumentProfile3DPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, unsigned minorderWithIP, unsigned maxorderWithIP, unsigned IPxsize, unsigned IPysize, bool display);
+
+// These variables are global for thread support
 operaArgumentHandler args;
 
-string geometryfilename;
+// Input parameters
 string outputprof;
-
+string geometryfilename;
 string masterbias;
 string masterflat;
 string mastercomparison;
-string badpixelmask;
 string masterfabperot;
+string badpixelmask;
 string gainfilename;
 
-string plotfilename;
-string datafilename;
-string scriptfilename;
-
+int method = 1;
 double spectralElementHeight = 1.0;
 double referenceLineWidth = 2.0;
-
-double gain = 1.12;
-double noise = 3.5;
-
 double LocalMaxFilterWidth = 2.5;
-double LocalMaxFilterWidthInUnitsOfLineWidth = LocalMaxFilterWidth*referenceLineWidth;
-
 double DetectionThreshold = 0.2;
 double MinPeakDepth = 1.5;
-double MinPeakDepthInElectronUnits = MinPeakDepth*noise;
-
-int minorder = 22;
-int maxorder = 62;
-int ordernumber = NOTPROVIDED;
-
-/* "method" defines how all individual IP measurements from spectral lines should be combined.
- *  It supports the following methods:
- *      1. weighted mean
- *      2. median combine
- *      3. polynomial fit
- *      4. polynomial fit with median binning (use binsize provided)
- */
-int method = 1;
-
 unsigned minimumLinesForIPMeasurements = 20;
 unsigned binsize = 80;
 double tilt = -3.0;
+unsigned IPxsize = 0;
+unsigned IPysize = 0;
+unsigned IPxsampling = 0;
+unsigned IPysampling = 0;
+unsigned maxthreads = 1;
+int ordernumber = NOTPROVIDED;
+int minorder = 22;
+int maxorder = 62;
+string plotfilename;
+string datafilename;
+string scriptfilename;
+bool interactive = false;
 
+// Other variables used across threads
+double LocalMaxFilterWidthInPixels;
+double MinPeakDepthInElectronUnits;
+double gain = 1.12;
+double noise = 3.5;
+bool fabperot;
 operaFITSImage *badpix = NULL;
 operaFITSImage *bias = NULL;
 operaFITSImage *flat = NULL;
 operaFITSImage *comp = NULL;
-bool fabperot;
-
-unsigned IPxsize = 0;
-unsigned IPxsampling = 0;
-unsigned IPysize = 0;
-unsigned IPysampling = 0;
 
 operaSpectralOrderVector spectralOrders;
-
-unsigned maxthreads = 1;
-
-bool interactive = false;
 
 /*
  * Thread Support to process all orders in parallel
@@ -208,7 +162,7 @@ void *processOrder(void *argument) {
 		operaSpectralLines *spectralLines = NULL;
 		try {
 			spectralOrder->calculateXCorrBetweenIPandImage(*comp, *badpix, NULL);
-			spectralOrder->setSpectralLines(*comp, *badpix, *bias, noise, gain, referenceLineWidth, DetectionThreshold, LocalMaxFilterWidthInUnitsOfLineWidth, MinPeakDepthInElectronUnits);
+			spectralOrder->setSpectralLines(*comp, *badpix, *bias, noise, gain, referenceLineWidth, DetectionThreshold, LocalMaxFilterWidthInPixels, MinPeakDepthInElectronUnits);
 			spectralOrder->sethasSpectralLines(true);
 			spectralLines = spectralOrder->getSpectralLines();
 			if (args.verbose) cout << "operaInstrumentProfileCalibration: " << spectralLines->getnLines() << " lines found in order " << order << " of " << methodName << "." << endl;
@@ -281,25 +235,20 @@ static bool processOrders(int minorder, int maxorder) {
 int main(int argc, char *argv[])
 {
 	args.AddRequiredArgument("outputProf", outputprof, "Output instrument profile file");
-	args.AddRequiredArgument("gainfilename", gainfilename, "Input gain/noise file");
 	args.AddRequiredArgument("geometryfilename", geometryfilename, "Input geometry file");
-	args.AddRequiredArgument("masterbias", masterbias, "Input Master Bias FITS image");
-	args.AddRequiredArgument("masterflat", masterflat, "Input Master Flat-Field FITS image");
-	args.AddOptionalArgument("mastercomparison", mastercomparison, "", "Input Master Comparison (ThAr) FITS image (use this or masterfabperot but not both)");
-	args.AddOptionalArgument("masterfabperot", masterfabperot, "", "Input Master Fabry-Perot FITS image (use this or mastercomparison but not both)");
+	args.AddRequiredArgument("masterbias", masterbias, "Input master bias FITS image");
+	args.AddRequiredArgument("masterflat", masterflat, "Input master flat-field FITS image");
+	args.AddOptionalArgument("mastercomparison", mastercomparison, "", "Input master comparison (ThAr) FITS image (use this or masterfabperot but not both)");
+	args.AddOptionalArgument("masterfabperot", masterfabperot, "", "Input master Fabry-Perot FITS image (use this or mastercomparison but not both)");
 	args.AddOptionalArgument("badpixelmask", badpixelmask, "", "FITS image for badpixel mask");
-	args.AddOptionalArgument("method", method, 1, "Method to combine IP measurements from spectral lines. Possible values are: 1 - weighted mean, 2 - median combine, 3 - polynomial fit, 4 - polynomial fit with median binning (use binsize provided)");
+	args.AddRequiredArgument("gainfilename", gainfilename, "Input gain/noise file");
+	
+	args.AddOptionalArgument("method", method, 1, "Method to combine IP measurements from spectral lines: 1 = weighted mean, 2 = median combine, 3 = polynomial fit, 4 = polynomial fit with median binning (use binsize provided)");
 	args.AddOptionalArgument("spectralElementHeight", spectralElementHeight, 1.0, "Height of spectral element in Y-direction in pixel units");
 	args.AddOptionalArgument("referenceLineWidth", referenceLineWidth, 2.5, "Spectral line width for reference in pixel units");
-	
-	args.AddOptionalArgument("LocalMaxFilterWidth", LocalMaxFilterWidth, 6.25, "");
-	args.AddOptionalArgument("DetectionThreshold", DetectionThreshold, 0.2, "");
-	args.AddOptionalArgument("MinPeakDepth", MinPeakDepth, 5.25, "");
-	
-	args.AddOptionalArgument("ordernumber", ordernumber, NOTPROVIDED, "Pick order number to plot IP model (default = all)");
-	args.AddOptionalArgument("minorder", minorder, NOTPROVIDED, "Define minimum order number");
-	args.AddOptionalArgument("maxorder", maxorder, NOTPROVIDED, "Define maximum order number");
-	
+	args.AddOptionalArgument("LocalMaxFilterWidth", LocalMaxFilterWidth, 6.25, "In units of line width");
+	args.AddOptionalArgument("DetectionThreshold", DetectionThreshold, 0.2, "Between 0 and 1");
+	args.AddOptionalArgument("MinPeakDepth", MinPeakDepth, 5.25, "In units of noise");
 	args.AddOptionalArgument("minimumlines", minimumLinesForIPMeasurements, 20, "Minimum number of lines for IP measurements");
 	args.AddOptionalArgument("binsize", binsize, 80, "Number of points to bin for IP measurements");
 	args.AddOptionalArgument("tilt", tilt, -3.0, "Tilt in degrees");
@@ -308,13 +257,8 @@ int main(int argc, char *argv[])
 	args.AddOptionalArgument("xSampling", IPxsampling, 5, "IP Dimensions");
 	args.AddOptionalArgument("ySampling", IPysampling, 5, "IP Dimensions");
 	args.AddOptionalArgument("maxthreads", maxthreads, 1, "Maximum number of threads");
-	
-	args.AddOptionalArgument("plotfilename" , plotfilename, "", "for use with plots");
-	args.AddOptionalArgument("datafilename" , datafilename, "", "for use with plots");
-	args.AddOptionalArgument("scriptfilename" , scriptfilename, "", "for use with plots");
-	args.AddSwitch("interactive" , interactive, "for interactive plots");
-	
-	//" Example: "+string(modulename)+" --geometryfilename=/opera/calibrations/11AQ14-Jul08/OLAPAa_sp2_Normal.geom --masterbias=/opera/calibrations/11AQ14-Jul08/masterbias_OLAPAa_sp2_Normal.fits --masterflat=/opera/calibrations/11AQ14-Jul08/masterflat_OLAPAa_sp2_Normal.fits --mastercomparison=/opera/calibrations/11AQ14-Jul08/mastercomparison_OLAPAa_sp2_Normal.fits --badpixelmask=/opera/config/badpix_olapa-a.fits --ipDimensions=\"28 5 10 5\" --gain=/opera/calibrations/11AQ14-Jul08/OLAPAa_sp2_Normal.gain --referenceLineWidth=2.5  --masterfabperot=/opera/calibrations/11AQ14-Jul08/masterfabperot_OLAPAa_sp2_Normal.fits --spectralElementHeight=1.0 --outputProf=/opera/calibrations/11AQ14-Jul08/OLAPAa_sp2_Normal.prof --binsize=90 -O 23 -P test.eps -F test.dat -S test.gnu \n\n"
+	args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
+	args.AddPlotFileArguments(plotfilename, datafilename, scriptfilename, interactive);
 	
 	try {
 		args.Parse(argc, argv);
@@ -355,9 +299,7 @@ int main(int argc, char *argv[])
 			cout << "operaInstrumentProfileCalibration: LocalMaxFilterWidth = " << LocalMaxFilterWidth << endl;
 			cout << "operaInstrumentProfileCalibration: DetectionThreshold = " << DetectionThreshold << endl;
 			cout << "operaInstrumentProfileCalibration: maxthreads = " << maxthreads << endl;
-			if(ordernumber != NOTPROVIDED) {
-                cout << "operaInstrumentProfileCalibration: ordernumber = " << ordernumber << endl;            
-            }
+			if(ordernumber != NOTPROVIDED) cout << "operaInstrumentProfileCalibration: ordernumber = " << ordernumber << endl;            
             if(args.plot) {
                 cout << "operaInstrumentProfileCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaInstrumentProfileCalibration: datafilename = " << datafilename << endl;
@@ -365,13 +307,8 @@ int main(int argc, char *argv[])
             }            
 		}
         
-        ofstream *fdata = NULL;
-        
-        if (!plotfilename.empty()) args.plot = true;
-        if (!datafilename.empty()) {
-            fdata = new ofstream();
-            fdata->open(datafilename.c_str());  
-        }
+        ofstream fdata;
+        if (!datafilename.empty()) fdata.open(datafilename.c_str());
         
         fabperot = !masterfabperot.empty();
 		if (fabperot) comp = new operaFITSImage(masterfabperot, tfloat, READONLY);
@@ -379,9 +316,7 @@ int main(int argc, char *argv[])
         bias = new operaFITSImage(masterbias, tfloat, READONLY);
 		flat = new operaFITSImage(masterflat, tfloat, READONLY);
 		
-		
-		//flat -= bias;			// remove bias from masterflat
-        
+		//flat -= bias; // remove bias from masterflat
 		
 		if (!badpixelmask.empty()){              
 			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
@@ -391,45 +326,15 @@ int main(int argc, char *argv[])
         }
         
 		spectralOrders.ReadSpectralOrders(geometryfilename);
-		spectralOrders.readGainNoise(gainfilename);
+		UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
 		
+		spectralOrders.readGainNoise(gainfilename);
         unsigned amp = 0;
 		gain = spectralOrders.getGainBiasNoise()->getGain(amp);
 		noise = spectralOrders.getGainBiasNoise()->getNoise(amp);
-		//double biaslevel = spectralOrders.getGainBiasNoise()->getBias(amp);
-        
-/*#if 0
-        //
-		// -- DT May 19 2014
-		// ... moved to parameters
-        // -- E. Martioli 14 May 2014
-        // Changed values below to increase sensitivity on fainter lines
-        // in GRACES comparison spectra. Previous values were the following:
-		//
-        // LocalMaxFilterWidth = 2.5*referenceLineWidth;
-        // DetectionThreshold = 0.2;
-        // MinPeakDepth = 1.5*noise;
-        // Note: the problem here could be when using FP exposures, where it
-        //       could detect ghosts as if they were specral lines.
-        
-        if(!LocalMaxFilterWidth)
-            LocalMaxFilterWidth = 2.5*referenceLineWidth;
-        if(!DetectionThreshold)
-            DetectionThreshold = 0.1;
-        if(!MinPeakDepth)
-            MinPeakDepth = 1.25*noise;
-#endif*/
-        
+
         MinPeakDepthInElectronUnits = MinPeakDepth*noise;
-        
-        LocalMaxFilterWidthInUnitsOfLineWidth = LocalMaxFilterWidth*referenceLineWidth;
-        
-        if(minorder == NOTPROVIDED) minorder = spectralOrders.getMinorder();
-        if(maxorder == NOTPROVIDED) maxorder = spectralOrders.getMaxorder();
-		if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
+        LocalMaxFilterWidthInPixels = LocalMaxFilterWidth*referenceLineWidth;
 		
 		if (args.verbose) {
 			cout << "operaInstrumentProfileCalibration: binsize = " << binsize << endl;            
@@ -441,15 +346,10 @@ int main(int argc, char *argv[])
         threads = (pthread_t *)calloc(nthreads, sizeof(pthread_t*));
         thread_args = (thread_args_t *)calloc(nthreads, sizeof(thread_args_t));
 
-        if (maxthreads > 1) {
-            processOrders(minorder, maxorder);
-        } else {
-            for (int order=minorder; order<=maxorder; order++) {
-                processSingleOrder(order);
-            }
-        }
+        if (maxthreads > 1) processOrders(minorder, maxorder);
+        else for (int order=minorder; order<=maxorder; order++) processSingleOrder(order);
         
-        if (fdata != NULL) {
+        if (fdata.is_open()) {
             int minorderWithIP = NOTPROVIDED;
             int maxorderWithIP = NOTPROVIDED;
             
@@ -459,7 +359,7 @@ int main(int argc, char *argv[])
                     operaGeometry *Geometry = spectralOrder->getGeometry();
                     operaInstrumentProfile *instrumentProfile = spectralOrder->getInstrumentProfile();
                     float distd = (float)Geometry->CalculateDistance(Geometry->getYmin(), (Geometry->getYmax() - Geometry->getYmin())/2);
-                    instrumentProfile->printModel(distd,order,fdata);
+                    instrumentProfile->printModel(distd,order,&fdata);
                     if(minorderWithIP == NOTPROVIDED){
                         minorderWithIP = (int)order;
                     }
@@ -467,20 +367,19 @@ int main(int argc, char *argv[])
                 }
             }
             
-            fdata->close();
+            fdata.close();
             if (!scriptfilename.empty()) {
                 GenerateInstrumentProfile3DPlot(scriptfilename,plotfilename,datafilename,minorderWithIP,maxorderWithIP, IPxsize, IPysize, interactive);
             }
         }
 		
-		//        spectralOrders.WriteSpectralOrders(geometryfilename, Geom);	// THIS IS A SOMEWHAT DANGEROUS BYPRODUCT
 		spectralOrders.WriteSpectralOrders(outputprof, Prof);
 
 		bias->operaFITSImageClose();
 		flat->operaFITSImageClose();
 		comp->operaFITSImageClose();
         
-        if(badpix) delete badpix;
+        if (badpix) delete badpix;
 		if (bias) delete bias;
 		if (flat) delete flat;
 		if (comp) delete comp;
@@ -502,68 +401,56 @@ int main(int argc, char *argv[])
 
 void GenerateInstrumentProfile3DPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, unsigned minorderWithIP, unsigned maxorderWithIP, unsigned IPxsize, unsigned IPysize, bool display)
 {
-    ofstream *fgnu = NULL;
+	if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
+    fgnu << "reset" << endl;
+    fgnu << "unset key" << endl;
+    fgnu << "set view 0,0" << endl;
     
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    *fgnu << "set view 0,0" << endl;
-    
-    *fgnu << "set palette color" << endl;
-    *fgnu << "set palette gamma 2.5" << endl;
-    *fgnu << "set pm3d map" << endl;
-    *fgnu << "unset ztics" << endl;
-    *fgnu << "set cblabel \"flux fraction\"" << endl;
-    *fgnu << endl;
-    *fgnu << "set xrange[-5:(5*" << IPxsize << "+5)]" << endl;
-    *fgnu << "set yrange[-5:(("<< (maxorderWithIP - minorderWithIP) <<"*" << IPysize << "/5)+5)]" << endl;
-    
+    fgnu << "set palette color" << endl;
+    fgnu << "set palette gamma 2.5" << endl;
+    fgnu << "set pm3d map" << endl;
+    fgnu << "unset ztics" << endl;
+    fgnu << "set cblabel \"flux fraction\"" << endl;
+    fgnu << endl;
+    fgnu << "set xrange[-5:(5*" << IPxsize << "+5)]" << endl;
+    fgnu << "set yrange[-5:(("<< (maxorderWithIP - minorderWithIP) <<"*" << IPysize << "/5)+5)]" << endl;
     
     for(unsigned order=minorderWithIP;order<=maxorderWithIP;order++) {
         double xlabelpos = ((double)order-((double)minorderWithIP+(double)(5*floor((order-minorderWithIP)/5))))*(double)IPxsize+1;
         double ylabelpos = (double)floor((order-minorderWithIP)/5)*(double)IPysize+1;
-        *fgnu << "set label \"" << order << "\" at " << xlabelpos << "," << ylabelpos << " front font \"Helvetica,7\"" << endl;
+        fgnu << "set label \"" << order << "\" at " << xlabelpos << "," << ylabelpos << " front font \"Helvetica,7\"" << endl;
     }
 
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         
-        *fgnu << "\nsplot \"" << dataFileName << "\" u (($1-("<<minorderWithIP <<"+5*int(($1-"<< minorderWithIP <<")/5)))*" << IPxsize << "+" << (float)IPxsize/2 << "+$4):(int(($1-"<<minorderWithIP <<")/5)*" << IPysize << "+(" << (float)IPysize/2 << ")+$5):7 with pm3d" << endl;
-        
+        fgnu << "\nsplot \"" << dataFileName << "\" u (($1-("<<minorderWithIP <<"+5*int(($1-"<< minorderWithIP <<")/5)))*" << IPxsize << "+" << (float)IPxsize/2 << "+$4):(int(($1-"<<minorderWithIP <<")/5)*" << IPysize << "+(" << (float)IPysize/2 << ")+$5):7 with pm3d" << endl;
+
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
+        fgnu << "\nsplot \"" << dataFileName << "\" u (($1-("<<minorderWithIP <<"+5*int(($1-"<< minorderWithIP <<")/5)))*" << IPxsize << "+" << (float)IPxsize/2 << "+$4):(int(($1-"<<minorderWithIP <<")/5)*" << IPysize << "+(" << (float)IPysize/2 << ")+$5):7 with pm3d" << endl;
         
-        *fgnu << "\nsplot \"" << dataFileName << "\" u (($1-("<<minorderWithIP <<"+5*int(($1-"<< minorderWithIP <<")/5)))*" << IPxsize << "+" << (float)IPxsize/2 << "+$4):(int(($1-"<<minorderWithIP <<")/5)*" << IPysize << "+(" << (float)IPysize/2 << ")+$5):7 with pm3d" << endl;
-        
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }

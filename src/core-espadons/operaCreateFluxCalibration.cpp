@@ -35,26 +35,13 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "libraries/operaException.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
-#include "libraries/operaLibCommon.h"
 #include "libraries/operaFit.h"						// for operaLMFitPolynomial
-#include "libraries/Polynomial.h"
-#include "libraries/operaFFT.h"
-#include "libraries/operaCCD.h"						// for MAXORDERS
 #include "libraries/operaSpectralTools.h"			// void calculateUniformSample, getFluxAtWavelength
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
-#include "core-espadons/operaCreateFluxCalibration.h"
-
-#define NOTPROVIDED -999
 #define MAXFLUXREFERENCELENGTH 20000
 #define MAXNUMBEROFREFWLRANGES 1000
 
@@ -62,7 +49,7 @@
 
 using namespace std;
 
-int debug=0, verbose=0, trace=0, plot=0;
+operaArgumentHandler args;
 
 /*
  * the reference spectrum
@@ -84,6 +71,7 @@ double operaArrayMaxValue_d(unsigned np, const double *xarray, const double *yar
 unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, float *refContinuumwl,float *refContinuumflux,float *refContinuumNormflux);
 unsigned getReferenceSpectrumRange(unsigned nRefContinuum,double *refContinuumwl,double *refContinuumflux,double *refContinuumNormflux,double wl0,double wlf, double **wl, double **flux, double **normflux);
 
+void GenerateCreateFluxCalibrationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string continuumDataFilename, unsigned NumberofBeams, bool display);
 
 /*! 
  * operaCreateFluxCalibration
@@ -102,178 +90,60 @@ unsigned getReferenceSpectrumRange(unsigned nRefContinuum,double *refContinuumwl
 
 int main(int argc, char *argv[])
 {
-	int opt;
-	
 	string inputUncalibratedSpectrum;
 	string inputCalibratedSpectrum;
-    string inputFlatFluxCalibration;
-    
-	string outputFluxCalibrationFile;
+	string inputWavelengthMaskForUncalContinuum;
     string inputWavelengthMaskForRefContinuum;
-    string inputWavelengthMaskForUncalContinuum;
-    
-	string inputaper;
+    string inputFlatFluxCalibration;
 	string inputWaveFile;
+	string inputaper;
+	string outputFluxCalibrationFile;
 	
     double wavelengthForNormalization = 548;
-    
+    double exposureTime = 1;   // in seconds
+    //not used
+    /*struct pixelsize {
+		unsigned x, y;
+	} pixelsize = {1, 1};*/
     unsigned numberOfPointsInUniformSample = 200;
     unsigned numberOfPointsInUniformRefSample = 70;
-    
-    double exposureTime = 1;   // in seconds
-
-	struct pixelsize {
-		unsigned x, y;
-	} pixelsize = {1, 1};
-    
-	int ordernumber = NOTPROVIDED;
-    
-    int minorder = 22;
-    bool minorderprovided = false;
-    int maxorder = 62;    
-    bool maxorderprovided = false;            
-    
     unsigned binsize = 100;
     
-    double delta_wl = 1.0; // wavelength (in nm) range for stiching non-overlapping orders
-    
-    bool interactive = false;
-    
-	int debug=0, verbose=0, trace=0, plot=0;
-    
-    string plotfilename;	
+	int ordernumber = NOTPROVIDED;
+    int minorder = NOTPROVIDED;
+    int maxorder = NOTPROVIDED;    
+	string plotfilename;	
 	string spectrumDataFilename;
 	string continuumDataFilename;	
 	string scriptfilename;	
+	bool interactive = false;
 	
-	struct option longopts[] = {
-		{"inputUncalibratedSpectrum",       1, NULL, 'i'},
-		{"inputCalibratedSpectrum",         1, NULL, 'c'},
-		{"inputFlatFluxCalibration",        1, NULL, 'f'},
-        {"inputWavelengthMaskForRefContinuum",             1, NULL, 'm'},
-        {"inputWavelengthMaskForUncalContinuum",           1, NULL, 'u'},
-        {"inputWaveFile",                   1, NULL, 'w'},
-		{"outputFluxCalibrationFile",       1, NULL, 'o'},
-		{"inputApertureFile",               1, NULL, 'a'},   
-		{"wavelengthForNormalization",		1, NULL, 'L'},
-		{"exposureTime",                    1, NULL, 'E'},
-		{"pixelsize",                       1, NULL, 'D'},
-		{"ordernumber",                     1, NULL, 'O'},	
-		{"minorder",                        1, NULL, 'M'},
-		{"maxorder",                        1, NULL, 'X'},
-		{"numberOfPointsInUniformSample",   1, NULL, 'l'},
-		{"numberOfPointsInUniformRefSample",1, NULL, 'g'},
-		{"binsize",                         1, NULL, 'b'},
-		{"plotfilename",                    1, NULL, 'P'},
-		{"spectrumDataFilename",            1, NULL, 'F'},
-		{"continuumDataFilename",           1, NULL, 'C'},        
-		{"scriptfilename",                  1, NULL, 'S'},  
-		{"interactive",                     0, NULL, 'I'},
-		{"plot",				optional_argument, NULL, 'p'},       
-		{"verbose",				optional_argument, NULL, 'v'},
-		{"debug",				optional_argument, NULL, 'd'},
-		{"trace",				optional_argument, NULL, 't'},
-		{"help",				no_argument, NULL, 'h'},
-		{0,0,0,0}};
+	args.AddRequiredArgument("inputUncalibratedSpectrum", inputUncalibratedSpectrum, "Spectrophotometric standard extracted uncalibrated spectrum");
+	args.AddRequiredArgument("inputCalibratedSpectrum", inputCalibratedSpectrum, "Spectrophotometric standard template calibrated spectrum");
+	args.AddRequiredArgument("inputWavelengthMaskForUncalContinuum", inputWavelengthMaskForUncalContinuum, "");  //???
+	args.AddRequiredArgument("inputWavelengthMaskForRefContinuum", inputWavelengthMaskForRefContinuum, "");      //???
+	args.AddRequiredArgument("inputFlatFluxCalibration", inputFlatFluxCalibration, "Input flat flux calibration file");
+	args.AddRequiredArgument("inputWaveFile", inputWaveFile, "Input wavelength calibration file");
+	args.AddRequiredArgument("inputApertureFile", inputaper, "Input aperture calibration file");
+	args.AddRequiredArgument("outputFluxCalibrationFile", outputFluxCalibrationFile, "Output flux calibration conversion file");
 	
-	while((opt = getopt_long(argc, argv, "i:c:f:m:u:w:o:a:L:E:D:O:M:X:l:g:b:P:F:C:S:I:p::v::d::t::h",  longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'i':
-				inputUncalibratedSpectrum = optarg;	
-				break;    
-			case 'c':
-				inputCalibratedSpectrum = optarg;	
-				break;
-			case 'f':
-				inputFlatFluxCalibration = optarg;
-				break;
-			case 'm':
-				inputWavelengthMaskForRefContinuum = optarg;
-				break;
-			case 'u':
-				inputWavelengthMaskForUncalContinuum = optarg;
-				break;
-			case 'w':
-				inputWaveFile = optarg;
-				break;
-			case 'o':		// output
-				outputFluxCalibrationFile = optarg;
-				break;
-			case 'a':
-				inputaper = optarg;
-				break;
-			case 'L':
-				wavelengthForNormalization = atof(optarg);
-				break;
-			case 'E':
-				exposureTime = atof(optarg);
-				break;
-			case 'D':		// pixel size in microns
-				if (strlen(optarg))
-					sscanf(optarg, "%u %u", &pixelsize.x, &pixelsize.y);
-				break;                        
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;				
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;  
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;
-			case 'l':
-				numberOfPointsInUniformSample = atoi(optarg);
-				break;
-			case 'g':
-				numberOfPointsInUniformRefSample = atoi(optarg);
-				break;                
-			case 'b':		// binsize
-				binsize = atoi(optarg);
-				break;         
-			case 'P':
-				plotfilename = optarg;
-				plot = 1;
-				break; 		                
-			case 'F':
-				spectrumDataFilename = optarg;
-				break; 	
-			case 'C':
-				continuumDataFilename = optarg;
-				break;                 
-			case 'S':
-				scriptfilename = optarg;
-				break;  
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
+	args.AddRequiredArgument("wavelengthForNormalization", wavelengthForNormalization, "Wavelength (nm) for normalization of reference spectrum");
+	args.AddRequiredArgument("exposureTime", exposureTime, "Exposure time of input uncalibrated spectrum");
+	//args.AddRequiredArgument("pixelsize", , "Detector pixel size"); //value not used anywhere anymore
+	args.AddRequiredArgument("numberOfPointsInUniformSample", numberOfPointsInUniformSample, "Define lowest order to consider in the fit across orders");
+	args.AddRequiredArgument("numberOfPointsInUniformRefSample", numberOfPointsInUniformRefSample, "Define highest order to consider in the fit across orders");
+	args.AddRequiredArgument("binsize", binsize, "Number of points to bin for continuum estimate");
+	
+	args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
+	args.AddOptionalArgument("plotfilename", plotfilename, "", "Output plot eps file name");
+	args.AddOptionalArgument("spectrumDataFilename", spectrumDataFilename, "", "Output spectrum data file name");
+	args.AddOptionalArgument("continuumDataFilename", continuumDataFilename, "", "Output continuum data file name");
+	args.AddOptionalArgument("scriptfilename", scriptfilename, "", "Output gnuplot script file name");
+	args.AddSwitch("interactive", interactive, "For interactive plots");
 	
 	try {
+		args.Parse(argc, argv);
+		
 		// we need an input uncalibrated spectrum...
 		if (inputUncalibratedSpectrum.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -286,7 +156,6 @@ int main(int argc, char *argv[])
 		if (inputFlatFluxCalibration.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
-        
 		// we need an output...
 		if (outputFluxCalibrationFile.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
@@ -303,13 +172,12 @@ int main(int argc, char *argv[])
 		if (inputWavelengthMaskForUncalContinuum.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
-        
 		// we need a aperture file...
 		if (inputaper.empty()) {
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
         
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaCreateFluxCalibration: input uncalibrated spectrum file = " << inputUncalibratedSpectrum << endl; 
 			cout << "operaCreateFluxCalibration: input calibrated spectrum file = " << inputCalibratedSpectrum << endl;
 			cout << "operaCreateFluxCalibration: inputFlatFluxCalibration = " << inputFlatFluxCalibration << endl;
@@ -322,21 +190,15 @@ int main(int argc, char *argv[])
             cout << "operaCreateFluxCalibration: exposure time= " << exposureTime << " seconds" << endl;
 			cout << "operaCreateFluxCalibration: numberOfPointsInUniformSample = " << numberOfPointsInUniformSample << endl;
 			cout << "operaCreateFluxCalibration: numberOfPointsInUniformRefSample = " << numberOfPointsInUniformRefSample << endl;
-			cout << "operaCreateFluxCalibration: pixelsize {x,y} = {" << pixelsize.x << "," << pixelsize.y << "}" << endl;
-            if(ordernumber != NOTPROVIDED) {
-                cout << "operaCreateFluxCalibration: ordernumber = " << ordernumber << endl;            
-            }   
+			//cout << "operaCreateFluxCalibration: pixelsize {x,y} = {" << pixelsize.x << "," << pixelsize.y << "}" << endl; //not used
+            if(ordernumber != NOTPROVIDED) cout << "operaCreateFluxCalibration: ordernumber = " << ordernumber << endl;            
             cout << "operaCreateFluxCalibration: binsize = " << binsize << endl;  
-            if(plot) {
+            if(args.plot) {
                 cout << "operaCreateFluxCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaCreateFluxCalibration: spectrumDataFilename = " << spectrumDataFilename << endl;
                 cout << "operaCreateFluxCalibration: continuumDataFilename = " << continuumDataFilename << endl;
                 cout << "operaCreateFluxCalibration: scriptfilename = " << scriptfilename << endl; 
-                if(interactive) {
-                    cout << "operaCreateFluxCalibration: interactive = YES" << endl; 
-                } else {
-                    cout << "operaCreateFluxCalibration: interactive = NO" << endl; 
-                }
+				cout << "operaCreateFluxCalibration: interactive = " << (interactive ? "YES" : "NO") << endl; 
             }            
             
 		}
@@ -357,20 +219,8 @@ int main(int argc, char *argv[])
         spectralOrders.ReadSpectralOrders(inputaper);
         spectralOrders.ReadSpectralOrders(inputWaveFile);
 
-        if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();            
-        }        
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-        
-		if (verbose)
-			cout << "operaCreateFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
+        UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
+		if (args.verbose) cout << "operaCreateFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
 
 		/*
 		 * Flux calibration reference file:
@@ -395,9 +245,7 @@ int main(int argc, char *argv[])
                 SpectralElements->setwavelengthsFromCalibration(wavelength);
             }
         }
-        if (verbose) {
-			cout << "operaCreateFluxCalibration: NumberofBeams = " << NumberofBeams << endl;
-        }
+        if (args.verbose) cout << "operaCreateFluxCalibration: NumberofBeams = " << NumberofBeams << endl;
 
         if(NumberofBeams == 0) {
             throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
@@ -433,7 +281,7 @@ int main(int argc, char *argv[])
         
         calculateUniformSample(nRefContinuum,refContinuumwl,refContinuumflux,numberOfPointsInUniformRefSample,uniformRef_wl,uniformRef_flux);
 
-        if(debug) {
+        if(args.debug) {
             // original sample
             for(unsigned i=0;i<nRefContinuum;i++) {
                 cout << refContinuumwl[i] << " "
@@ -452,7 +300,8 @@ int main(int argc, char *argv[])
         for(unsigned beam=0;beam<NumberofBeams;beam++) {
             uniform_Beamflux[beam] = new float[numberOfPointsInUniformSample];
         }
-        
+		
+		const double delta_wl = 1.0; // wavelength (in nm) range for stiching non-overlapping orders
         spectralOrders.calculateCleanUniformSampleOfContinuum(minorder,maxorder,binsize,delta_wl,inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,uniform_wl,uniform_flux,uniform_Beamflux,TRUE);
         
         double uncalFluxForNormalization = (double)getFluxAtWavelength(numberOfPointsInUniformSample,uniform_wl,uniform_flux,wavelengthForNormalization);
@@ -593,119 +442,49 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 } 
 
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" +
-	" --inputUncalibratedSpectrum=<SPEC_FILE>"
-	" --inputCalibratedSpectrum=<TEMPLATE_FILE>"    
-	" --inputWaveFile=<WAVE_FILE>"
-	" --outputFluxCalibrationFile=<SPEC_FILE>"
-	" --inputApertureFile=<APER_FILE>"
-	" --spectrumtype=<UNS_VALUE>"
-	" --wavelengthForNormalization=<DOUBLE_VALUE>"
-	" --exposureTime=<FLOAT_VALUE>"
-	" --pixelsize=<FLOAT_VALUE>"
-	" --ordernumber=<UNS_VALUE>"
-	" --minorder=<UNS_VALUE>"
-	" --maxorder=<UNS_VALUE>"
-	" --numberOfPointsInUniformSample=<UNS_VALUE>"
-	" --numberOfPointsInUniformRefSample=<UNS_VALUE>"
-	" --binsize=<UNS_VALUE>"
-	" --usePolynomial=<BOOL>"
-	" --orderOfPolynomial=<UNS_VALUE>"
-	" --generate3DPlot=<BOOL>"
-	" --generateBeamPlot=<BOOL>"
-	" --plotContinuum=<BOOL>"
-	" --plotfilename=<EPS_FILE>"
-	" --spectrumDataFilename=<DATA_FILE>"
-	" --continuumDataFilename=<DATA_FILE>"
-	" --scriptfilename=<GNUPLOT_FILE>"
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputCalibratedSpectrum=HR1544_operaFluxCal.dat --inputUncalibratedSpectrum=1515004.e.gz --inputWaveFile=/Users/edermartioli/opera/calibrations/GalileanMoons/OLAPAa_pol_Normal.wcar.gz --outputFluxCalibrationFile=1515004.fcal.gz --inputApertureFile=/Users/edermartioli/opera/calibrations/GalileanMoons/OLAPAa_pol_Normal.aper.gz --normalizeCalibratedSpectrum=1 --binsize=210 --exposureTime=1 --spectrumDataFilename=1515004.spec --continuumDataFilename=1515004.cont --scriptfilename=1515004fcal.gnu -v \n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -i, --inputUncalibratedSpectrum=<SPEC_FILE>,  Spectrophotometric standard extracted uncalibrated spectrum \n"
-	"  -c, --inputCalibratedSpectrum=<TEMPLATE_FILE>,  Spectrophotometric standard template calibrated spectrum \n"
-	"  -w, --inputWaveFile=<WAVE_FILE>, Input wavelength calibration file\n"
-	"  -o, --outputFluxCalibrationFile=<SPEC_FILE>,  Output flux calibration conversion file \n"
-	"  -a, --inputApertureFile=<APER_FILE>, Input aperture calibration file\n"
-	"  -L, --wavelengthForNormalization=<DOUBLE_VALUE>, Wavelength (nm) for normalization of reference spectrum\n"
-	"  -E, --exposureTime=<WAVE_FILE>, Exposure time of input uncalibrated spectrum\n"
-	"  -D, --pixelsize=<WAVE_FILE>, Detector pixel size\n"
-	"  -O, --ordernumber=<UNS_VALUE>, Absolute order number to extract (default=all)\n"
-	"  -M, --minorder=<UNS_VALUE>, Define minimum order number\n"
-	"  -X, --maxorder=<UNS_VALUE>, Define maximum order number\n"
-	"  -l, --numberOfPointsInUniformSample=<UNS_VALUE>, Define lowest order to consider in the fit across orders\n"
-	"  -g, --numberOfPointsInUniformRefSample=<UNS_VALUE>, Define highest order to consider in the fit across orders\n"
-	"  -b, --binsize=<UNS_VALUE>, Number of points to bin for continuum estimate \n"
-	"  -P, --plotfilename=<EPS_FILE>\n"
-	"  -E, --generate3DPlot=<BOOL>, Switch to generate 3D or 2D plot spectra\n"
-	"  -B, --generateBeamPlot=<BOOL>, Switch to generate plot of beams or full slit spectra\n"
-	"  -c, --plotContinuum=<BOOL>, Switch to generate plot of continuum or normalized line spectra\n"
-	"  -F, --spectrumDataFilename=<DATA_FILE>\n"
-	"  -C, --continuumDataFilename=<DATA_FILE>\n"
-	"  -S, --scriptfilename=<GNUPLOT_FILE>\n"
-	"  -I, --interactive=<BOOL>\n\n";
-}
-
 void GenerateCreateFluxCalibrationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string continuumDataFilename, unsigned NumberofBeams, bool display)
 {
-    ofstream *fgnu = NULL;
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str());  // delete any existing file with the same name
+    ofstream fgnu(gnuScriptFileName.c_str());
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str());  // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
+    fgnu << "reset" << endl;
+    fgnu << "unset key" << endl;
+    fgnu << "\nset xlabel \"wavelength (nm)\"" << endl;
+    fgnu << "set ylabel \"flux\"" << endl;
     
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    *fgnu << "\nset xlabel \"wavelength (nm)\"" << endl;
-    *fgnu << "set ylabel \"flux\"" << endl;
-    
-    *fgnu << "set pointsize 1.0" << endl;
+    fgnu << "set pointsize 1.0" << endl;
     
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         
-        *fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
+        fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
         ",\"" << continuumDataFilename << "\" u 4:5 w linespoint lw 2.5" << endl;
         
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
-        *fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
+        fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
         ",\"" << continuumDataFilename << "\" u 4:5 w linespoint lw 2.5" << endl;
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
+    fgnu.close();
     
-    fgnu->close();
-    
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }
 
 /*
@@ -728,7 +507,6 @@ unsigned readReferenceSpectrum(string reference_spectrum, double *referenceWavel
 					// skip comments
 				} else {
 					sscanf(dataline.c_str(), "%lf %lf", &tmpwl, &tmpi);
-                    
                     referenceWavelength[np] = tmpwl;
                     referenceIntensity[np] = tmpi;
                     referenceVariance[np] = tmpi;
@@ -736,14 +514,8 @@ unsigned readReferenceSpectrum(string reference_spectrum, double *referenceWavel
                 }	// skip comments
             }
 		} // while (astream.good())
-        
-		if (np > 0) {
-			if (verbose) {
-				printf("          [Reference] %d points found wl0=%.2f wlc=%.2f wlf=%.2f\n", np, referenceWavelength[0], referenceWavelength[np/2], referenceWavelength[np-1]);
-			}
-		} else {
-			printf("          [Reference] no points found in flux reference file.\n");
-		}
+		if (np > 0 && args.verbose) printf("          [Reference] %d points found wl0=%.2f wlc=%.2f wlf=%.2f\n", np, referenceWavelength[0], referenceWavelength[np/2], referenceWavelength[np-1]);
+		else if (args.verbose) printf("          [Reference] no points found in flux reference file.\n");
 		astream.close();
 	}	// if (astream.open())
 	return np;
@@ -870,7 +642,7 @@ unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRef
         ref_maxFlux = operaArrayMaxValue_d(nPointsInReference,refwl,refflux,&ref_wl);
         ref_maxNormFlux = operaArrayMaxValue_d(nPointsInReference,refwl,refnormflux, &ref_wl);
         
-        if(debug) {
+        if(args.debug) {
             cout << k << " "
             << nPointsInReference << " "
             << wl0_vector[k] << " "
@@ -893,4 +665,3 @@ unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRef
     
     return nTotalPoints;
 }
-

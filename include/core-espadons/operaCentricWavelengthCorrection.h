@@ -1,16 +1,14 @@
-#ifndef OPERAPOLARINTENSITY_H
-#define OPERAPOLARINTENSITY_H
+#ifndef OPERACENTRICWAVELENGTHCORRECTION_H
+#define OPERACENTRICWAVELENGTHCORRECTION_H
 /*******************************************************************
- ****                  MODULE FOR OPERA v1.0                    ****
+ ****               		OPERA PIPELINE v1.0                 ****
  *******************************************************************
- Module name: operaPolarIntensity
+ Library name: operaCentricWavelengthCorrection
  Version: 1.0
- Description: Create polar intensity spectrum  
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
- Date: Jan/2011
- Contact: opera@cfht.hawaii.edu
+ Date: May/2015
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -31,21 +29,16 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-// $Date$
-// $Id$
-// $Revision$
-// $Locker$
-// $Log$
+#include <string>
 
-/*! \brief Create polar intensity spectrum. */
-/*! \file operaPolarIntensity.h */
-/*! \ingroup core */
+/*! 
+ * operaSpectrumCalibration
+ * \author Eder Martioli / Christopher Usher
+ * \brief Calculate and apply Heliocentric or Barycentric velocity wavelength correction.
+ * \file operaCentricWavelengthCorrection.h
+ * \ingroup libraries
+ */
 
-/* prototypes */
-
-static void printUsageSyntax(char *prgname);
-
-void GenerateExtractionPlot(const char *gnuScriptFileName, const char *outputPlotEPSFileName,const char *dataFileName, unsigned nbeams, bool display);
+int CentricWavelengthCorrection(int argc, char *argv[], const std::string modulename, const bool barycentric);
 
 #endif
-

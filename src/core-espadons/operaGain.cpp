@@ -35,24 +35,10 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaGain.h"
-#include "libraries/operaException.h"
-#include "libraries/operaFITSImage.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaConfigurationAccess.h"
-
-#include "libraries/operaImage.h"
-#include "libraries/operaStats.h"
 #include "libraries/operaCCD.h"
-#include "libraries/operaFit.h"	
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 /*! \file operaGain.cpp */
 
@@ -64,10 +50,8 @@ using namespace std;
  * \brief Output gain and noise based on at least 2 flat images.
  * \arg argc
  * \arg argv
- * \arg [--biasimgs=...]*
- * \arg [--flatimgs=...]* 
- * \arg --listofbiasimgs=...
- * \arg --listofflatimgs=... 
+ * \arg --biasimgs=...
+ * \arg --flatimgs=...
  * \arg --badpixelmask=...
  * \arg --output=...
  * \arg --defaultgain=...
@@ -87,242 +71,111 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-	int opt;
+	const unsigned MAXIMAGES=1000;
+	const unsigned MAXNAMPS=2;
+	
+	operaArgumentHandler args;
     
-	string biasimgs[MAXIMAGES];			
-	string flatimgs[MAXIMAGES];	
 	string listofbiasimgs;
 	string listofflatimgs;
+	string biaslistfile;
+	string flatlistfile;
 	string output; 
 	string badpixelmask;
-    
-	int debug=0, verbose=0, trace=0, plot=0;
-	
-	float noise[MAXNAMPS];
-	float gain[MAXNAMPS];
-	float gainError[MAXNAMPS];
-	float bias[MAXNAMPS];
-	
-	for(unsigned i=0;i<MAXNAMPS;i++) {
-		noise[i] = 0.0;
-		gain[i] = 0.0;
-		gainError[i] = 0.0;	
-		bias[i] = 0.0;	
-	}
-	
-	float defaultgain = 1.0;
-	float defaultnoise = 0.0;
-	
-    DATASEC_t datasec = {1,2068,1,4608};
-    DATASEC_t dseca   = {21,1044,1,4608};
-    DATASEC_t dsecb   = {1045,2068,1,4608};
-    
-	struct subwindow {
-		int x0, nx;
-		int y0, ny;
-	} subwindow = {0,0,0,0};
-	
-	unsigned biasimgIndex = 0;
-	unsigned flatimgIndex = 0;
-	
+	unsigned namps = 1; // 1 for EEV1 and OLAPAa, 2 for OLAPAab	
+	double defaultgain = 1.0;
+	double defaultnoise = 0.0;
 	unsigned gainMinPixPerBin = 100;
 	unsigned gainMaxNBins = 1000;
 	unsigned gainLowestCount = 1000;
 	unsigned gainHighestCount = 25000;
-    
-    unsigned maximages = 12;    // otherwise we run out of memory o 32 bit systems...
+	string subwindow_str;
+	string datasec_str;
+	string dseca_str;
+	string dsecb_str;
+	//unsigned maximages = 12;    // otherwise we run out of memory on 32 bit systems...
 	
-	unsigned namps = 1;         // 1 for EEV1 and OLAPAa, 2 for OLAPAab
-	
-	struct option longopts[] = {
-		{"biasimgs",            1, NULL, 'b'},
-		{"flatimgs",            1, NULL, 'f'},		
-		{"listofbiasimgs",      1, NULL, 'L'},				
-		{"listofflatimgs",      1, NULL, 'F'},		
-		{"output",              1, NULL, 'o'},
-		{"badpixelmask",        1, NULL, 'm'},		
-		{"maximages",           1, NULL, 's'},
-		{"numberofamplifiers",  1, NULL, 'a'},
-		{"defaultgain",         1, NULL, 'G'},
-		{"defaultnoise",        1, NULL, 'N'},
-		{"gainMinPixPerBin",    1, NULL, 'n'},
-		{"gainMaxNBins",        1, NULL, 'x'},
-		{"gainLowestCount",     1, NULL, 'l'},
-		{"gainHighestCount",    1, NULL, 'c'},
-		{"subwindow",           1, NULL, 'w'},
-		{"DATASEC",             1, NULL, 'D'},
-		{"DSECA",               1, NULL, 'A'},
-		{"DSECB",               1, NULL, 'B'},
-        
-		{"plot",                optional_argument, NULL, 'p'},
-		{"verbose",             optional_argument, NULL, 'v'},
-		{"debug",               optional_argument, NULL, 'd'},
-		{"trace",               optional_argument, NULL, 't'},
-		{"help",                no_argument, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "b:f:L:F:o:m:a:s:G:N:n:x:l:c:w:D:A:B:v::d::t::p::h", 
-							 longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'b':		// bias images
-				if (biasimgIndex < maximages)
-                    biasimgs[biasimgIndex++] = optarg;
-				break;
-			case 'f':		// flat images
-                if (flatimgIndex < maximages)
-                    flatimgs[flatimgIndex++] = optarg;
-				break;		
-			case 'L':		// list of bias images
-				listofbiasimgs = optarg;
-				break;	
-			case 'F':		// list of flat images
-				listofflatimgs = optarg;
-				break;		
-			case 'o':		// output
-				output = optarg;
-				break;
-			case 'm':		// badpixelmask
-                badpixelmask = optarg;
-				break;
-			case 's':		// max images
-                maximages = atoi(optarg);
-				break;
-			case 'a':		// number of amplifiers = 1 or 2 (for Espadons)
-				namps = atoi(optarg);
-				break;	
-			case 'G':		// default gain
-				defaultgain = atof(optarg);
-				for(unsigned i=0;i<MAXNAMPS;i++) {
-					gain[i] = defaultgain;	
-				}				
-				break;      
-			case 'N':		// default noise
-				defaultnoise = atof(optarg);
-				for(unsigned i=0;i<MAXNAMPS;i++) {
-					noise[i] = defaultnoise;	
-				}		
-				break;               
-			case 'n':		// gainMinPixPerBin
-				gainMinPixPerBin = atoi(optarg);
-				break;            
-			case 'x':		// gainMaxNBins
-				gainMaxNBins = atoi(optarg);
-				break;            
-			case 'l':		// gainLowestCount
-				gainLowestCount = atoi(optarg);
-				break;            
-			case 'c':		// gainHighestCount
-				gainHighestCount = atoi(optarg);
-				break;            
-			case 'w':		// subwindow - subwindow within which data will used for the gain/noise calculation
-				if (strlen(optarg))
-					sscanf(optarg, "%d %d %d %d", &subwindow.x0, &subwindow.nx, &subwindow.y0, &subwindow.ny);
-				break;
-			case 'D':
-				if (strlen(optarg))
-					sscanf(optarg, "%u %u %u %u", &datasec.x1, &datasec.x2, &datasec.y1, &datasec.y2);
-				break;
-			case 'A':
-				if (strlen(optarg))
-					sscanf(optarg, "%u %u %u %u", &dseca.x1, &dseca.x2, &dseca.y1, &dseca.y2);
-				break;
-			case 'B':
-				if (strlen(optarg))
-					sscanf(optarg, "%u %u %u %u", &dsecb.x1, &dsecb.x2, &dsecb.y1, &dsecb.y2);
-				break;
-				
-			case 'v':
-				verbose = 1;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
-	
-	/* 
-	 * Read image path from input file and append to list of input images	
-	 */ 
-	// Read list of bias images
-	if (!listofbiasimgs.empty()) {
-		ifstream flist(listofbiasimgs.c_str());		
-		if (flist.is_open())
-		{
-			while (flist.good()) {
-				getline (flist,biasimgs[biasimgIndex++]);
-				if (biasimgs[biasimgIndex-1].size() == 0 || biasimgs[biasimgIndex-1][0] == '#')
-					biasimgIndex--;					
-                if (biasimgIndex >= maximages)
-                    break;
-			}
-			flist.close();
-		}
-	}
-	// Read list of flat images	
-	if (!listofflatimgs.empty()) {
-		ifstream flist(listofflatimgs.c_str());		
-		if (flist.is_open())
-		{
-			while (flist.good()) {
-				getline (flist,flatimgs[flatimgIndex++]);
-				if (flatimgs[flatimgIndex-1].size() == 0 || flatimgs[flatimgIndex-1][0] == '#')
-					flatimgIndex--;					
-                if (flatimgIndex >= maximages)
-                    break;
-			}
-			flist.close();
-		}
-	}
-	/*
-	 * end of reading list of images
-	 */
-	
-	// we need at least 2 biases...
-	if (biasimgIndex < 1) {
-		throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	// we need at least 2 flats to calc the gain...
-	if (flatimgIndex < 2) {
-		throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	// we need an output...
-	if (output.empty()) {
-		throw operaException("operaGain: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	// only accept number of amplifiers = 1 or 2...
-	if (namps != 1 && namps != 2) {
-		throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-	}	
-	
-	if (debug) {
-		for(unsigned i=0; i<biasimgIndex; i++)
-			cout << "operaGain: input bias: " << i << ' ' << biasimgs[i] << endl;
-		for(unsigned i=0; i<flatimgIndex;i ++)
-			cout << "operaGain: input flat: " << i << ' ' << flatimgs[i] << endl;		
-	}
-	
-	if (verbose) {
-		cout << "operaGain: subwindow = " << subwindow.x0 << " " << subwindow.nx << " "<< subwindow.y0  << " "<< subwindow.ny << endl; 
-		cout << "operaGain: gainMinPixPerBin = " << gainMinPixPerBin << " gainMinPixPerBin = " << gainMinPixPerBin << " gainLowestCount = " << gainLowestCount << " gainHighestCount = " << gainHighestCount << endl; 
-	}
+	args.AddOptionalArgument("biasimgs", listofbiasimgs, "", "List of bias fits files, seperated by spaces");
+	args.AddOptionalArgument("flatimgs", listofflatimgs, "", "List of flat fits files, seperated by spaces");
+	args.AddOptionalArgument("biaslistfile", biaslistfile, "", "File containing list of bias fits files");
+	args.AddOptionalArgument("flatlistfile", flatlistfile, "", "File containing list of flat fits files");
+	args.AddRequiredArgument("output", output, "Output file");
+	args.AddRequiredArgument("badpixelmask", badpixelmask, "Badpixel mask fits file");	
+	args.AddRequiredArgument("numberofamplifiers", namps, "Number of amplifiers (1 or 2)");
+	args.AddRequiredArgument("defaultgain", defaultgain, "Default gain value");
+	args.AddRequiredArgument("defaultnoise", defaultnoise, "Default noise value");
+	args.AddRequiredArgument("gainMinPixPerBin", gainMinPixPerBin, "Minimum number of pixels allowed per bin");
+	args.AddRequiredArgument("gainMaxNBins", gainMaxNBins, "Maximum number of bins to use");
+	args.AddRequiredArgument("gainLowestCount", gainLowestCount, "Lowest pixel count value to be considered");
+	args.AddRequiredArgument("gainHighestCount", gainHighestCount, "Highest pixel count value to be considered");
+	args.AddOptionalArgument("subwindow", subwindow_str, "", "Subwindow where data will used for the gain/noise calculation \"x1 x2 y1 y2\"");
+	args.AddOptionalArgument("DATASEC", datasec_str, "", "Valid data region on the amplifier (1 amp mode) \"x1 x2 y1 y2\"");
+	args.AddOptionalArgument("DSECA", dseca_str, "", "Valid data region on amplifier A (2 amp mode) \"x1 x2 y1 y2\"");
+	args.AddOptionalArgument("DSECB", dsecb_str, "", "Valid data region on amplifier B (2 amp mode) \"x1 x2 y1 y2\"");
 	
 	try {
+		args.Parse(argc, argv);
+
+		struct subwindow {
+			int x0, nx;
+			int y0, ny;
+		} subwindow = {0,0,0,0};
+		DATASEC_t datasec = {1,2068,1,4608};
+		DATASEC_t dseca   = {21,1044,1,4608};
+		DATASEC_t dsecb   = {1045,2068,1,4608};
+		if (!subwindow_str.empty()) sscanf(subwindow_str.c_str(), "%d %d %d %d", &subwindow.x0, &subwindow.nx, &subwindow.y0, &subwindow.ny);
+		if (!datasec_str.empty()) sscanf(datasec_str.c_str(), "%u %u %u %u", &datasec.x1, &datasec.x2, &datasec.y1, &datasec.y2);
+		if (!dseca_str.empty()) sscanf(dseca_str.c_str(), "%u %u %u %u", &dseca.x1, &dseca.x2, &dseca.y1, &dseca.y2);
+		if (!dsecb_str.empty()) sscanf(dsecb_str.c_str(), "%u %u %u %u", &dsecb.x1, &dsecb.x2, &dsecb.y1, &dsecb.y2);
+
+		string biasimgs[MAXIMAGES];
+		string flatimgs[MAXIMAGES];
+		unsigned biasimgIndex = 0;
+		unsigned flatimgIndex = 0;
+		SplitStringIntoArray(listofbiasimgs, biasimgs, biasimgIndex, MAXIMAGES); // Split list of bias images into array
+		SplitStringIntoArray(listofflatimgs, flatimgs, flatimgIndex, MAXIMAGES); // Split list of flat images into array
+		ReadStringsFromFileIntoArray(biaslistfile, biasimgs, biasimgIndex, MAXIMAGES); // Read list of images from file
+		ReadStringsFromFileIntoArray(flatlistfile, flatimgs, flatimgIndex, MAXIMAGES); // Read list of images from file
+		
+		float gain[MAXNAMPS];
+		float noise[MAXNAMPS];
+		float gainError[MAXNAMPS];
+		float bias[MAXNAMPS];
+		for(unsigned i=0;i<MAXNAMPS;i++) {
+			gain[i] = defaultgain;	
+			noise[i] = defaultnoise;
+			gainError[i] = 0.0;	
+			bias[i] = 0.0;	
+		}
+		
+		// we need at least 2 biases...
+		if (biasimgIndex < 2) {
+			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
+		}
+		// we need at least 2 flats to calc the gain...
+		if (flatimgIndex < 2) {
+			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
+		}
+		// we need an output...
+		if (output.empty()) {
+			throw operaException("operaGain: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
+		}
+		// only accept number of amplifiers = 1 or 2...
+		if (namps != 1 && namps != 2) {
+			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
+		}
+		
+		if (args.debug) {
+			for(unsigned i=0; i<biasimgIndex; i++)
+				cout << "operaGain: input bias: " << i << ' ' << biasimgs[i] << endl;
+			for(unsigned i=0; i<flatimgIndex;i ++)
+				cout << "operaGain: input flat: " << i << ' ' << flatimgs[i] << endl;		
+		}
+		
+		if (args.verbose) {
+			cout << "operaGain: subwindow = " << subwindow.x0 << " " << subwindow.nx << " "<< subwindow.y0  << " "<< subwindow.ny << endl; 
+			cout << "operaGain: gainMinPixPerBin = " << gainMinPixPerBin << " gainMinPixPerBin = " << gainMinPixPerBin << " gainLowestCount = " << gainLowestCount << " gainHighestCount = " << gainHighestCount << endl; 
+		}
 		/*
 		 * open badpixelmask and load data into a vector
 		 */
@@ -364,7 +217,7 @@ int main(int argc, char *argv[])
                             x2 = dseca.x2;
                             y1 = dseca.y1;
                             y2 = dseca.y2;
-                            if (verbose) {
+                            if (args.verbose) {
                                 cout << "operaGain: amp " << amp << " dseca = " << x1 << " : " << x2 << " , "<< y1  << " : "<< y2 << endl;
                             }					
 						} else {
@@ -372,7 +225,7 @@ int main(int argc, char *argv[])
                             x2 = dsecb.x2;
                             y1 = dsecb.y1;
                             y2 = dsecb.y2;
-							if (verbose) {
+							if (args.verbose) {
 								cout << "operaGain: amp " << amp << " dsecb = " << x1 << " : " << x2 << " , "<< y1  << " : "<< y2 << endl;
 							}
                         }
@@ -395,17 +248,16 @@ int main(int argc, char *argv[])
                         amp_xf = amp_x0 + subwindow.nx;
                         amp_yf = amp_y0 + subwindow.ny;
                         npixels = (amp_yf-amp_y0)*(amp_xf-amp_x0);
-                        if (verbose) {
+                        if (args.verbose) {
                             cout << "operaGain: amp " << amp << " datasec = " << x1 << " : " << x2 << " , "<< y1  << " : "<< y2 << endl;
                         }
                     }
 					
-					if(amp_x0 < x1 || amp_y0 < y1 || amp_xf > x2 || amp_xf > y2)
-					{
+					if(amp_x0 < x1 || amp_y0 < y1 || amp_xf > x2 || amp_xf > y2) {
 						throw "operaGain: error: subwindow exceeds area of datasec\n";
 					}
 					
-					if (verbose) {
+					if (args.verbose) {
 						cout << "operaGain: amp = " << amp << ": xw1 = " << amp_x0 << " xw2 = " << amp_xf << " yw1 = "<< amp_y0  << " yw2 = "<< amp_yf   << " npixels = "<< npixels << endl; 
 					}					
 				}
@@ -424,18 +276,12 @@ int main(int argc, char *argv[])
 			
 			operaCCDGainNoise(npixels, biasimgIndex, biasdata, flatimgIndex, flatdata, badpixdata, gainLowestCount, gainHighestCount, gainMaxNBins, gainMinPixPerBin, &gain[amp], &gainError[amp], &bias[amp], &noise[amp]);
 			
-			if (isnan(gain[amp]))
-				throw operaException("operaGain: gain: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
-			if (isinf(gain[amp]))
-				throw operaException("operaGain: gain: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
-			if (isnan(noise[amp]))
-				throw operaException("operaGain: noise: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
-			if (isinf(noise[amp]))
-				throw operaException("operaGain: noise: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
-			if (isnan(gainError[amp]))
-				throw operaException("operaGain: gainError: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
-			if (isinf(gainError[amp]))
-				throw operaException("operaGain: gainError: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
+			if (isnan(gain[amp])) throw operaException("operaGain: gain: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
+			if (isinf(gain[amp])) throw operaException("operaGain: gain: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
+			if (isnan(noise[amp])) throw operaException("operaGain: noise: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
+			if (isinf(noise[amp])) throw operaException("operaGain: noise: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
+			if (isnan(gainError[amp])) throw operaException("operaGain: gainError: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
+			if (isinf(gainError[amp])) throw operaException("operaGain: gainError: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
 			
 			// Note that ordersstores amps as zero-based....
 			orders->getGainBiasNoise()->setGain(amp-1, gain[amp]);
@@ -443,7 +289,7 @@ int main(int argc, char *argv[])
 			orders->getGainBiasNoise()->setNoise(amp-1, noise[amp]);
 			orders->getGainBiasNoise()->setBias(amp-1, bias[amp]);
 			orders->getGainBiasNoise()->setDatasec(amp-1, datasec);
-			if (verbose) {
+			if (args.verbose) {
 				cout << "operaGain: amp " << amp << " gain " << gain[amp] << " gainError " << gainError[amp] << " Noise " << noise[amp]  << " Bias " << bias[amp] << endl; 
 			}
 		}
@@ -460,34 +306,3 @@ int main(int argc, char *argv[])
 	}
 	return EXIT_SUCCESS;
 }
-
-
-/* Print out the proper program usage syntax */
-void printUsageSyntax(char * modulename) {
-	
-	cout <<
-	" Usage: "+string(modulename)+"  [-vdth] \n"
-	"  -b, --biasimgs=<FITS_FILE>, bias fits file name  \n"
-	"  -f, --flatimgs=<FITS_FILE>, flat fits file name  \n"
-	"  -B, --listofbiasimgs=<LIST_FILE>, list of bias fits file paths  \n"
-	"  -F, --listofflatimgs=<LIST_FILE>, list of flat fits file paths  \n"
-	"  -o, --output=<FILENAME>, output file  \n"
-	"  -m, --badpixelmask=<FITS_FILE>, badpixel mask fits file name \n"
-	"  -a, --numberofamplifiers=<INT_VALUE>, amplifier mode 1 or 2 amps \n"
-	"  -G, --defaultgain=<FLT_VALUE>, default gain value  \n"
-	"  -N, --defaultnoise=<FLT_VALUE>, default noise value  \n"
-	"  -n, --gainMinPixPerBin=<INT_VALUE>\n"
-	"  -x, --gainMaxNBins=<INT_VALUE>\n"
-	"  -l, --gainLowestCount=<UNS_VALUE>\n"
-	"  -c, --gainHighestCount=<UNS_VALUE>\n"
-	"  -s, --subwindow=<X0 NX Y0 NY>, subwindow to estimate the gain/noise \n"
-    "  -D, --useDATASECKey=<BOOL>, Whether or not to use DATASEC keyword\n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"\n\n"
-	" Example: "+string(modulename)+"  -B bias.list -F flat.list -m badpixmask.fits -a 1 -n 1000 -x 100 -l 1000 -c 30000 --subwindow=\"100 800 100 3000\" \n\n"
-    ;
-}
-

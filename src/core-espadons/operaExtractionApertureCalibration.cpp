@@ -35,36 +35,12 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaExtractionApertureCalibration.h"
-
-#include "libraries/operaException.h"
-#include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
 #include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
-#include "libraries/operaInstrumentProfile.h"		// for operaInstrumentProfile
-#include "libraries/operaFITSImage.h"
-#include "libraries/operaFITSSubImage.h"
-#include "libraries/operaEspadonsImage.h"			// for imtype_t
-#include "libraries/operaFITSProduct.h"	
-#include "libraries/operaLib.h"						// systemf
-
-#include "libraries/operaExtractionAperture.h"
-#include "libraries/operaGeometricShapes.h"
-
-#include "libraries/operaLibCommon.h"
-#include "libraries/operaImage.h"
-#include "libraries/operaStats.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
-#include "libraries/operaFit.h"	
-#include "libraries/operaFFT.h"	
 #include "libraries/ladfit.h"
-
-#define NOTPROVIDED -999
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 /*! \file operaExtractionApertureCalibration.cpp */
 
@@ -85,163 +61,62 @@ using namespace std;
  * \ingroup core
  */
 
+void GenerateExtractionAperturePlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, bool display);
+
+void GenerateExtractionApertureTiltPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName1, string dataFileName2, float tiltAngle, float tiltAngleError, bool display);
+
 int main(int argc, char *argv[])
 {
-	int opt;
-	
-    string inputorderspacing;
-	string inputgeom; 	
-	string inputprof;  	
-	
-	string outputApertureFile;
-    
-    int minorder = 22;
-    bool minorderprovided = false;
-    int maxorder = 62;    
-    bool maxorderprovided = false;    
-    
-	int ordernumber = NOTPROVIDED;		
-    unsigned pickImageRow = 0;
+	operaArgumentHandler args;
+		
+    string outputApertureFile;
+	string inputgeom;
+	string inputprof;
+	string inputorderspacing;
     unsigned nRowSamples = 1;
-    
+	unsigned pickImageRow = 0;
     unsigned xbin = 10;
-    
     unsigned numberOfBeams = 1; // 1 for star-only;  2 for polar/s+s
-	
-    float gapBetweenBeams = 0;
-    
-    float apertureWidth = 26.0;
-    float apertureHeight = 0.6;
-    float backgroundAperture = 2.0;
-    
-    bool interactive = false;
-    
-	int debug=0, verbose=0, trace=0, plot=0;
-	
+    double gapBetweenBeams = 0;
+    double apertureWidth = 26.0;
+    double apertureHeight = 0.6;
+    double backgroundAperture = 2.0;
+    bool constantTilt = false;
+	int ordernumber = NOTPROVIDED;
+	int minorder = NOTPROVIDED;
+    int maxorder = NOTPROVIDED;
     string plotfilename;	
 	string datafilename;	
-	string scriptfilename;	
+	string scriptfilename;
+	bool interactive = false;
+    string tiltplotfilename;
+    string tiltdata1filename;
+    string tiltdata2filename;
+    string tiltscriptfilename;
     
-	struct option longopts[] = {      
-		{"outputApertureFile",1, NULL, 'o'},	
-		{"inputorderspacing",1, NULL, 's'},          
-		{"inputgeom",1, NULL, 'g'},
-		{"inputprof",1, NULL, 'i'}, 
-		{"ordernumber",1, NULL, 'O'},
-		{"pickImageRow",1, NULL, 'R'},
-		{"nRowSamples",1, NULL, 'L'},   
-		{"xbin",1, NULL, 'x'}, 
-		{"minorder",1, NULL, 'M'},
-		{"maxorder",1, NULL, 'X'},          
-		{"numberOfBeams",1, NULL, 'N'},	
-		{"gapBetweenBeams",1, NULL, 'G'},	        
-		{"apertureWidth",1, NULL, 'W'},	
-		{"apertureHeight",1, NULL, 'H'},	
-		{"backgroundAperture",1, NULL, 'B'},			
-		{"plotfilename",1, NULL, 'P'},
-		{"datafilename",1, NULL, 'F'},
-		{"scriptfilename",1, NULL, 'S'},  
-		{"interactive",0, NULL, 'I'}, 
-		
-		{"plot",optional_argument, NULL, 'p'},       
-		{"verbose",optional_argument, NULL, 'v'},
-		{"debug",optional_argument, NULL, 'd'},
-		{"trace",optional_argument, NULL, 't'},
-		{"help",no_argument, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "o:s:g:i:O:R:L:x:M:X:N:G:W:H:B:P:F:S:I:v::d::t::p::h", 
-							 longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{             
-			case 'o':
-				outputApertureFile = optarg;
-				break; 	                
-			case 's':
-				inputorderspacing = optarg;
-				break;                
-			case 'g':
-				inputgeom = optarg;
-				break;				
-			case 'i':
-				inputprof = optarg;
-				break;					
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;	
-			case 'R':
-				pickImageRow = atoi(optarg);
-				break;  
-			case 'L':
-				nRowSamples = atoi(optarg);
-				break; 
-			case 'x':
-				xbin = atoi(optarg);
-				break;
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;  
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;                  
-			case 'N':
-				numberOfBeams = atoi(optarg);
-				break;	
-			case 'G':		// width of gap betwenn beams
-				gapBetweenBeams = atof(optarg);
-				break;                 
-			case 'W':		// aperture width for extraction in pixels
-				apertureWidth = atof(optarg);
-				break; 
-			case 'H':		// aperture height for extraction in pixels
-				apertureHeight = atof(optarg);
-				break; 
-			case 'B':		// aperture width for background subtraction in pixels
-				backgroundAperture = atof(optarg);
-				break; 
-			case 'P':
-				plotfilename = optarg;
-				plot = 1;
-				break; 		                
-			case 'F':
-				datafilename = optarg;
-				break; 	
-			case 'S':
-				scriptfilename = optarg;
-				break;  
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;                 
-				
-			case 'v':
-				verbose = 1;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
-	
-	/*Start the module here*/
+    args.AddRequiredArgument("outputApertureFile", outputApertureFile, "Output aperture file name");
+    args.AddRequiredArgument("inputgeom", inputgeom, "Input geometry file");
+    args.AddRequiredArgument("inputprof", inputprof, "Input instrument profile file");
+    args.AddOptionalArgument("inputorderspacing", inputorderspacing, "", "Input order spacing file");
+    args.AddRequiredArgument("nRowSamples", nRowSamples, "Number of equally spaced rows to sample IP");
+    args.AddOptionalArgument("pickImageRow", pickImageRow, 0, "Specific single row to use for IP model (overrides nRowSamples)");
+    args.AddRequiredArgument("xbin", xbin, "Number of IP points to bin in x-direction");
+    args.AddRequiredArgument("numberOfBeams", numberOfBeams, "Number of beams to split aperture");
+    args.AddRequiredArgument("gapBetweenBeams", gapBetweenBeams, "Gap between beams in pixel units");
+    args.AddRequiredArgument("apertureWidth", apertureWidth, "Aperture width in pixel units");
+    args.AddRequiredArgument("apertureHeight", apertureHeight, "Aperture height in pixel units");
+    args.AddRequiredArgument("backgroundAperture", backgroundAperture, "Aperture width for background in pixel units");
+    args.AddOptionalArgument("constantTilt", constantTilt, false, "Set median tilt angle to all orders");
+    args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
+    args.AddPlotFileArguments(plotfilename, datafilename, scriptfilename, interactive);
+    args.AddOptionalArgument("tiltplotfilename", tiltplotfilename, "", "Tilt plot eps file name");
+    args.AddOptionalArgument("tiltdata1filename", tiltdata1filename, "", "Tilt first data file name");  
+    args.AddOptionalArgument("tiltdata2filename", tiltdata2filename, "", "Tilt second data file name");  
+    args.AddOptionalArgument("tiltscriptfilename", tiltscriptfilename, "", "Tilt gnuplot script file name");  
 	
 	try {
+		args.Parse(argc, argv);
+		
 		// we need a geometry file...
 		if (inputgeom.empty()) {
 			throw operaException("operaExtractionApertureCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -251,73 +126,54 @@ int main(int argc, char *argv[])
 			throw operaException("operaExtractionApertureCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}		
 		
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaExtractionApertureCalibration: outputApertureFile = " << outputApertureFile << endl;            
 			cout << "operaExtractionApertureCalibration: inputorderspacing = " << inputorderspacing << endl;             
 			cout << "operaExtractionApertureCalibration: inputgeom = " << inputgeom << endl; 
 			cout << "operaExtractionApertureCalibration: inputprof = " << inputprof << endl;
-            if(ordernumber != NOTPROVIDED) {
-                cout << "operaExtractionApertureCalibration: ordernumber = " << ordernumber << endl;            
-            }
-            if(pickImageRow) {
-                cout << "operaExtractionApertureCalibration: pickImageRow = " << pickImageRow << endl;       
-            } else {
-                cout << "operaExtractionApertureCalibration: nRowSamples = " << nRowSamples << endl;       
-            }
+            if(ordernumber != NOTPROVIDED) cout << "operaExtractionApertureCalibration: ordernumber = " << ordernumber << endl;
+            if(pickImageRow) cout << "operaExtractionApertureCalibration: pickImageRow = " << pickImageRow << endl;       
+            else cout << "operaExtractionApertureCalibration: nRowSamples = " << nRowSamples << endl;       
             cout << "operaExtractionApertureCalibration: xbin = " << xbin << endl;
-            
 			cout << "operaExtractionApertureCalibration: numberOfBeams = " << numberOfBeams << endl;       
 			cout << "operaExtractionApertureCalibration: apertureWidth = " << apertureWidth << endl;            
 			cout << "operaExtractionApertureCalibration: apertureHeight = " << apertureHeight << endl;
-			cout << "operaExtractionApertureCalibration: backgroundAperture = " << backgroundAperture << endl;            
-            if(plot) {
+			cout << "operaExtractionApertureCalibration: backgroundAperture = " << backgroundAperture << endl;
+			cout << "operaExtractionApertureCalibration: constantTilt = " << constantTilt << endl;
+            if(args.plot) {
                 cout << "operaExtractionApertureCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaExtractionApertureCalibration: datafilename = " << datafilename << endl;
                 cout << "operaExtractionApertureCalibration: scriptfilename = " << scriptfilename << endl; 
-                if(interactive) {
-                    cout << "operaExtractionApertureCalibration: interactive = YES" << endl; 
-                } else {
-                    cout << "operaExtractionApertureCalibration: interactive = NO" << endl; 
-                }
-            }            
+                cout << "operaExtractionApertureCalibration: interactive = " << (interactive ? "YES" : "NO") << endl;
+                cout << "operaExtractionApertureCalibration: tiltplotfilename = " << tiltplotfilename << endl;
+                cout << "operaExtractionApertureCalibration: tiltdata1filename = " << tiltdata1filename << endl;
+                cout << "operaExtractionApertureCalibration: tiltdata2filename = " << tiltdata2filename << endl;
+                cout << "operaExtractionApertureCalibration: tiltscriptfilename = " << tiltscriptfilename << endl;
+            }
 		}
-        ofstream *fdata = NULL;
         
-        if (!datafilename.empty()) {
-            fdata = new ofstream();
-            fdata->open(datafilename.c_str());  
-        }  
+        ofstream fdata;
+        ofstream ftiltdata1;
+        ofstream ftiltdata2;
+        if (!datafilename.empty()) fdata.open(datafilename.c_str());
+        if (!tiltdata1filename.empty()) ftiltdata1.open(tiltdata1filename.c_str());
+        if (!tiltdata2filename.empty()) ftiltdata2.open(tiltdata2filename.c_str());
         
 		operaSpectralOrderVector spectralOrders(inputgeom);
         spectralOrders.ReadSpectralOrders(inputprof);
+        if(!inputorderspacing.empty()) spectralOrders.ReadSpectralOrders(inputorderspacing);
         
-        if(!inputorderspacing.empty()) {
-            spectralOrders.ReadSpectralOrders(inputorderspacing);
-        }
-        if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();            
-        }        
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-		
+        UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
         
         /*
          * Set aperture Rectangle aperture
          */   
-        float width = apertureWidth;
-        float height = apertureHeight;    
+        float width = float(apertureWidth);
+        float height = float(apertureHeight);
         
         float *tiltAngle = new float[MAXORDERS];
-        float *FluxFraction = new float[MAXORDERS];     
-        
-        float *tiltWithinOrder = new float[nRowSamples];
-        float *FluxFractionWithinOrder = new float[nRowSamples];        
+        float *tiltAngleError = new float[MAXORDERS];
+        float *FluxFraction = new float[MAXORDERS];
         
         unsigned orderIndex=0;
         
@@ -326,7 +182,15 @@ int main(int argc, char *argv[])
         float *photosum = new float[nRowSamples*MAXORDERS];
         unsigned nTotalPoints = 0;
         
-		for (int order=minorder; order<=maxorder; order++) {	
+        // For plot tilt datafile
+        float *xphotocenterBin  = new float[nRowSamples*MAXORDERS];
+        float *yphotocenterBin = new float[nRowSamples*MAXORDERS];
+        unsigned nTotalPointsBin = 0;
+        
+        int *skippedOrderIndex = new int[MAXORDERS];
+        unsigned Nskipped = 0;
+        
+		for (int order=minorder; order<=maxorder; order++) {
             
             operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
                     
@@ -349,13 +213,13 @@ int main(int argc, char *argv[])
                 for (unsigned j=0; j<NYPoints; j++) {
                     for (unsigned i=0; i<NXPoints; i++) {
                         normalizationFactor += (float)instrumentProfile->getipDataFromPolyModel(ymiddle,i,j);
-                        if(debug){ // for 3D plot
+                        if(args.debug){ // for 3D plot
                             cout <<instrumentProfile->getIPixXCoordinate(i) << " "
                             << instrumentProfile->getIPixYCoordinate(j) << " "
                             << (float)instrumentProfile->getipDataFromPolyModel(ymiddle,i,j) << endl;
                         }
                     }
-                    //  cout << endl; // for 3D plot
+                    //cout << endl; // for 3D plot
                 }
                 
                 nTotalPoints = 0;
@@ -372,80 +236,169 @@ int main(int argc, char *argv[])
                     double photosum_tmp = 0;
                     double yphotocenter_tmp = 0;
                     double xphotocenter_tmp = 0;
+                    unsigned npoints = 0;
                     
-                    for (unsigned i=xbin; i<NXPoints-xbin+1; i++) {
+                    float *xcoords = new float[NXPoints];
+                    float *ycoords = new float[NXPoints*NYPoints];
+                    unsigned nyp = 0;
+
+                    //For tilt plot data file
+                    nTotalPointsBin = 0;
+                    
+                    for (unsigned i=xbin; i<NXPoints-xbin; i++) {
                         
                         float xcoord = instrumentProfile->getIPixXCoordinate(i);
-                       
-                        float localphotosum = 0;
-                        for (unsigned j=0; j<NYPoints; j++) {
-                            float ycoord = instrumentProfile->getIPixYCoordinate(j);
-                            yphotocenter_tmp += ycoord*(float)instrumentProfile->getipDataFromPolyModel(ycenter,i,j);
-                            localphotosum += (float)instrumentProfile->getipDataFromPolyModel(ycenter,i,j);
-                        }
-                                                
-                        xphotocenter_tmp += localphotosum*xcoord;
+                        xcoords[nlocalpoints] = xcoord;
                         
-                        photosum_tmp += localphotosum;
+                        float localphotosum = 0;
+                        ycoords[nyp]=0;
+                        for (unsigned j=0; j<NYPoints; j++) {
+                            float ip = (float)instrumentProfile->getipDataFromPolyModel(ycenter,i,j);
+                            if(ip>0 && !isnan(ip)) {
+                                float ycoord = instrumentProfile->getIPixYCoordinate(j);
+                                ycoords[nyp] += ycoord*ip;
+                                yphotocenter_tmp += ycoord*ip;
+                                localphotosum += ip;
+                                npoints++;
+                            }
+                        }
+                        if(localphotosum) {
+                            ycoords[nyp] /= localphotosum;
+                            nyp++;
+                            xphotocenter_tmp += localphotosum*xcoord;
+                            photosum_tmp += localphotosum;
+                        }
+                        
+                        nlocalpoints++;
                         
                         if(nlocalpoints == xbin) {
-                            if(debug)
-                                cout << order << " " << xphotocenter_tmp/photosum_tmp << " " << yphotocenter_tmp/photosum_tmp << " " << photosum_tmp << endl;
                             
-                            xphotocenter[nTotalPoints] = xphotocenter_tmp;
-                            yphotocenter[nTotalPoints] = yphotocenter_tmp;
+                            xphotocenter[nTotalPoints] = xphotocenter_tmp/photosum_tmp;
+                            yphotocenter[nTotalPoints] = yphotocenter_tmp/photosum_tmp;
                             photosum[nTotalPoints] = photosum_tmp;
-                            nTotalPoints++;
                             
+                            // For plot tilt data file:
+                            xphotocenterBin[nTotalPointsBin] = xphotocenter_tmp/photosum_tmp;
+                            yphotocenterBin[nTotalPointsBin] = yphotocenter_tmp/photosum_tmp;
+                            nTotalPointsBin++;
+                            
+                            float xdev = operaArraySigma(nlocalpoints,xcoords);
+                            float ydev = operaArraySigma(nyp,ycoords);
+                            
+                            if(args.debug)
+                                cout << order << " " << xphotocenter[nTotalPoints] << " " << yphotocenter[nTotalPoints] << " " <<  xdev << " " << ydev << " " << photosum_tmp/float(npoints) << endl;
+
+                            nTotalPoints++;
+
+                            nyp = 0;
                             xphotocenter_tmp = 0;
                             yphotocenter_tmp = 0;
                             photosum_tmp = 0;
                             nlocalpoints = 0;
+                            npoints = 0;
                         }
-                        nlocalpoints++;
                     }
+
+                    if (!tiltdata1filename.empty()) { // Variable tilt debug
+                        /*
+                         * This debug section is useful to produce a plot that indicates
+                         * any variation of the tilt angle along the detector rows or
+                         * along orders.
+                         */
+                        float amBin,bmBin,abdevmBin;
+                        ladfit(xphotocenterBin,yphotocenterBin,nTotalPointsBin,&amBin,&bmBin,&abdevmBin);
+                        float tiltAngleBin = 180*atan(bmBin)/(M_PI);
+                        float tiltAngleBinError = abdevmBin/0.674433;
+                        ftiltdata1 << order << " " << ycenter << " " << tiltAngleBin << " " << tiltAngleBinError << endl;
+                    }
+
                 }
                 
                 float am,bm,abdevm;
                 
                 ladfit(xphotocenter,yphotocenter,nTotalPoints,&am,&bm,&abdevm); /* robust linear fit: f(x) =  a + b*x */
                 
-                tiltAngle[orderIndex]=180*atan(bm)/(M_PI);
-                                
-                // Set up extraction rectangle in the IP subpixel coordinate system
-                Line extractionLine(bm,am,height,width);
-                
-                operaExtractionAperture lineAperture(&extractionLine,instrumentProfile,ymiddle);
-                PixelSet *aperturePixels = lineAperture.getSubpixels();
-                
-                float FluxFractionCollected = 0;
-                for(unsigned i=0; i<aperturePixels->getNPixels(); i++){
-                    if(aperturePixels->getiIndex(i) >= 0 && aperturePixels->getiIndex(i) < (int)NXPoints &&
-                       aperturePixels->getjIndex(i) >= 0 && aperturePixels->getjIndex(i) < (int)NYPoints ) {
-                        FluxFractionCollected += (float)instrumentProfile->getipDataFromPolyModel(ymiddle,(unsigned)aperturePixels->getiIndex(i),(unsigned)aperturePixels->getjIndex(i));
+                if(args.debug) {
+                    // This debug section is useful to produce plots containing
+                    // individual x and y-centroids in the IP as well as
+                    // the model obtained from measurements above
+                    for (unsigned i=0; i<NXPoints; i++) {
+                        float ipXcoord = instrumentProfile->getIPixXCoordinate(i);
+                        float ipsum = 0;
+                        float ycentroid = 0;
+                        unsigned nnp = 0;
+                        for (unsigned j=0; j<NYPoints; j++) {
+                            float ipYcoord = instrumentProfile->getIPixYCoordinate(j);
+                            float ip = (float)instrumentProfile->getipDataFromPolyModel(ymiddle,i,j);
+                            if(ip>0) {
+                                ipsum += ip;
+                                ycentroid += ipYcoord*ip;
+                                nnp++;
+                            }
+                        }
+                        float ipAvg = ipsum/(float)nnp;
+                        ycentroid /= ipsum;
+                        float ipYmodel = am + bm*ipXcoord;
+                        cout << ipXcoord << " " << ipYmodel << " " << ycentroid << " " << ipAvg << endl;
                     }
+                } // end debug
+                
+                if (!isnan(bm) && bm) {
+        
+                    tiltAngle[orderIndex]=180*atan(bm)/(M_PI);
+                    tiltAngleError[orderIndex] = abdevm/0.674433;
+                    
+                    // Set up extraction rectangle in the IP subpixel coordinate system
+                    Line extractionLine(bm,am,height,width);
+                    
+                    operaExtractionAperture lineAperture(&extractionLine,instrumentProfile,ymiddle);
+                    PixelSet *aperturePixels = lineAperture.getSubpixels();
+                    
+                    float FluxFractionCollected = 0;
+                    for(unsigned i=0; i<aperturePixels->getNPixels(); i++){
+                        if(aperturePixels->getiIndex(i) >= 0 && aperturePixels->getiIndex(i) < (int)NXPoints &&
+                           aperturePixels->getjIndex(i) >= 0 && aperturePixels->getjIndex(i) < (int)NYPoints ) {
+                            FluxFractionCollected += (float)instrumentProfile->getipDataFromPolyModel(ymiddle,(unsigned)aperturePixels->getiIndex(i),(unsigned)aperturePixels->getjIndex(i));
+                        }
+                    }
+                    
+                    FluxFraction[orderIndex] = FluxFractionCollected/normalizationFactor;
+                    
+                    if(!tiltdata2filename.empty()) {
+                        ftiltdata2 << order << " " << tiltAngle[orderIndex] << " " << tiltAngleError[orderIndex]  << " " << FluxFraction[orderIndex] << endl;
+                    }
+                    
+                    if(args.verbose)
+                        cout << "operaExtractionApertureCalibration: # order = " << order << " tilt = " << tiltAngle[orderIndex] << " +/- " << 180*(abdevm/0.674433)/(M_PI) << " FluxFraction=" << FluxFraction[orderIndex] << endl;
+                    
+                    spectralOrder->setTiltInDegrees(tiltAngle[orderIndex],tiltAngleError[orderIndex]);
+                    
+                    orderIndex++;
+                } else { 
+                    skippedOrderIndex[Nskipped++] = order;
+                    cout << "operaExtractionApertureCalibration: WARNING can't calculate tilt for order " << order << endl;
                 }
-                
-                FluxFraction[orderIndex] = FluxFractionCollected/normalizationFactor;
-                               
-                if(debug)
-                    cout << order << " " << tiltAngle[orderIndex] << " " << 180*(abdevm/0.674433)/(M_PI) << " " << FluxFraction[orderIndex] << endl;
-                
-                if(verbose)
-                    cout << "operaExtractionApertureCalibration: # order = " << order << " tilt = " << tiltAngle[orderIndex] << " +/- " << 180*(abdevm/0.674433)/(M_PI) << " FluxFraction=" << FluxFraction[orderIndex] << endl;
-
-                spectralOrder->setTiltInDegrees(tiltAngle[orderIndex],180*(abdevm/0.674433)/(M_PI));
-       
-                orderIndex++;
-       
             }
         }
         
         float tilt = operaArrayMedian(orderIndex,tiltAngle);
         float tilterror = operaArrayMedianSigma(orderIndex,tiltAngle,tilt);
         
-        if(verbose)
-            cout << "operaExtractionApertureCalibration: # Final tilt = " << tilt << " +/- " << tilterror << endl;
+        if(args.verbose) cout << "operaExtractionApertureCalibration: # Final tilt = " << tilt << " +/- " << tilterror << endl;
+        
+        // Below it assigns the median final tilt to orders that have been skipped
+        for (unsigned i=0; i<Nskipped; i++) {
+            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(skippedOrderIndex[i]);
+            spectralOrder->setTiltInDegrees(tilt,tilterror);
+        }
+        
+        // Below it assign the median final tilt to all orders
+        if(constantTilt) {
+            for (int order=minorder; order<=maxorder; order++) {
+                operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+                spectralOrder->setTiltInDegrees(tilt,tilterror);
+            }
+        }
         
         float beamFluxFraction[MAXNUMBEROFBEAMS];
         unsigned outBoundPoints[MAXNUMBEROFBEAMS];
@@ -468,8 +421,7 @@ int main(int argc, char *argv[])
             
             if (spectralOrder->gethasGeometry() && spectralOrder->gethasInstrumentProfile()) {
                 
-                if(verbose)
-                    cout << "operaExtractionApertureCalibration: Calculating the aperture of order " << order << endl;
+                if(args.verbose) cout << "operaExtractionApertureCalibration: Calculating the aperture of order " << order << endl;
                 
                 operaGeometry *Geometry = spectralOrder->getGeometry();
                 operaInstrumentProfile *instrumentProfile = spectralOrder->getInstrumentProfile();
@@ -485,11 +437,8 @@ int main(int argc, char *argv[])
                 CMatrix ipImage = newCMatrix(NXPoints,NYPoints);        
                 
                 float ycenter;
-                if(pickImageRow) {
-                    ycenter = (float)pickImageRow + 0.5;
-                } else {
-                    ycenter = (Geometry->getYmax() + Geometry->getYmin())/2 + 0.5;
-                }
+                if(pickImageRow) ycenter = (float)pickImageRow + 0.5;
+                else ycenter = (Geometry->getYmax() + Geometry->getYmin())/2 + 0.5;
                 
                 if((order - minorder) >= 5) {
                     ystackIndex++;
@@ -516,7 +465,7 @@ int main(int argc, char *argv[])
 
                 Line extractionLine(tan(tiltAngle[orderIndex]*M_PI/180),height,width,MidPoint);
                 
-                float beamWidth = width/(float)numberOfBeams - gapBetweenBeams;
+                float beamWidth = width/(float)numberOfBeams - float(gapBetweenBeams);
                 float widthX = width*cos(tiltAngle[orderIndex]*M_PI/180);
                 float aperXsize = widthX/(float)numberOfBeams;
                 for(unsigned k=0;k<numberOfBeams;k++) {
@@ -525,9 +474,7 @@ int main(int argc, char *argv[])
                 }
                 
                 for(unsigned k=0;k<numberOfBeams;k++) {
-                    
-                    if(verbose)
-                        cout << "operaExtractionApertureCalibration: beam " << k << endl;
+                    if(args.verbose) cout << "operaExtractionApertureCalibration: beam " << k << endl;
                     
                     outBoundPoints[k] = 0;
                     
@@ -544,18 +491,15 @@ int main(int argc, char *argv[])
                     PixelSet *aperturePixels = aperture[k]->getSubpixels();   
                     
                     for(unsigned i=0; i<aperturePixels->getNPixels(); i++){
-                        if(aperturePixels->getiIndex(i) >= 0 && aperturePixels->getiIndex(i) < (int)NXPoints &&
-                           aperturePixels->getjIndex(i) >= 0 && aperturePixels->getjIndex(i) < (int)NYPoints) {
-                                
-                                ipImage[(unsigned)aperturePixels->getjIndex(i)][(unsigned)aperturePixels->getiIndex(i)] = 0;
-                                beamFluxFraction[k] += (float)instrumentProfile->getipDataFromPolyModel(ycenter,(unsigned)aperturePixels->getiIndex(i),(unsigned)aperturePixels->getjIndex(i))/normalizationFactor;
-                            
+                        if(aperturePixels->getiIndex(i) >= 0 && aperturePixels->getiIndex(i) < (int)NXPoints && aperturePixels->getjIndex(i) >= 0 && aperturePixels->getjIndex(i) < (int)NYPoints) {
+							ipImage[(unsigned)aperturePixels->getjIndex(i)][(unsigned)aperturePixels->getiIndex(i)] = 0;
+							beamFluxFraction[k] += (float)instrumentProfile->getipDataFromPolyModel(ycenter,(unsigned)aperturePixels->getiIndex(i),(unsigned)aperturePixels->getjIndex(i))/normalizationFactor;
                         } else {
                             outBoundPoints[k]++;
                         }
                     }  
                     
-                    if(verbose)
+                    if(args.verbose)
                         cout << "operaExtractionApertureCalibration: # order = " << order << " beam = " << k << " FluxFraction = " << beamFluxFraction[k] << " # out-of-bound points = " << outBoundPoints[k] << endl;
                     
                     aperture[k]->setFluxFraction(beamFluxFraction[k]);
@@ -570,16 +514,15 @@ int main(int argc, char *argv[])
                 }
                 
                 
-                if(verbose)
-                    cout << "operaExtractionApertureCalibration: Setting up background aperture " << endl;
+                if(args.verbose) cout << "operaExtractionApertureCalibration: Setting up background aperture " << endl;
                 /*
                  * set up background aperture:
                  */
-                float leftbkgXcenter = MidPoint.getXcoord() - (float)numberOfBeams*aperXsize/2 - backgroundAperture/2;
+                float leftbkgXcenter = MidPoint.getXcoord() - (float)numberOfBeams*aperXsize/2 - float(backgroundAperture)/2;
                 float leftbkgYcenter = extractionLine.getYcoord(leftbkgXcenter);            
                 
                 operaPoint leftBackgroundMidPoint(leftbkgXcenter,leftbkgYcenter);
-                Line leftBackgroundExtractionLine(tan(tiltAngle[orderIndex]*M_PI/180),height,backgroundAperture,leftBackgroundMidPoint);
+                Line leftBackgroundExtractionLine(tan(tiltAngle[orderIndex]*M_PI/180),height,float(backgroundAperture),leftBackgroundMidPoint);
                 
                 // NOTE: This should not be deleted as the pointer is set into the spectralorder
                 leftBackgroundAperture = new operaExtractionAperture(&leftBackgroundExtractionLine,instrumentProfile,ycenter);                          
@@ -596,17 +539,17 @@ int main(int argc, char *argv[])
                         leftBackgroundoutBoundPoints++;
                     }
                 }              
-                if(verbose)
+                if(args.verbose)
                     cout << "operaExtractionApertureCalibration: # order = " << order << " Left Background Flux Fraction = "<< leftBackgroundFluxFraction << " # out-of-bound points = " << leftBackgroundoutBoundPoints << endl;
                 
                 leftBackgroundAperture->setFluxFraction(leftBackgroundFluxFraction);
                 spectralOrder->setBackgroundApertures(0,leftBackgroundAperture);
                 
-                float rightbkgXcenter = MidPoint.getXcoord() + (float)numberOfBeams*aperXsize/2 + backgroundAperture/2;
+                float rightbkgXcenter = MidPoint.getXcoord() + (float)numberOfBeams*aperXsize/2 + float(backgroundAperture)/2;
                 float rightbkgYcenter = extractionLine.getYcoord(rightbkgXcenter);            
                 
                 operaPoint rightBackgroundMidPoint(rightbkgXcenter,rightbkgYcenter);
-                Line rightBackgroundExtractionLine(tan(tiltAngle[orderIndex]*M_PI/180),height,backgroundAperture,rightBackgroundMidPoint);
+                Line rightBackgroundExtractionLine(tan(tiltAngle[orderIndex]*M_PI/180),height,float(backgroundAperture),rightBackgroundMidPoint);
                 
                 // NOTE: This should not be deleted as the pointer is set into the spectralorder
                 rightBackgroundAperture = new operaExtractionAperture(&rightBackgroundExtractionLine,instrumentProfile,ycenter);                          
@@ -626,17 +569,17 @@ int main(int argc, char *argv[])
                 rightBackgroundAperture->setFluxFraction(rightBackgroundFluxFraction);
                 spectralOrder->setBackgroundApertures(1,rightBackgroundAperture);
                 
-                if(verbose)
+                if(args.verbose)
                     cout << "operaExtractionApertureCalibration: # order = " << order << " Right Background Flux Fraction = "<< rightBackgroundFluxFraction << " # out-of-bound points = " << rightBackgroundoutBoundPoints << endl << endl;            
                 
                 for (unsigned j=0; j<NYPoints; j++) {	 
                     for (unsigned i=0; i<NXPoints; i++) {
-                        if (fdata != NULL) {
-                            *fdata << order << " " 
+                        if (fdata.is_open()) {
+                            fdata << order << " " 
                             << instrumentProfile->getIPixXCoordinate(i) + shiftX << " " 
                             << instrumentProfile->getIPixYCoordinate(j) + shiftY << " " 
                             << ipImage[j][i]/normalizationFactor << endl;
-                        } else if (debug) {
+                        } else if (args.debug) {
                             cout << order << " " 
                             << instrumentProfile->getIPixXCoordinate(i) + shiftX << " " 
                             << instrumentProfile->getIPixYCoordinate(j) + shiftY << " " 
@@ -644,49 +587,43 @@ int main(int argc, char *argv[])
                         }
                         
                     }
-                    if (fdata != NULL) {
-                        *fdata << endl;
-                    } else {
-                        if (debug)
-                            cout << endl;
-                    }                
+                    if (fdata.is_open()) fdata << endl;
+                    else if (args.debug) cout << endl;
                 }
-                if (fdata != NULL) {
-                    *fdata << endl;
-                } else {
-                    if (debug)
-                        cout << endl;
-                }
+                if (fdata.is_open()) fdata << endl;
+                else if (args.debug) cout << endl;
                 orderIndex++;
                 deleteCMatrix(ipImage);
-            } else {
-                if(verbose)
-                    cout << "operaExtractionApertureCalibration:aperture of order " << order << " skipped." << endl;
+            } else if(args.verbose) {
+				cout << "operaExtractionApertureCalibration:aperture of order " << order << " skipped." << endl;
             }
         }        
         
         // output aperture to file...
-        spectralOrders.WriteSpectralOrders(outputApertureFile,Aperture);		
+        spectralOrders.WriteSpectralOrders(outputApertureFile,Aperture);
         
-        if (fdata != NULL) {
-            fdata->close();
+        if (ftiltdata1.is_open()) ftiltdata1.close();
+        if (ftiltdata2.is_open()) ftiltdata2.close();
+
+        if (!tiltdata1filename.empty() && !tiltdata2filename.empty() && !scriptfilename.empty()) {
+            GenerateExtractionApertureTiltPlot(tiltscriptfilename, tiltplotfilename, tiltdata1filename, tiltdata2filename, tilt, tilterror, interactive);
+        }
+ 
+        if (fdata.is_open()) {
+            fdata.close();
             if (!scriptfilename.empty()) {
                 GenerateExtractionAperturePlot(scriptfilename,plotfilename,datafilename,interactive);
             }
-            
-        } 
- 
+        }
+        
         delete[] xphotocenter;
         delete[] yphotocenter;
         delete[] photosum;
         
         delete[] tiltAngle;
         delete[] FluxFraction;
-        delete[] tiltWithinOrder;
-        delete[] FluxFractionWithinOrder;
 	}
-        
-        
+    
 	catch (operaException e) {
 		cerr << "operaExtractionApertureCalibration: " << e.getFormattedMessage() << endl;
 		return EXIT_FAILURE;
@@ -698,111 +635,106 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" + 
-	" --outputApertureFile=<APER_FILE>"	
-	" --inputgeom=<GEOM_FILE>"
-	" --inputprof=<PROF_FILE>"
-	" --inputorderspacing=<ORDS_FILE>"
-	" --ordernumber=<INT_VALUE>"
-	" --pickImageRow=<UNS_VALUE>"   
-	" --nRowSamples=<UNS_VALUE>"   
-	" --xbin=<UNS_VALUE>"
-	" --minorder=<INT_VALUE>"
-	" --maxorder=<INT_VALUE>"
-	" --numberOfBeams=<UNS_VALUE>"
-    " --gapBetweenBeams=<FLT_VALUE>"    
-	" --apertureWidth=<FLT_VALUE>"
-	" --apertureHeight=<FLT_VALUE>"
-	" --backgroundAperture=<FLT_VALUE>"
-	" --plotfilename=<EPS_FILE>"
-	" --datafilename=<DATA_FILE>"
-	" --scriptfilename=<GNUPLOT_FILE>" 
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputgeom=/opera/calibrations/11AQ14-Jul08/OLAPAa_sp2_Normal.geom --inputprof=/opera/calibrations/11AQ14-Jul08/OLAPAa_sp2_Normal.prof --outputApertureFile=/opera/calibrations/11AQ14-Jul08/OLAPAa_sp2_Normal.aper --numberOfBeams=1 --apertureWidth=24 --apertureHeight=0.6 --backgroundAperture=2 -P /opera/visuals/11AQ14-Jul08/OLAPAa_sp2_Normal.eps -F testApe.dat -S testApe.gnu --minorder=22 --maxorder=61 --gapBetweenBeams=0 --nRowSamples=10 --MinTiltAngle=-5 --MaxTiltAngle=0 --tiltAnglePrecision=0.1 \n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -o, --outputApertureFile=<APER_FILE>, Output aperture file name\n"
-	"  -g, --inputgeom=<GEOM_FILE>, Input geometry file\n"
-	"  -p, --inputprof=<PROF_FILE>, Input instrument profile file\n"
-	"  -s, --inputorderspacing=<ORDS_FILE>, Input order spacing file\n"
-	"  -O, --ordernumber=<INT_VALUE>, Pick order number (default = all)\n"
-	"  -R, --pickImageRow=<UNS_VALUE>, Pick row number to plot IP model (default = naxis2/2)\n"  
-	"  -L, --nRowSamples=<UNS_VALUE>, Number equally spaced rows to sample IP (default = 1)\n"    
-	"  -x, --xbin=<UNS_VALUE>, Number of IP points to bin in x-direction\n" 
-	"  -M, --minorder=<INT_VALUE>, Define minimum order number\n"
-	"  -X, --maxorder=<INT_VALUE>, Define maximum order number\n"
-	"  -N, --numberOfBeams=<UNS_VALUE>, Number of beams to split aperture\n"
-	"  -G, --gapBetweenBeams=<FLT_VALUE>, Gap between beams in pixel units\n"   
-	"  -W, --apertureWidth=<FLT_VALUE>, Aperture width in pixel units\n"
-	"  -H, --apertureHeight=<FLT_VALUE>, Aperture height in pixel units\n"
-	"  -B, --backgroundAperture=<FLT_VALUE>, Aperture width for background \n"    
-	"  -P, --plotfilename=<EPS_FILE>\n"
-	"  -F, --datafilename=<DATA_FILE>\n"
-	"  -S, --scriptfilename=<GNUPLOT_FILE>\n" 
-	"  -I, --interactive=<BOOL>\n\n";
-}
-
 void GenerateExtractionAperturePlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, bool display)
 {
-    ofstream *fgnu = NULL;
+	if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
+    fgnu << "reset" << endl;
+    fgnu << "unset key" << endl;
+    fgnu << "set view 0,0" << endl;
     
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    *fgnu << "set view 0,0" << endl;
-    
-    *fgnu << "set palette color" << endl;
-    *fgnu << "set palette gamma 2.5" << endl;
-    *fgnu << "set pm3d map" << endl;
-    *fgnu << "unset ztics" << endl;
-    *fgnu << "set cblabel \"flux fraction\"" << endl;
-    *fgnu << endl;
+    fgnu << "set palette color" << endl;
+    fgnu << "set palette gamma 2.5" << endl;
+    fgnu << "set pm3d map" << endl;
+    fgnu << "unset ztics" << endl;
+    fgnu << "set cblabel \"flux fraction\"" << endl;
+    fgnu << endl;
 	 
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         
-        *fgnu << "\nsplot \"" << dataFileName << "\" u 2:3:4 with pm3d" << endl;
+        fgnu << "\nsplot \"" << dataFileName << "\" u 2:3:4 with pm3d" << endl;
         
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
+        fgnu << "\nsplot \"" << dataFileName << "\" u 2:3:4 with pm3d" << endl;
         
-        *fgnu << "\nsplot \"" << dataFileName << "\" u 2:3:4 with pm3d" << endl;
-        
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
+}
+
+void GenerateExtractionApertureTiltPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName1, string dataFileName2, float tiltAngle, float tiltAngleError, bool display)
+{
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
+
+    fgnu << "reset" << endl;
+
+    fgnu << "set xlabel \"order number\"" << endl;
+    fgnu << "set ylabel \"tilt angle (deg)\"" << endl;
+    
+    fgnu << "set yrange[" << tiltAngle-tiltAngleError*6 << ":" << tiltAngle+tiltAngleError*6 << "]" << endl;
+    
+    fgnu << "tilt(x) = " << tiltAngle << endl;
+    fgnu << "maxtilt(x) = " << tiltAngle+tiltAngleError << endl;
+    fgnu << "mintilt(x) = " << tiltAngle-tiltAngleError << endl;
+    
+    fgnu << endl;
+    
+    if(!outputPlotEPSFileName.empty()) {
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        
+        fgnu << "\nplot \"" << dataFileName1 << "\" u 1:3:4 t \"individual samples\" w yerr pt 6 ps 1 lw 1 "
+        << ",\"" << dataFileName2 << "\" u 1:2 notitle w l lw 2 lt 3"
+        << ",\"" << dataFileName2 << "\" u 1:2:3 t \"order median tilt\" w yerr pt 7 lt 3 ps 2 lw 2"
+        << ",tilt(x) t \"final median tilt\" w l lt -1 lw 2.5, maxtilt(x) notitle w l lt -1, mintilt(x) notitle w l lt -1" << endl;
+
+        if (display) {
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
+        } else {
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
+        }
     } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
+        fgnu << "\nplot \"" << dataFileName1 << "\" u 1:3:4 t \"individual samples\" w yerr pt 6 ps 1 lw 1 "
+        << ",\"" << dataFileName2 << "\" u 1:2 notitle w l lw 2 lt 3"
+        << ",\"" << dataFileName2 << "\" u 1:2:3 t \"order median tilt\" w yerr pt 7 lt 3 ps 2 lw 2"
+        << ",tilt(x) t \"final median tilt\" w l lt -1 lw 2.5, maxtilt(x) notitle w l lt -1, mintilt(x) notitle w l lt -1" << endl;
+        
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
+    
+    fgnu.close();
+    
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }

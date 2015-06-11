@@ -35,36 +35,12 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-
 #include <pthread.h>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaExtraction.h"
-
-#include "libraries/operaException.h"
-#include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
 #include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
-#include "libraries/operaInstrumentProfile.h"		// for operaInstrumentProfile
-#include "libraries/GainBiasNoise.h"
-#include "libraries/operaFITSImage.h"
-#include "libraries/operaFITSSubImage.h"
-#include "libraries/operaEspadonsImage.h"			// for imtype_t
-#include "libraries/operaFITSProduct.h"	
-#include "libraries/operaLib.h"						// for systemf and itos
-
-#include "libraries/operaLibCommon.h"
-#include "libraries/operaImage.h"
-#include "libraries/operaStats.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
-#include "libraries/operaFit.h"	
-#include "libraries/operaFFT.h"
-
-#define NOTPROVIDED -999
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 /*! \file operaExtraction.cpp */
 
@@ -85,55 +61,43 @@ using namespace std;
  * \ingroup core
  */
 
+void GenerateExtraction3DSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string datafilename, unsigned numberOfBeams, bool display);
 
-string inputImage;
+operaArgumentHandler args;
+
 string outputSpectraFile;
-string spectrumtypename;
-
+string inputImage;
 string inputgain;
 string inputgeom;
 string inputprof;
 string inputaper;
-
 string masterbias;
 string masterflat;
 string normalizedflatfile;
 string badpixelmask;
-
 int ordernumber = NOTPROVIDED;
-
-int minorder = 0;
-bool minorderprovided = false;
-int maxorder = MAXORDERS;
-bool maxorderprovided = false;
-
-unsigned backgroundBinsize = 1;
+int minorder = NOTPROVIDED;
+int maxorder = NOTPROVIDED;
 double effectiveApertureFraction = 0.99;
-
+unsigned backgroundBinsize = 1;
 unsigned sigmaclip = 50;
 unsigned iterations = 3;
 bool onTargetProfile = false;
 bool usePolynomialFit = false;
 bool removeBackground = false;
-
 bool starplusskymode = false;
 bool starplusskyInvertSkyFiber = false;
-
-operaSpectralOrder_t spectralOrderType = RawBeamSpectrum;
-
-unsigned maxthreads = 1;
-
-bool interactive = false;
-
 bool noCrossCorrelation = false;
-
-int debug=0, verbose=0, trace=0, plot=0;
-
+unsigned spectralOrderType_val = RawBeamSpectrum;
+string spectrumtypename;
+unsigned maxthreads = 1;
 string plotfilename;
 string datafilename;
 string scriptfilename;
+bool interactive = false;
 
 operaSpectralOrderVector spectralOrders;
+operaSpectralOrder_t spectralOrderType;
 GainBiasNoise *gainBiasNoise = NULL;
 
 operaFITSImage *bias = NULL;
@@ -141,8 +105,6 @@ operaFITSImage *normalizedflat = NULL;
 operaFITSImage *badpix = NULL;
 operaFITSImage *flat = NULL;
 operaFITSImage *object = NULL;
-
-ofstream *fdata = NULL;
 
 /*
  * Thread Support to process all orders in parallel
@@ -161,24 +123,17 @@ void *processOrder(void *argument) {
     
     operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
     
-    if (!spectralOrder->gethasGeometry()) {
-        if (verbose)
-            cout << "operaExtraction: Skipping order number: "<< order << " no geometry." << endl;
-    }
-    if (!spectralOrder->gethasInstrumentProfile()) {
-        if (verbose)
-            cout << "operaExtraction: Skipping order number: "<< order << " no instrument profile." << endl;
-    }
-    if (!spectralOrder->gethasExtractionApertures()) {
-        if (verbose)
-            cout << "operaExtraction: Skipping order number: "<< order << " no extraction aperture." << endl;
-    }
+    if (args.verbose) {
+		if (!spectralOrder->gethasGeometry()) cout << "operaExtraction: Skipping order number: "<< order << " no geometry." << endl;
+		if (!spectralOrder->gethasInstrumentProfile()) cout << "operaExtraction: Skipping order number: "<< order << " no instrument profile." << endl;
+		if (!spectralOrder->gethasExtractionApertures()) cout << "operaExtraction: Skipping order number: "<< order << " no extraction aperture." << endl;
+	}
+
     if (spectralOrder->gethasGeometry() &&
         spectralOrder->gethasInstrumentProfile() &&
         spectralOrder->gethasExtractionApertures()) {
         
-        if (verbose)
-            cout << "operaExtraction: Processing order number: "<< order << endl;
+        if (args.verbose) cout << "operaExtraction: Processing order number: "<< order << endl;
         
         switch (spectralOrderType) {
             case RawBeamSpectrum:
@@ -195,9 +150,9 @@ void *processOrder(void *argument) {
                 break;
             case OptimalBeamSpectrum:
                 if(noCrossCorrelation) {
-                    spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, verbose, FALSE, NULL);
+                    spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, FALSE, NULL);
                 } else {
-                    spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, verbose, TRUE, NULL);
+                    spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, TRUE, NULL);
                 }
                 
                 break;
@@ -244,6 +199,7 @@ static bool waitthreads(int order, int maxorder, int count) {
 	}
     return true;
 }
+
 static bool processOrders(int minorder, int maxorder) {
 	for (int order=minorder; order<=maxorder; order+=maxthreads) {
         spawnthreads(order, maxorder, maxthreads);
@@ -254,172 +210,37 @@ static bool processOrders(int minorder, int maxorder) {
 
 int main(int argc, char *argv[])
 {
-	int opt;
-    
-	struct option longopts[] = {
-		{"inputImage",1, NULL, 'i'},
-		{"outputSpectraFile",1, NULL, 's'},		
-		{"inputGainFile",1, NULL, 'e'},        
-		{"inputGeometryFile",1, NULL, 'g'},
-		{"inputInstrumentProfileFile",1, NULL, 'r'},
-		{"inputApertureFile",1, NULL, 'a'},
-		{"masterbias",1, NULL, 'b'},	
-		{"masterflat",1, NULL, 'f'},		
-		{"normalizedflat",1, NULL, 'n'},		
-		{"badpixelmask",1, NULL, 'm'},
-		{"ordernumber",1, NULL, 'O'},	
-		{"minorder",1, NULL, 'M'},
-		{"maxorder",1, NULL, 'X'},       
-        {"effectiveApertureFraction",1, NULL, 'A'},
-        {"backgroundBinsize",1, NULL, 'B'},
-		{"sigmaclip",1, NULL, 'C'},
-		{"iterations",1, NULL, 'R'},  
-		{"onTargetProfile",1, NULL, 'J'},  
-        {"usePolynomialFit",1, NULL, 'Y'},
-        {"removeBackground",1, NULL, 'G'},
-        {"starplusskymode",1, NULL, 'K'},
-        {"starplusskyInvertSkyFiber",1, NULL, 'V'},
-        {"noCrossCorrelation",1, NULL, 'x'},
-		{"spectrumtype",1, NULL, 'T'},	
-		{"spectrumtypename",1, NULL, 'N'},	
-		{"plotfilename",1, NULL, 'P'},
-		{"datafilename",1, NULL, 'F'},
-		{"scriptfilename",1, NULL, 'S'},  
-		{"interactive",0, NULL, 'I'}, 
-		{"maxthreads",1, NULL, 'y'},
-		
-		{"plot",0, NULL, 'p'},
-		{"verbose",0, NULL, 'v'},
-		{"debug",0, NULL, 'd'},
-		{"trace",0, NULL, 't'},
-		{"help",0, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "i:s:e:g:r:a:b:f:n:m:O:M:X:A:B:C:R:J:Y:G:K:V:x:T:N:P:F:S:I:y:v::d::p::t::h", 
-							 longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'i':
-				inputImage = optarg;
-				break;   
-			case 's':
-				outputSpectraFile = optarg;
-                break; 				
-			case 'e':
-				inputgain = optarg;
-				break;	                
-			case 'g':
-				inputgeom = optarg;
-				break;				
-			case 'r':
-				inputprof = optarg;
-				break;	
-			case 'a':
-				inputaper = optarg;
-				break;
-			case 'b':		// bias
-				masterbias = optarg;
-				break;  
-			case 'f':		// flat
-				masterflat = optarg;
-				break;  
-			case 'n':		// normalized flat
-				normalizedflatfile = optarg;
-				break;  				
-			case 'm':		// badpixelmask
-				badpixelmask = optarg;
-				break;  
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;				
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;  
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;                    
-			case 'A':
-				effectiveApertureFraction = atof(optarg);
-				break;
-			case 'B':
-				backgroundBinsize = atoi(optarg);
-				break;
-			case 'C':
-				sigmaclip = atoi(optarg);
-				break;  
-			case 'R':
-				iterations = atoi(optarg);
-				break;  
-			case 'J':
-				onTargetProfile = (atoi(optarg)?true:false);
-				break;  
-			case 'Y':
-				usePolynomialFit = (atoi(optarg)?true:false);
-				break;
-			case 'G':
-				removeBackground = (atoi(optarg)?true:false);
-				break;
-			case 'K':
-				starplusskymode = (atoi(optarg)?true:false);
-				break;
-			case 'V':
-				starplusskyInvertSkyFiber = (atoi(optarg)?true:false);
-				break;
-			case 'x':
-				noCrossCorrelation = (atoi(optarg)?true:false);
-				break;                                  
-			case 'T':		// spectrum type
-				spectralOrderType = (operaSpectralOrder_t)atoi(optarg);
-				break;
-			case 'N':		// spectrum type name for verbose mode
-				spectrumtypename = optarg;
-				break;
-			case 'P':
-				plotfilename = optarg;
-				plot = 1;
-				break; 		                
-			case 'F':
-				datafilename = optarg;
-				break; 	
-			case 'S':
-				scriptfilename = optarg;
-				break;  
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
-			case 'y':
-                maxthreads = atoi(optarg);
-            break;
-				
-			case 'p':
-				plot = 1;
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
-	
-	/*Start the module here*/
+	args.AddRequiredArgument("outputSpectraFile", outputSpectraFile, "Output file name");
+	args.AddRequiredArgument("inputImage", inputImage, "Input FITS image to extract spectrum");
+	args.AddRequiredArgument("inputGainFile", inputgain, "Input noise/gain file");
+	args.AddRequiredArgument("inputGeometryFile", inputgeom, "Input geometry file");
+	args.AddRequiredArgument("inputInstrumentProfileFile", inputprof, "Input instrument profile file");
+	args.AddRequiredArgument("inputApertureFile", inputaper, "Input extraction aperture file");
+	args.AddRequiredArgument("masterbias", masterbias, "FITS image with masterbias");
+	args.AddRequiredArgument("masterflat", masterflat, "FITS image with masterflat");
+	args.AddOptionalArgument("normalizedflat", normalizedflatfile, "", "FITS image with normalized flat-field");
+	args.AddRequiredArgument("badpixelmask", badpixelmask, "FITS image with badpixel mask");
+    args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
+    args.AddOptionalArgument("effectiveApertureFraction", effectiveApertureFraction, 0.99, "Fraction of aperture width to set spectral element size");
+    args.AddOptionalArgument("backgroundBinsize", backgroundBinsize, 1, "Number of points to bin for IP measurements");
+    args.AddOptionalArgument("sigmaclip", sigmaclip, 50, "Variance threshold for optimal extraction");
+    args.AddOptionalArgument("iterations", iterations, 3, "Number iterations for optimal extraction");
+    args.AddOptionalArgument("onTargetProfile", onTargetProfile, false, "Measure spatial profile on-target instead of using flat-field");
+    args.AddOptionalArgument("usePolynomialFit", usePolynomialFit, false, "Use polynomial instead of median for first measurement of profile");
+    args.AddOptionalArgument("removeBackground", removeBackground, false, "Remove background. May be turned Off if target is bright.");
+    args.AddOptionalArgument("starplusskymode", starplusskymode, false, "Star+sky: main flux is the sum of right beams minus sum of left beams.");
+    args.AddOptionalArgument("starplusskyInvertSkyFiber", starplusskyInvertSkyFiber, false, "Star+sky: invert sky fiber (default is beam[0]=star and beam[1]=sky).");
+    args.AddOptionalArgument("noCrossCorrelation", noCrossCorrelation, false, "Turn-off the cross-correlation calculation");
+    args.AddRequiredArgument("spectrumtype", spectralOrderType_val, "Method for extraction: 5 = Raw Flux Sum (default), 6 = Standard Flux, 7 = Optimal Extraction, 8 = OPERA Optimal Extraction");
+    args.AddRequiredArgument("spectrumtypename", spectrumtypename, "Spectrum type name for verbose mode");
+    args.AddRequiredArgument("maxthreads", maxthreads, "Maximum number of threads");
+    args.AddPlotFileArguments(plotfilename, datafilename, scriptfilename, interactive);
 	
 	try {
+		args.Parse(argc, argv);
+		
+		spectralOrderType = operaSpectralOrder_t(spectralOrderType_val);
+		
 		// we need an image...
 		if (inputImage.empty()) {
 			throw operaException("operaExtraction: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -445,7 +266,7 @@ int main(int argc, char *argv[])
 			throw operaException("operaExtraction: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}			
 		
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaExtraction: inputImage = " << inputImage << endl; 
 			cout << "operaExtraction: outputSpectraFile = " << outputSpectraFile << endl;
 			cout << "operaExtraction: inputGainFile = " << inputgain << endl;            
@@ -469,28 +290,18 @@ int main(int argc, char *argv[])
 			cout << "operaExtraction: removeBackground = " << removeBackground << endl;
 			cout << "operaExtraction: noCrossCorrelation = " << noCrossCorrelation << endl;
 			cout << "operaExtraction: removeBackground = " << removeBackground << endl;
-            
-            if(ordernumber != NOTPROVIDED) {
-                cout << "operaExtraction: ordernumber = " << ordernumber << endl;            
-            }   
+            if(ordernumber != NOTPROVIDED) cout << "operaExtraction: ordernumber = " << ordernumber << endl;            
 			cout << "operaExtraction: backgroundBinsize = " << backgroundBinsize << endl;            
-            if(plot) {
+            if(args.plot) {
                 cout << "operaExtraction: plotfilename = " << plotfilename << endl;
                 cout << "operaExtraction: datafilename = " << datafilename << endl;
                 cout << "operaExtraction: scriptfilename = " << scriptfilename << endl; 
-                if(interactive) {
-                    cout << "operaExtraction: interactive = YES" << endl; 
-                } else {
-                    cout << "operaExtraction: interactive = NO" << endl; 
-                }
+                cout << "operaExtraction: interactive = " << (interactive ? "YES" : "NO") << endl; 
             }            
-            
 		}
         
-        if (!datafilename.empty()) {
-            fdata = new ofstream();
-            fdata->open(datafilename.c_str());  
-        }          
+        ofstream fdata;
+        if (!datafilename.empty()) fdata.open(datafilename.c_str());
         
 		flat = new operaFITSImage(masterflat, tfloat, READONLY);
         object = new operaFITSImage(inputImage, tfloat, READONLY);		
@@ -520,21 +331,8 @@ int main(int argc, char *argv[])
         spectralOrders.ReadSpectralOrders(inputaper);
         spectralOrders.ReadSpectralOrders(inputprof);
 
-        if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();            
-        }        
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-
-		if (verbose)
-			cout << "operaExtraction: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
-        
+        UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
+		if (args.verbose) cout << "operaExtraction: minorder ="<< minorder << " maxorder=" << maxorder << endl;
 		/*
 		 * Add the order data to the raw spectrum product
 		 */
@@ -549,7 +347,7 @@ int main(int argc, char *argv[])
         // gainBiasNoise->setGain(1,gainBiasNoise->getGain(0)*50);
         // gainBiasNoise->setNoise(1,gainBiasNoise->getNoise(0));
         
-        if (verbose) {
+        if (args.verbose) {
             for(unsigned amp=0;amp<gainBiasNoise->getAmps();amp++) {
                 DATASEC_t datasec;
                 gainBiasNoise->getDatasec(amp, datasec);
@@ -582,12 +380,12 @@ int main(int argc, char *argv[])
         unsigned NumberofBeams = spectralOrders.GetSpectralOrder(minorder)->getnumberOfBeams(); // for plotting
         
         for (int order=minorder; order<=maxorder; order++) {
-           if (fdata != NULL) {
+           if (fdata.is_open()) {
                operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
                for(unsigned slitview=0; slitview<2; slitview++) {
-                    spectralOrder->printBeamSpectrum(itos(slitview),fdata);
+                    spectralOrder->printBeamSpectrum(itos(slitview),&fdata);
                 }
-                *fdata << endl;
+                fdata << endl;
             }
         }
 		// output a spectrum...
@@ -597,19 +395,14 @@ int main(int argc, char *argv[])
 		
         flat->operaFITSImageClose();
         
-        if(bias)
-            delete bias;
-        if(badpix)
-            delete badpix;
-        if(normalizedflat)
-            delete normalizedflat;
-        if(object)
-            delete object;
-        if(flat)
-            delete flat;
+        if(bias) delete bias;
+        if(badpix) delete badpix;
+        if(normalizedflat) delete normalizedflat;
+        if(object) delete object;
+        if(flat) delete flat;
         
-        if (fdata != NULL) {
-            fdata->close();
+        if (fdata.is_open()) {
+            fdata.close();
             if (!scriptfilename.empty()) {
                 GenerateExtraction3DSpecPlot(scriptfilename,plotfilename,datafilename, NumberofBeams, interactive);
             }
@@ -630,128 +423,72 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" + 
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -i, --inputImage=<FITS_IMAGE>, Input FITS image to extract spectrum\n"
-	"  -s, --outputSpectraFile=<FILE_NAME>, Output file name\n"
-	"  -e, --inputGainFile=<GAIN_FILE>, Input noise/gain file\n"
-	"  -g, --inputGeometryFile=<GEOM_FILE>, Input geometry file\n"
-	"  -p, --inputInstrumentProfileFile=<PROF_FILE>, Input instrument profile file\n"
-	"  -a, --inputApertureFile=<APER_FILE>, Input extraction aperture file\n"
-	"  -b, --masterbias=<FITS_IMAGE>, FITS image with masterbias\n"
-	"  -f, --masterflat=<FITS_IMAGE>, FITS image with masterflat\n"
-	"  -n, --normalizedflat=<FITS_IMAGE>, FITS image with normalized flat-field\n"
-	"  -m, --badpixelmask=<FITS_IMAGE>, FITS image with badpixel mask\n"
-	"  -O, --ordernumber=<INT_VALUE>, Absolute order number to extract (default=all)\n"
-	"  -N, --minorder=<INT_VALUE>, Define minimum order number\n"
-	"  -X, --maxorder=<INT_VALUE>, Define maximum order number\n"
-    "  -A, --effectiveApertureFraction=<FLT_VALUE>, Fraction of aperture width to set spectral element size\n"
-    "  -B, --backgroundBinsize=<UNS_VALUE>, Number of points to bin for IP measurements\n"
-    "  -C, --sigmaclip=<UNS_VALUE>, Variance threshold for optimal extraction\n"
-    "  -R, --iterations=<UNS_VALUE>, Number iterations for optimal extraction\n"
-    "  -J, --onTargetProfile=<BOOL>, Measure spatial profile on-target instead of using flat-field\n"
-    "  -Y, --usePolynomialFit=<BOOL>, Use polynomial instead of median for first measurement of profile\n"
-    "  -G, --removeBackground=<BOOL>, Remove background. May be turned Off if target is bright. \n"
-    "  -K, --starplusskymode=<BOOL>, Star+sky: main flux is the sum of right beams minus sum of left beams. \n"
-    "  -V, --starplusskyInvertSkyFiber=<BOOL>, Star+sky: invert sky fiber (default is beam[0]=star and beam[1]=sky). \n"
-    "  -x, --noCrossCorrelation=<BOOL>, Use this flag to turn-off the cross-correlation calculation\n"
-	"  -T, --spectrumtype=<UNS_VALUE>, Method for extraction\n"
-    "                              Available options are = 5, 6, 7 or 8, where: \n"
-    "                              5. Raw Flux Sum (default)\n"
-    "                              6. Standard Flux \n"
-    "                              7. Optimal Extraction; ref: Horne, K., (1986) & Marsh, T.R., (1989)\n"
-    "                              8. OPERA Optimal Extraction\n"
-	"  -P, --plotfilename=<EPS_FILE>\n"
-	"  -F, --datafilename=<DATA_FILE>\n"
-	"  -S, --scriptfilename=<GNUPLOT_FILE>\n"
-	"  -I, --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputImage=/data/espadons/51Peg-12BQ10-Dec01//1599047o.fits --badpixelmask=/Users/edermartioli/opera-1.0//config/badpix_olapa-a.fits.fz --masterbias=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/masterbias_OLAPAa_pol_Normal.fits.fz --masterflat=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/masterflat_OLAPAa_pol_Normal.fits.fz  --inputInstrumentProfileFile=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/OLAPAa_pol_Normal.prof.gz --inputGeometryFile=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/OLAPAa_pol_Normal.geom.gz --inputApertureFile=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/OLAPAa_pol_Normal.aper.gz --inputGainFile=/Users/edermartioli//opera//calibrations/51Peg-12BQ10-Dec01/OLAPAa_pol_Normal.gain.gz --backgroundBinsize=120 --sigmaclip=50 --onTargetProfile=1 --iterations=3 --ordernumber=-999 --usePolynomialFit=0 --spectrumtype=7 --spectrumtypename=OptimalBeamSpectrum  --outputSpectraFile=1599047.e.gz --removeBackground=0 --scriptfilename=optimalSpec.gnu --datafilename=optimalSpec.dat --plotfilename=optimalSpec.eps --minorder=28 --maxorder=32 -v -t\n\n"
-    ;
-}
-
 /*
  * Generate 3D plot for spectra of atlas + comparison + identified lines
  */
-void GenerateExtraction3DSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string datafilename, unsigned numberOfBeams, bool display) {
+void GenerateExtraction3DSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string datafilename, unsigned numberOfBeams, bool display)
+{
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
     
-    ofstream *fgnu = NULL;
+    fgnu << "reset" << endl;
+    fgnu << "unset key" << endl;
+    fgnu << "set view 0,0" << endl;
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
-    
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    *fgnu << "set view 0,0" << endl;
-    
-    *fgnu << "set palette gray" << endl;
-    *fgnu << "set palette gamma 2.0" << endl;
-    *fgnu << "set pm3d map" << endl;
-    *fgnu << "unset ztics" << endl;
-    *fgnu << "set cblabel \"flux\"" << endl;
+    fgnu << "set palette gray" << endl;
+    fgnu << "set palette gamma 2.0" << endl;
+    fgnu << "set pm3d map" << endl;
+    fgnu << "unset ztics" << endl;
+    fgnu << "set cblabel \"flux\"" << endl;
 
-    *fgnu << "set xrange[-200:*]" << endl;
+    fgnu << "set xrange[-200:*]" << endl;
    
-    *fgnu << "\nset xlabel \"distance (pixels)\"" << endl;
-    *fgnu << "set ylabel \"order number\"" << endl;
+    fgnu << "\nset xlabel \"distance (pixels)\"" << endl;
+    fgnu << "set ylabel \"order number\"" << endl;
     
     unsigned fluxColumnForFirstBeam = 13;
     
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
-        *fgnu << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << endl;
         
-        *fgnu << "splot \"" << datafilename << "\" u 6:($2 + 0.4*$1 - 0.8 + 0.25 + 0.125):" << fluxColumnForFirstBeam <<" w pm3d";
+        fgnu << "splot \"" << datafilename << "\" u 6:($2 + 0.4*$1 - 0.8 + 0.25 + 0.125):" << fluxColumnForFirstBeam <<" w pm3d";
         for(unsigned beam=1; beam<numberOfBeams; beam++) {
             unsigned fluxcol = fluxColumnForFirstBeam + 4*beam;
-            *fgnu << ",\"\" u 6:($2 + 0.4*$1 - 0.35 + 0.25 + 0.125):" << fluxcol << " w pm3d";
+            fgnu << ",\"\" u 6:($2 + 0.4*$1 - 0.35 + 0.25 + 0.125):" << fluxcol << " w pm3d";
         }
-        *fgnu << endl;
+        fgnu << endl;
     
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
-        *fgnu << endl;
+        fgnu << endl;
         
-        *fgnu << "splot \"" << datafilename << "\" u 6:($2 + 0.4*$1 - 0.8 + 0.25 + 0.125):" << fluxColumnForFirstBeam <<" w pm3d";
+        fgnu << "splot \"" << datafilename << "\" u 6:($2 + 0.4*$1 - 0.8 + 0.25 + 0.125):" << fluxColumnForFirstBeam <<" w pm3d";
         for(unsigned beam=1; beam<numberOfBeams; beam++) {
             unsigned fluxcol = fluxColumnForFirstBeam + 4*beam;
-            *fgnu << ",\"\" u 6:($2 + 0.4*$1 - 0.35 + 0.25 + 0.125):" << fluxcol << " w pm3d";
+            fgnu << ",\"\" u 6:($2 + 0.4*$1 - 0.35 + 0.25 + 0.125):" << fluxcol << " w pm3d";
         }
-        *fgnu << endl;
+        fgnu << endl;
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }    
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }

@@ -35,24 +35,12 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "libraries/operaException.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaSpectralElements.h"		// for MAXSPECTRALELEMENTSPERORDER
-#include "libraries/operaLibCommon.h"               
 #include "libraries/operaFit.h"						// for operaLMFitPolynomial
-#include "libraries/Polynomial.h"
-#include "libraries/operaFFT.h"
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
-#include "core-espadons/operaMasterFluxCalibration.h"
-
-#define NOTPROVIDED -999
 #define MAXNUMBEROFFLUXCALIBRATIONFILES 500
 #define WAVELENGTH_PRECISION 0.01
 #define MINELEMENTS 20
@@ -61,7 +49,7 @@
 
 using namespace std;
 
-int debug=0, verbose=0, trace=0, plot=0;
+void GenerateMasterFluxCalibrationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string outputDataFilename, unsigned NumberofBeams, bool display);
         
 /*! 
  * operaMasterFluxCalibration
@@ -80,137 +68,42 @@ int debug=0, verbose=0, trace=0, plot=0;
 
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
 	
-	string inputReferenceSpectrum;      // this is a reference opera spectrum that defines the format for the output
-    
-	string inputfcal[MAXNUMBEROFFLUXCALIBRATIONFILES];
-    unsigned inputFcalIndex = 0;
-	
+	string listofinputfcal;
+	double inputconstant = 0.0;
     string outputfcal;
-	
+	string inputReferenceSpectrum;      // this is a reference opera spectrum that defines the format for the output
     string inputWaveFile;
-    
-    double inputconstant = 0.0;
-	
     unsigned combineMethod = 1; // Not implemented yet. Eder - Jan/09/2013.
-    /*
-     * combineMethod 1: mean
-     * combineMethod 2: median (not implemented)
-     * combineMethod 3: weigthed mean
-     */
-    
 	int ordernumber = NOTPROVIDED;
-    
     int minorder = 22;
-    bool minorderprovided = false;
     int maxorder = 62;    
-    bool maxorderprovided = false;            
-        
-    bool interactive = false;
-    
-	int debug=0, verbose=0, trace=0, plot=0;
-    
     string plotfilename;	
 	string spectrumDataFilename;
 	string outputDataFilename;
-	string scriptfilename;	
+	string scriptfilename;
+	bool interactive = false;
 	
-	struct option longopts[] = {
-		{"inputfcal",				1, NULL, 'i'},
-		{"inputconstant",			1, NULL, 'c'},
-		{"outputfcal",				1, NULL, 'o'},        
-		{"inputReferenceSpectrum",	1, NULL, 's'},
-		{"inputWaveFile",			1, NULL, 'w'},
-		{"combineMethod",			1, NULL, 'C'},        
-		{"ordernumber",				1, NULL, 'O'},	
-		{"minorder",				1, NULL, 'M'},
-		{"maxorder",				1, NULL, 'X'},               
-		{"plotfilename",			1, NULL, 'P'},
-		{"spectrumDataFilename",	1, NULL, 'F'},
-		{"outputDataFilename",		1, NULL, 'D'}, 
-		{"scriptfilename",			1, NULL, 'S'},  
-		{"interactive",				0, NULL, 'I'},
-		{"plot",					optional_argument, NULL, 'p'},       
-		{"verbose",					optional_argument, NULL, 'v'},
-		{"debug",					optional_argument, NULL, 'd'},
-		{"trace",					optional_argument, NULL, 't'},
-		{"help",					no_argument, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "i:c:o:s:w:C:O:M:X:P:F:D:S:I:p::v::d::t::h",  longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'i':
-				inputfcal[inputFcalIndex++] = optarg;
-				break;
-			case 'c':
-				inputconstant = atof(optarg);
-				break;
-			case 'o':
-				outputfcal = optarg;
-				break;
-			case 's':
-				inputReferenceSpectrum = optarg;	
-				break;
-			case 'w':
-				inputWaveFile = optarg;
-				break;
-            case 'C':		// method to combine fcal files 1. median, 2. mean, 3. weighted mean
-                combineMethod = atoi(optarg);
-                break;
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;				
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;  
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;                                
-			case 'P':
-				plotfilename = optarg;
-				plot = 1;
-				break; 		                
-			case 'F':
-				spectrumDataFilename = optarg;
-				break;
-			case 'D':
-				outputDataFilename = optarg;
-				break;
-			case 'S':
-				scriptfilename = optarg;
-				break;  
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
+	args.AddOptionalArgument("inputfcal", listofinputfcal, "", "List of input flux calibration files, separated by spaces");
+	args.AddOptionalArgument("inputconstant", inputconstant, 0.0, "This value should be input when there are no fcal files available");
+	args.AddRequiredArgument("outputfcal", outputfcal, "Output master flux calibration file");
+	args.AddRequiredArgument("inputReferenceSpectrum", inputReferenceSpectrum, "Input reference spectrum file");
+	args.AddRequiredArgument("inputWaveFile", inputWaveFile, "Input wavelength calibration file");
+	args.AddOptionalArgument("combineMethod", combineMethod, 1, "Method for combining images: 1 = Median, 2 = Mean, 3 = Weighted mean -- WARNING: NOT CURRENTLY IMPLEMENTED"); //NOT IMPLEMENTED YET
+	args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
+	args.AddOptionalArgument("plotfilename", plotfilename, "", "Output plot eps file name");
+	args.AddOptionalArgument("spectrumDataFilename", spectrumDataFilename, "", "Output spectrum data file name");
+	args.AddOptionalArgument("outputDataFilename", outputDataFilename, "", "Output data file name");
+	args.AddOptionalArgument("scriptfilename", scriptfilename, "", "Output gnuplot script file name");
+	args.AddSwitch("interactive", interactive, "For interactive plots");
 	
 	try {
+        args.Parse(argc, argv);
+        
+        string inputfcal[MAXNUMBEROFFLUXCALIBRATIONFILES];
+		unsigned inputFcalIndex = 0;
+		SplitStringIntoArray(listofinputfcal, inputfcal, inputFcalIndex, MAXNUMBEROFFLUXCALIBRATIONFILES); // Split list of images into array
         
 		// we need at least one input opera flux calibration file..
         if(inputFcalIndex == 0 && inputconstant == 0.0) {
@@ -231,8 +124,7 @@ int main(int argc, char *argv[])
 			throw operaException("operaCreateFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
         
-        
-		if (verbose) {
+		if (args.verbose) {
             for(unsigned index=0; index<inputFcalIndex; index++) {
                 cout << "operaMasterFluxCalibration: input flux calibration inputfcal["<<index<<"] = " << inputfcal[index] << endl;
             }
@@ -241,54 +133,26 @@ int main(int argc, char *argv[])
 			cout << "operaMasterFluxCalibration: inputReferenceSpectrum = " << inputReferenceSpectrum << endl;
 			cout << "operaMasterFluxCalibration: inputWaveFile = " << inputWaveFile << endl;
 			cout << "operaMasterFluxCalibration: combineMethod = " << combineMethod << endl;
-            if(ordernumber != NOTPROVIDED) {
-                cout << "operaMasterFluxCalibration: ordernumber = " << ordernumber << endl;
-            }
-            if(plot) {
+            if(ordernumber != NOTPROVIDED) cout << "operaMasterFluxCalibration: ordernumber = " << ordernumber << endl;
+            if(args.plot) {
                 cout << "operaMasterFluxCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaMasterFluxCalibration: spectrumDataFilename = " << spectrumDataFilename << endl;
                 cout << "operaMasterFluxCalibration: outputDataFilename = " << spectrumDataFilename << endl;
                 cout << "operaMasterFluxCalibration: scriptfilename = " << scriptfilename << endl;
-                if(interactive) {
-                    cout << "operaMasterFluxCalibration: interactive = YES" << endl;
-                } else {
-                    cout << "operaMasterFluxCalibration: interactive = NO" << endl;
-                }
+			    cout << "operaMasterFluxCalibration: interactive = " << (interactive ? "YES" : "NO") << endl;
             }
-            
 		}
         
-        ofstream *fspecdata = NULL;
-        
-        if (!spectrumDataFilename.empty()) {
-            fspecdata = new ofstream();
-            fspecdata->open(spectrumDataFilename.c_str());
-        }
-        
-        ofstream *foutdata = NULL;
-        
-        if (!outputDataFilename.empty()) {
-            foutdata = new ofstream();
-            foutdata->open(outputDataFilename.c_str());
-        }
+        ofstream fspecdata;
+        ofstream foutdata;
+        if (!spectrumDataFilename.empty()) fspecdata.open(spectrumDataFilename.c_str());
+        if (!outputDataFilename.empty()) foutdata.open(outputDataFilename.c_str());
         
 		operaSpectralOrderVector spectralOrders(inputReferenceSpectrum);
         spectralOrders.ReadSpectralOrders(inputWaveFile);
         
-        if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();
-        }
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-        
-		if (verbose)
-			cout << "operaMasterFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;
+        UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
+		if (args.verbose) cout << "operaMasterFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         
         unsigned NumberofBeams = 0;
         double wavelengthForNormalization = 0;
@@ -394,8 +258,7 @@ int main(int argc, char *argv[])
                 
                 if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralEnergyDistribution()) {
                     
-                    if (debug)
-                        cout << "operaMasterFluxCalibration: processing fcal index=" << index << " order=" << order << endl;
+                    if (args.debug) cout << "operaMasterFluxCalibration: processing fcal index=" << index << " order=" << order << endl;
                     
                     operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
                     operaSpectralEnergyDistribution *SpectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
@@ -423,13 +286,11 @@ int main(int argc, char *argv[])
                         operaSpectralElements *FluxCalibration = inputSpectralEnergyDistribution->getFluxCalibrationElements();
                         operaSpectralElements *InstrumentThroughput = inputSpectralEnergyDistribution->getThroughputElements();
                         unsigned inputnElements = inputSpectralEnergyDistribution->getFluxCalibrationElements()->getnSpectralElements();
-                        if(verbose)
-                            cout << "operaMasterFluxCalibration: processing fcal index=" << index << " order=" << order << " refnElements=" << nElements << " inputnElements=" << inputnElements << endl;
+                        if(args.verbose) cout << "operaMasterFluxCalibration: processing fcal index=" << index << " order=" << order << " refnElements=" << nElements << " inputnElements=" << inputnElements << endl;
                         
                         if(inputnElements != nElements) {
                             interpolate = TRUE;
-                            if(verbose)
-                                cout << "operaMasterFluxCalibration: using interpolation since inputnElements="<< inputnElements<<" != nElements=" << nElements << endl;
+                            if(args.verbose) cout << "operaMasterFluxCalibration: using interpolation since inputnElements="<< inputnElements<<" != nElements=" << nElements << endl;
                         }
                         
                         for(unsigned beam = 0; beam < inputSpectralOrder->getnumberOfBeams(); beam++) {
@@ -446,8 +307,7 @@ int main(int argc, char *argv[])
                                 if(fabs(inputWavelength[indexElem] - referenceWavelength[indexElem]) > WAVELENGTH_PRECISION) {
                                     //if(inputWavelength[indexElem] != referenceWavelength[indexElem]) {
                                     interpolate = TRUE;
-                                    if(verbose)
-                                        cout << "operaMasterFluxCalibration: using interpolation since |inputWavelength - referenceWavelength| = " << fabs(inputWavelength[indexElem] - referenceWavelength[indexElem]) << " > " << WAVELENGTH_PRECISION << endl;
+                                    if(args.verbose) cout << "operaMasterFluxCalibration: using interpolation since |inputWavelength - referenceWavelength| = " << fabs(inputWavelength[indexElem] - referenceWavelength[indexElem]) << " > " << WAVELENGTH_PRECISION << endl;
                                 }
                             }
 
@@ -460,32 +320,29 @@ int main(int argc, char *argv[])
                             }
 
                             // below is for plotting
-                            if(fspecdata != NULL) {
-                                *fspecdata << index << ' ' << order << ' ' << indexElem << ' '
+                            if(fspecdata.is_open()) {
+                                fspecdata << index << ' ' << order << ' ' << indexElem << ' '
                                 << FluxCalibration->getwavelength(indexElem) << ' '
                                 << FluxCalibration->getFlux(indexElem) << ' '
                                 << FluxCalibration->getFluxVariance(indexElem) << ' '
                                 << InstrumentThroughput->getFlux(indexElem) << ' '
                                 << InstrumentThroughput->getFluxVariance(indexElem) << ' ';
                                 for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
-                                    *fspecdata << beam << ' '
+                                    fspecdata << beam << ' '
                                     << beamFluxcalibration[beam]->getFlux(indexElem) << ' '
                                     << beamFluxcalibration[beam]->getFluxVariance(indexElem) << ' '
                                     << beamThroughput[beam]->getFlux(indexElem) << ' '
                                     << beamThroughput[beam]->getFluxVariance(indexElem) << ' ';
                                 }
-                                *fspecdata << endl;
+                                fspecdata << endl;
                             }
                         }
                         
                         // below is for plotting
-                        if(fspecdata != NULL) {
-                            *fspecdata << endl;
-                        }
+                        if(fspecdata.is_open()) fspecdata << endl;
                                                 
                         if(interpolate) {
-                            if(verbose)
-                                cout << "operaMasterFluxCalibration: Starting interpolations" << endl;
+                            if(args.verbose) cout << "operaMasterFluxCalibration: Starting interpolations" << endl;
                             
                             operaFitSpline(inputnElements,inputWavelength,inputFluxCal,nElements,referenceWavelength,referenceInputFluxCal);
                             operaFitSpline(inputnElements,inputWavelength,inputThroughput,nElements,referenceWavelength,referenceInputThroughput);
@@ -506,8 +363,7 @@ int main(int argc, char *argv[])
                             }
                         }
 
-                        if(debug)
-                            cout << "operaMasterFluxCalibration: adding values to the output fcal" << endl;
+                        if(args.debug) cout << "operaMasterFluxCalibration: adding values to the output fcal" << endl;
                         
                         for(unsigned indexElem=0; indexElem<nElements; indexElem++) {
                             double fluxCal = SpectralEnergyDistribution->getFluxCalibrationElements()->getFlux(indexElem) + (double)referenceInputFluxCal[indexElem]/(double)inputFcalIndex;
@@ -525,31 +381,30 @@ int main(int argc, char *argv[])
                             }
                             
                             // below is for plotting
-                            if(foutdata != NULL && index==inputFcalIndex-1) {
-                                *foutdata << index << ' ' << order << ' ' << indexElem << ' '
+                            if(foutdata.is_open() && index==inputFcalIndex-1) {
+                                foutdata << index << ' ' << order << ' ' << indexElem << ' '
                                 << SpectralElements->getwavelength(indexElem) << ' '
                                 << SpectralElements->getFlux(indexElem) << ' '
                                 << SpectralElements->getFluxVariance(indexElem) << ' '
                                 << SpectralEnergyDistribution->getFluxCalibrationElements()->getFlux(indexElem) << ' '
                                 << SpectralEnergyDistribution->getFluxCalibrationElements()->getFluxVariance(indexElem) << ' ';
                                 for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
-                                    *foutdata << beam << ' '
+                                    foutdata << beam << ' '
                                     << spectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->getFlux(indexElem) << ' '
                                     << spectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->getFluxVariance(indexElem) << ' '
                                     << spectralOrder->getBeamSED(beam)->getThroughputElements()->getFlux(indexElem) << ' '
                                     << spectralOrder->getBeamSED(beam)->getThroughputElements()->getFluxVariance(indexElem) << ' ';
                                 }
-                                *foutdata << endl;
+                                foutdata << endl;
                             }
                         }
                         // below is for plotting
-                        if(foutdata != NULL && index==inputFcalIndex-1) {
-                            *foutdata << endl;
+                        if(foutdata.is_open() && index==inputFcalIndex-1) {
+                            foutdata << endl;
                         }
                         
                     } else if (!inputSpectralOrder->gethasSpectralEnergyDistribution()) {
-                        if (verbose)
-                            cout << "operaMasterFluxCalibration: Skipping order number: "<< order << "for index=" << index << " no input SpectralEnergyDistribution." << endl;
+                        if (args.verbose) cout << "operaMasterFluxCalibration: Skipping order number: "<< order << "for index=" << index << " no input SpectralEnergyDistribution." << endl;
                     }
                 } // if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralEnergyDistribution()) {
             } //for (int order=minorder; order<=maxorder; order++) {
@@ -574,9 +429,9 @@ int main(int argc, char *argv[])
             delete[] referenceBeamInputThroughput[beam];
         }
         
-        if (fspecdata != NULL && foutdata != NULL) {
-            fspecdata->close();
-            foutdata->close();
+        if (fspecdata.is_open() && foutdata.is_open()) {
+            fspecdata.close();
+            foutdata.close();
             
             if (!scriptfilename.empty()) {
                 GenerateMasterFluxCalibrationPlot(scriptfilename.c_str(),plotfilename.c_str(),spectrumDataFilename.c_str(),outputDataFilename.c_str(), NumberofBeams, interactive);
@@ -595,103 +450,48 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 } 
 
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-    cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" +
-	" --inputfcal=<FCAL_FILES>"
-	" --inputconstant=<DBL_VALUE>"
-	" --outputfcal=<FCAL_FILE>"
-	" --inputReferenceSpectrum=<SPEC_FILE>"
-    " --inputWaveFile=<WAVE_FILE>"
-    " --combineMethod=<UNS_VALUE>"
-	" --ordernumber=<UNS_VALUE>"
-	" --minorder=<UNS_VALUE>"
-	" --maxorder=<UNS_VALUE>"
-	" --plotfilename=<EPS_FILE>"
-	" --spectrumDataFilename=<DATA_FILE>"
-	" --outputDataFilename=<DATA_FILE>"
-	" --scriptfilename=<GNUPLOT_FILE>"
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputfcal=1515004.fcal.gz --inputfcal=1515005.fcal.gz --inputfcal=1515006.fcal.gz --inputfcal=1515007.fcal.gz --outputfcal=master.fcal.gz --inputReferenceSpectrum=/Users/edermartioli/opera/spectra/GalileanMoons/1515004.e.gz --inputWaveFile=/Users/edermartioli/opera/calibrations/GalileanMoons/OLAPAa_pol_Normal.wcar.gz --spectrumDataFilename=spectrumData.dat --outputDataFilename=outputData.dat --scriptfilename=masterfcal.gnu -v \n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -i, --inputfcal=<FCAL_FILES>,  Input flux calibration files \n"
-	"  -c, --inputconstant=<DBL_VALUE>,  This value should be input when there is no fcal files available\n"
-	"  -o, --outputfcal=<FCAL_FILES>,  Output master flux calibration file \n"
-	"  -s, --inputReferenceSpectrum=<SPEC_FILE>,  Input reference spectrum file \n"
-    "  -w, --inputWaveFile=<WAVE_FILE>, Input wavelength calibration file\n"
-    "  -C, --combineMethod=<UNS_VALUE>, Method for combining images\n"
-    "                              Available options are = 1, 2, and  3, where: \n"
-    "                              1. Median (default)\n"
-    "                              2. Mean \n"
-    "                              3. Weighted mean \n"
-	"  -O, --ordernumber=<UNS_VALUE>, Absolute order number to extract (default=all)\n"
-	"  -M, --minorder=<UNS_VALUE>, Define minimum order number\n"
-	"  -X, --maxorder=<UNS_VALUE>, Define maximum order number\n"
-	"  -P, --plotfilename=<EPS_FILE>\n"
-	"  -F, --spectrumDataFilename=<DATA_FILE>\n"
-	"  -D, --outputDataFilename=<DATA_FILE>\n"
-	"  -S, --scriptfilename=<GNUPLOT_FILE>\n"
-	"  -I, --interactive=<BOOL>\n\n";
-}
-
-
 void GenerateMasterFluxCalibrationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string outputDataFilename, unsigned NumberofBeams, bool display)
 {
-    ofstream *fgnu = NULL;
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str());  // delete any existing file with the same name
+    ofstream fgnu(gnuScriptFileName.c_str());
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str());  // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
+    fgnu << "reset" << endl;
+    fgnu << "unset key" << endl;
+    fgnu << "\nset xlabel \"wavelength (nm)\"" << endl;
+    fgnu << "set ylabel \"flux calibration\"" << endl;
     
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    *fgnu << "\nset xlabel \"wavelength (nm)\"" << endl;
-    *fgnu << "set ylabel \"flux calibration\"" << endl;
-    
-    *fgnu << "set pointsize 0.5" << endl;
+    fgnu << "set pointsize 0.5" << endl;
     
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         
-        *fgnu << "\nplot \"" << spectrumDataFilename << "\" u 4:5 w d" <<
+        fgnu << "\nplot \"" << spectrumDataFilename << "\" u 4:5 w d" <<
         ",\"" << outputDataFilename << "\" u 4:7 w l lw 3" << endl;
         
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
-        *fgnu << "\nplot \"" << spectrumDataFilename << "\" u 4:5 w d" <<
+        fgnu << "\nplot \"" << spectrumDataFilename << "\" u 4:5 w d" <<
         ",\"" << outputDataFilename << "\" u 4:7 w l lw 3" << endl;
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if(!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }

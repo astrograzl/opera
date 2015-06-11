@@ -92,7 +92,7 @@ sequence(0),
 instrumentmode(MODE_UNKNOWN),
 count(0),
 gainBiasNoise(NULL),
-BarycentricRadialVelocityCorrection(0.0),
+RadialVelocityCorrection(0.0),
 TelluricRadialVelocityCorrection(0.0),
 first(NULL),
 last(NULL)
@@ -127,7 +127,7 @@ sequence(0),
 instrumentmode(MODE_UNKNOWN),
 count(0),
 gainBiasNoise(NULL),
-BarycentricRadialVelocityCorrection(0.0),
+RadialVelocityCorrection(0.0),
 TelluricRadialVelocityCorrection(0.0),
 first(NULL),
 last(NULL)
@@ -171,7 +171,7 @@ sequence(0),
 instrumentmode(MODE_UNKNOWN),
 count(0),
 gainBiasNoise(NULL),
-BarycentricRadialVelocityCorrection(0.0),
+RadialVelocityCorrection(0.0),
 TelluricRadialVelocityCorrection(0.0),
 first(NULL),
 last(NULL)
@@ -259,19 +259,19 @@ GainBiasNoise *operaSpectralOrderVector::getGainBiasNoise() {
 }
 
 /* 
- * unsigned getBarycentricRadialVelocityCorrection();
- * \brief returns a double BarycentricRadialVelocityCorrection.
+ * unsigned getRadialVelocityCorrection();
+ * \brief returns a double RadialVelocityCorrection.
  */
-double operaSpectralOrderVector::getBarycentricRadialVelocityCorrection() {
-	return BarycentricRadialVelocityCorrection;
+double operaSpectralOrderVector::getRadialVelocityCorrection() {
+	return RadialVelocityCorrection;
 }
 
 /* 
- * void setBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
- * \brief sets the double BarycentricRadialVelocityCorrection.
+ * void setRadialVelocityCorrection(double RadialVelocityCorrection);
+ * \brief sets the double RadialVelocityCorrection.
  */
-void operaSpectralOrderVector::setBarycentricRadialVelocityCorrection(double newBarycentricRadialVelocityCorrection) {
-	BarycentricRadialVelocityCorrection = newBarycentricRadialVelocityCorrection;
+void operaSpectralOrderVector::setRadialVelocityCorrection(double newRadialVelocityCorrection) {
+	RadialVelocityCorrection = newRadialVelocityCorrection;
 }
 
 /*
@@ -1305,11 +1305,11 @@ bool operaSpectralOrderVector::ReadSpectralOrders(string Filename, operaSpectral
 					operaFITSProduct Product(in);
 					string extname = in.operaFITSGetHeaderValue("EXTNAME", extension);
 					if (extname == "RADIALVELOCITY") {
-						// <BarycentricRadialVelocityCorrection>
+						// <RadialVelocityCorrection>
 						unsigned row = 0;
 						unsigned column = 0;
 						float rvel = (unsigned)Product[row][column++];
-                        setBarycentricRadialVelocityCorrection(rvel);
+                        setRadialVelocityCorrection(rvel);
 						Gotit = true;
 						break;
 					}
@@ -1322,11 +1322,11 @@ bool operaSpectralOrderVector::ReadSpectralOrders(string Filename, operaSpectral
 					operaFITSProduct Product(in);
 					string extname = in.operaFITSGetHeaderValue("EXTNAME", extension);
 					if (extname == "PRADIALVELOCITY") {
-						// <BarycentricRadialVelocityCorrection>
+						// <RadialVelocityCorrection>
 						unsigned row = 0;
 						unsigned column = 0;
 						float rvel = (unsigned)Product[row][column++];
-                        setBarycentricRadialVelocityCorrection(rvel);
+                        setRadialVelocityCorrection(rvel);
 						Gotit = true;
 						break;
 					}
@@ -1600,7 +1600,7 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "# <radialvelocity> <newline>\n";
 				fout << "#\n";
 				fout << "######################################################################\n";
-				fout << BarycentricRadialVelocityCorrection << endl;
+				fout << RadialVelocityCorrection << endl;
 			}
 				break;
 			case Tell: {
@@ -1764,7 +1764,7 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "# Extended Polarimetry format is:\n";
 				fout << "# <number of orders> <StokesParameter_t> <method> <newline>\n";
 				fout << "# <order number> <nElements> <elementindex> <wavelength> <wavelength telluric corrected> <barycentric wavelength correction> <crosscorrelation>\n";
-				fout << "# <StokesI flux> <StokesI variance> <normalized StokesI flux> <calibrated StokesI flux>\n";
+				fout << "# <StokesI flux> <StokesI variance> <normalized StokesI flux> <calibrated StokesI flux> <normalized StokesI flux variance> <calibrated StokesI flux variance>\n";
 				fout << "# <degree of polarization> <degree of polarization variance> <first null polarization> <second null polarization> <newline>\n";
 				fout << "#\n";
 				fout << "######################################################################\n";
@@ -1811,12 +1811,14 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
                                     firstline = false;
                                 }
 								for (unsigned index = 0 ; index < StokesVector->getLength() ; index++) {
+									double relativeVariance = SpectralElements->getFluxVariance(index) / (SpectralElements->getFlux(index) * SpectralElements->getFlux(index));
 									fout << spectralOrder->getorder() << ' ' << length << ' ' << index << ' ' ;
                                     fout << fixed << setprecision(8) << SpectralElements->getwavelength(index) << ' ';
                                     fout << SpectralElements->gettell(index) << ' ' << SpectralElements->getrvel(index) << ' ';
                                     fout << scientific << SpectralElements->getXCorrelation(index) << ' ';
                                     fout << SpectralElements->getFlux(index) << ' ' << SpectralElements->getFluxVariance(index) << ' ';
                                     fout << SpectralElements->getnormalizedFlux(index) << ' ' << SpectralElements->getfcalFlux(index) << ' ';
+                                    fout << relativeVariance * SpectralElements->getnormalizedFlux(index) * SpectralElements->getnormalizedFlux(index) << ' ' << relativeVariance * SpectralElements->getfcalFlux(index) * SpectralElements->getfcalFlux(index) << ' ';
                                     fout << DegreeOfPolarization->getStokesParameterFlux(StokesQ, index) << ' ';
 									fout << DegreeOfPolarization->getStokesParameterVariance(StokesQ, index) << ' ';
                                     
@@ -1840,12 +1842,14 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
                                     firstline = false;
                                 }
 								for (unsigned index = 0 ; index < StokesVector->getLength() ; index++) {
+									double relativeVariance = SpectralElements->getFluxVariance(index) / (SpectralElements->getFlux(index) * SpectralElements->getFlux(index));
 									fout << spectralOrder->getorder() << ' ' << length << ' ' << index << ' ' ;
                                     fout << fixed << setprecision(8) << SpectralElements->getwavelength(index) << ' ';
                                     fout << SpectralElements->gettell(index) << ' ' << SpectralElements->getrvel(index) << ' ';
                                     fout << scientific << SpectralElements->getXCorrelation(index) << ' ';
                                     fout << SpectralElements->getFlux(index) << ' ' << SpectralElements->getFluxVariance(index) << ' ';
                                     fout << SpectralElements->getnormalizedFlux(index) << ' ' << SpectralElements->getfcalFlux(index) << ' ';
+                                    fout << relativeVariance * SpectralElements->getnormalizedFlux(index) * SpectralElements->getnormalizedFlux(index) << ' ' << relativeVariance * SpectralElements->getfcalFlux(index) * SpectralElements->getfcalFlux(index) << ' ';
                                     fout << DegreeOfPolarization->getStokesParameterFlux(StokesU, index) << ' ';
 									fout << DegreeOfPolarization->getStokesParameterVariance(StokesU, index) << ' ';
                                     
@@ -1869,12 +1873,14 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
                                     firstline = false;
                                 }
 								for (unsigned index = 0 ; index < StokesVector->getLength() ; index++) {
+									double relativeVariance = SpectralElements->getFluxVariance(index) / (SpectralElements->getFlux(index) * SpectralElements->getFlux(index));
 									fout << spectralOrder->getorder() << ' ' << length << ' ' << index << ' ' ;
                                     fout << fixed << setprecision(8) << SpectralElements->getwavelength(index) << ' ';
                                     fout << SpectralElements->gettell(index) << ' ' << SpectralElements->getrvel(index) << ' ';
                                     fout << scientific << SpectralElements->getXCorrelation(index) << ' ';
                                     fout << SpectralElements->getFlux(index) << ' ' << SpectralElements->getFluxVariance(index) << ' ';
                                     fout << SpectralElements->getnormalizedFlux(index) << ' ' << SpectralElements->getfcalFlux(index) << ' ';
+                                    fout << relativeVariance * SpectralElements->getnormalizedFlux(index) * SpectralElements->getnormalizedFlux(index) << ' ' << relativeVariance * SpectralElements->getfcalFlux(index) * SpectralElements->getfcalFlux(index) << ' ';
                                     fout << DegreeOfPolarization->getStokesParameterFlux(StokesV, index) << ' ';
 									fout << DegreeOfPolarization->getStokesParameterVariance(StokesV, index) << ' ';
                                     
@@ -2873,7 +2879,7 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 				fout << "# Calibrated Extended Beam Spectrum (as output from operaExtraction) format is:\n";
 				fout << "# <number of orders> <newline>\n";
 				fout << "# <order number> <nElements> <nBeams> <elementindex> <wavelength> <wavelength telluric corrected> <barycentric wavelength correction> <crosscorrelation>\n";
-				fout << "# <SpectralElements flux> <SpectralElements flux variance> <SpectralElements normalizedFlux> <SpectralElements fcalFlux>\n";
+				fout << "# <SpectralElements flux> <SpectralElements flux variance> <SpectralElements normalizedFlux> <SpectralElements fcalFlux> <normalizedFlux variance> <fcalFlux variance>\n";
 				fout << "# <beam> <BeamElements[beam] flux> <BeamElements[beam] flux variance> ... <newline>\n";
 				fout << "# ...\n";
 				fout << "#\n";
@@ -2908,7 +2914,7 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
 					if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
 						operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
 						for (unsigned indexElem=0;indexElem < spectralElements->getnSpectralElements(); indexElem++) {
-							
+							double relativeVariance = spectralElements->getFluxVariance(indexElem) / (spectralElements->getFlux(indexElem) * spectralElements->getFlux(indexElem));
 							fout << spectralOrder->getorder() << ' ' << spectralElements->getnSpectralElements() << ' ' << spectralOrder->getnumberOfBeams() << ' ';
 							fout << indexElem << ' ';
 							fout << fixed << setprecision(8) << spectralElements->getwavelength(indexElem) << ' ';
@@ -2917,6 +2923,7 @@ void operaSpectralOrderVector::WriteSpectralOrders(string Filename, operaSpectra
                             << spectralElements->getFlux(indexElem) << ' '
                             << spectralElements->getFluxVariance(indexElem) << ' ';
 							fout << spectralElements->getnormalizedFlux(indexElem) << ' ' << spectralElements->getfcalFlux(indexElem) << ' ';
+							fout << relativeVariance * spectralElements->getnormalizedFlux(indexElem) * spectralElements->getnormalizedFlux(indexElem) << ' ' << relativeVariance * spectralElements->getfcalFlux(indexElem) * spectralElements->getfcalFlux(indexElem) << ' ';
 							
 							if (spectralOrder->getnumberOfBeams() > 1) {
 								for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
@@ -4329,6 +4336,7 @@ void operaSpectralOrderVector::readOrdersFromCalibratedExtendedBeamSpectrum(stri
 		Double xcorrelation;
 		Double tell, rvel;
 		Double normalizedFlux, fcalFlux;
+		Double normalizedFluxFluxError, fcalFluxError;
 		unsigned elementindex = 0, nElements = 0;
 		operaSpectralOrder *spectralOrder = NULL;		
 		operaSpectralElements *spectralElements = NULL;
@@ -4336,7 +4344,7 @@ void operaSpectralOrderVector::readOrdersFromCalibratedExtendedBeamSpectrum(stri
 		
 		// <number of orders> <newline>\n";
 		// <order number> <nElements> <nBeams> <elementindex> <wavelength> <wavelength telluric corrected> <barycentric wavelength correction> <crosscorrelation>
-		// <SpectralElements flux> <SpectralElements flux variance> <SpectralElements normalizedFlux> <SpectralElements fcalFlux>
+		// <SpectralElements flux> <SpectralElements flux variance> <SpectralElements normalizedFlux> <SpectralElements fcalFlux> <normalizedFlux error> <fcalFlux error>
 		// <beam> <BeamElements[beam] flux> <BeamElements[beam] flux variance> <newline>
 		
 		while (fspectrum.good()) {
@@ -4384,6 +4392,7 @@ void operaSpectralOrderVector::readOrdersFromCalibratedExtendedBeamSpectrum(stri
 					ss >> flux;
 					ss >> variance;
 					ss >> normalizedFlux >> fcalFlux;
+					ss >> normalizedFluxFluxError >> fcalFluxError;
 #ifdef RANGE_CHECK
 					if (elementindex > nElements) {
 						throw operaException("operaSpectralOrderVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -4401,10 +4410,10 @@ void operaSpectralOrderVector::readOrdersFromCalibratedExtendedBeamSpectrum(stri
                     spectralElements->setrawFluxVariance(variance.d, elementindex);
 
 					spectralElements->setnormalizedFlux(normalizedFlux.d, elementindex);
-					spectralElements->setnormalizedFluxVariance(variance.d/(flux.d*flux.d), elementindex);
+					spectralElements->setnormalizedFluxVariance(normalizedFluxFluxError.d, elementindex);
 
 					spectralElements->setfcalFlux(fcalFlux.d, elementindex);
-					spectralElements->setfcalFluxVariance(variance.d*(fcalFlux.d/flux.d)*(fcalFlux.d/flux.d), elementindex);
+					spectralElements->setfcalFluxVariance(fcalFluxError.d, elementindex);
 					
 					// beams
 					for (unsigned beam=0; beam < beams; beam++) {
@@ -4434,7 +4443,7 @@ void operaSpectralOrderVector::readOrdersFromExtendedPolarimetry(string filename
 
     // <number of orders> <StokesParameter_t> <method>
 	// <order number> <nElements> <elementindex> <wavelength> <wavelength telluric corrected> <barycentric wavelength correction> <crosscorrelation>
-    // <StokesI flux> <StokesI variance> <normalized StokesI flux> <calibrated StokesI flux>
+    // <StokesI flux> <StokesI variance> <normalized StokesI flux> <calibrated StokesI flux> <normalized StokesI flux error> <calibrated StokesI flux error>
     // <degree of polarization> <degree of polarization variance> <first null polarization> <second null polarization>
 
 	operaistream fpolar(filename.c_str());
@@ -4455,6 +4464,7 @@ void operaSpectralOrderVector::readOrdersFromExtendedPolarimetry(string filename
 		Double IVariance = 0.0;
 		Double tell, rvel;
 		Double normalizedFlux, fcalFlux;
+		Double normalizedFluxFluxError, fcalFluxError;
 		Double DegPolarFlux = 0.0;
 		Double DegPolarVariance = 0.0;
 		Double FirstNullPolarization = 0.0;
@@ -4485,6 +4495,7 @@ void operaSpectralOrderVector::readOrdersFromExtendedPolarimetry(string filename
 					ss >> IVariance;
 					ss >> normalizedFlux;
 					ss >> fcalFlux;
+					ss >> normalizedFluxFluxError >> fcalFluxError;
 					ss >> DegPolarFlux;
 					ss >> DegPolarVariance;
 					ss >> FirstNullPolarization;
@@ -4529,10 +4540,10 @@ void operaSpectralOrderVector::readOrdersFromExtendedPolarimetry(string filename
                     spectralElements->setrawFluxVariance(IVariance.d, index);
 
 					spectralElements->setnormalizedFlux(normalizedFlux.d, index);
-                    spectralElements->setnormalizedFluxVariance(IVariance.d/(IFlux.d*IFlux.d), index);
+                    spectralElements->setnormalizedFluxVariance(normalizedFluxFluxError.d, index);
         
 					spectralElements->setfcalFlux(fcalFlux.d, index);
-					spectralElements->setfcalFluxVariance(IVariance.d*(fcalFlux.d/IFlux.d)*(fcalFlux.d/IFlux.d), index);
+					spectralElements->setfcalFluxVariance(fcalFluxError.d, index);
                     
 					spectralElements->setXCorrelation(crosscorrelation.d, index);
 					if ((stokes_parameter_t)StokesParameter == StokesQ) {
@@ -5355,7 +5366,7 @@ void operaSpectralOrderVector::readRadialVelocityCorrection(string filename) {
 						// skip comments
 					} else {
 						sscanf(dataline.c_str(), "%lf", &rvel);
-                        setBarycentricRadialVelocityCorrection(rvel);
+                        setRadialVelocityCorrection(rvel);
 					}
 				}									
 			}	
@@ -7146,7 +7157,7 @@ void operaSpectralOrderVector::readTelluricRVINTOExtendendSpectra(string telluri
             operaWavelength *wavelength = spectralOrder->getWavelength();
             operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
             spectralElements->setwavelengthsFromCalibration(wavelength);
-            spectralOrder->applyRVWavelengthCorrection(TelluricRadialVelocityCorrection);
+            spectralOrder->applyRvelWavelengthCorrection(TelluricRadialVelocityCorrection);
             spectralElements->copyTOtell();	// Save the tell
             spectralElements->setHasWavelength(true);
         }
@@ -7168,34 +7179,14 @@ void operaSpectralOrderVector::readRVCorrectionINTOExtendendSpectra(string Radia
             operaWavelength *wavelength = spectralOrder->getWavelength();
             operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
             spectralElements->setwavelengthsFromCalibration(wavelength);
-            spectralOrder->setExtendedBarycentricWavelengthCorrection(getBarycentricRadialVelocityCorrection());
+            spectralOrder->setExtendedRvelWavelengthCorrection(getRadialVelocityCorrection());
             spectralElements->setHasWavelength(true);
         }
     }
 }
 
 void operaSpectralOrderVector::correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky) {
-    if (inputFlatFluxCalibration.empty()) {
-        throw operaException("operaSpectralOrderVector: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
-    }
-
-    unsigned initialNumberofBeams = getNumberofBeams(Minorder, Maxorder);        
-    ReadSpectralOrders(inputFlatFluxCalibration);
-    unsigned flatCalNumberofBeams = getNumberofBeams(Minorder, Maxorder);
-    
-    for (int order=Minorder; order<=Maxorder; order++) {
-        operaSpectralOrder *spectralOrder = GetSpectralOrder(order);
-        
-        //Below it ignores all Beams in case when the number of beams are different
-        if(initialNumberofBeams != flatCalNumberofBeams) {
-            spectralOrder->setnumberOfBeams(0);
-        }
-        if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasSpectralEnergyDistribution()) {
-            spectralOrder->divideSpectralElementsBySEDElements(true, NULL,StarPlusSky,false);
-        } else {
-            spectralOrder->sethasSpectralElements(false);
-        }
-    }
+    correctFlatField(inputFlatFluxCalibration, Minorder, Maxorder, StarPlusSky, false);
 }
 
 void operaSpectralOrderVector::correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky, bool starplusskyInvertSkyFiber) {
@@ -7306,7 +7297,7 @@ void operaSpectralOrderVector::normalizeFluxINTOExtendendSpectra(string inputWav
     }
 }
 
-void operaSpectralOrderVector::normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky) {
+void operaSpectralOrderVector::normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, double SkyOverStarFiberAreaRatio, bool StarPlusSky) {
     if (inputWavelengthMaskForUncalContinuum.empty()) {
         throw operaException("operaSpectralOrderVector: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
     }
@@ -7448,9 +7439,6 @@ void operaSpectralOrderVector::normalizeAndCalibrateFluxINTOExtendendSpectra(str
     for(unsigned beam=0;beam<NumberofBeams;beam++) {
         BeamSpectralBinConstant[beam] = 1.0;
     }
-
-    //-- Calculate Sky over Star fiber area ratio to compensate for different apertures.
-    double SkyOverStarFiberAreaRatio = (2.2*2.2)/(1.6*1.6);
     
     if(AbsoluteCalibration) {
         spectralBinConstant = exposureTime;

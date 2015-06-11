@@ -577,6 +577,9 @@ double operaSpectralElements::getnormalizedFlux(unsigned indexElem) {
 void operaSpectralElements::setnormalizedFlux(double value, unsigned indexElem) { 
 	normalizedFlux->setflux(value, indexElem);
 }
+double operaSpectralElements::getnormalizedFluxVariance(unsigned indexElem) { 
+	return normalizedFlux->getvariance(indexElem);
+}
 void operaSpectralElements::setnormalizedFluxVariance(double value, unsigned indexElem) {
 	normalizedFlux->setvariance(value, indexElem);
 }
@@ -592,6 +595,9 @@ double operaSpectralElements::getfcalFlux(unsigned indexElem) {
 void operaSpectralElements::setfcalFlux(double value, unsigned indexElem) {
 	fcalFlux->setflux(value, indexElem);
 }
+double operaSpectralElements::getfcalFluxVariance(unsigned indexElem) { 
+	return fcalFlux->getvariance(indexElem);
+}
 void operaSpectralElements::setfcalFluxVariance(double value, unsigned indexElem) {
 	fcalFlux->setvariance(value, indexElem);
 }
@@ -606,6 +612,9 @@ double operaSpectralElements::getrawFlux(unsigned indexElem) {
 }
 void operaSpectralElements::setrawFlux(double value, unsigned indexElem) {
 	rawFlux->setflux(value, indexElem);
+}
+double operaSpectralElements::getrawFluxVariance(unsigned indexElem) {
+	return rawFlux->getvariance(indexElem);
 }
 void operaSpectralElements::setrawFluxVariance(double value, unsigned indexElem) {
 	rawFlux->setvariance(value, indexElem);

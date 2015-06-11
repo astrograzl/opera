@@ -35,27 +35,10 @@
 // $Locker$
 // $Log$
 
-
-#include <stdio.h>
-#include <getopt.h>
 #include <iomanip>
-#include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-
-#include "libraries/operaException.h"
-#include "libraries/operaFITSImage.h"
 #include "libraries/gzstream.h"
-#include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaSpectralElements.h"
 #include "libraries/operaMEFFITSProduct.h"
 #include "libraries/operaFITSProduct.h"
-#include "libraries/operaStokesVector.h"
-#include "libraries/operaPolarimetry.h"
-#include "libraries/Polynomial.h"
-#include "libraries/LaurentPolynomial.h"
 #include "libraries/operaCCD.h"					// for MAXORDERS
 #include "libraries/operastringstream.h"		// for Double, Float
 #include "libraries/operaArgumentHandler.h"
@@ -81,8 +64,14 @@ operaArgumentHandler args;
 // Returns the number of rows from a Libre-Esprit spectrum file (.s).
 unsigned int GetRowCountFromLESpectrumFile(const string spectrumfile);
 
+// Returns the number of columns from a Libre-Esprit spectrum file (.s).
+unsigned int GetColCountFromLESpectrumFile(const string spectrumfile);
+
 // Returns the number of rows from an extended spectrum file (.es).
 unsigned int GetRowCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode);
+
+// Returns the number of columns from an extended spectrum file (.es).
+unsigned int GetColCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode);
 
 /* Updates the specified columns of a FITS product using the values from a Libre-Esprit spectrum file (.s).
    colgroup - which group of columns (index from 0 to 3) will be updated 
@@ -93,139 +82,77 @@ void UpdateProductFromLESpectrumFile(operaFITSProduct& Product, const string spe
    colgroup - which group of columns (index from 0 to 3) will be updated */
 void UpdateProductFromExtendedSpectrumFile(operaFITSProduct& Product, const string spectrumfile, const instrumentmode_t instrumentmode, const unsigned int colgroup);
 
-double readRadialVelocityCorrection(string filename) {
-	if (!filename.empty()) {
-		operaistream fin(filename.c_str());
-		if (fin.is_open()) {
-			while (fin.good()) {
-				string dataline;
-				getline (fin,dataline);
-				if (!dataline.empty() && dataline[0] != '#') {
-					stringstream ss (dataline);
-					double rvel;
-					ss >> rvel;
-					return rvel;
-				}									
-			}
-		}
-	}
-	return 0.00;
-}
+// Reads in the radial velocity correction from a rvel or tell file.
+double readRadialVelocityCorrection(string filename);
 
 // Adds various information to the header of the FITS product.
-void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename, const string rvelfilename, const string tellfilename) {
-	Product.operaFITSDeleteHeaderKey("DATASEC");
-	Product.operaFITSDeleteHeaderKey("DETSEC");
-	Product.operaFITSAddComment("----------------------------------------------------");
-	Product.operaFITSAddComment("| Processed by the CFHT OPERA Open Source Pipeline |");
-	Product.operaFITSAddComment("----------------------------------------------------");
-	Product.operaFITSAddComment(version);
-	Product.operaFITSAddComment("Processing Date");
-	Product.operaFITSAddComment("---------------");
-	Product.operaFITSAddComment(date);
-	Product.operaFITSAddComment("------------------------------------------------------------------------");
-	Product.operaFITSAddComment(spectralOrderType);
-	Product.operaFITSAddComment("OPERA Processing Parameters");
-	Product.operaFITSAddComment("---------------------------");
-	if (!parametersfilename.empty()) {
-		if (args.verbose) cout << "operaCreateProduct: adding parameters " << endl;
-		ifstream parameters(parametersfilename.c_str());
-		while (parameters.good()) {
-			string dataline;
-			getline(parameters, dataline);
-			if (strlen(dataline.c_str())) Product.operaFITSAddComment(dataline);
-		}
-	}
-	//To do: replace this with more useful SNR information (i.e. peak SNR)
-	if (!snrfilename.empty()) {
-		if (args.verbose) cout << "operaCreateProduct: adding SNR comments " << endl;
-		operaSpectralOrderVector spectralOrders(snrfilename);
-		unsigned minorder = spectralOrders.getMinorder();
-		unsigned maxorder = spectralOrders.getMaxorder();
-		Product.operaFITSAddComment("SNR Table");
-		Product.operaFITSAddComment("---------");
-		Product.operaFITSAddComment("Format: <order number><center SNR><center wavelength><SNR>");
-		for (unsigned order=minorder; order<=maxorder; order++) {
-			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-			if (spectralOrder->gethasSpectralElements()) {
-				operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
-				string out = itos(spectralOrder->getorder()) + ' ' + ftos(spectralOrder->getCenterSNR()) + ' ' + ftos(spectralelements->getwavelength(spectralelements->getnSpectralElements()/2)) + ' ' + ftos(spectralelements->getFluxSNR(spectralelements->getnSpectralElements()/2));
-				Product.operaFITSAddComment(out.c_str());
-			}
-		}
-	}
-	double rvcorr = readRadialVelocityCorrection(rvelfilename);
-	double tellcorr = readRadialVelocityCorrection(tellfilename);
-	Product.operaFITSSetHeaderValue("HRV", rvcorr, "heliocentric RV correction");
-	Product.operaFITSSetHeaderValue("TELLRV", tellcorr, "telluric RV correction");
-}
+void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename, const string rvelfilename, const string tellfilename);
 
 int main(int argc, char *argv[])
 {
 	operaArgumentHandler args;
 	
 	string version, date;
+	string inputfilename;
+	string outputfilename;
+	string ifilename;
+	string polarfilename;
+	string ufile, nfile, uwfile, nwfile;
+	string snrfilename;
+	string csvfilename;
+	string esfilename;
+	string geomfilename;
+	string wavefilename;
+	string aperfilename;
+	string proffilename;
+	string ordpfilename;
+	string beamfilename;
+	string gainfilename;
+	string biasfilename;
+	string fcalfilename;
+	string dispfilename;
+	string rvelfilename;
+	string tellfilename;
+	string prvelfilename;
+	string ptellfilename;
+	string parametersfilename;
+	string object;
+	string spectralOrderType;
+	int compressionVal;
+	bool centralsnr;
+	unsigned sequence;
 	args.AddOptionalArgument("version", version, "", "");
 	args.AddOptionalArgument("date", date, "", "");
-	
-	string inputfilename, outputfilename;
 	args.AddRequiredArgument("input", inputfilename, "input file (o.fits)");
 	args.AddOptionalArgument("output", outputfilename, "", "output file (i.fits/m.fits)");
-	string ifilename;
 	args.AddOptionalArgument("i", ifilename, "", "i.s");
-	string polarfilename;
 	args.AddOptionalArgument("polar", polarfilename, "", ".ep");
-	string ufile, nfile, uwfile, nwfile;
 	args.AddOptionalArgument("ufile", ufile, "", "unnormalized spectrum (iu.s/pu.s)");
 	args.AddOptionalArgument("nfile", nfile, "", "normalized spectrum (in.s/pn.s)");
 	args.AddOptionalArgument("uwfile", uwfile, "", "unnormalized wavelength corrected spectrum (iuw.s/puw.s)");
 	args.AddOptionalArgument("nwfile", nwfile, "", "normalized wavelength corrected spectrum (inw.s/pnw.s)");
-	string snrfilename;
 	args.AddOptionalArgument("snr", snrfilename, "", ".sn");
-	string csvfilename;
 	args.AddOptionalArgument("csv", csvfilename, "", ".csv");
-	string esfilename;
 	args.AddOptionalArgument("es", esfilename, "", ".es.gz");
-	string geomfilename;
 	args.AddOptionalArgument("geom", geomfilename, "", ".geom");
-	string wavefilename;
 	args.AddOptionalArgument("wave", wavefilename, "", ".wcal");
-	string aperfilename;
 	args.AddOptionalArgument("aper", aperfilename, "", ".aper");
-	string proffilename;
 	args.AddOptionalArgument("prof", proffilename, "", ".prof");
-	string ordpfilename;
 	args.AddOptionalArgument("ordp", ordpfilename, "", ".ordp");
-	string beamfilename;
 	args.AddOptionalArgument("beam", beamfilename, "", ".es");
-	string gainfilename;
 	args.AddOptionalArgument("gain", gainfilename, "", ".gain");
-	string biasfilename;
 	args.AddOptionalArgument("bias", biasfilename, "", ".bias");
-	string fcalfilename;
 	args.AddOptionalArgument("fcal", fcalfilename, "", ".fcal");
-	string dispfilename;
 	args.AddOptionalArgument("disp", dispfilename, "", ".disp");
-	string rvelfilename;
 	args.AddOptionalArgument("rvel", rvelfilename, "", "i.rvel");
-	string tellfilename;
 	args.AddOptionalArgument("tell", tellfilename, "", "i.tell");
-	string prvelfilename;
 	args.AddOptionalArgument("prvel", prvelfilename, "", "p.rvel");
-	string ptellfilename;
 	args.AddOptionalArgument("ptell", ptellfilename, "", "p.tell");
-	string parametersfilename;
 	args.AddOptionalArgument("parameters", parametersfilename, "", ".parm");
-	string object;
 	args.AddOptionalArgument("object", object, "", "object name, needed for Libre-Esprit output");
-	
-	string spectralOrderType;
 	args.AddOptionalArgument("spectrumtype", spectralOrderType, "", "spectral order type");
-	int compressionVal;
 	args.AddOptionalArgument("compressiontype", compressionVal, cNone, "compression type");
-	bool centralsnr;
 	args.AddSwitch("centralsnr", centralsnr, "");
-	unsigned sequence;
 	args.AddOptionalArgument("sequence", sequence, 0, "for polar sequence in case of masterfluxcalibrations");
 		
 	try {
@@ -290,21 +217,12 @@ int main(int argc, char *argv[])
 		operaFITSImage input(inputfilename, tfloat, READONLY, cNone, true);
 		string mode = input.operaFITSGetHeaderValue("INSTMODE");
 		input.operaFITSImageClose();
-		if (args.verbose) {
-			cout << "operaCreateProduct: " << mode << endl;
-		}
+		if (args.verbose) cout << "operaCreateProduct: " << mode << endl;
 		instrumentmode_t instrumentmode;
-		unsigned int numcols = 0;
-		if (mode.find("Polarimetry") != string::npos) {
-			instrumentmode = MODE_POLAR;
-			numcols = MODE_POLAR_COLS;
-		} else if (mode.find("Spectroscopy, star+sky") != string::npos) {
-			instrumentmode = MODE_STAR_PLUS_SKY;
-			numcols = MODE_STAR_PLUS_SKY_COLS;
-		} else if (mode.find("Spectroscopy, star only") != string::npos) {
-			instrumentmode = MODE_STAR_ONLY;
-			numcols = MODE_STAR_ONLY_COLS;
-		} else {
+		if (mode.find("Polarimetry") != string::npos) instrumentmode = MODE_POLAR;
+		else if (mode.find("Spectroscopy, star+sky") != string::npos) instrumentmode = MODE_STAR_PLUS_SKY;
+		else if (mode.find("Spectroscopy, star only") != string::npos) instrumentmode = MODE_STAR_ONLY;
+		else {
 			throw operaException("operaCreateProduct: "+mode+" ", operaErrorCodeBadInstrumentModeError, __FILE__, __FUNCTION__, __LINE__);
 		}
 		unsigned minorder = 0;
@@ -457,7 +375,8 @@ int main(int argc, char *argv[])
 		else if (!ufile.empty() && !nfile.empty() && ! uwfile.empty() && !nwfile.empty()) {
 			const bool extended = (ufile.find(".es") != string::npos); // Check if using extended spectrum
 			const unsigned int datapoints = (extended ? GetRowCountFromExtendedSpectrumFile(ufile, instrumentmode) : GetRowCountFromLESpectrumFile(ufile));
-			operaFITSProduct Product(outputfilename, inputfilename, instrumentmode, datapoints, numcols, compression);
+			const unsigned int numcols = (extended ? GetColCountFromExtendedSpectrumFile(ufile, instrumentmode) : GetColCountFromLESpectrumFile(ufile));
+			operaFITSProduct Product(outputfilename, inputfilename, instrumentmode, datapoints, numcols*4, compression);
 			if(extended) { //Using .es extended spectrum
 				UpdateProductFromExtendedSpectrumFile(Product, ufile, instrumentmode, 3);
 				UpdateProductFromExtendedSpectrumFile(Product, nfile, instrumentmode, 2);
@@ -465,10 +384,10 @@ int main(int argc, char *argv[])
 				UpdateProductFromExtendedSpectrumFile(Product, nwfile, instrumentmode, 0);
 			}
 			else { //Using .s Libre-Esprit spectrum (has no order information)
-				UpdateProductFromLESpectrumFile(Product, ufile, numcols/4, 3, datapoints);
-				UpdateProductFromLESpectrumFile(Product, nfile, numcols/4, 2, datapoints);
-				UpdateProductFromLESpectrumFile(Product, uwfile, numcols/4, 1, datapoints);
-				UpdateProductFromLESpectrumFile(Product, nwfile, numcols/4, 0, datapoints);
+				UpdateProductFromLESpectrumFile(Product, ufile, numcols, 3, datapoints);
+				UpdateProductFromLESpectrumFile(Product, nfile, numcols, 2, datapoints);
+				UpdateProductFromLESpectrumFile(Product, uwfile, numcols, 1, datapoints);
+				UpdateProductFromLESpectrumFile(Product, nwfile, numcols, 0, datapoints);
 			}
 			AddFITSHeaderToProduct(Product, version, date, spectralOrderType, parametersfilename, snrfilename, rvelfilename, tellfilename);
 			Product.operaFITSImageSave();
@@ -931,7 +850,7 @@ int main(int argc, char *argv[])
 			if (!rvelfilename.empty()) {
 				extension++;
 				operaSpectralOrderVector spectralOrders(rvelfilename);
-                float rvel = spectralOrders.getBarycentricRadialVelocityCorrection();
+                float rvel = spectralOrders.getRadialVelocityCorrection();
 				unsigned Rows = 1;
 				unsigned Row = 0;
 				unsigned Column = 0;
@@ -945,10 +864,10 @@ int main(int argc, char *argv[])
 				product->addExtension("RADIALVELOCITY", MaxColumns, Rows, detsec);
 				operaFITSProduct Product(*product);
 				product->operaFITSAddComment("------------------------------------------------------------------------", extension);
-				product->operaFITSAddComment("Barycentric Radial Velocity Correction (km/s)", extension);
+				product->operaFITSAddComment("Heliocentric Radial Velocity Correction (km/s)", extension);
 				product->operaFITSAddComment("----------------------------------------------", extension);
 				product->operaFITSAddComment("Columns:", extension);
-				product->operaFITSAddComment("<BarycentricRadialVelocityCorrection>", extension);
+				product->operaFITSAddComment("<HeliocentricRadialVelocityCorrection>", extension);
 				product->operaFITSAddComment("------------------------------------------------------------------------", extension);
 				
 				Product[Row][Column] = rvel;
@@ -958,7 +877,7 @@ int main(int argc, char *argv[])
 				extension++;
 				// <rvel> 
 				operaSpectralOrderVector spectralOrders(prvelfilename);
-                float rvel = spectralOrders.getBarycentricRadialVelocityCorrection();
+                float rvel = spectralOrders.getRadialVelocityCorrection();
 				unsigned Rows = 1;
 				unsigned Row = 0;
 				unsigned Column = 0;
@@ -972,10 +891,10 @@ int main(int argc, char *argv[])
 				product->addExtension("PRADIALVELOCITY", MaxColumns, Rows, detsec);
 				operaFITSProduct Product(*product);
 				product->operaFITSAddComment("------------------------------------------------------------------------", extension);
-				product->operaFITSAddComment("Polarimetry Barycentric Radial Velocity Correction (km/s)", extension);
+				product->operaFITSAddComment("Polarimetry Heliocentric Radial Velocity Correction (km/s)", extension);
 				product->operaFITSAddComment("----------------------------------------------------------", extension);
 				product->operaFITSAddComment("Columns:", extension);
-				product->operaFITSAddComment("<BarycentricRadialVelocityCorrection>", extension);
+				product->operaFITSAddComment("<HeliocentricRadialVelocityCorrection>", extension);
 				product->operaFITSAddComment("------------------------------------------------------------------------", extension);
 				
 				Product[Row][Column] = rvel;
@@ -1496,6 +1415,21 @@ unsigned int GetRowCountFromLESpectrumFile(const string spectrumfile) {
 	return rows;
 }
 
+unsigned int GetColCountFromLESpectrumFile(const string spectrumfile) {
+	unsigned int cols = 0;
+	operaistream fin(spectrumfile.c_str());
+	if (fin.is_open()) {
+		string dataline;
+		getline(fin, dataline);
+		getline(fin, dataline);
+		stringstream ss (dataline);
+		ss >> cols;
+		ss >> cols;
+		fin.close();
+	}
+	return cols + 1;
+}
+
 unsigned int GetRowCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode) {
 	operaSpectralOrderVector spectralOrders(spectrumfile);
 	const unsigned int minorder = spectralOrders.getMinorder();
@@ -1512,6 +1446,13 @@ unsigned int GetRowCountFromExtendedSpectrumFile(const string spectrumfile, cons
 		}
 	}
 	return totaldatapoints;
+}
+
+unsigned int GetColCountFromExtendedSpectrumFile(const string spectrumfile, const instrumentmode_t instrumentmode) {
+	if (instrumentmode == MODE_POLAR) return MODE_POLAR_COLS/4;
+	if (instrumentmode == MODE_STAR_PLUS_SKY) return MODE_STAR_PLUS_SKY_COLS/4;
+	if (instrumentmode == MODE_STAR_ONLY) return MODE_STAR_ONLY_COLS/4;
+	return 0;
 }
 
 void UpdateProductFromLESpectrumFile(operaFITSProduct& Product, const string spectrumfile, const unsigned groupsize, const unsigned int colgroup, const unsigned int rowcount) {
@@ -1608,4 +1549,70 @@ void UpdateProductFromExtendedSpectrumFile(operaFITSProduct& Product, const stri
 		default:
 			throw operaException("operaCreateProduct: ", operaErrorCodeBadInstrumentModeError, __FILE__, __FUNCTION__, __LINE__);
 	}
+}
+
+double readRadialVelocityCorrection(string filename) {
+	if (!filename.empty()) {
+		operaistream fin(filename.c_str());
+		if (fin.is_open()) {
+			while (fin.good()) {
+				string dataline;
+				getline (fin,dataline);
+				if (!dataline.empty() && dataline[0] != '#') {
+					stringstream ss (dataline);
+					double rvel;
+					ss >> rvel;
+					return rvel;
+				}									
+			}
+		}
+	}
+	return 0.00;
+}
+
+void AddFITSHeaderToProduct(operaFITSProduct& Product, const string version, const string date, const string spectralOrderType, const string parametersfilename, const string snrfilename, const string rvelfilename, const string tellfilename) {
+	Product.operaFITSDeleteHeaderKey("DATASEC");
+	Product.operaFITSDeleteHeaderKey("DETSEC");
+	Product.operaFITSAddComment("----------------------------------------------------");
+	Product.operaFITSAddComment("| Processed by the CFHT OPERA Open Source Pipeline |");
+	Product.operaFITSAddComment("----------------------------------------------------");
+	Product.operaFITSAddComment(version);
+	Product.operaFITSAddComment("Processing Date");
+	Product.operaFITSAddComment("---------------");
+	Product.operaFITSAddComment(date);
+	Product.operaFITSAddComment("------------------------------------------------------------------------");
+	Product.operaFITSAddComment(spectralOrderType);
+	Product.operaFITSAddComment("OPERA Processing Parameters");
+	Product.operaFITSAddComment("---------------------------");
+	if (!parametersfilename.empty()) {
+		if (args.verbose) cout << "operaCreateProduct: adding parameters " << endl;
+		ifstream parameters(parametersfilename.c_str());
+		while (parameters.good()) {
+			string dataline;
+			getline(parameters, dataline);
+			if (strlen(dataline.c_str())) Product.operaFITSAddComment(dataline);
+		}
+	}
+	//To do: replace this with more useful SNR information (i.e. peak SNR)
+	if (!snrfilename.empty()) {
+		if (args.verbose) cout << "operaCreateProduct: adding SNR comments " << endl;
+		operaSpectralOrderVector spectralOrders(snrfilename);
+		unsigned minorder = spectralOrders.getMinorder();
+		unsigned maxorder = spectralOrders.getMaxorder();
+		Product.operaFITSAddComment("SNR Table");
+		Product.operaFITSAddComment("---------");
+		Product.operaFITSAddComment("Format: <order number><center SNR><center wavelength><SNR>");
+		for (unsigned order=minorder; order<=maxorder; order++) {
+			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+			if (spectralOrder->gethasSpectralElements()) {
+				operaSpectralElements *spectralelements = spectralOrder->getSpectralElements();
+				string out = itos(spectralOrder->getorder()) + ' ' + ftos(spectralOrder->getCenterSNR()) + ' ' + ftos(spectralelements->getwavelength(spectralelements->getnSpectralElements()/2)) + ' ' + ftos(spectralelements->getFluxSNR(spectralelements->getnSpectralElements()/2));
+				Product.operaFITSAddComment(out.c_str());
+			}
+		}
+	}
+	double rvcorr = readRadialVelocityCorrection(rvelfilename);
+	double tellcorr = readRadialVelocityCorrection(tellfilename);
+	Product.operaFITSSetHeaderValue("HRV", rvcorr, "heliocentric RV correction");
+	Product.operaFITSSetHeaderValue("TELLRV", tellcorr, "telluric RV correction");
 }

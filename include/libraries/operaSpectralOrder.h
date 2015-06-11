@@ -383,11 +383,11 @@ public:
 	 */
 	void calculatePolarElements(ostream *poutspec);
 	/*
-	 * Barycentric Wavelength Correction
+	 * Radial Velocity Wavelength Correction
 	 */
-    void applyRVWavelengthCorrection(double RVcorrectionInKmPerSecond);
-	void setExtendedBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond);
-    void applyBarycentricWavelengthCorrectionFromExtendedRvel(void);
+    void applyRvelWavelengthCorrection(double RVcorrectionInKmPerSecond);
+	void setExtendedRvelWavelengthCorrection(double RVcorrectionInKmPerSecond);
+    void applyWavelengthCorrectionFromExtendedRvel(void);
 };
 
 #endif

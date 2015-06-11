@@ -173,6 +173,16 @@ liboperaCCD_la_OBJECTS = $(am_liboperaCCD_la_OBJECTS)
 liboperaCCD_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(liboperaCCD_la_LDFLAGS) $(LDFLAGS) -o $@
+liboperaCommonModuleElements_la_DEPENDENCIES =  \
+	liboperaSpectralOrderVector.la
+am_liboperaCommonModuleElements_la_OBJECTS =  \
+	operaCommonModuleElements.lo
+liboperaCommonModuleElements_la_OBJECTS =  \
+	$(am_liboperaCommonModuleElements_la_OBJECTS)
+liboperaCommonModuleElements_la_LINK = $(LIBTOOL) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(AM_CXXFLAGS) $(CXXFLAGS) \
+	$(liboperaCommonModuleElements_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaConfigurationAccess_la_LIBADD =
 am_liboperaConfigurationAccess_la_OBJECTS =  \
 	operaConfigurationAccess.lo
@@ -527,6 +537,7 @@ SOURCES = $(liboperaFFT_a_SOURCES) $(liboperaPNG_a_SOURCES) \
 	$(libPolynomial_la_SOURCES) $(libgzstream_la_SOURCES) \
 	$(liboperaArgumentHandler_la_SOURCES) \
 	$(liboperaCCD_la_SOURCES) \
+	$(liboperaCommonModuleElements_la_SOURCES) \
 	$(liboperaConfigurationAccess_la_SOURCES) \
 	$(liboperaEspadonsImage_la_SOURCES) \
 	$(liboperaEspadonsSubImage_la_SOURCES) \
@@ -571,6 +582,7 @@ DIST_SOURCES = $(liboperaFFT_a_SOURCES) \
 	$(libPolynomial_la_SOURCES) $(libgzstream_la_SOURCES) \
 	$(liboperaArgumentHandler_la_SOURCES) \
 	$(liboperaCCD_la_SOURCES) \
+	$(liboperaCommonModuleElements_la_SOURCES) \
 	$(liboperaConfigurationAccess_la_SOURCES) \
 	$(liboperaEspadonsImage_la_SOURCES) \
 	$(liboperaEspadonsSubImage_la_SOURCES) \
@@ -758,7 +770,7 @@ lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaFluxVector.la li
 	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectrumSimulation.la liboperaSpectralEnergyDistribution.la \
 	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la \
 	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la \
-	libArgumentHandler.la liboperaArgumentHandler.la
+	libArgumentHandler.la liboperaArgumentHandler.la liboperaCommonModuleElements.la
 
 liboperaInstrumentEnvironmentSetup_la_SOURCES = operaInstrumentEnvironmentSetup.cpp operaInstrumentEnvironmentSetup.h
 liboperaInstrumentEnvironmentSetup_la_LDFLAGS = -version-info 1:0:0
@@ -873,6 +885,9 @@ libArgumentHandler_la_LDFLAGS = -version-info 1:0:0
 liboperaArgumentHandler_la_SOURCES = operaArgumentHandler.cpp operaArgumentHandler.h
 liboperaArgumentHandler_la_LDFLAGS = -version-info 1:0:0
 liboperaArgumentHandler_la_LIBADD = libArgumentHandler.la
+liboperaCommonModuleElements_la_SOURCES = operaCommonModuleElements.cpp operaCommonModuleElements.h
+liboperaCommonModuleElements_la_LDFLAGS = -version-info 1:0:0
+liboperaCommonModuleElements_la_LIBADD = liboperaSpectralOrderVector.la
 
 #
 # if we want png plotting support, bring in the freetype includes
@@ -1008,6 +1023,8 @@ liboperaArgumentHandler.la: $(liboperaArgumentHandler_la_OBJECTS) $(liboperaArgu
 	$(liboperaArgumentHandler_la_LINK) -rpath $(libdir) $(liboperaArgumentHandler_la_OBJECTS) $(liboperaArgumentHandler_la_LIBADD) $(LIBS)
 liboperaCCD.la: $(liboperaCCD_la_OBJECTS) $(liboperaCCD_la_DEPENDENCIES) $(EXTRA_liboperaCCD_la_DEPENDENCIES) 
 	$(liboperaCCD_la_LINK) -rpath $(libdir) $(liboperaCCD_la_OBJECTS) $(liboperaCCD_la_LIBADD) $(LIBS)
+liboperaCommonModuleElements.la: $(liboperaCommonModuleElements_la_OBJECTS) $(liboperaCommonModuleElements_la_DEPENDENCIES) $(EXTRA_liboperaCommonModuleElements_la_DEPENDENCIES) 
+	$(liboperaCommonModuleElements_la_LINK) -rpath $(libdir) $(liboperaCommonModuleElements_la_OBJECTS) $(liboperaCommonModuleElements_la_LIBADD) $(LIBS)
 liboperaConfigurationAccess.la: $(liboperaConfigurationAccess_la_OBJECTS) $(liboperaConfigurationAccess_la_DEPENDENCIES) $(EXTRA_liboperaConfigurationAccess_la_DEPENDENCIES) 
 	$(liboperaConfigurationAccess_la_LINK) -rpath $(libdir) $(liboperaConfigurationAccess_la_OBJECTS) $(liboperaConfigurationAccess_la_LIBADD) $(LIBS)
 liboperaEspadonsImage.la: $(liboperaEspadonsImage_la_OBJECTS) $(liboperaEspadonsImage_la_DEPENDENCIES) $(EXTRA_liboperaEspadonsImage_la_DEPENDENCIES) 
@@ -1114,6 +1131,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpfit.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaArgumentHandler.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCCD.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCommonModuleElements.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaConfigurationAccess.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaEspadonsImage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaEspadonsSubImage.Plo@am__quote@

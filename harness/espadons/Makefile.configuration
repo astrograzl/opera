@@ -395,7 +395,7 @@ OLAPAab_ref_sp2 	:= $(configdir)th_sp2.ref
 
 badpixelmap			:= $($(DETECTOR)$(AMPLIFIER)_badpix)
 badpixelmask		:= $($(DETECTOR)$(AMPLIFIER)_badpix).$(FITS)$(extension)
-logfile				:= $(logdir)opera.log
+logfile				:= $(logdir)operacal.log
 errfile				:= $(logdir)operaerr.log
 
 endif	# observatory == CFHT

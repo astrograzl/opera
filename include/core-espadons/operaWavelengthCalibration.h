@@ -48,7 +48,11 @@
 class operaSpectralElements;
 class operaSpectralOrder;
 
-unsigned getRawLines(operaSpectralOrder *spectralOrder, double *rawlinecenter, double *rawlinecenterError, double *rawlineflux, double *rawlinesigma);
+unsigned getRawLines(operaSpectralOrder *spectralOrder, double *rawlinecenter, double *rawlinecenterError, double *rawlineflux, double *rawlinesigma, double *rawlinewidth, double *rawlinewidth_err);
+
+unsigned getRawLinesFromUncalSpectrum(operaSpectralOrder *spectralOrder, double *rawlinecenter, double *rawlinecenterError, double *rawlineflux, double *rawlinesigma, double *rawlinewidth, double *rawlinewidth_err, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, double nsigclip);
+
+unsigned getAtlasLinesFromSpectrum(operaWavelength *wavelength, double rawlinewidth, double uncalibrated_linewidth, int order, double *atlasLineswl,double *atlasLineswlError,double *atlasLinesflux, ofstream& fatlasdata, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, bool generate3DPlot);
 
 unsigned readThoriumArgonAtlas(string thorium_argon_atlas, double *thAtlasWavelength, double *thAtlasIntensity);
 
@@ -58,7 +62,7 @@ unsigned readAtlasSpectrum(string atlas_spectrum, double *atlasWavelength, doubl
 
 unsigned getAtlasSpectrumRange(double wl0, double wlf, double **thwl, double **thi, double **thvar);
 
-unsigned createSimulatedSpectrum(unsigned nLines, double *lineCenters, double *lineAmplitudes, double lineSigma, double minwl, double maxwl, double wlstep, double *outputwl, double *outputSpectrum);
+//unsigned createSimulatedSpectrum(unsigned nLines, double *lineCenters, double *lineAmplitudes, double lineSigma, double minwl, double maxwl, double wlstep, double *outputwl, double *outputSpectrum);
 
 void GenerateWavelengthOrdersPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, bool display);
 
@@ -67,5 +71,9 @@ void GenerateWavelengthSpecPlot(string gnuScriptFileName, string outputPlotEPSFi
 void GenerateWavelength3DSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string atlasdatafilename, string compdatafilename, bool subtractCentralWavelength, bool display);
 
 void GenerateWavelengthSolutionPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, unsigned npolynomials, Polynomial *polynomials[], bool display);
+
+void calculateInitialSolutionFromLineSet(string inputLineSetFilename, operaSpectralOrder *spectralOrder, int order, unsigned maxorderofpolynomial);
+
+unsigned readLineSet(string inputLineSetFilename, int order, double *wavelengthData, double *wavelengthErrors, double *distanceData);
 
 #endif

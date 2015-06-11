@@ -349,8 +349,10 @@ endef
 			$(call prelude,$${spectrum},Order,SNR) ; \
 		fi ; \
 		if [ -e $(tmpdir)/$${spectrum} ] ; then \
+            echo "set xrange[368:1050]" >>$(byproductsdir)$${spectrum}.gnu ; \
 			echo "plot \"$(spectradir)$${spectrum}\" using 1:2 title 'opera SNR' with lines linestyle 3, \"$(tmpdir)/$${spectrum}\" using 1:2 title 'upena SNR' with lines linestyle 2" >>$(byproductsdir)$${spectrum}.gnu; \
 		else \
+            echo "set xrange[368:1050]" >>$(byproductsdir)$${spectrum}.gnu ; \
 			echo "plot \"$(spectradir)$${spectrum}\" using 1:2 title 'opera SNR' with lines linestyle 3" >>$(byproductsdir)$${spectrum}.gnu; \
 		fi ; \
 		if [[ "$(I)" != "" ]] ; then \

@@ -4,10 +4,9 @@
 # what flags you want to pass to the C compiler & linker
 AM_CFLAGS = --pedantic -Wall -std=c99 -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/ -I../../include/ -I/usr/local/include/
 AM_CXXFLAGS = --pedantic -Wall -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -I../../include/ -I/usr/include/ -I/usr/local/include/ -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/
-AM_LDFLAGS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaImageVector -loperaGeometricShapes -loperaMatrix -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -lPixelSet -loperaStats -loperaLib -lArgumentHandler -loperaArgumentHandler -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
-#AM_LDFLAGS = -Wl,--no-as-needed
+AM_LDFLAGS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaImageVector -loperaGeometricShapes -loperaMatrix -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -lPixelSet -loperaStats -loperaLib -lArgumentHandler -loperaArgumentHandler -loperaCommonModuleElements -lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
 # This is for Linux...
-LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaFluxVector -loperaImageVector -loperaFITSSubImage -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lArgumentHandler -loperaArgumentHandler -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm
+LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaFluxVector -loperaImageVector -loperaFITSSubImage -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lArgumentHandler -loperaArgumentHandler -loperaCommonModuleElements -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm
 
 # this lists the binaries to produce
 bin_PROGRAMS = operaSNR operaWavelengthCalibration \
@@ -22,7 +21,7 @@ bin_PROGRAMS = operaSNR operaWavelengthCalibration \
 			operaCalculateSpectralResolution operaMasterFluxCalibration \
 			operaObjectInTheSkySetup operaObservingConditionsSetup operaSpectrographSetup \
 			operaTelescopeSetup operaNormalizeAcrossOrders operaCreateFlatFieldFluxCalibration \
-			operaTelluricCorrection operaStitchOrders operaGenerateLEFormats operaCreateFlatResponse operaHeliocentricWavelengthCorrection
+			operaStitchOrders operaGenerateLEFormats operaCreateFlatResponse operaHeliocentricWavelengthCorrection
 
 #
 # wcs support
@@ -34,13 +33,11 @@ endif
 
 operaCreateFlatResponse_SOURCES = operaCreateFlatResponse.cpp
 
-operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp operaGenerateLEFormats.h
+operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp
 
-operaStitchOrders_SOURCES = operaStitchOrders.cpp operaStitchOrders.h
+operaStitchOrders_SOURCES = operaStitchOrders.cpp
 
-operaTelluricCorrection_SOURCES = operaTelluricCorrection.cpp operaTelluricCorrection.h
-
-operaCreateFlatFieldFluxCalibration_SOURCES = operaCreateFlatFieldFluxCalibration.cpp operaCreateFlatFieldFluxCalibration.h
+operaCreateFlatFieldFluxCalibration_SOURCES = operaCreateFlatFieldFluxCalibration.cpp
 
 operaNormalizeAcrossOrders_SOURCES = operaNormalizeAcrossOrders.cpp operaNormalizeAcrossOrders.h
 
@@ -52,65 +49,64 @@ operaObservingConditionsSetup_SOURCES = operaObservingConditionsSetup.cpp operaO
 
 operaObjectInTheSkySetup_SOURCES = operaObjectInTheSkySetup.cpp operaObjectInTheSkySetup.h
 
-operaMasterFluxCalibration_SOURCES = operaMasterFluxCalibration.cpp operaMasterFluxCalibration.h
+operaMasterFluxCalibration_SOURCES = operaMasterFluxCalibration.cpp
 
 operaCalculateSpectralResolution_SOURCES = operaCalculateSpectralResolution.cpp operaCalculateSpectralResolution.h
 
-operaPolarimetryCorrection_SOURCES = operaPolarimetryCorrection.cpp operaPolarimetryCorrection.h
+operaPolarimetryCorrection_SOURCES = operaPolarimetryCorrection.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
 
 operaEchelleDispersionCalibration_SOURCES = operaEchelleDispersionCalibration.cpp operaEchelleDispersionCalibration.h
 
-operaOrderSpacingCalibration_SOURCES = operaOrderSpacingCalibration.cpp operaOrderSpacingCalibration.h
+operaOrderSpacingCalibration_SOURCES = operaOrderSpacingCalibration.cpp
 
-operaCreateFluxCalibration_SOURCES = operaCreateFluxCalibration.cpp operaCreateFluxCalibration.h
+operaCreateFluxCalibration_SOURCES = operaCreateFluxCalibration.cpp
 
 operaFluxCalibration_SOURCES = operaFluxCalibration.cpp operaFluxCalibration.h
 
 operaExtractSpectralLines_SOURCES = operaExtractSpectralLines.cpp operaExtractSpectralLines.h
 
-operaStarPlusSky_SOURCES = operaStarPlusSky.cpp operaStarPlusSky.h
+operaStarPlusSky_SOURCES = operaStarPlusSky.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
 
-operaPolarIntensity_SOURCES = operaPolarIntensity.cpp operaPolarIntensity.h
+operaPolarIntensity_SOURCES = operaPolarIntensity.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
 
-operaStarOnly_SOURCES = operaStarOnly.cpp operaStarOnly.h
+operaStarOnly_SOURCES = operaStarOnly.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
 
-operaExtraction_SOURCES = operaExtraction.cpp operaExtraction.h
+operaExtraction_SOURCES = operaExtraction.cpp
 
 operaNormalize_SOURCES = operaNormalize.cpp operaNormalize.h
 
 operaCreateProduct_SOURCES = operaCreateProduct.cpp
 
-operaGeometryCalibration_SOURCES = operaGeometryCalibration.cpp operaGeometryCalibration.h
+operaGeometryCalibration_SOURCES = operaGeometryCalibration.cpp
 
-operaSNR_SOURCES = operaSNR.cpp operaSNR.h
+operaSNR_SOURCES = operaSNR.cpp
 
 operaBias_SOURCES = operaBias.cpp
 
-operaMasterFlat_SOURCES = operaMasterFlat.cpp operaMasterFlat.h
+operaMasterFlat_SOURCES = operaMasterFlat.cpp operaMasterCalibration.cpp operaMasterCalibration.h
 			
-operaMasterComparison_SOURCES = operaMasterComparison.cpp operaMasterComparison.h
+operaMasterComparison_SOURCES = operaMasterComparison.cpp
 			
-operaMasterBias_SOURCES = operaMasterBias.cpp operaMasterBias.h
+operaMasterBias_SOURCES = operaMasterBias.cpp operaMasterCalibration.cpp operaMasterCalibration.h
 			
-operaMasterFabPerot_SOURCES = operaMasterFabPerot.cpp operaMasterFabPerot.h
+operaMasterFabPerot_SOURCES = operaMasterFabPerot.cpp operaMasterCalibration.cpp operaMasterCalibration.h
 			
-operaPolar_SOURCES = operaPolar.cpp operaPolar.h
+operaPolar_SOURCES = operaPolar.cpp
 
-operaGain_SOURCES = operaGain.cpp operaGain.h
+operaGain_SOURCES = operaGain.cpp
 			
 operaReductionSet_SOURCES = operaReductionSet.cpp operaReductionSet.h
 			
 operaWavelengthCalibration_SOURCES = operaWavelengthCalibration.cpp operaWavelengthCalibration.h
 			
-operaInstrumentProfileCalibration_SOURCES = operaInstrumentProfileCalibration.cpp operaInstrumentProfileCalibration.h
+operaInstrumentProfileCalibration_SOURCES = operaInstrumentProfileCalibration.cpp
 
-operaExtractionApertureCalibration_SOURCES = operaExtractionApertureCalibration.cpp operaExtractionApertureCalibration.h
+operaExtractionApertureCalibration_SOURCES = operaExtractionApertureCalibration.cpp
 
 operaPixelSensitivityMap_SOURCES = operaPixelSensitivityMap.cpp operaPixelSensitivityMap.h
 
 operaTelluricWavelengthCorrection_SOURCES = operaTelluricWavelengthCorrection.cpp operaTelluricWavelengthCorrection.h
 
-operaBarycentricWavelengthCorrection_SOURCES = operaBarycentricWavelengthCorrection.cpp
+operaBarycentricWavelengthCorrection_SOURCES = operaBarycentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.h
 
-operaHeliocentricWavelengthCorrection_SOURCES = operaHeliocentricWavelengthCorrection.cpp
-
+operaHeliocentricWavelengthCorrection_SOURCES = operaHeliocentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.h

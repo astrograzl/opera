@@ -64,7 +64,7 @@ unsigned getTelluricSpectrumRange(double wl0, double wlf, double **wl, double **
 
 unsigned matchTelluricReferencewithObjectLines(double acceptableMismatch,double lineSigma, operaSpectralLines *telluricLines, operaSpectralLines *objectLines, Polynomial *wlcorrection, unsigned order, double wl_central, ofstream *flinesdata);
 
-bool calculateRVShiftByXCorr(unsigned nelem, double *wavelength, double *objectSpectrum, double radialVelocityRange, double radialVelocityStep, double threshold, double *maxRV, double *sigRV, double *maxcorr, ostream *fxcorrdata, ostream *fxcorrfitdata, double spectralResolution, bool useFitToFindMaximum, double *chisqr);
+bool calculateRVShiftByXCorr(unsigned nelem, double *wavelength, double *objectSpectrum, double radialVelocityRange, double radialVelocityStep, double threshold, double *maxRV, double *sigRV, double *maxcorr, ofstream& fxcorrdata, ofstream& fxcorrfitdata, double spectralResolution, bool useFitToFindMaximum, double *chisqr);
 
 void GenerateTelluricXCorrelationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, string cleanDataFileName);
 

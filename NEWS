@@ -1,15 +1,26 @@
-Apr 28 2015
-  - Added wavelength calibration parameters for DetectionThreshold and MinPeakDepth (operaWavelengthCalibration)
-  - Fixed issue where harness was using the wrong parameter names for plots in operaPolarimetryCorrection
-  - Fixed issue where harness was not passsing .rvel or .tell files to operaCreateProduct for all modes
-  - Fixed harness to say "Heliocentric" instead of "Barycentric"
-  - Fixed various order numbering problems caused by LE_order_wavelength.dat and wcal_ref.dat.gz files, as well as referenceOrderNumber and stitch_orderOfReference parameters
-  - Updated more modules to use operaArgumentHandler (operaBias, operaCalculateSpectraclResolution)
-  - Updated the way telluric wavelength corrections are applied so the .tell file contains a radial velocity shift instead of wavelength calibration coefficients (operaTelluricWavelengthCorrection, operaSpectralOrder, operaSpectralOrderVector, operaPolarIntensity, operaPolarimetryCorrection, operaStarOnly, operaStarPlusSky)
-  - Updated FITS output file to contain header keyword "TELLRV" (operaCreateProduct)
-  - Updated FITS output file to no longer contain comments with redundant column descriptions (operaCreateProduct)
-  - Updated telluric region mask (wavelengthMaskForTelluricAbsorption.txt)
-  - Updated harness to be able to use LE order wavelength ranges for generating LE polarimetry products
-  - Updated harness parameters in geometry calibration, instrumpent profile calibration, and polarimetry extraction
-  - Updated harness to set x/y-ranges for plots of LE products
-  - Updated GRACES harness with modifications similiar to the ones made for ESPaDOnS
+Jun 12 2015
+  - Added a Python harness for GRACES
+  - Added 'flatresp' command to the Makefile harness to create flat response images from standard stars
+  - Fixed Makefile harness putting duplicate calibration entries into opera.log during reductions (modules now output to operacal.log)
+  - Refactored, made fixes to, cleaned up, and improved consistency of code across many modules
+  - Updated many modules to use operaArgumentHandler library
+  - Fixed potential memory leaks in several places
+  - Made code more compliant with C++ standards, allowing OPERA to be built with stricter compilers or settings
+  - Updated calibratedextendedbeamspectrum format (.spc files) to add two addtional columns: <normalizedFlux variance> <fcalFlux variance>
+  - Updated extendedpolarimetry format (.pol files) to add two addtional columns: <normalized StokesI flux variance> <calibrated StokesI flux variance>
+  - Fixed issue where flux errors would not correctly propagate to each Libre-Esprit intensity format
+  - Fixed bug where intensity fits files had wrong number of columns in polar mode
+  - Updated Makefile harness to use Heliocentric instead of Barycentric wavelength correction for polarimetry
+  - Added a tilt plot for operaExtractionApertureCalibration and fixed related bugs (implemented in Python harness)
+  - Fixed x-label of output plot in operaOrderSpacingCalibration
+  - Updated the x-range of the SNR plot in Makefile.analysis
+  - Fixed Python harness to match change made to parameters for operaTelluricCorrection
+  - Updated Makefile harness to change instument profile calibration method
+  - Added new argument to operaWavelengthCalibration --inputLineSetFilename, which allows to input a set of lines identified by hand instead of an initial solution (--wlcal_initialguess)
+  - Added new argument to operaExtractionApertureCalibration --constantTilt to allow using a constant tilt angle for all orders
+  - Added new argument to operaExtendedSpectrumCreation --SkyOverStarFiberAreaRatio to compensate for different apertures
+  - Propagated changes for SkyOverStarFiberAreaRatio to the python harness (Makefile harness hasn't been updated for this)
+  - Fixed a bug in operaWavelengthCalibration that would occur when using --parseSolution (not used by Espadons)
+  - Modifications made to arguments for operaPolar and operaPolarimetryCorrection
+  - Updated Makefile harness parameter values for operaWavelengthCalibration, operaGeometryCalibration, and operaExtractionApertureCalibration
+  - Updated Python harness parameter values for operaOrderSpacingCalibration, operaGeometryCalibration, operaInstrumentProfileCalibration, operaExtractionApertureCalibration, and operaWavelengthCalibration

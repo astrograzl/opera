@@ -1,16 +1,14 @@
-#ifndef OPERAINSTRUMENTPROFILECALIBRATION_H
-#define OPERAINSTRUMENTPROFILECALIBRATION_H
+#ifndef OPERAMASTERCALIBRATION_H
+#define OPERAMASTERCALIBRATION_H
 /*******************************************************************
- ****                  MODULE FOR OPERA v1.0                     ****
- ********************************************************************
- Module name: operaInstrumentProfileCalibration
+ ****               		OPERA PIPELINE v1.0                 ****
+ *******************************************************************
+ Library name: operaMasterCalibration
  Version: 1.0
- Description: Create the Instrument Profile 
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
- Date: Jan/2011
- Contact: opera@cfht.hawaii.edu
+ Date: May/2015
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -31,18 +29,15 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-// $Date$
-// $Id$
-// $Revision$
-// $Locker$
-// $Log$
+#include <string>
 
-/*! \brief Create the Instrument Profile. */
-/*! \file operaInstrumentProfileCalibration.h */
-/*! \ingroup core */
+/*! 
+ * operaMasterCalibration
+ * \brief Encapsulates the functionality of modules that create master calibration images.
+ * \file operaSpectrumCalibration.h
+ * \ingroup libraries
+ */
 
-/* prototypes */
-
-void GenerateInstrumentProfile3DPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, unsigned minorderWithIP, unsigned maxorderWithIP, unsigned IPxsize, unsigned IPysize, bool display);
+int MasterCalibrationCreation(int argc, char *argv[], const std::string moduleName, const std::string imagetype);
 
 #endif

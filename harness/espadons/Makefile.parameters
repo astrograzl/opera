@@ -202,12 +202,12 @@ geomsubformat					:= 8 2040 3 4600
 maxorders						:= 40
 colDispersion					:= 1
 invertOrders					:= 1
-geom_aperture_pol				:= 30		# width of aperture
-geom_aperture_sp1				:= 30		# width of aperture
-geom_aperture_sp2				:= 28		# width of aperture
+geom_aperture_pol				:= 32		# width of aperture
+geom_aperture_sp1				:= 32		# width of aperture
+geom_aperture_sp2				:= 30		# width of aperture
 geom_aperture					:= $(geom_aperture_$(MODE))
-orderspacing_aperture_sp1		:= 30		# width of aperture for order spacing
-orderspacing_aperture_sp2		:= 30		# width of aperture for order spacing
+orderspacing_aperture_sp1		:= 32		# width of aperture for order spacing
+orderspacing_aperture_sp2		:= 32		# width of aperture for order spacing
 orderspacing_aperture_pol		:= 30		# width of aperture for order spacing
 orderspacing_aperture			:= $(orderspacing_aperture_$(MODE))
 detectionMethod					:= 2		# 1 Gaussian, 2 Instrument Profile, 3 Top-hat
@@ -277,21 +277,21 @@ wcal_maxNIter_pol               := 40
 wcal_minNumberOfLines_pol		:= 40
 wcal_dampingFactor_pol			:= 0.9
 wcal_DetectionThreshold_pol		:= 0.05
-wcal_MinPeakDepth_pol			:= 0.25
+wcal_MinPeakDepth_pol			:= 1.00
 
 wcal_normalizeUncalibratedSpectrum_sp1 := 0
 wcal_normalizationBinSize_sp1   := 150
-wcal_LocalMaxFilterWidth_sp1    := 3.0
-wcal_uncalibrated_linewidth_sp1 := 1.6
+wcal_LocalMaxFilterWidth_sp1    := 6.0
+wcal_uncalibrated_linewidth_sp1 := 1.8
 wcal_maxNIter_sp1				:= 40
 wcal_minNumberOfLines_sp1		:= 40
 wcal_dampingFactor_sp1			:= 0.9
 wcal_DetectionThreshold_sp1		:= 0.05
-wcal_MinPeakDepth_sp1			:= 0.25
+wcal_MinPeakDepth_sp1			:= 1.00
 
 wcal_normalizeUncalibratedSpectrum_sp2 := 0
 wcal_normalizationBinSize_sp2   := 180
-wcal_LocalMaxFilterWidth_sp2    := 6
+wcal_LocalMaxFilterWidth_sp2    := 6.0
 wcal_uncalibrated_linewidth_sp2 := 1.6
 wcal_maxNIter_sp2				:= 40
 wcal_minNumberOfLines_sp2		:= 40
@@ -375,9 +375,9 @@ disp_wcalmaxorderofpolynomial   := 1
 #sp2_IPDimensions		:= 28 3 4 5
 #pol_IPDimensions		:= 30 3 4 5
 #IPDimensions			:= $($(MODE)_IPDimensions)
-sp1_IPXSize				:= 30
-sp2_IPXSize				:= 28
-pol_IPXSize				:= 30
+sp1_IPXSize				:= 32
+sp2_IPXSize				:= 30
+pol_IPXSize				:= 32
 IPXSize					:= $($(MODE)_IPXSize)
 IPYSize					:= 4
 IPXSampling				:= 3
@@ -439,9 +439,9 @@ sp1_numberOfBeams		:= 2
 sp2_numberOfBeams		:= 1
 pol_numberOfBeams		:= 2
 # Note that the apertureWidth is usually given as $(word 1,$(IPDimensions))-2*$(aperbackgroundAperture)
-sp1_apertureWidth		:= 28
-sp2_apertureWidth		:= 28
-pol_apertureWidth		:= 30
+sp1_apertureWidth		:= 32
+sp2_apertureWidth		:= 30
+pol_apertureWidth		:= 32
 sp1_apertureHeight		:= 0.6923
 sp2_apertureHeight		:= 0.6923
 pol_apertureHeight		:= 0.6923
@@ -501,11 +501,19 @@ createfluxcalibrationminorder	:= 22
 createfluxcalibrationmaxorder	:= 61
 createfluxcalibrationPixelsize					:= 1 1
 createfluxcalibrationWavelengthForNormalization	:= 548
-createfluxcalibrationnumberOfPointsInUniformSample      := 200
+createfluxcalibrationnumberOfPointsInUniformSample      := 150
 createfluxcalibrationnumberOfPointsInUniformRefSample   := 70
 
 createfluxcalibration_WavelengthMaskForUncalContinuum   := wavelengthMaskForUncalContinuumDetection.txt
 createfluxcalibration_WavelengthMaskForRefContinuum   := wavelengthMaskForRefContinuumDetection.txt
+
+#########################################################################################
+# Create Flat Response
+#########################################################################################
+
+createflatresponsebinsize	:= 750
+createflatresponsenumberOfPointsInUniformSample      := 300
+createflatresponsenumberOfPointsInUniformRefSample   := 70
 
 #########################################################################################
 # Master Flux Calibration
@@ -583,7 +591,7 @@ extractor_AbsoluteCalibration_pol		:= 0
 extractor_AbsoluteCalibration_sp1		:= 0
 extractor_AbsoluteCalibration_sp2		:= 0
 extractor_AbsoluteCalibration			:= $(extractor_AbsoluteCalibration_$(MODE))
-extractor_WavelengthMaskForUncalContinuum := wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt
+extractor_WavelengthMaskForUncalContinuum := wavelengthMaskForUncalContinuumDetection.txt
 
 extractor_FlatResponse_EEV1				:= flat_resp_eev1.s
 extractor_FlatResponse_OLAPA			:= flat_resp_olapa.fits.gz
@@ -678,7 +686,7 @@ operawantfcal				:= 0
 
 # what kind(s) of wavelength correction are desired
 wanttelluriccorrection		:= 1
-wantbarycentriccorrection	:= 1
+wantheliocentriccorrection	:= 1
 
 
 #########################################################################################

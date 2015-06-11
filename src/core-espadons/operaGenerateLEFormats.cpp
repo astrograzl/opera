@@ -35,26 +35,11 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaGenerateLEFormats.h"
-
-#include "libraries/operaException.h"
-#include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
 #include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
-#include "libraries/operaWavelength.h"				// for wavelength polynomial
-#include "libraries/operaLib.h"						// systemf
-#include "libraries/operaLibCommon.h"               // for anglecoord_t and timecoord_t
-#include "libraries/operaHelio.h"					// for sexigesimal conversion
-#include "libraries/operaSpectralTools.h"			// 
-#include "libraries/operaFit.h"						// for operaLMFitPolynomial
 #include "libraries/operaCCD.h"						// for MAXORDERS
-
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 unsigned readLEorderwavelength(string LEorderwavelength, int *orders, double *wl0, double *wlf);
 
@@ -77,132 +62,54 @@ using namespace std;
  * \ingroup core
  */
 
-
-#define NOTPROVIDED -999
-
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
     
 	string inputOperaSpectrum; 
 	string outputLEfilename;
     string LEorderwavelength;
     string object = "Nowhere";
-
-    operaSpectralOrder_t LibreEspritSpectrumType = LibreEspritsp2Spectrum;
-    /*  Available LibreEspritSpectrumType options for LE formats are:
-        LibreEspritpolarimetry
-        LibreEspritpolSpectrum
-        LibreEspritsp1Spectrum
-        LibreEspritsp2Spectrum
-     */
-    
-    operaFluxType_t fluxType = RawFluxInElectronsPerElement;
-    /*  Available operaFluxType_t options are:
-		1 = RawFluxInElectronsPerElement
-		2 = NormalizedFluxToContinuum
-		3 = CalibratedFluxNormalizedToRefWavelength
-    */
-    
-    operaWavelengthType_t wavelengthType = ThArCalibratedInNM;
-    /*  Available operaWavelengthType_t options are:
-		1 = ThArCalibratedInNM
-		2 = TelluricCorrectedWavelengthInNM
-		3 = RVCorrectedWavelengthInNM
-        4 = RVAndTelluricCorrectedWavelengthInNM
-     */
-    
+    unsigned LibreEspritSpectrumType_val = LibreEspritsp2Spectrum;
+    unsigned fluxType_val = RawFluxInElectronsPerElement;
+    unsigned wavelengthType_val = ThArCalibratedInNM;
 	int ordernumber = NOTPROVIDED;
-    
     int minorder = 0;
     int maxorder = 0;
-    bool minorderprovided = false;
-    bool maxorderprovided = false; 
-    
-	bool debug=false, verbose=false, trace=false, plot=false;
 	
-	struct option longopts[] = {
-		{"inputOperaSpectrum",          1, NULL, 'i'},	// .spc
-		{"outputLEfilename",            1, NULL, 'l'},  // .s
-        {"LEorderwavelength",           1, NULL, 'w'},  // Table with LE order wavelength ranges
-		{"object",                      1, NULL, 'o'},  // object name
-		{"LibreEspritSpectrumType",		1, NULL, 'S'},	// spectrum type
-		{"fluxType",                    1, NULL, 'F'},	// flux type
-		{"wavelengthType",				1, NULL, 'W'},	// wavelength type
-
-		{"ordernumber",					1, NULL, 'O'},	// just do a particular order
-		{"minorder",					1, NULL, 'M'},	// only consider this order range
-		{"maxorder",					1, NULL, 'X'}, 	// only consider this order range
-
-		{"plot",						0, NULL, 'p'},
-		{"verbose",						0, NULL, 'v'},
-		{"debug",						0, NULL, 'd'},
-		{"trace",						0, NULL, 't'},
-		{"help",						0, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "i:l:w:o:S:F:W:O:M:X:p::v::d::t::h",
-							 longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'i':
-				inputOperaSpectrum = optarg;
-				break;   
-			case 'l':
-				outputLEfilename = optarg;
-                break;
-            case 'w':
-                LEorderwavelength = optarg;
-                break;
-			case 'o':
-				object = optarg;
-                break;
-			case 'S':		// spectrum type
-				LibreEspritSpectrumType = (operaSpectralOrder_t)atoi(optarg);
-				break;
-			case 'F':		// flux type
-				fluxType = (operaFluxType_t)atoi(optarg);
-				break;
-			case 'W':		// wavelength type
-				wavelengthType = (operaWavelengthType_t)atoi(optarg);
-				break;
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;				
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;  
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;                                
-				
-			case 'p':
-				plot = true;
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'd':
-				debug = true;
-				break;
-			case 't':
-				trace = true;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
+	args.AddRequiredArgument("inputOperaSpectrum", inputOperaSpectrum, "Extended opera spectrum (.spc)");
+	args.AddRequiredArgument("outputLEfilename", outputLEfilename, "Libre-Esprit spectrum (.s)");
+	args.AddOptionalArgument("LEorderwavelength", LEorderwavelength, "", "Table with LE order wavelength ranges");
+	args.AddRequiredArgument("object", object, "Object name");
+	args.AddRequiredArgument("LibreEspritSpectrumType", LibreEspritSpectrumType_val, "Spectrum type");
+	args.AddRequiredArgument("fluxType", fluxType_val, "Flux type");
+	args.AddRequiredArgument("wavelengthType", wavelengthType_val, "Wavelength type");
+	args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
 	
 	try {
+		args.Parse(argc, argv);
+		
+		operaSpectralOrder_t LibreEspritSpectrumType = operaSpectralOrder_t(LibreEspritSpectrumType_val);
+		/*  Available LibreEspritSpectrumType options for LE formats are:
+			LibreEspritpolarimetry
+			LibreEspritpolSpectrum
+			LibreEspritsp1Spectrum
+			LibreEspritsp2Spectrum
+		*/
+		operaFluxType_t fluxType = operaFluxType_t(fluxType_val);
+		/*  Available operaFluxType_t options are:
+			1 = RawFluxInElectronsPerElement
+			2 = NormalizedFluxToContinuum
+			3 = CalibratedFluxNormalizedToRefWavelength
+		*/
+		operaWavelengthType_t wavelengthType = operaWavelengthType_t(wavelengthType_val);
+		/*  Available operaWavelengthType_t options are:
+			1 = ThArCalibratedInNM
+			2 = TelluricCorrectedWavelengthInNM
+			3 = RVCorrectedWavelengthInNM
+			4 = RVAndTelluricCorrectedWavelengthInNM
+		*/
+		
 		// we need an input .e spectrum...
 		if (inputOperaSpectrum.empty()) {
 			throw operaException("operaGenerateLEFormats: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -211,7 +118,7 @@ int main(int argc, char *argv[])
 			throw operaException("operaGenerateLEFormats: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
 		}
         
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaGenerateLEFormats: inputOperaSpectrum = " << inputOperaSpectrum << endl; 
             cout << "operaGenerateLEFormats: outputLEfilename = " << outputLEfilename << endl;
             cout << "operaGenerateLEFormats: LEorderwavelength = " << LEorderwavelength << endl;
@@ -226,28 +133,16 @@ int main(int argc, char *argv[])
 		 */        
 		operaSpectralOrderVector spectralOrders(inputOperaSpectrum);
 		
-		if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-		if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();
-        }
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-        
-        if (verbose)
-			cout << "operaGenerateLEFormats: minorder ="<< minorder << " maxorder=" << maxorder << endl;
+		UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
+        if (args.verbose) cout << "operaGenerateLEFormats: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         
         unsigned LEnp = 0;
-        
         int *LEorders = new int[MAXORDERS];
         double *LEwl0 = new double[MAXORDERS];
         double *LEwlf = new double[MAXORDERS];
         
         if (!LEorderwavelength.empty()) {
-            LEnp = readLEorderwavelength(LEorderwavelength,LEorders,LEwl0,LEwlf);
+            LEnp = readLEorderwavelength(LEorderwavelength, LEorders, LEwl0, LEwlf);
         }
 
 		for (int order=minorder; order<=maxorder; order++) {
@@ -261,13 +156,9 @@ int main(int argc, char *argv[])
                 double wlf = spectralElements->getwavelength(nElements-1);
                 
                 for (unsigned i=0; i<LEnp; i++) {
-                    if(order==LEorders[i]) {
-                        if (LEwl0[i] > wl0 && LEwl0[i] < wlf) {
-                            wl0 = LEwl0[i];
-                        }
-                        if (LEwlf[i] < wlf && LEwlf[i] > wl0) {
-                            wlf = LEwlf[i];
-                        }
+                    if(order == LEorders[i]) {
+                        if (LEwl0[i] > wl0 && LEwl0[i] < wlf) wl0 = LEwl0[i];
+                        if (LEwlf[i] < wlf && LEwlf[i] > wl0) wlf = LEwlf[i];
                         break;
                     }
                 }
@@ -277,32 +168,29 @@ int main(int argc, char *argv[])
                 for(unsigned indexElem=0;indexElem<nElements;indexElem++) {
                     
                     double wl = spectralElements->getwavelength(indexElem);
-                    
                     double flux = spectralElements->getFlux(indexElem);
                     double fluxVariance = spectralElements->getFluxVariance(indexElem);
-                    
                     double tell = spectralElements->gettell(indexElem);
                     double rvel = spectralElements->getrvel(indexElem);
                     double normalizedFlux = spectralElements->getnormalizedFlux(indexElem);
+                    double normalizedFluxVariance = spectralElements->getnormalizedFluxVariance(indexElem);
                     double fcalFlux = spectralElements->getfcalFlux(indexElem);
+                    double fcalFluxVariance = spectralElements->getfcalFluxVariance(indexElem);
                     double rawFlux = spectralElements->getrawFlux(indexElem);
-                    
+                    double rawFluxVariance = spectralElements->getrawFluxVariance(indexElem);
                     
                     if (wl > wl0 && wl < wlf) {
-                        
                         spectralElements->setwavelength(wl,newIndexElem);
                         spectralElements->setFlux(flux,newIndexElem);
                         spectralElements->setFluxVariance(fluxVariance,newIndexElem);
-                        
                         spectralElements->settell(tell,newIndexElem);
                         spectralElements->setrvel(rvel,newIndexElem);
                         spectralElements->setnormalizedFlux(normalizedFlux,newIndexElem);
                         spectralElements->setfcalFlux(fcalFlux,newIndexElem);
                         spectralElements->setrawFlux(rawFlux,newIndexElem);
-
-                        spectralElements->setnormalizedFluxVariance(fluxVariance,newIndexElem);
-                        spectralElements->setfcalFluxVariance(fluxVariance,newIndexElem);
-                        spectralElements->setrawFluxVariance(fluxVariance,newIndexElem);
+                        spectralElements->setnormalizedFluxVariance(normalizedFluxVariance,newIndexElem);
+                        spectralElements->setfcalFluxVariance(fcalFluxVariance,newIndexElem);
+                        spectralElements->setrawFluxVariance(rawFluxVariance,newIndexElem);
                         
                         newIndexElem++;
                     } else if (wl > wl0 && wl > wlf) {
@@ -313,7 +201,6 @@ int main(int argc, char *argv[])
                 spectralElements->setnSpectralElements(newIndexElem);
                 
                 if (spectralElements->getHasExtendedBeamFlux()){
-                    
                     switch (fluxType) {
                         case RawFluxInElectronsPerElement:
                             //spectralElements->copyFROMrawFlux();
@@ -327,7 +214,6 @@ int main(int argc, char *argv[])
                         default:
                             break;
                     }
-                    
                     switch (wavelengthType) {
                         case ThArCalibratedInNM:
                             break;
@@ -335,21 +221,18 @@ int main(int argc, char *argv[])
                             spectralElements->copyFROMtell();
                             break;
                         case RVCorrectedWavelengthInNM:
-                            spectralOrder->applyBarycentricWavelengthCorrectionFromExtendedRvel();
+                            spectralOrder->applyWavelengthCorrectionFromExtendedRvel();
                             break;
                         case RVAndTelluricCorrectedWavelengthInNM:
                             spectralElements->copyFROMtell();
-                            spectralOrder->applyBarycentricWavelengthCorrectionFromExtendedRvel();
+                            spectralOrder->applyWavelengthCorrectionFromExtendedRvel();
                             break;
                         default:
                             break;
                     }
-                    
                 }
 			}
-		}
-        //---------------------------------
-        
+		}        
  		// output wavelength/flux calibrated spectrum...
 		spectralOrders.setObject(object);
 		spectralOrders.WriteSpectralOrders(outputLEfilename, LibreEspritSpectrumType);
@@ -363,20 +246,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
-}
-
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" +
-	"  -i, --inputOperaSpectrum=<EXTENDED OPERA .SPC>"
-    "  -l, --outputLEfilename=<FILE_NAME>"
-    "  -w, --LEorderwavelength=<FILE_NAME>"
-	"  -o, --object=<UNS_VALUE>"
-	"  -S, --LibreEspritSpectrumType=<FITS_IMAGE>, .e\n"
-	"  -F, --fluxType=<UNS_VALUE>, Method for extraction\n"
-	"  -W, --wavelengthType=<FILE_NAME>, wavelength calibration polynomials\n\n";
 }
 
 /*

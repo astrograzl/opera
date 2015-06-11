@@ -35,15 +35,7 @@
 // $Locker$
 // $Log$
 
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaGain.h" // for MAXIMAGES
-#include "libraries/operaException.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaFITSImage.h"
-#include "libraries/operaImage.h"
-#include "libraries/operaStats.h"
-#include "libraries/operaLibCommon.h"
 #include "libraries/operaArgumentHandler.h"
 
 /*! \file operaBias.cpp */
@@ -65,7 +57,9 @@ using namespace std;
  * \return EXIT_STATUS
  */
 
-unsigned short CalculateMedianBiases(string filename, const bool dooverscan, unsigned short& medianBiasA, unsigned short& medianBiasB) {
+#define MAXIMAGES 1000
+
+void CalculateMedianBiases(string filename, const bool dooverscan, unsigned short& medianBiasA, unsigned short& medianBiasB) {
 	const unsigned overscan = 20;
 	const unsigned AmpBStartCol = 1045;
 	const unsigned AmpBEndCol = 2068;
@@ -128,7 +122,6 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("output", output, "output .bias file");
 	args.AddSwitch("overscan", dooverscan, "do overscan only");
 	args.AddRequiredArgument("numberofamplifiers", nampsexpected, "how many amps are expected");
-	//" Usage: operaBias --dooverscan=1|0 --gainNoiseBias=...gain.gz --nampsexpected=1|2 --output=... [--bias=image]* -[dvpth]\n";
 	
 	try  {
 		args.Parse(argc, argv);

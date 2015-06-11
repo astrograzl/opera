@@ -35,34 +35,10 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <ctype.h>
-#include <string.h>
-#include <fitsio.h>
-#include <getopt.h>
-#include <errno.h>
-#include <string>
-#include <iostream>
 #include <fstream>
-#include <iomanip>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "libraries/operaException.h"
-#include "libraries/operaSpectralElements.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaFluxVector.h"
-#include "libraries/operaStokesVector.h"
-#include "libraries/operaPolarimetry.h"             // for method_t and operaPolarimetry
-#include "libraries/operaStats.h"
-#include "libraries/operaLibCommon.h"               // for anglecoord_t and timecoord_t
-
-#include "core-espadons/operaPolar.h"
-
-#define NOTPROVIDED -999
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 /*!
  * \file operaPolar.cpp
@@ -71,6 +47,35 @@
  */
 
 using namespace std;
+
+/*!
+ * \brief Plot the degree of polarization.
+ * \details This function plots and creates the gnuplot script to plot the degree of polarization for every spectral element.
+ * \details It can also display that plot after printing it.
+ * \param gnuScriptFileName Output gnuplot script file name
+ * \param outputPlotEPSFileName EPS plot file name
+ * \param dataFileName Name of the data file holding the plot data
+ * \param display Boolean value to display the plot on the screen
+ * \param minorder minimum order to include in the plot range
+ * \param maxorder maximum order to include in the plot range
+ * \param StokesParameter A stokes_parameter_t value
+ * \return void
+ */
+void GeneratePolarimetryPlot(string gnuScriptFileName, string outputPlotEPSFileName, string datafilename, bool display, unsigned minorder, unsigned maxorder, stokes_parameter_t StokesParameter);
+
+/*!
+ * \brief Image plot of the degree of polarization or the flux for a given Stokes parameter.
+ * \details This function plots and creates a gnuplot script to produce a 3D plot of the degree of polarization or the Stokes flux.
+ * \details It can also display that plot after printing it.
+ * \param gnuScriptFileName Output gnuplot script file name
+ * \param outputPlotEPSFileName EPS plot file name
+ * \param dataFileName Name of the data file holding the plot data
+ * \param plotContinuum Boolean value to plot flux instead of degree of polarization
+ * \param display Boolean value to display the plot on the screen
+ * \param StokesParameter A stokes_parameter_t value
+ * \return void
+ */
+void GeneratePolarization3DPlot(string gnuScriptFileName, string outputPlotEPSFileName, string datafilename, bool plotContinuum, bool display, stokes_parameter_t StokesParameter);
 
 /*!
  * \author Andre Venne
@@ -226,165 +231,56 @@ using namespace std;
  #### Don't forget to document the new method.
  
  */
+  
 int main(int argc, char *argv[])
 {
-	int opt;
-	
-	int plot=0, verbose=0, debug=0, trace=0;
+	operaArgumentHandler args;
 	
 	string input[4];
 	string outputfilename;
-	string inputWaveFile;
-    
-    string inputFlatFluxCalibration;
-    
-    /* Method enumeration definition */
-    method_t method = Ratio;
-    
-    stokes_parameter_t StokesParameter = StokesI;
-	
+	unsigned StokesParameterVal = StokesI;
+    unsigned methodVal = Ratio;
 	unsigned NumberOfExposures = 4;
+	string inputWaveFile;
     	
 	int ordernumber = NOTPROVIDED;
+    int minorder = NOTPROVIDED;
+    int maxorder = NOTPROVIDED;
     
-    int minorder = 22;
-    bool minorderprovided = false;
-    int maxorder = 62;    
-    bool maxorderprovided = false; 
-    
-	bool interactive = false;
-	
     string plotfilename;	
 	string datafilename;	
 	string scriptfilename;
+    bool generate3DPlot = false;
+    bool plotContinuum = false;
+    bool interactive = false;
     
-    bool generate3DPlot = FALSE;
-    bool plotContinuum = FALSE;
-        
-	struct option longopts[] = {
-		{"input1",				1,			NULL, '1'},
-		{"input2",				1,			NULL, '2'},
-		{"input3",				1,			NULL, '3'},
-		{"input4",				1,			NULL, '4'},
-		{"output",				1,			NULL, 'o'},
-        {"stokesparameter",		1,			NULL, 's'},
-		{"method",				1,			NULL, 'm'},
-		{"numberofexposures",	1,			NULL, 'c'},
-		{"inputWaveFile",		1,			NULL, 'w'},	// wavelength calibration file (.wcal or .tell)
-
-		{"ordernumber",			1,			NULL, 'O'},
-		{"minorder",			1,			NULL, 'M'},
-		{"maxorder",			1,			NULL, 'X'},
-		
-        {"inputFlatFluxCalibration",		1,			NULL, 'f'},	// flat field file (.fcal)
-
-		{"plotfilename",		1,			NULL, 'P'},
-		{"datafilename",		1,			NULL, 'F'},
-        {"scriptfilename",		1,			NULL, 'S'},
-        
-        {"generate3DPlot",      1,			NULL, 'E'},
-        {"plotContinuum",       1,			NULL, 'C'},
-		
-		{"plot",				optional_argument,	NULL, 'p'},
-        {"interactive",			optional_argument,	NULL, 'I'},
-		{"verbose",				optional_argument,	NULL, 'v'},
-		{"debug",				optional_argument,	NULL, 'd'},
-		{"trace",				optional_argument,	NULL, 't'},
-		{"help",				no_argument,		NULL, 'h'},
-		{0,0,0,0}
-    };
-	
-	while((opt = getopt_long(argc, argv, "1:2:3:4:o:s:c:m:w:O:M:X:f:P:F:S:I:E:C:p::I::v::d::t::h", 
-							 longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case '1':
-				input[0] = optarg;
-				break;
-			case '2':
-				input[1] = optarg;
-				break;
-			case '3':
-				input[2] = optarg;
-				break;
-			case '4':
-				input[3] = optarg;
-				break;
-			case 'o':
-				outputfilename = optarg;
-				break;
-            case 's':
-				StokesParameter = (stokes_parameter_t)atoi(optarg);
-				break;
-			case 'm':
-				method = (method_t)atoi(optarg);
-				break;
-			case 'c':
-				NumberOfExposures = atoi(optarg);
-				break;  
-			case 'w':
-				inputWaveFile = optarg;
-				break;  
-				
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;				
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;  
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;
-
-			case 'f':		// flat field fcal
-				inputFlatFluxCalibration = optarg;
-				break;
-
-			case 'E':
-				generate3DPlot = (atoi(optarg)?true:false);
-				break;
-			case 'C':
-				plotContinuum = (atoi(optarg)?true:false);
-				break;
-			case 'P':
-				plotfilename = optarg;
-				plot = 1;
-				break;
-            case 'F':
-				datafilename = optarg;
-				break;
-            case 'S':
-				scriptfilename = optarg;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-            case 'I':
-				interactive = (atoi(optarg)?true:false);
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}
+    args.AddRequiredArgument("input1", input[0], "First exposure input file name");
+    args.AddRequiredArgument("input2", input[1], "Second exposure input file name");
+    args.AddRequiredArgument("input3", input[2], "Third exposure input file name");
+    args.AddRequiredArgument("input4", input[3], "Fourth exposure input file name");
+    args.AddRequiredArgument("output", outputfilename, "Output file name");
+    args.AddRequiredArgument("stokesparameter", StokesParameterVal, "Which Stokes parameter the module is calculating (0 = I, 1 = Q, 2 = U, 3 = V)");
+    args.AddRequiredArgument("method", methodVal, "Method for calculation of polarisation (1 = Difference, 2 = Ratio)");
+    args.AddRequiredArgument("numberofexposures", NumberOfExposures, "Number of input files to use (2 or 4)");
+    args.AddRequiredArgument("inputWaveFile", inputWaveFile, "Wavelength calibration file (.wcal)");
+    
+    args.AddOptionalArgument("ordernumber", ordernumber, NOTPROVIDED, "Absolute order number to extract (default=all)");
+	args.AddOptionalArgument("minorder", minorder, NOTPROVIDED, "Only consider this order range");
+	args.AddOptionalArgument("maxorder", maxorder, NOTPROVIDED, "Only consider this order range");
+    
+    args.AddOptionalArgument("plotfilename", plotfilename, "", "Output plot eps file name");
+    args.AddOptionalArgument("datafilename", datafilename, "", "Output plot data file name");
+    args.AddOptionalArgument("scriptfilename", scriptfilename, "", "Output gnuplot script file name");
+    args.AddOptionalArgument("generate3DPlot", generate3DPlot, false, "Switch to generate 3D or 2D plot spectra");
+    args.AddOptionalArgument("plotContinuum", plotContinuum, false, "Switch to generate plot of flux or degree of polarization spectra");
+    args.AddOptionalArgument("interactive", interactive, false, "For interactive plots");
+    
 	try {
+		args.Parse(argc, argv);
+		
+		method_t method = (method_t)methodVal;
+		stokes_parameter_t StokesParameter = (stokes_parameter_t)StokesParameterVal;
+		
         /* Stokes parameter check */
 		if (StokesParameter != StokesQ && StokesParameter != StokesU && StokesParameter != StokesV) {
 			throw operaException("operaPolar: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -402,63 +298,29 @@ int main(int argc, char *argv[])
 			throw operaException("operaPolar: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
         
-        ofstream *fdata = NULL ;
+        ofstream fdata;
+        if (!datafilename.empty()) fdata.open(datafilename.c_str());  
         
-        if (!datafilename.empty()) {
-            fdata = new ofstream();
-            fdata->open(datafilename.c_str());  
-        }
-        
-		if (verbose) {
+		if (args.verbose) {
             cout << "operaPolar: NumberOfExposures = " << NumberOfExposures << endl;
-
-            for(unsigned i=0;i<NumberOfExposures;i++) {
-                cout << "operaPolar: input " << i+1 << " = " << input[i] << endl;
-            }
+            for(unsigned i=0;i<NumberOfExposures;i++) cout << "operaPolar: input " << i+1 << " = " << input[i] << endl;
 			cout << "operaPolar: outputfilename = " << outputfilename << endl;
-			cout << "operaPolar: StokesParameter = " << inputWaveFile << endl;
+			cout << "operaPolar: inputWaveFile = " << inputWaveFile << endl;
 			cout << "operaPolar: StokesParameter = " << StokesParameter << endl; 
-			cout << "operaPolar: method = " << method << endl;
-            cout << "operaPolar: inputFlatFluxCalibration = " << inputFlatFluxCalibration << endl;
-            
-            if(ordernumber != NOTPROVIDED) {
-                cout << "operaPolar: ordernumber = " << ordernumber << endl;            
-            }             
-
+			cout << "operaPolar: method = " << method << endl;            
+            if(ordernumber != NOTPROVIDED) cout << "operaPolar: ordernumber = " << ordernumber << endl;            
             cout << "operaPolar: plotfilename = " << plotfilename << endl;
             cout << "operaPolar: scriptfilename = " << scriptfilename << endl;
-            if(interactive) {
-                cout << "operaPolar: interactive = YES" << endl;
-            } else {
-                cout << "operaPolar: interactive = NO" << endl;
-            }
-            
+            if(interactive) cout << "operaPolar: interactive = YES" << endl;
+            else cout << "operaPolar: interactive = NO" << endl;
 		}
         
         /* Create output spectral order vector based on base spectrum (i=0)*/
         operaSpectralOrderVector outputorderVector(input[0]);
-        if (!inputFlatFluxCalibration.empty()) {
-            outputorderVector.ReadSpectralOrders(inputFlatFluxCalibration);
-        }
-        if (!inputWaveFile.empty()) {
-            outputorderVector.ReadSpectralOrders(inputWaveFile);
-        }
+        if (!inputWaveFile.empty()) outputorderVector.ReadSpectralOrders(inputWaveFile);
         
-        if(!minorderprovided) {
-            minorder = outputorderVector.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = outputorderVector.getMaxorder();
-        }
-		
-		if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-		
-		if (verbose) {
-			cerr << "operaPolar: minorder = " << minorder << " maxorder = " << maxorder << endl;
-		}
+        UpdateOrderLimits(ordernumber, minorder, maxorder, outputorderVector);
+		if (args.verbose) cerr << "operaPolar: minorder = " << minorder << " maxorder = " << maxorder << endl;
         
         /* Create the spectral order vector based on inputs */
         operaSpectralOrderVector *spectralOrdervector[4];
@@ -472,11 +334,6 @@ int main(int argc, char *argv[])
             if (!inputWaveFile.empty()) {
                 spectralOrdervector[i]->ReadSpectralOrders(inputWaveFile);
             }
-            
-            /* Correct flat-field */
-            if (!inputFlatFluxCalibration.empty()) {
-                spectralOrdervector[i]->correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false, false);
-            }
         }
         
         
@@ -488,8 +345,7 @@ int main(int argc, char *argv[])
          * Take note that the algorithm is duplicated for the 2 and 4 exposures mode. Any changes made to the algorithm should be applied to both versions.
          */
         for (int order=minorder; order<=maxorder; order++) {
-            if (verbose)
-                cout << "operaPolar: Processing order number: " << order << endl;
+            if (args.verbose) cout << "operaPolar: Processing order number: " << order << endl;
             unsigned spectralElementsTest = 0;
             
             for(unsigned i=0;i<NumberOfExposures;i++) {
@@ -512,9 +368,6 @@ int main(int argc, char *argv[])
                 unsigned length = spectralOrder[0]->getBeamElements(0)->getFluxVector()->getlength();
                 
                 operaSpectralOrder *outputspectralOrder = outputorderVector.GetSpectralOrder(order);
-                if (!inputFlatFluxCalibration.empty() && outputspectralOrder->gethasSpectralEnergyDistribution()) {
-                    outputspectralOrder->divideSpectralElementsBySEDElements(true, NULL, false, false);
-                }
                 operaSpectralElements *outputspectralElements = outputspectralOrder->getSpectralElements();
                 operaWavelength *outputwavelength = NULL;
                 
@@ -582,12 +435,12 @@ int main(int argc, char *argv[])
                 outputspectralOrder->sethasPolarimetry(true);
                 
                 /* Writting to data file for plot */
-                if (fdata != NULL) {
-                    fdata->precision(6);
-                    *fdata << fixed;
-                    *fdata << "# operaPolar: <index> <Degree of Polarization> <Intensity> <i1E> <i1A> <i2E> <i2A> <i3E> <i3A> <i4E> <i4A> <r1 = i1E / i1A> <r2 = i2E / i2A> <r3 = i3E / i3A> <r4 = i4E / i4A> <R1 = r1 / r2> <R2 = r3 / r4> <First Null Flux> <Second Null Flux>\n";
+                if (fdata.is_open()) {
+                    fdata.precision(6);
+                    fdata << fixed;
+                    fdata << "# operaPolar: <index> <Degree of Polarization> <Intensity> <i1E> <i1A> <i2E> <i2A> <i3E> <i3A> <i4E> <i4A> <r1 = i1E / i1A> <r2 = i2E / i2A> <r3 = i3E / i3A> <r4 = i4E / i4A> <R1 = r1 / r2> <R2 = r3 / r4> <First Null Flux> <Second Null Flux>\n";
                     for (unsigned index = 0 ; index < length ; index++) {
-                        *fdata << 0 << '\t' << order << '\t'
+                        fdata << 0 << '\t' << order << '\t'
                         << outputspectralElements->getdistd(index) << '\t'
                         << outputspectralElements->getwavelength(index) << '\t'
                         << Polarimetry->getStokesParameter(StokesI)->getflux(index) << '\t'
@@ -596,15 +449,15 @@ int main(int argc, char *argv[])
                         << Polarimetry->getFirstNullPolarization(StokesParameter)->getflux(index) << '\t'
                         << Polarimetry->getSecondNullPolarization(StokesParameter)->getflux(index) << '\t';
                         for(unsigned i=0;i<NumberOfExposures;i++) {
-                            *fdata << iE[i]->getflux(index) << '\t'
+                            fdata << iE[i]->getflux(index) << '\t'
                             << iA[i]->getflux(index) << '\t';
                         }
-                        *fdata << endl;
+                        fdata << endl;
                     }
-                    *fdata << endl;
+                    fdata << endl;
                     if(generate3DPlot) {
                         for (unsigned index = 0 ; index < length ; index++) {
-                            *fdata << 1 << '\t' << order << '\t'
+                            fdata << 1 << '\t' << order << '\t'
                             << outputspectralElements->getdistd(index) << '\t'
                             << outputspectralElements->getwavelength(index) << '\t'
                             << Polarimetry->getStokesParameter(StokesI)->getflux(index) << '\t'
@@ -613,14 +466,14 @@ int main(int argc, char *argv[])
                             << Polarimetry->getFirstNullPolarization(StokesParameter)->getflux(index) << '\t'
                             << Polarimetry->getSecondNullPolarization(StokesParameter)->getflux(index) << '\t';
                             for(unsigned i=0;i<NumberOfExposures;i++) {
-                                *fdata << iE[i]->getflux(index) << '\t'
+                                fdata << iE[i]->getflux(index) << '\t'
                                 << iA[i]->getflux(index) << '\t';
                             }
-                            *fdata << endl;   
+                            fdata << endl;   
                         }
                     }
-                    *fdata << endl;                
-                    *fdata << endl;
+                    fdata << endl;                
+                    fdata << endl;
                 }
                 /* Delete vectors with the E/A data */
                 for(unsigned i=0;i<NumberOfExposures;i++) {
@@ -628,21 +481,17 @@ int main(int argc, char *argv[])
                     delete iA[i];
                 }
             } else { // if (spectralElementsTest == NumberOfExposures) {
-                if (verbose)
-					cerr << "operaPolar: NOT all input spectra have spectralElements, skipping order " << order << "." << endl;
+                if (args.verbose) cerr << "operaPolar: NOT all input spectra have spectralElements, skipping order " << order << "." << endl;
             }
         }
 
 		outputorderVector.WriteSpectralOrders(outputfilename, Polarimetry);
         
-        if (fdata != NULL) {
-            fdata->close();
+        if (fdata.is_open()) {
+            fdata.close();
             if (!scriptfilename.empty()) {
-                if(generate3DPlot) {
-                    GeneratePolarization3DPlot(scriptfilename,plotfilename,datafilename, plotContinuum, interactive,StokesParameter);
-                } else {
-                    GeneratePolarimetryPlot(scriptfilename,plotfilename,datafilename,interactive,minorder,maxorder,StokesParameter);
-                }
+                if(generate3DPlot) GeneratePolarization3DPlot(scriptfilename,plotfilename,datafilename, plotContinuum, interactive,StokesParameter);
+                else GeneratePolarimetryPlot(scriptfilename,plotfilename,datafilename,interactive,minorder,maxorder,StokesParameter);
             }
         }
 	}
@@ -656,63 +505,6 @@ int main(int argc, char *argv[])
 	}
 	return EXIT_SUCCESS;
 } 
-
-/*!
- * \brief Print out the proper program usage syntax.
- * \param modulename Name of the module, which is operaPolar
- */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-pDvdth]"
-    " --input1=<FILE_NAME>"
-    " --input2=<FILE_NAME>"
-    " --input3=<FILE_NAME>"
-    " --input4=<FILE_NAME>"
-    " --output=<FILE_NAME>"
-    " --stokesparameter=<STOKES_PARAMETER>"
-    " --method=<UNS_VALUE>"
-    " --numberofexposures=<UNS_VALUE>"
-    " --ordernumber=<INT_VALUE>"
-    " --numberofamplifiers=<UNS_VALUE>"
-	" --generate3DPlot=<BOOL>"
-	" --plotContinuum=<BOOL>"
-    " --plotfilename=<FILE_NAME>"
-    " --datafilename=<FILE_NAME>"
-    " --scriptfilename=<FILE_NAME> \n\n"
-	" Example: "+string(modulename)+" --output=o.txt --input1=001.e --input2=002.e --input3=003.e --input4=004.e --stokesparameter=1 --method=2 --numberofexposures=4 --ordernumber=34 --plotfilename=plot.eps --datafilename=data.dat --scriptfilename=script.gnu -v -p \n\n"
-    "  -1, --input1=<FILE_NAME>,  First exposure input file name \n"
-    "  -2, --input2=<FILE_NAME>,  Second exposure input file name \n"
-    "  -3, --input3=<FILE_NAME>,  Third exposure input file name \n"
-    "  -4, --input4=<FILE_NAME>,  Fourth exposure input file name \n"
-    "  -o, --output=<FILE_NAME>,  Output file name \n"
-    "  -s, --stokesparameter=<UNS_VALUE>, Which Stokes parameter the module is calculating \n"
-    "                              Available options are = 0, 1, 2 or 3, where: \n"
-    "                              0. Stokes I (default)\n"
-    "                              1. Stokes Q \n"
-    "                              2. Stokes U \n"
-    "                              3. Stokes V \n"
-    "  -m, --method=<UNS_VALUE>, Method for calculation of polarisation \n"
-    "                              Available options are = 1, 2, where: \n"
-    "                              1. Difference \n"
-    "                              2. Ratio (default) \n"
-    "  -c, --numberofexposures=<UNS_VALUE>, Number of input file to use \n"
-    "                              Available options are = 2, 4 \n"
-    "                              2. Use the first 2 input files \n"
-    "                              4. Use all 4 input files (default) \n"
-    "  -O, --ordernumber=<INT_VALUE>, Absolute order number to extract (default=all) \n"
-	"  -E, --generate3DPlot=<BOOL>, Switch to generate 3D or 2D plot spectra\n"
-	"  -C, --plotContinuum=<BOOL>, Switch to generate plot of flux or degree of polarization spectra\n"
-    "  -P, --plotfilename=<FILE_NAME>, Output plot eps file name \n"
-    "  -F, --datafilename=<FILE_NAME>, Output data file name \n"
-    "  -S, --scriptfilename=<FILE_NAME>, Output gnuplot script file name \n\n"
-    "  -p, --plot,  Turn on plotting \n"
-    "  -I, --interactive,  Turn on display of plotting \n"
-	"  -v, --verbose,  Turn on message sending \n"
-	"  -d, --debug,  Turn on debug messages \n"
-	"  -t, --trace,  Turn on trace messages \n"
-    "  -h, --help,  display help message \n";
-}
 
 /*
  * \brief Plot the degree of polarization.
@@ -728,72 +520,61 @@ static void printUsageSyntax(char * modulename) {
  * \return void
  */
 void GeneratePolarimetryPlot(string gnuScriptFileName, string outputPlotEPSFileName, string datafilename, bool display, unsigned minorder, unsigned maxorder, stokes_parameter_t StokesParameter) {
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
     
-    ofstream *fgnu = NULL;
+    fgnu << "reset" << endl;
+    //fgnu << "unset key" << endl;
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
-    
-    *fgnu << "reset" << endl;
-    //*fgnu << "unset key" << endl;
-    
-    *fgnu << "set xrange[-200:*]" << endl;
-    *fgnu << "set yrange[" << minorder - 1.0 << ":" << maxorder + 1.0 << "]" << endl;
-    *fgnu << "\nset xlabel \"distance (pixels)\"" << endl;
+    fgnu << "set xrange[-200:*]" << endl;
+    fgnu << "set yrange[" << minorder - 1.0 << ":" << maxorder + 1.0 << "]" << endl;
+    fgnu << "\nset xlabel \"distance (pixels)\"" << endl;
     
     if(StokesParameter == StokesQ) {
-        *fgnu << "set ylabel \"order + degree of polarization (Stokes Q / Stokes I)\"" << endl;
+        fgnu << "set ylabel \"order + degree of polarization (Stokes Q / Stokes I)\"" << endl;
     } else if (StokesParameter == StokesU) {
-        *fgnu << "set ylabel \"order + degree of polarization (Stokes U / Stokes I)\"" << endl;
+        fgnu << "set ylabel \"order + degree of polarization (Stokes U / Stokes I)\"" << endl;
     } else if (StokesParameter == StokesV) {
-        *fgnu << "set ylabel \"order + degree of polarization (Stokes V / Stokes I)\"" << endl;
+        fgnu << "set ylabel \"order + degree of polarization (Stokes V / Stokes I)\"" << endl;
     }
   
     double scaleFactor = 10;
     
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
-        *fgnu << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << endl;
         
-        *fgnu << "plot \"" << datafilename << "\" u 3:($2+$7*" << scaleFactor << ") t \"degree of polarization*" << scaleFactor << "\" w l lt 3, \"\" u 3:($2+$8*" << scaleFactor << "+0.2) t \"first null polarization*" << scaleFactor << " + 0.2\" w l lt 4, \"\" u 3:($2+$9*" << scaleFactor << "-0.2) t \"second null polarization*" << scaleFactor << " - 0.2\" w l lt 5" << endl;
+        fgnu << "plot \"" << datafilename << "\" u 3:($2+$7*" << scaleFactor << ") t \"degree of polarization*" << scaleFactor << "\" w l lt 3, \"\" u 3:($2+$8*" << scaleFactor << "+0.2) t \"first null polarization*" << scaleFactor << " + 0.2\" w l lt 4, \"\" u 3:($2+$9*" << scaleFactor << "-0.2) t \"second null polarization*" << scaleFactor << " - 0.2\" w l lt 5" << endl;
         
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
-        *fgnu << endl;
+        fgnu << endl;
         
-        *fgnu << "plot \"" << datafilename << "\" u 3:($2+$7*" << scaleFactor << ") t \"degree of polarization*" << scaleFactor << "\" w l lt 3, \"\" u 3:($2+$8*" << scaleFactor << "+0.2) t \"first null polarization*" << scaleFactor << " + 0.2\" w l lt 4, \"\" u 3:($2+$9*" << scaleFactor << "-0.2) t \"second null polarization*" << scaleFactor << " - 0.2\" w l lt 5" << endl;
+        fgnu << "plot \"" << datafilename << "\" u 3:($2+$7*" << scaleFactor << ") t \"degree of polarization*" << scaleFactor << "\" w l lt 3, \"\" u 3:($2+$8*" << scaleFactor << "+0.2) t \"first null polarization*" << scaleFactor << " + 0.2\" w l lt 4, \"\" u 3:($2+$9*" << scaleFactor << "-0.2) t \"second null polarization*" << scaleFactor << " - 0.2\" w l lt 5" << endl;
         
-        *fgnu << endl;
+        fgnu << endl;
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }    
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }
 
 /*
@@ -808,31 +589,24 @@ void GeneratePolarimetryPlot(string gnuScriptFileName, string outputPlotEPSFileN
  * \param StokesParameter A stokes_parameter_t value
  * \return void
  */
-
 void GeneratePolarization3DPlot(string gnuScriptFileName, string outputPlotEPSFileName, string datafilename, bool plotContinuum, bool display, stokes_parameter_t StokesParameter) {
-    ofstream *fgnu = NULL;
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
+    fgnu << "reset" << endl;
+    fgnu << "unset key" << endl;
+    fgnu << "set view 0,0" << endl;
     
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    *fgnu << "set view 0,0" << endl;
+    fgnu << "set palette gray" << endl;
+    fgnu << "set palette gamma 2.0" << endl;
+    fgnu << "set pm3d map" << endl;
+    fgnu << "unset ztics" << endl;
     
-    *fgnu << "set palette gray" << endl;
-    *fgnu << "set palette gamma 2.0" << endl;
-    *fgnu << "set pm3d map" << endl;
-    *fgnu << "unset ztics" << endl;
+    fgnu << "set xrange[-200:*]" << endl;
     
-    *fgnu << "set xrange[-200:*]" << endl;
-    
-    *fgnu << "\nset xlabel \"distance (pixels)\"" << endl;
-    *fgnu << "set ylabel \"order number\"" << endl;
+    fgnu << "\nset xlabel \"distance (pixels)\"" << endl;
+    fgnu << "set ylabel \"order number\"" << endl;
     
     unsigned columnForStokesI = 5;
     unsigned columnForStokesQUV = 6;
@@ -842,78 +616,73 @@ void GeneratePolarization3DPlot(string gnuScriptFileName, string outputPlotEPSFi
     
     if(plotContinuum) {
         if(StokesParameter == StokesQ) {
-            *fgnu << "set cblabel \"Stokes I and Q\"" << endl;
+            fgnu << "set cblabel \"Stokes I and Q\"" << endl;
         } else if (StokesParameter == StokesU) {
-            *fgnu << "set cblabel \"Stokes I and U\"" << endl;
+            fgnu << "set cblabel \"Stokes I and U\"" << endl;
         } else if (StokesParameter == StokesV) {
-            *fgnu << "set cblabel \"Stokes I and V\"" << endl;
+            fgnu << "set cblabel \"Stokes I and V\"" << endl;
         }
         
-        *fgnu << "set log z" << endl;
+        fgnu << "set log z" << endl;
     } else {
         if(StokesParameter == StokesQ) {
-            *fgnu << "set cblabel \"Stokes Q / Stokes I\"" << endl;
+            fgnu << "set cblabel \"Stokes Q / Stokes I\"" << endl;
         } else if (StokesParameter == StokesU) {
-            *fgnu << "set cblabel \"Stokes U / Stokes I\"" << endl;
+            fgnu << "set cblabel \"Stokes U / Stokes I\"" << endl;
         } else if (StokesParameter == StokesV) {
-            *fgnu << "set cblabel \"Stokes V / Stokes I\"" << endl;
+            fgnu << "set cblabel \"Stokes V / Stokes I\"" << endl;
         }        
-//        *fgnu << "set zrange[-1:1]" << endl;
+//        fgnu << "set zrange[-1:1]" << endl;
     }
     
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
-        *fgnu << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << endl;
         
         if(plotContinuum) {
-            *fgnu << "splot \"" << datafilename << "\""
+            fgnu << "splot \"" << datafilename << "\""
             << " u 3:($2 + 0.3*$1 - 0.325):" << columnForStokesI <<" w pm3d"
             << ",\"\" u 3:($2 + 0.3*$1 + 0.025):" << columnForStokesQUV << " w pm3d" << endl;
         } else {
-            *fgnu << "splot \"" << datafilename << "\""
+            fgnu << "splot \"" << datafilename << "\""
             << " u 3:($2 + 0.25*$1 - 0.125):" << columnForDegreePolQUV <<" w pm3d"
             << ",\"\" u 3:($2 + 0.2*$1 + 0.125 + 0.05):" << columnForNULL1 << " w pm3d"
             << ",\"\" u 3:($2 - 0.2*$1 - 0.125 - 0.05):" << columnForNULL2 << " w pm3d" << endl;
         }
         
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
-        *fgnu << endl;
+        fgnu << endl;
         
         if(plotContinuum) {
-            *fgnu << "splot \"" << datafilename << "\""
+            fgnu << "splot \"" << datafilename << "\""
             << " u 3:($2 + 0.3*$1 - 0.325):" << columnForStokesI <<" w pm3d"
             << ",\"\" u 3:($2 + 0.3*$1 + 0.025):" << columnForStokesQUV << " w pm3d" << endl;
         } else {
-            *fgnu << "splot \"" << datafilename << "\""
+            fgnu << "splot \"" << datafilename << "\""
             << " u 3:($2 + 0.25*$1 - 0.125):" << columnForDegreePolQUV <<" w pm3d"
             << ",\"\" u 3:($2 + 0.2*$1 + 0.125 + 0.05):" << columnForNULL1 << " w pm3d"
             << ",\"\" u 3:($2 - 0.2*$1 - 0.125 - 0.05):" << columnForNULL2 << " w pm3d" << endl;
         }
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }
-

@@ -1,16 +1,14 @@
-#ifndef OPERAMASTERFLUXCALIBRATION_H
-#define OPERAMASTERFLUXCALIBRATION_H
+#ifndef OPERAEXTENDEDSPECTRUMCREATION_H
+#define OPERAEXTENDEDSPECTRUMCREATION_H
 /*******************************************************************
- ****                  MODULE FOR OPERA v1.0                     ***
+ ****               		OPERA PIPELINE v1.0                 ****
  *******************************************************************
- Module name: operaMasterFluxCalibration
+ Library name: operaExtendedSpectrumCreation
  Version: 1.0
- Description: Create a Master Flux Calibration out of many calibrations. 
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
- Date: Jan/2011
- Contact: opera@cfht.hawaii.edu
+ Date: May/2015
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
  
@@ -31,20 +29,16 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-// $Date$
-// $Id$
-// $Revision$
-// $Locker$
-// $Log$
+#include <string>
 
-/*! \brief Create a Master Flux Calibration product out of many calibrations. */
-/*! \file operaMasterFluxCalibration.h */
-/*! \ingroup core */
+/*! 
+ * operaExtendedSpectrumCreation
+ * \author Eder Martioli / Christopher Usher
+ * \brief Encapulates the functionality of modules which generate calibrated spectra.
+ * \file operaExtendedSpectrumCreation.h
+ * \ingroup libraries
+ */
 
-/* prototypes */
-static void printUsageSyntax(char *prgname);
-
-void GenerateMasterFluxCalibrationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string outputDataFilename, unsigned NumberofBeams, bool display);
-
+int ExtendedSpectrumCreation(int argc, char *argv[], const std::string moduleName, const bool StarPlusSky, const bool PolarimetryCorrection);
 
 #endif

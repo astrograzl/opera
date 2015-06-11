@@ -402,7 +402,7 @@ ff_$(QUALIFIERS).e$(gzip): $(QUALIFIERS).aper$(gzip)
 		fi ; \
 		args="--spectrumtype=$(DefaultSpectrumType) --spectrumtypename=$(DefaultSpectrumTypeName)" ; \
 		if [[ "$(TYPE)" == "setup" ]] ; then \
-			args="--noCrossCorrelation=1 --spectrumtype=$(RawBeamSpectrum) --spectrumtypename=RawBeamSpectrum" ; \
+			args="--noCrossCorrelation --spectrumtype=$(RawBeamSpectrum) --spectrumtypename=RawBeamSpectrum" ; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaExtraction \
 --inputImage=$(calibrationdir)/masterflat_$(QUALIFIERS).$(FITS)$(extension) \
@@ -456,7 +456,7 @@ $${pargs} \
 			fi ; \
 		fi ; \
 		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
+			if (( $(wantheliocentriccorrection) == 1 )) ; then \
 				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
 			fi ; \
 		fi ; \
@@ -511,7 +511,7 @@ $${pargs} \
 		etime=`$(bindir)operagetheader --keyword=EXPTIME $${inputfits}` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--plotfilename=$(visualsdir)$*p.eps --spectrumDataFilename=$(byproductsdir)$*p.sdat --scriptfilename=$(byproductsdir)$*p.gnu" ; \
+			pargs="--plotfilename=$(visualsdir)$*p.eps --datafilename=$(byproductsdir)$*p.sdat --scriptfilename=$(byproductsdir)$*p.gnu" ; \
 		fi ; \
 		wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
 		if [ -s $(calibrationdir)$*p.tell$(gzip) ] ; then \
@@ -520,7 +520,7 @@ $${pargs} \
 			fi ; \
 		fi ; \
 		if [ -s $(calibrationdir)$*p.rvel$(gzip) ] ; then \
-			if (( $(wantbarycentriccorrection) == 1 )) ; then \
+			if (( $(wantheliocentriccorrection) == 1 )) ; then \
 				rvel="--radialvelocitycorrection=$(calibrationdir)$*p.rvel$(gzip)" ; \
 			fi ; \
 		fi ; \
@@ -531,29 +531,23 @@ $${pargs} \
 				fcal="--fluxCalibration=$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip)" ; \
 			fi ; \
 		fi ; \
-		if (( $(upenawantfcal) == 0 )) ; then \
-			echo "$(pref) upena Flux calibration for $@ not used." ; \
-		else \
-			if [ -e $(configdir)standardstars/Moon_operaFluxCal.dat ] ; then \
-				fcal="--LEfluxCalibration=$(configdir)standardstars/Moon_operaFluxCal.dat --LEfluxcalibrate=$(upenawantfcal)" ; \
-			fi ; \
-		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaPolarimetryCorrection \
 --polar=$(spectradir)$*.p$(gzip) \
 --spectrumtype=$(ExtendedPolarimetry) \
 --wavelengthCalibration=$${wavelengthCalibration} \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
---fluxCalibration=$${fluxCalibration} \
 --flatResponse=$(configdir)$(extractor_FlatResponse) \
+--numberOfPointsInUniformSample=$(extractor_numberOfPointsInUniformSample) \
 --etime=$${etime} \
 $${tell} \
 $${rvel} \
+$${fcal} \
 --normalizationBinsize=$(extractor_normalizationBinsize) \
 --inputWavelengthMaskForUncalContinuum=$(configdir)$(extractor_WavelengthMaskForUncalContinuum) \
 --AbsoluteCalibration=$(extractor_AbsoluteCalibration) \
 --object=\"$${object}\" \
 $${pargs} \
---output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
+--outputCalibratedSpectrum=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*p.log ; \
 		echo "$(pref) Polar $@ created in $(deltat)" ; \
 	fi
 
@@ -581,7 +575,7 @@ $${pargs} \
 			fi ; \
 			args="--spectrumtype=$(DefaultSpectrumType) --spectrumtypename=$(DefaultSpectrumTypeName)" ; \
 			if [[ "$(TYPE)" == "setup" ]] ; then \
-				args="--noCrossCorrelation=1 --spectrumtype=$(RawBeamSpectrum) --spectrumtypename=RawBeamSpectrum" ; \
+				args="--noCrossCorrelation --spectrumtype=$(RawBeamSpectrum) --spectrumtypename=RawBeamSpectrum" ; \
 			fi ; \
 			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaExtraction \
 --inputImage=$${inputfits} \
@@ -684,6 +678,7 @@ $${opt_switches} \
 #			STANDARD_STAR=prefix e.g. HR1544
 #
 # NOTES: the skyobj target for the standard star is made with a recursive call to make.
+# (and is commented out for now).
 # obscond is specific to CFHT headers and is commented out for now...
 #########################################################################################
 %i.fcal$(gzip): %.e$(gzip) # %.obscond$(gzip)
@@ -702,7 +697,7 @@ $${opt_switches} \
 			processed=0 ; \
 			for standardstar in $${standardstars} Moon ; do \
 				if [[ $${object} =~ $${standardstar} ]] ; then \
-					$(ECHO) $(MAKE) -f $(makedir)Makefile $*.skyobj$(gzip) DETECTOR=$(DETECTOR) MODE=$(MODE) OSET=$(OSET) SPEED=$(SPEED) AMPLIFIER=$(AMPLIFIER) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory ; \
+#					$(ECHO) $(MAKE) -f $(makedir)Makefile $*.skyobj$(gzip) DETECTOR=$(DETECTOR) MODE=$(MODE) OSET=$(OSET) SPEED=$(SPEED) AMPLIFIER=$(AMPLIFIER) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory ; \
 					etime=`$(bindir)operagetheader --keyword=EXPTIME $${inputfits} | awk '{printf("%d", $$1);}'` ; \
 					echo "$(pref) Starting flux calibration for $$runid $$object = $$standardstar $(QUALIFIERS)" ;\
 					if [[ "$(PLOT)" != "0" ]] ; then \
@@ -722,7 +717,6 @@ $${uargs} \
 --inputWavelengthMaskForUncalContinuum=$(configdir)$(createfluxcalibration_WavelengthMaskForUncalContinuum) \
 --numberOfPointsInUniformSample=$(createfluxcalibrationnumberOfPointsInUniformSample) \
 --numberOfPointsInUniformRefSample=$(createfluxcalibrationnumberOfPointsInUniformRefSample) \
---pixelsize=\"$(createfluxcalibrationPixelsize)\" \
 --binsize=$(createfluxcalibrationbinsize) \
 --minorder=$(createfluxcalibrationminorder) \
 --maxorder=$(createfluxcalibrationmaxorder) \
@@ -736,6 +730,58 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 			done ; \
 			if (( processed == 0 )) ; then \
 				echo "$(pref) flux calibration for $* not done as \"$$object\" was not found in the standard star reference data." ; \
+			fi ; \
+		fi ; \
+	fi
+
+#########################################################################################
+# flat response flux calibration
+#########################################################################################
+%_flat_resp.$(FITS)$(gzip):
+	@start=$$SECONDS; \
+	if [ ! -e $(calibrationdir)$@ ] ; then \
+		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+		fi ; \
+		runid=`$(bindir)operagetheader --keyword=RUNID $${inputfits} | sed -e 's: ::'` ; \
+		if [[ $$runid =~ [.]*Q78 || $$runid =~ [.]*Q79 || $$runid =~ [.]*E87 ]] ; then \
+			echo "$(pref) Checking flux calibrations for $$runid $(QUALIFIERS)" ;\
+			object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits} | sed -e 's: ::g'` ; \
+			standardstars=`ls $(configdir)standardstars/*_operaFluxCal.dat | xargs -n1 basename | sed -e 's:\(.*\)_operaFluxCal.dat:\\1:'` ; \
+			echo "$(pref) Found $$runid $$object, checking against standard star reference data..." ;\
+			processed=0 ; \
+			for standardstar in $${standardstars} Moon ; do \
+				if [[ $${object} =~ $${standardstar} ]] ; then \
+					$(ECHO) $(MAKE) -f $(makedir)Makefile $*.e$(gzip) DETECTOR=$(DETECTOR) MODE=$(MODE) OSET=$(OSET) SPEED=$(SPEED) AMPLIFIER=$(AMPLIFIER) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory ; \
+					etime=`$(bindir)operagetheader --keyword=EXPTIME $${inputfits} | awk '{printf("%d", $$1);}'` ; \
+					echo "$(pref) Starting flat response creation for $$runid $$object = $$standardstar $(QUALIFIERS)" ;\
+					if [ -e $(configdir)standardstars/$${standardstar}_operaFluxCal.dat ] ; then \
+						uargs="--inputCalibratedSpectrum=$(configdir)standardstars/$${standardstar}_operaFluxCal.dat" ; \
+					fi ; \
+					$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateFlatResponse \
+--inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
+$${uargs} \
+--inputSpectrumFITSImage=$${inputfits} \
+--outputFITS \
+--inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
+--inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--inputWavelengthMaskForRefContinuum=$(configdir)$(createfluxcalibration_WavelengthMaskForRefContinuum) \
+--inputWavelengthMaskForUncalContinuum=$(configdir)$(createfluxcalibration_WavelengthMaskForUncalContinuum) \
+--numberOfPointsInUniformSample=$(createflatresponsenumberOfPointsInUniformSample) \
+--numberOfPointsInUniformRefSample=$(createflatresponsenumberOfPointsInUniformRefSample) \
+--binsize=$(createflatresponsebinsize) \
+--minorder=$(createfluxcalibrationminorder) \
+--maxorder=$(createfluxcalibrationmaxorder) \
+--wavelengthForNormalization=$(createfluxcalibrationWavelengthForNormalization) \
+--outputFlatResponseFile=$(calibrationdir)$@ \
+$(optargs)" 2>&1 | tee -a $(logfile); \
+					echo "$(pref) flat response creation for $* \"$$object\" complete in $(deltat)" ; \
+					processed=1 ; \
+				fi ; \
+			done ; \
+			if (( processed == 0 )) ; then \
+				echo "$(pref) flat response for $* not done as \"$$object\" was not found in the standard star reference data." ; \
 			fi ; \
 		fi ; \
 	fi
@@ -857,7 +903,6 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 --input3=$(spectradir)$(P3).e$(gzip) \
 --input4=$(spectradir)$(P4).e$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
 --numberofexposures=$(POL) \
 --stokesparameter=`$(bindir)operagetstokes --numeric $${inputfits}` \
 --method=$(polarmethod) \
@@ -902,7 +947,7 @@ $${opt_switches} \
 	fi
 
 #########################################################################################
-# Barycentric Radial Velocity Correction
+# Heliocentric Radial Velocity Correction
 # The .rvel file has the same format as the .wcal
 # MJDTIME is mean time
 #########################################################################################
@@ -929,26 +974,37 @@ $${opt_switches} \
 		if [ -e $(DATADIR)/$(P4)o.$(FITS)$(inextension) ] ; then \
 			PF4="$(DATADIR)/$(P4)o.$(FITS)$(inextension)" ; \
 		fi ; \
-		echo "$(pref) Barycentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
+		echo "$(pref) Heliocentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		MJDATE1=`$(bindir)operagetheader --keyword=MJDATE $${PF1}` ; \
 		MJDATE2=`$(bindir)operagetheader --keyword=MJDATE $${PF2}` ; \
 		MJDATE3=`$(bindir)operagetheader --keyword=MJDATE $${PF3}` ; \
 		MJDATE4=`$(bindir)operagetheader --keyword=MJDATE $${PF4}` ; \
 		MEANJDATE=`echo $${MJDATE1} $${MJDATE2} $${MJDATE3} $${MJDATE4} | awk '{ printf("%f", ($$1+$$2+$$3+$$4) / 4.0)}'` ; \
+		ETIME1=`$(bindir)operagetheader --keyword=EXPTIME $${PF1}` ; \
+		ETIME2=`$(bindir)operagetheader --keyword=EXPTIME $${PF2}` ; \
+		ETIME3=`$(bindir)operagetheader --keyword=EXPTIME $${PF3}` ; \
+		ETIME4=`$(bindir)operagetheader --keyword=EXPTIME $${PF4}` ; \
+		RDTIME1=`$(bindir)operagetheader --keyword=RDTIME $${PF1}` ; \
+		RDTIME2=`$(bindir)operagetheader --keyword=RDTIME $${PF2}` ; \
+		RDTIME3=`$(bindir)operagetheader --keyword=RDTIME $${PF3}` ; \
+		exposure=`echo $${ETIME1} $${ETIME2} $${ETIME3} $${ETIME4} $${RDTIME1} $${RDTIME2} $${RDTIME3} | awk '{ printf("%f", $$1+$$2+$$3+$$4+$$5+$$6+$$7)}'` ; \
+		startha=`$(bindir)operagetheader --keyword=HA $${PF1}` ; \
 		absra_center=`$(bindir)operagetheader --keyword=RA_DEG $${inputfits}` ; \
 		absdec_center=`$(bindir)operagetheader --keyword=DEC_DEG $${inputfits}` ; \
 		instzra=`$(bindir)operagetheader --keyword=INSTZRA $${inputfits}` ; \
 		instzdec=`$(bindir)operagetheader --keyword=INSTZDEC $${inputfits}` ; \
 		absra_center=`echo $${absra_center} $${instzra} | awk '{printf("%f", $$1-$$2/3600.0)}'` ; \
 		absdec_center=`echo $${absdec_center} $${instzdec} | awk '{printf("%f", $$1+$$2/3600.0)}'` ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaBarycentricWavelengthCorrection \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaHeliocentricWavelengthCorrection \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
 --observatory_coords=\"$(observatory_coords)\" \
 --object_coords=\"$${absra_center} $${absdec_center}\" \
 --observatory_elevation=$(observatory_elevation) \
 --MJDTime=$${MEANJDATE} \
+--ha_start=$${startha} \
+--etime=$${exposure} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
-		echo "$(pref) Barycentric Radial Velocity Correction $@ created in $(deltat)" ; \
+		echo "$(pref) Heliocentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################

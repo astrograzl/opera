@@ -293,6 +293,15 @@ biases: master.rlst
 	echo "$(pref) biases for $(NIGHT) complete in $(deltat)"
 
 #########################################################################################
+# flat responses
+#########################################################################################
+flatresp flatresponse flatresponses: master.rlst
+	@start=$$SECONDS; \
+	$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory calibrations ; \
+	$(ECHO) $(MAKE) -f $(makedir)Makefile TARGET=_flat_resp.$(FITS)$(gzip) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory parintensity; \
+	echo "$(pref) flat response calibration for $(NIGHT) complete in $(deltat)"
+
+#########################################################################################
 # instrument profiles
 #########################################################################################
 profs instrumentprofiles profiles: master.rlst
@@ -589,12 +598,12 @@ masterflat_$(QUALIFIERS).$(FITS)$(extension): master.rlst
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) ] ;  then \
 		echo "$(pref) Starting master flat creation for $(QUALIFIERS)." ; \
-		flats=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/f.$(FITS)/p' | sed -e 's:^:--images=:' | tr '\n' ' '`; \
+		flats=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/f.$(FITS)/p' | tr '\n' ' '`; \
 		i=`$(bindir)operacount "$${flats}"` ; \
 		if (( i > 0 )) ; then \
 			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaMasterFlat \
 --output=$(calibrationdir)masterflat_$(QUALIFIERS).$(FITS)$(extension) \
-$${flats} \
+--images=\"$${flats}\" \
 --compressiontype=$(compressiontype) \
 --pick=$(masterflatpick) \
 --version=\"$(versionstr)\" \
@@ -615,13 +624,13 @@ masterbias_$(QUALIFIERS).$(FITS)$(extension): master.rlst
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) ] ;  then \
 		echo "$(pref) Starting master bias creation for $(QUALIFIERS)." ; \
-		biases=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/b.$(FITS)/p' | sed -e 's:^:--images=:' | tr '\n' ' '`; \
+		biases=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/b.$(FITS)/p' | tr '\n' ' '`; \
 		i=`$(bindir)operacount "$${biases}"` ; \
 		if (( i > 0 )) ; then \
 			rm -f $(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) ; \
 			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaMasterBias \
 --output=$(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) \
-$${biases} \
+--images=\"$${biases}\" \
 --compressiontype=$(compressiontype) \
 --pick=$(masterbiaspick) \
 --version=\"$(versionstr)\" \
@@ -641,13 +650,13 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 masterfabperot_$(QUALIFIERS).$(FITS)$(extension): master.rlst
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)masterfabperot_$(QUALIFIERS).$(FITS)$(extension) ] ;  then \
-		fabperots=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/a.$(FITS)/p' | sed -e 's:^:--images=:' | tr '\n' ' '`; \
+		fabperots=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/a.$(FITS)/p' | tr '\n' ' '`; \
 		i=`$(bindir)operacount "$${fabperots}"` ; \
 		if (( i > 0 )) ; then \
 			echo "$(pref) Starting master fabperot creation for $(QUALIFIERS)." ; \
 			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaMasterFabPerot \
 --output=$(calibrationdir)masterfabperot_$(QUALIFIERS).$(FITS)$(extension) \
-$${fabperots} \
+--images=\"$${fabperots}\" \
 --compressiontype=$(compressiontype) \
 --pick=$(masterfabperotpick) \
 --version=\"$(versionstr)\" \
@@ -668,7 +677,7 @@ mastercomparison_$(QUALIFIERS).$(FITS)$(extension): masterbias_$(QUALIFIERS).$(F
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension) ] ;  then \
 		echo "$(pref) Starting master comparison creation for $(QUALIFIERS)." ; \
-		comparisons=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/c.$(FITS)/p' | sed -e 's:^:--images=:' | tr '\n' ' '`; \
+		comparisons=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/c.$(FITS)/p' | tr '\n' ' '`; \
 		i=`$(bindir)operacount "$${comparisons}"` ; \
 		if (( i > 0 )) ; then \
 			files=`cat <$(byproductsdir)$(QUALIFIERS).rlst | sed -n '/c.$(FITS)/p'`; \
@@ -683,7 +692,8 @@ mastercomparison_$(QUALIFIERS).$(FITS)$(extension): masterbias_$(QUALIFIERS).$(F
 				maxetime=$(mastercomparison_outputExposureTime) ; \
 			fi ; \
 			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaMasterComparison \
---output=$(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension) $${comparisons} \
+--output=$(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension) \
+--images=\"$${comparisons}\" \
 --compressiontype=$(compressiontype) \
 --pick=$(mastercomparisonpick) \
 --badpixelmask=$(badpixelmask) \
@@ -727,8 +737,8 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		if [ -s $(byproductsdir)$*.glst ] ;  then \
 			echo "$(pref) Starting gain for $(QUALIFIERS)" ;\
-			biases=`cat <$(byproductsdir)$*.glst | sed -n '/b.$(FITS)/p' | sed -e 's:^:--biasimgs=:' | tr '\n' ' '`; \
-			flats=`cat <$(byproductsdir)$*.glst | sed -n '/f.$(FITS)/p' | tail -n $(maximumflatsforgain) | sed -e 's:^:--flatimgs=:' | tr '\n' ' '`; \
+			biases=`cat <$(byproductsdir)$*.glst | sed -n '/b.$(FITS)/p' | tr '\n' ' '`; \
+			flats=`cat <$(byproductsdir)$*.glst | sed -n '/f.$(FITS)/p' | tail -n $(maximumflatsforgain) | tr '\n' ' '`; \
 			count=`$(bindir)operacount "$${flats}"`; \
 			needed=$(minimumflatsforgain) ; \
 			if (( count >= needed )) ; then \
@@ -740,15 +750,14 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --defaultgain=$(gain) \
 --defaultnoise=$(noise) \
 --numberofamplifiers=$($(DETECTOR)$(AMPLIFIER)_namps) \
---maximages=$(maximumflatsforgain) \
 --subwindow=\"$(gainsubwindow)\" \
 --gainMinPixPerBin=$(gainMinPixPerBin) \
 --gainMaxNBins=$(gainMaxNBins) \
 --gainLowestCount=$(gainLowestCount) \
 --gainHighestCount=$(gainHighestCount) \
 --output=$(calibrationdir)$@ \
-$${flats} \
-$${biases} \
+--flatimgs=\"$${flats}\" \
+--biasimgs=\"$${biases}\" \
 $(optargs)" 2>&1 | tee -a $(logfile); \
 				if [[ "$(VERBOSE)" == "1" ]] ; then \
 					((amp=0)) ; \
@@ -1082,7 +1091,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		IPmethod=$(IPDefaultMethod) ; \
 		if [[ -e $(calibrationdir)masterfabperot_$(QUALIFIERS).$(FITS)$(extension) ]] ; then \
 			compparm="--masterfabperot=$(calibrationdir)masterfabperot_$(QUALIFIERS).$(FITS)$(extension)" ; \
-			IPmethod=$(IPUsingFabPerotMethod) ; \
+			IPmethod=$(IPWithBinningMethod) ; \
 		fi; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaInstrumentProfileCalibration \
 --geometryfilename=$(calibrationdir)$*.geom$(gzip) \

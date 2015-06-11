@@ -164,6 +164,7 @@ class InstMode :
             self.INSTRUMENTMODEKEY="Spectroscopy, star only, R=80,000"
             self.STARPLUSKYMODEFLAG=0
             self.INVERTSKYFIBERFLAG=""
+            self.SKYOVERSTARFIBERAREARATIO=1.0
             self.SPCMODULE="operaStarOnly"
             self.recenterIPUsingSliceSymmetry="0"
             self.NUMBEROFSLICES="6"
@@ -171,23 +172,23 @@ class InstMode :
             self.SPECTRALRESOLUTION="80000"
             self.LESPECTRUMTYPE=21
             self.ORDSPCAPERTURE=30
-            self.SPACINGREFERENCEORDERNUMBER=49
+            self.SPACINGREFERENCEORDERNUMBER=48
             self.SPACINGREFERENCEORDERSEPARATION=57.5
-            self.GEOMAPERTURE=28
-            self.GEOMMAXNORDERS=42
-            self.GEOMMINORDERTOUSE=20
+            self.GEOMAPERTURE=30
+            self.GEOMMAXNORDERS=41
+            self.GEOMMINORDERTOUSE=21
             self.REFERENCELINEWIDTH=2.0
-            self.IPXSIZE="28"
+            self.IPXSIZE="30"
             self.IPYSIZE="4"
             self.IPXSAMPLING="3"
             self.IPYSAMPLING="5"
             self.TILTANGLE="-2.0"
-            self.APERAPERTURE=28
+            self.CONSTANTTILTFLAG="0"
+            self.APERAPERTURE=30
             self.APERGAP=0
             self.WAVEUNCALLINEWIDTH=1.6
             self.RADIALVELOCITYRANGE=5.0
             self.RADIALVELOCITYSTEP=0.15
-
             self.RADIALVELOCITYSEARCHRANGE=200
             self.RADIALVELOCITYSEARCHSTEP=0.5
 
@@ -196,30 +197,31 @@ class InstMode :
             self.INSTRUMENTMODEKEY="Spectroscopy, star+sky, R=65,000"
             self.STARPLUSKYMODEFLAG=1
             self.INVERTSKYFIBERFLAG="--starplusskyInvertSkyFiber=0"
+            self.SKYOVERSTARFIBERAREARATIO=1.890625 # (2.2*2.2)/(1.6*1.6)
             self.SPCMODULE="operaStarPlusSky"
             self.recenterIPUsingSliceSymmetry="1"
             self.NUMBEROFSLICES="3"
             self.NUMBEROFBEAMS="2"
             self.SPECTRALRESOLUTION="65000"
             self.LESPECTRUMTYPE=20
-            self.ORDSPCAPERTURE=28
-            self.SPACINGREFERENCEORDERNUMBER=49
+            self.ORDSPCAPERTURE=32
+            self.SPACINGREFERENCEORDERNUMBER=48
             self.SPACINGREFERENCEORDERSEPARATION=57.5
-            self.GEOMAPERTURE=28
-            self.GEOMMAXNORDERS=42
-            self.GEOMMINORDERTOUSE=20
+            self.GEOMAPERTURE=32
+            self.GEOMMAXNORDERS=41
+            self.GEOMMINORDERTOUSE=21
             self.REFERENCELINEWIDTH=1.8
-            self.IPXSIZE="30"
+            self.IPXSIZE="32"
             self.IPYSIZE="4"
             self.IPXSAMPLING="3"
             self.IPYSAMPLING="5"
             self.TILTANGLE="-1.0"
-            self.APERAPERTURE=30
+            self.CONSTANTTILTFLAG="1"
+            self.APERAPERTURE=32
             self.APERGAP=0
             self.WAVEUNCALLINEWIDTH=1.6
             self.RADIALVELOCITYRANGE=5.0
             self.RADIALVELOCITYSTEP=0.15
-            
             self.RADIALVELOCITYSEARCHRANGE=200
             self.RADIALVELOCITYSEARCHSTEP=0.5
             
@@ -228,30 +230,31 @@ class InstMode :
             self.INSTRUMENTMODEKEY="Polarimetry, R=65,000"
             self.STARPLUSKYMODEFLAG=0
             self.INVERTSKYFIBERFLAG=""
+            self.SKYOVERSTARFIBERAREARATIO=1.0
             self.SPCMODULE="operaPolarIntensity"
             self.recenterIPUsingSliceSymmetry="1"
             self.NUMBEROFSLICES="3"
             self.NUMBEROFBEAMS="2"
             self.SPECTRALRESOLUTION="65000"
             self.LESPECTRUMTYPE=20
-            self.ORDSPCAPERTURE=30
-            self.SPACINGREFERENCEORDERNUMBER=49
+            self.ORDSPCAPERTURE=32
+            self.SPACINGREFERENCEORDERNUMBER=48
             self.SPACINGREFERENCEORDERSEPARATION=57.2
-            self.GEOMAPERTURE=30
-            self.GEOMMAXNORDERS=42
-            self.GEOMMINORDERTOUSE=20
+            self.GEOMAPERTURE=32
+            self.GEOMMAXNORDERS=41
+            self.GEOMMINORDERTOUSE=21
             self.REFERENCELINEWIDTH=2.5
-            self.IPXSIZE="30"
+            self.IPXSIZE="32"
             self.IPYSIZE="4"
             self.IPXSAMPLING="3"
             self.IPYSAMPLING="5"
             self.TILTANGLE="-2.0"
-            self.APERAPERTURE=30
+            self.CONSTANTTILTFLAG="0"
+            self.APERAPERTURE=32
             self.APERGAP=0
             self.WAVEUNCALLINEWIDTH=1.8
             self.RADIALVELOCITYRANGE=5.0
             self.RADIALVELOCITYSTEP=0.15
-
             self.RADIALVELOCITYSEARCHRANGE=200
             self.RADIALVELOCITYSEARCHSTEP=0.5
 
@@ -642,8 +645,12 @@ def setPlotFilenames(Dirs,night,Instmode,Readmode, plotbool) :
                                               
         plots["APERTUREPRODUCT"] =  {'APERPLOTFILE': INSTCONFIGPREFIX + "_aperplot.eps", \
                                      'APERDATAFILE': INSTCONFIGPREFIX + "_aperplot.dat", \
-                                     'APERSCRIPTFILE': INSTCONFIGPREFIX + "_aperplot.gnu"}
-    
+                                     'APERSCRIPTFILE': INSTCONFIGPREFIX + "_aperplot.gnu", \
+                                     'APERTILTPLOTFILE': INSTCONFIGPREFIX + "_tiltplot.eps", \
+                                     'APERTILTDATA1FILE': INSTCONFIGPREFIX + "_tiltplot1.dat", \
+                                     'APERTILTDATA2FILE': INSTCONFIGPREFIX + "_tiltplot2.dat", \
+                                     'APERTILTSCRIPTFILE': INSTCONFIGPREFIX + "_tiltplot.gnu"}
+
         plots["FIRSTWAVELENGTHPRODUCT"] =  {'WAVEORDSPLOTFILE': INSTCONFIGPREFIX + "_waveordsplot.eps", \
                                             'WAVESPECPLOTFILE': INSTCONFIGPREFIX + "_wavespecplot.eps", \
                                             'WAVESPECSCRIPTFILE': INSTCONFIGPREFIX + "_wavespecplot.gnu", \
@@ -657,7 +664,8 @@ def setPlotFilenames(Dirs,night,Instmode,Readmode, plotbool) :
         plots["ORDERSPACINGPRODUCT"] = {'ORDSPCPLOTFILE': "",'ORDSPCDATAFILE': "",'ORDSPCSCRIPTFILE': ""}
         plots["GEOMETRYPRODUCT"] = {'GEOMPLOTFILE': "",'GEOMDATAFILE': "",'GEOMSCRIPTFILE': ""}
         plots["INSTRUMENTPROFILEPRODUCT"] = {'PROFPLOTFILE': "",'PROFDATAFILE': "",'PROFSCRIPTFILE': ""}
-        plots["APERTUREPRODUCT"] = {'APERPLOTFILE': "",'APERDATAFILE': "",'APERSCRIPTFILE': ""}
+        plots["APERTUREPRODUCT"] = {'APERPLOTFILE': "",'APERDATAFILE': "",'APERSCRIPTFILE': "",\
+                                    'APERTILTPLOTFILE': "",'APERTILTDATA1FILE': "",'APERTILTDATA2FILE': "",'APERTILTSCRIPTFILE': ""}
         plots["FIRSTWAVELENGTHPRODUCT"] = {'WAVEORDSPLOTFILE': "",'WAVESPECPLOTFILE': "",'WAVESPECSCRIPTFILE': "", \
                                            'WAVEORDSCRIPTFILE': "",'WAVEORDSDATAFILE': "",'WAVEATLASDATAFILE': "", \
                                            'WAVECOMPDATAFILE': "", 'WAVELINESDATAFILE': ""}
@@ -754,7 +762,7 @@ def setPipelineCommands(products,Dirs,night,Instmode,Readmode,keywords,config,pl
     commands["GEOMETRYPRODUCT"] = GeometryCommand(Dirs,products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["ORDERSPACINGPRODUCT"],Instmode,plots["GEOMETRYPRODUCT"]) + verstr
 
     if (Instmode.mode == 1 or Instmode.mode == 3) :
-        commands["INSTRUMENTPROFILEPRODUCT"] = InstrumentProfileCommand(Dirs,products["INSTRUMENTPROFILEPRODUCT"], products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],"",products["MASTERALIGN"],3,config.BADPIXELMASK,Instmode,plots["INSTRUMENTPROFILEPRODUCT"]) + verstr
+        commands["INSTRUMENTPROFILEPRODUCT"] = InstrumentProfileCommand(Dirs,products["INSTRUMENTPROFILEPRODUCT"], products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],"",products["MASTERALIGN"],4,config.BADPIXELMASK,Instmode,plots["INSTRUMENTPROFILEPRODUCT"]) + verstr
     elif (Instmode.mode == 2) :
         commands["INSTRUMENTPROFILEPRODUCT"] = InstrumentProfileCommand(Dirs,products["INSTRUMENTPROFILEPRODUCT"], products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],products["MASTERCOMP"],"",2,config.BADPIXELMASK,Instmode,plots["INSTRUMENTPROFILEPRODUCT"]) + verstr
 
@@ -1034,14 +1042,14 @@ def testCalibrationListCommand(Dirs, Instmode, Readmode, keyword, allowanyreadou
 
 #### Function to generate a command line for mastercalibrations: ####
 def MasterCalibrationCommand(Dirs, bin, product, list) :
-    commandline = Dirs.EXE + bin + " --output=" + product + " --list=" + list
+    commandline = Dirs.EXE + bin + " --output=" + product + " --imagelistfile=" + list
     return commandline
 ###########################################
 
 #### Function to generate a command line for mastercomparison: ####
 def MasterComparisonCommand(Dirs, product, list, badpix, masterbias) :
     commandline = Dirs.EXE + 'operaMasterComparison --output=' + product + \
-    ' --listofimages=' + list + ' --badpixelmask=' + badpix + ' --masterbias=' + masterbias + \
+    ' --imagelistfile=' + list + ' --badpixelmask=' + badpix + ' --masterbias=' + masterbias + ' --biasConstant=1' + '--expTimeFITSKeyword=EXPTIME' + \
     ' --combineMethod=1 --saturationLimit=65535 --outputExposureTime=40 --truncateOuputFluxToSaturation=1 --expTimeFITSKeyword=EXPTIME'
     return commandline
 ###########################################
@@ -1049,9 +1057,9 @@ def MasterComparisonCommand(Dirs, product, list, badpix, masterbias) :
 #### Function to generate a command line for operaGain: ####
 def GainCommand(Dirs, product, biaslist, flatlist, badpix, Readmode) :
     commandline = Dirs.EXE + 'operaGain --output=' + product + \
-    ' --listofbiasimgs=' + biaslist + ' --listofflatimgs=' + flatlist + \
+    ' --biaslistfile=' + biaslist + ' --flatlistfile=' + flatlist + \
     ' --badpixelmask=' + badpix + ' --defaultgain=' +  Readmode.DEFAULTGAIN + ' --defaultnoise=' + Readmode.DEFAULTNOISE + \
-    ' --DATASEC="1 2048 1 4608" --numberofamplifiers=1 --maximages=12 --subwindow="100 800 500 4000" --gainMinPixPerBin=1000 --gainMaxNBins=100 --gainLowestCount=1000 --gainHighestCount=30000'
+    ' --DATASEC="1 2048 1 4608" --numberofamplifiers=1 --subwindow="100 800 500 4000" --gainMinPixPerBin=1000 --gainMaxNBins=100 --gainLowestCount=1000 --gainHighestCount=30000'
     return commandline
 ###########################################
 
@@ -1099,7 +1107,7 @@ def InstrumentProfileCommand(Dirs, product, geomproduct, gainproduct, masterbias
     ' --ySampling=' + str(Instmode.IPYSAMPLING) + ' --referenceLineWidth=' + str(Instmode.REFERENCELINEWIDTH) + \
     ' --binsize=100 --ordernumber=-999 --method=' + str(ipmethod) + ' --tilt=' + str(Instmode.TILTANGLE) + \
     ' --spectralElementHeight=1.0 --maxthreads=4 --minimumlines=5' + \
-    ' --LocalMaxFilterWidth=3.0 --DetectionThreshold=0.2 --MinPeakDepth=1.0' + \
+    ' --LocalMaxFilterWidth=3.0 --DetectionThreshold=0.2 --MinPeakDepth=1.5' + \
     plotstring
     
     return commandline
@@ -1108,12 +1116,19 @@ def InstrumentProfileCommand(Dirs, product, geomproduct, gainproduct, masterbias
 #### Function to generate a command line for operaExtractionApertureCalibration: ####
 def ApertureCommand(Dirs, product, geomproduct, profproduct, orderspacing, Instmode, plots) :
 
-    plotstring = ' --plotfilename=' + plots["APERPLOTFILE"] + ' --datafilename=' + plots["APERDATAFILE"] + ' --scriptfilename=' + plots["APERSCRIPTFILE"]
+    plotstring = ' --plotfilename=' + plots["APERPLOTFILE"] + \
+                 ' --datafilename=' + plots["APERDATAFILE"] + \
+                 ' --scriptfilename=' + plots["APERSCRIPTFILE"] + \
+                 ' --tiltplotfilename=' + plots["APERTILTPLOTFILE"] + \
+                 ' --tiltdata1filename=' + plots["APERTILTDATA1FILE"] + \
+                 ' --tiltdata2filename=' + plots["APERTILTDATA2FILE"] + \
+                 ' --tiltscriptfilename=' + plots["APERTILTSCRIPTFILE"]
 
     commandline = Dirs.EXE + "operaExtractionApertureCalibration --outputApertureFile=" + product + \
     ' --inputgeom=' + geomproduct + ' --inputprof=' + profproduct + ' --inputorderspacing=' + orderspacing + \
     ' --numberOfBeams=' + str(Instmode.NUMBEROFBEAMS) + ' --gapBetweenBeams=' + str(Instmode.APERGAP) + \
     ' --apertureHeight=' + str(Instmode.APERTUREHEIGHT) + ' --apertureWidth=' + str(Instmode.APERAPERTURE) + \
+    ' --constantTilt=' + str(Instmode.CONSTANTTILTFLAG) + \
     ' --backgroundAperture=1.0 --pickImageRow=0 --nRowSamples=10 --xbin=10' + \
     plotstring
     
@@ -1157,7 +1172,8 @@ def WavelengthCommand(Dirs, product, geomproduct, compspectrum, Instmode, config
     ' --atlas_lines=' + config.THARATLASLINES + ' --atlas_spectrum=' + config.THARATLASSPECTRUM + \
     ' --parseSolution=0 --ParRangeSizeInPerCent=1.0 --NpointsPerPar=3000 --maxNIter=40 --minNumberOfLines=40' +\
     ' --maxorderofpolynomial=4 --dampingFactor=0.85 --initialAcceptableMismatch=1.5 --nsigclip=2.25 ' +\
-    ' --normalizeUncalibratedSpectrum=0 --normalizationBinSize=180 --LocalMaxFilterWidth=6' + \
+    ' --normalizeUncalibratedSpectrum=0 --normalizationBinSize=180 --LocalMaxFilterWidth=6' +\
+    ' --DetectionThreshold=0.05 --MinPeakDepth=1.0' + \
     plotstring
     
     return commandline
@@ -1208,7 +1224,7 @@ def objectExtractionCommand(Dirs, product, inputImage, masterbias, masterflat, b
     ' --inputInstrumentProfileFile=' + profproduct + ' --inputApertureFile=' + aperproduct + \
     ' --starplusskymode=' + str(Instmode.STARPLUSKYMODEFLAG) + ' ' + Instmode.INVERTSKYFIBERFLAG + \
     ' --spectrumtype=7 --spectrumtypename=OptimalBeamSpectrum --backgroundBinsize=300 --sigmaclip=6 ' + \
-    ' --removeBackground=0 --iterations=3 --onTargetProfile=1 --usePolynomialFit=0 --starplusskymode=0 --maxthreads=4'
+    ' --removeBackground=0 --iterations=3 --onTargetProfile=1 --usePolynomialFit=0 --maxthreads=4'
      
     return commandline
 ###########################################
@@ -1226,9 +1242,9 @@ def TelluricWaveCommand(Dirs, product, inputSpectrum, wave, flatSpectrum, config
         plotstring = ''
     
     if Instmode.STARPLUSKYMODEFLAG != 0 :
-		flagstring = ' --StarPlusSky'
-	else :
-		flagstring = ''
+        flagstring = ' --StarPlusSky'
+    else :
+        flagstring = ''
 
     commandline = Dirs.EXE + 'operaTelluricWavelengthCorrection --outputWaveFile=' + product + \
     ' --inputObjectSpectrum=' + inputSpectrum + ' --inputWaveFile=' + wave + \
@@ -1238,7 +1254,7 @@ def TelluricWaveCommand(Dirs, product, inputSpectrum, wave, flatSpectrum, config
     ' --radialVelocityRange=' + str(Instmode.RADIALVELOCITYRANGE) + \
     ' --radialVelocityStep=' + str(Instmode.RADIALVELOCITYSTEP) + \
     ' --XCorrelationThreshold=0.1 --normalizationBinsize=110' + \
-    ' --inputFlatFluxCalibration=' + flatSpectrum + ' --useFitToFindMaximum=1' + \
+    ' --inputFlatFluxCalibration=' + flatSpectrum + ' --useFitToFindMaximum' + \
      flagstring + plotstring
     
     return commandline
@@ -1332,7 +1348,7 @@ def SpcModuleCommand(Dirs, product, Instmode, config, inputSpectrum, flatSpectru
     ' --fluxCalibration=' + inputFcal + ' --flatResponse=' + config.OLAPAFLATRESPONSE + \
     ' --radialvelocitycorrection=' + rvelwave + ' --telluriccorrection=' + tellwave + ' --wavelengthCalibration=' + wave +\
     ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK + ' ' + Instmode.INVERTSKYFIBERFLAG + \
-    ' --object="' + objectname + '" --etime=' + str(exptime) + \
+    ' --object="' + objectname + '" --etime=' + str(exptime) + ' --SkyOverStarFiberAreaRatio=' + str(Instmode.SKYOVERSTARFIBERAREARATIO) + \
     ' --spectrumtype=17 --numberOfPointsInUniformSample=150 --normalizationBinsize=750 --AbsoluteCalibration=0'
     
     return commandline

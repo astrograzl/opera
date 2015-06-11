@@ -70,7 +70,8 @@
 #include "libraries/operaFit.h"
 #include "libraries/operaCCD.h"
 #include "libraries/operaMath.h"
-#include "libraries/ladfit.h"	
+#include "libraries/ladfit.h"
+#include "libraries/VLArray.h"
 
 /*!
  * operaSpectralOrder
@@ -1691,33 +1692,33 @@ void operaSpectralOrder::calculateXCorrBetweenIPandImage(operaFITSImage &Image, 
         float ycenter =  SpectralElements->getphotoCenterY(indexElem);
         float distdElem = SpectralElements->getdistd(indexElem);
 		
-		int xCoords[NXPoints];
-        int yCoords[NYPoints];
-		for (unsigned j=0; j<NYPoints; j++) yCoords[j] = (int)(ycenter + InstrumentProfile->getIPixYCoordinate(j));
-		for (unsigned i=0; i<NXPoints; i++) xCoords[i] = (int)(xcenter + InstrumentProfile->getIPixXCoordinate(i));
+		VLArray<int> xCoords(NXPoints);
+        VLArray<int> yCoords(NYPoints);
+		for (unsigned j=0; j<NYPoints; j++) yCoords(j) = (int)(ycenter + InstrumentProfile->getIPixYCoordinate(j));
+		for (unsigned i=0; i<NXPoints; i++) xCoords(i) = (int)(xcenter + InstrumentProfile->getIPixXCoordinate(i));
         
         unsigned iMin, jMin, iMax, jMax;
-        for (iMin=0; iMin < NXPoints; iMin++) if(xCoords[iMin] > 0) break; //find lowest index where xCoords[i] > 0
-        for (jMin=0; jMin < NYPoints; jMin++) if(yCoords[jMin] > 0) break; //find lowest index where yCoords[j] > 0
-		for (iMax=NXPoints; iMax > 0; iMax--) if(xCoords[iMax-1] < Image.getnaxis1()) break; //find highest index where xCoords[i] < naxis1
-		for (jMax=NYPoints; jMax > 0; jMax--) if(yCoords[jMax-1] < Image.getnaxis2()) break; //find highest index where yCoords[j] < naxis2
+        for (iMin=0; iMin < NXPoints; iMin++) if(xCoords(iMin) > 0) break; //find lowest index where xCoords[i] > 0
+        for (jMin=0; jMin < NYPoints; jMin++) if(yCoords(jMin) > 0) break; //find lowest index where yCoords[j] > 0
+		for (iMax=NXPoints; iMax > 0; iMax--) if(xCoords(iMax-1) < Image.getnaxis1()) break; //find highest index where xCoords[i] < naxis1
+		for (jMax=NYPoints; jMax > 0; jMax--) if(yCoords(jMax-1) < Image.getnaxis2()) break; //find highest index where yCoords[j] < naxis2
 		
-		bool validCoords[NYPoints][NXPoints];
+		VLArray<bool> validCoords(NYPoints, NXPoints);
 		for (unsigned j=jMin; j<jMax; j++) {	
             for (unsigned i=iMin; i<iMax; i++) {
-				validCoords[j][i] = Image[yCoords[j]][xCoords[i]] > 0 && Image[yCoords[j]][xCoords[i]] < SATURATIONLIMIT && badpix[yCoords[j]][xCoords[i]];
+				validCoords(j, i) = Image[yCoords(j)][xCoords(i)] > 0 && Image[yCoords(j)][xCoords(i)] < SATURATIONLIMIT && badpix[yCoords(j)][xCoords(i)];
 			}
 		}
         
-        float ipvals[NYPoints][NXPoints];
+        VLArray<float> ipvals(NYPoints, NXPoints);
 		float avgImg = 0, meanIP = 0;
         unsigned npImg = 0;
 		for (unsigned j=jMin; j<jMax; j++) {	
             for (unsigned i=iMin; i<iMax; i++) {
-                if (validCoords[j][i]) {                    
-                    avgImg += (float)Image[yCoords[j]][xCoords[i]];
-                    ipvals[j][i] = InstrumentProfile->getipDataFromPolyModel(distdElem,i,j);
-                    meanIP += ipvals[j][i];
+                if (validCoords(j, i)) {                    
+                    avgImg += (float)Image[yCoords(j)][xCoords(i)];
+                    ipvals(j, i) = InstrumentProfile->getipDataFromPolyModel(distdElem,i,j);
+                    meanIP += ipvals(j, i);
                     npImg++;
                 }
             }
@@ -1728,9 +1729,9 @@ void operaSpectralOrder::calculateXCorrBetweenIPandImage(operaFITSImage &Image, 
         float Xcorr = 0, imgsqr = 0, ipsqr = 0;
 		for (unsigned j=jMin; j<jMax; j++) {	
             for (unsigned i=iMin; i<iMax; i++) {
-                if (validCoords[j][i]) {
-					const float ip = ipvals[j][i] - meanIP;
-					const float imgval = (float)Image[yCoords[j]][xCoords[i]] - avgImg;
+                if (validCoords(j, i)) {
+					const float ip = ipvals(j, i) - meanIP;
+					const float imgval = (float)Image[yCoords(j)][xCoords(i)] - avgImg;
                     Xcorr +=  imgval * ip;
                     imgsqr += imgval * imgval;
                     ipsqr += ip * ip;
@@ -4769,9 +4770,9 @@ void operaSpectralOrder::calculatePolarElements(ostream *poutspec) {
 }
 
 /*
- * Barycentric Wavelength Correction
+ * Radial Velocity Wavelength Correction
  */
-void operaSpectralOrder::applyRVWavelengthCorrection(double RVcorrectionInKmPerSecond) {
+void operaSpectralOrder::applyRvelWavelengthCorrection(double RVcorrectionInKmPerSecond) {
     if(gethasWavelength() && SpectralElements->getHasDistance() && !SpectralElements->getHasWavelength()) {
         SpectralElements->setwavelengthsFromCalibration(getWavelength());
     }
@@ -4783,7 +4784,7 @@ void operaSpectralOrder::applyRVWavelengthCorrection(double RVcorrectionInKmPerS
     }
 }
 
-void operaSpectralOrder::setExtendedBarycentricWavelengthCorrection(double RVcorrectionInKmPerSecond) {
+void operaSpectralOrder::setExtendedRvelWavelengthCorrection(double RVcorrectionInKmPerSecond) {
     
     if(!gethasWavelength() || !SpectralElements->getHasDistance() || !SpectralElements->getHasExtendedBeamFlux()) {
         throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
@@ -4796,7 +4797,7 @@ void operaSpectralOrder::setExtendedBarycentricWavelengthCorrection(double RVcor
     }
 }
 
-void operaSpectralOrder::applyBarycentricWavelengthCorrectionFromExtendedRvel(void) {
+void operaSpectralOrder::applyWavelengthCorrectionFromExtendedRvel(void) {
     
     if(!SpectralElements->getHasExtendedBeamFlux()) {
         throw operaException("operaSpectralOrder: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);

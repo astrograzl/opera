@@ -35,33 +35,11 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaOrderSpacingCalibration.h"
-
-#include "libraries/operaException.h"
-#include "libraries/operaFITSImage.h"
-#include "libraries/operaFITSSubImage.h"
-#include "libraries/Polynomial.h"				// for Polynomial
-#include "libraries/operaInstrumentProfile.h"	// for operaInstrumentProfile
-#include "libraries/operaSpectralElements.h"	// for operaSpectralElement
-#include "libraries/operaGeometry.h"			// for operaGeometry
-#include "libraries/operaSpectralOrder.h"		// for operaSpectralOrder
-#include "libraries/operaSpectralOrderVector.h"	// for operaSpectralOrderVector
-#include "libraries/GainBiasNoise.h"
-
-#include "libraries/operaLibCommon.h"
-#include "libraries/operaImage.h"
-#include "libraries/operaStats.h"
+#include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaCCD.h"					// for MAXORDERS
-#include "libraries/operaFit.h"	
-#include "libraries/operaFFT.h"
-#include "libraries/operaParameterAccess.h"
-#include "libraries/operaConfigurationAccess.h"
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 /*! \file operaOrderSpacingCalibration.cpp */
 
@@ -93,156 +71,58 @@ using namespace std;
  * \ingroup core
  */
 
+void GenerateOrderSpacingPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, bool display);
+
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
 
 	string orderspacingoutput;
 	string masterbias; 
 	string masterflat; 
 	string badpixelmask;
 	string inputGainFile;
-	struct subformat {
-		unsigned x1, x2;
-		unsigned y1, y2;
-	} subformat = {8, 2040, 3, 4600 };
-	bool FFTfilter = false;
-	int aperture = 20;	
+	double gain = 1;
+    double noise = 5;
+	string subformat_str;
 	int detectionMethod = 1; // 1. Gaussian, 2. IP, 3. Top-hat
-	
+	bool FFTfilter = false;
+	int aperture = 20;
     unsigned nsamples = 30;
     unsigned sampleCenterPosition = 1;  // This position is with respect to the dispersion direction (rows for Espadons)
     unsigned referenceOrderNumber = 55;          // Number of reference order for order number identification
-    float referenceOrderSeparation =  67.0;         // Order separation in pixels for order number identification
-    
-    double gain = 1;
-    double noise = 5;
+    double referenceOrderSeparation =  67.0;         // Order separation in pixels for order number identification
     
     string plotfilename;
 	string datafilename;
 	string scriptfilename;
     bool interactive = false;
     
-	int debug=0, verbose=0, trace=0, plot=0;
-    
-	struct option longopts[] = {
-		{"orderspacingoutput",1, NULL, 'o'},
-		{"masterbias",1, NULL, 'b'},
-		{"masterflat",1, NULL, 'f'},
-		{"badpixelmask",1, NULL, 'm'},
-		{"defaultgain",1, NULL, 'a'},
-		{"defaultoise",1, NULL, 'n'},
-		{"inputGainFile",1, NULL, 'g'},
-		{"subformat",1, NULL, 's'},
-		{"detectionMethod",1, NULL, 'M'},	
-		{"FFTfilter",1, NULL, 'R'},			
-		{"aperture",1, NULL, 'A'},
-        {"numberOfsamples",1, NULL, 'N'},
-		{"sampleCenterPosition",1, NULL, 'Y'},  // This position is with respect to the dispersion direction (rows for Espadons)
-		{"referenceOrderNumber",1, NULL, 'O'},          // Number of reference order for order number identification
-		{"referenceOrderSeparation",1, NULL, 'r'},      // Order separation in pixels for order number identification
-        
-		{"plotfilename",1, NULL, 'P'},
-		{"datafilename",1, NULL, 'F'},
-		{"scriptfilename",1, NULL, 'S'},
-
-		{"interactive",	optional_argument, NULL, 'I'},         
-		{"plot",		optional_argument, NULL, 'p'},
-		{"verbose",		optional_argument, NULL, 'v'},
-		{"debug",		optional_argument, NULL, 'd'},
-		{"trace",		optional_argument, NULL, 't'},
-		{"help",		no_argument, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "o:b:f:m:g:a:n:s:M:R:A:N:Y:O:r:P:F:S:I::p::v::d::t::h",
-							 longopts, NULL))  != -1)
-	{
-		
-		switch(opt) 
-		{
-			case 'o':		// output
-				orderspacingoutput = optarg;
-				break;
-			case 'b':		// output
-				masterbias = optarg;
-				break;
-			case 'f':		// masterflat
-				masterflat = optarg;
-				break;
-			case 'm':		// badpixelmask
-				badpixelmask = optarg;
-				break;            
-			case 'g':		// gain / noise / bias
-                inputGainFile = optarg;
-                break;
-			case 'a':		// gain
-                gain = atof(optarg);
-                break;
-			case 'n':		// noise
-                noise = atof(optarg);
-                break;
-			case 's':		// subformat
-				if (strlen(optarg))
-					sscanf(optarg, "%u %u %u %u", &subformat.x1, &subformat.x2, &subformat.y1, &subformat.y2);
-				break;                                                    
-			case 'M':
-				detectionMethod = atoi(optarg); // 1. Gaussian, 2. IP, 3. Top-hat	
-				break;            
-			case 'R':
-				FFTfilter = (atoi(optarg)?true:false); 
-				break;				                    
-			case 'A':		// aperture in pixels
-				aperture = atoi(optarg);
-				break;     
-			case 'N':
-				nsamples = atoi(optarg);
-				break;
-            case 'Y':
-				sampleCenterPosition = atoi(optarg);
-				break;
-			case 'O':
-				referenceOrderNumber = atoi(optarg);
-				break;
-            case 'r':
-				referenceOrderSeparation = atof(optarg);
-				break;
-			case 'P':
-				plotfilename = optarg;
-				plot = 1;
-				break;
-			case 'F':
-				datafilename = optarg;
-				break;
-			case 'S':
-				scriptfilename = optarg;
-				break;
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
+    args.AddRequiredArgument("orderspacingoutput", orderspacingoutput, "Order spacing output file name");
+    args.AddOptionalArgument("masterbias", masterbias, "", "FITS image with masterbias");
+    args.AddRequiredArgument("masterflat", masterflat, "FITS image with masterflat");
+    args.AddRequiredArgument("badpixelmask", badpixelmask, "FITS image with badpixel mask");
+    args.AddOptionalArgument("inputGainFile", inputGainFile, "", "Input noise/gain/bias file");
+    args.AddOptionalArgument("defaultgain", gain, 1, "Gain value if inputGainFile not provided");
+    args.AddOptionalArgument("defaultnoise", noise, 5, "Noise value if inputGainFile not provided");
+    args.AddRequiredArgument("subformat", subformat_str, "Image subformat to be inspected \"x1 x2 y1 y2\"");
+    args.AddOptionalArgument("detectionMethod", detectionMethod, 1, "Method for detecting orders: 1 = Gaussian, 2 = IP, 3 = Top-hat");
+    args.AddSwitch("FFTfilter", FFTfilter, "Activate Fourier smoothing filter");
+    args.AddRequiredArgument("aperture", aperture, "Aperture size in pixel units");
+    args.AddRequiredArgument("numberOfsamples", nsamples, "Number of row samples for detecting orders");
+    args.AddRequiredArgument("sampleCenterPosition", sampleCenterPosition, "Detector position to center samples, along the dispersion direction (rows for Espadons)");
+    args.AddRequiredArgument("referenceOrderNumber", referenceOrderNumber, "Number of reference order for order number identification");
+    args.AddRequiredArgument("referenceOrderSeparation", referenceOrderSeparation, "Order separation in pixels for order number identification");
+    args.AddPlotFileArguments(plotfilename, datafilename, scriptfilename, interactive);
 	
 	try {
+		args.Parse(argc, argv);
+		
+		struct subformat {
+			unsigned x1, x2;
+			unsigned y1, y2;
+		} subformat = {8, 2040, 3, 4600};
+		SplitStringIntoVals(subformat_str, subformat.x1, subformat.x2, subformat.y1, subformat.y2);
 
 		// we need a masterflat...
 		if (masterflat.empty()) {
@@ -253,7 +133,7 @@ int main(int argc, char *argv[])
 			throw operaException("operaOrderSpacingCalibration: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
 		}
 		
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaOrderSpacingCalibration: orderspacingoutput = " << orderspacingoutput << endl;
 			cout << "operaOrderSpacingCalibration: masterbias = " << masterbias << endl;            
 			cout << "operaOrderSpacingCalibration: masterflat = " << masterflat << endl; 	
@@ -266,51 +146,34 @@ int main(int argc, char *argv[])
 			cout << "operaOrderSpacingCalibration: nsamples = " << nsamples << endl;
 			cout << "operaOrderSpacingCalibration: referenceOrderNumber = " << referenceOrderNumber << endl;
 			cout << "operaOrderSpacingCalibration: referenceOrderSeparation = " << referenceOrderSeparation << endl;
-            if(plot) {
+            if(args.plot) {
                 cout << "operaOrderSpacingCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaOrderSpacingCalibration: datafilename = " << datafilename << endl;
                 cout << "operaOrderSpacingCalibration: scriptfilename = " << scriptfilename << endl;
-                if(interactive) {
-                    cout << "operaOrderSpacingCalibration: interactive = YES" << endl;
-                } else {
-                    cout << "operaOrderSpacingCalibration: interactive = NO" << endl;
-                }
+                cout << "operaOrderSpacingCalibration: interactive = " << (interactive ? "YES" : "NO") << endl;
             }            
 		}
         
-        ofstream *fdata = NULL;
+        ofstream fdata;
+        if (!datafilename.empty()) fdata.open(datafilename.c_str());
         
-        if (!datafilename.empty()) {
-            fdata = new ofstream();
-            fdata->open(datafilename.c_str());
-        }
-        
-		/*
-		 * open input images and load data into an in-memory image
-		 */
-		
+		// Open input images and load data into an in-memory image
 		unsigned x1 = subformat.x1;
 		unsigned y1 = subformat.y1;
 		unsigned nx = subformat.x2 - subformat.x1;
 		unsigned ny = subformat.y2 - subformat.y1;
+		if (args.verbose) {
+			cout << "operaOrderSpacingCalibration: x1,y1,nx,ny = " << x1 << ' ' << y1 << ' ' << nx  << ' ' << ny << '\n'; 
+		}
                 
         operaFITSImage flat(masterflat, tfloat, READONLY);
 
-        operaFITSImage *bias = NULL;
-        
 		if (!masterbias.empty()){
-			bias = new operaFITSImage(masterbias, tfloat, READONLY);
-		} else {
-            bias = new operaFITSImage(flat.getnaxis1(),flat.getnaxis2(),tfloat);
-            *bias = 0.0;
-        }
-            
-		flat -= (*bias);			// remove bias from masterflat
-        if(bias) {
-            delete bias;
+			operaFITSImage bias(masterbias, tfloat, READONLY);
+			flat -= bias; // remove bias from masterflat
 		}
-        operaFITSImage *badpix = NULL;
         
+        operaFITSImage *badpix = NULL;
 		if (!badpixelmask.empty()){
 			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
 		} else {
@@ -318,55 +181,40 @@ int main(int argc, char *argv[])
             *badpix = 1.0;
         }
 		
-		if (verbose) {
-			cout << "operaOrderSpacingCalibration: x1,y1,nx,ny = " << x1 << ' ' << y1 << ' ' << nx  << ' ' << ny << '\n'; 
-		}
-		
         float slit = (float)aperture;
         
 		operaSpectralOrderVector spectralOrders(MAXORDERS, ny, ny, 0);        
 		
-		/*
-		 * read gain and noise from input file
-		 */
-        unsigned amp = 0;
+		// Read gain and noise from input file
         if (!inputGainFile.empty()) {
+			unsigned amp = 0;
             spectralOrders.readGainNoise(inputGainFile);
             gain = spectralOrders.getGainBiasNoise()->getGain(amp);
             noise = spectralOrders.getGainBiasNoise()->getNoise(amp);
 		}
-		if (verbose)
-			cout << "operaOrderSpacingCalibration: gain="<< gain << " noise=" << noise << endl;
+		if (args.verbose) cout << "operaOrderSpacingCalibration: gain="<< gain << " noise=" << noise << endl;
         
-        /*
-         * The values below are used to apply a sigma clipping to clean outliers.
-         */
+        // The values below are used to apply a sigma clipping to clean outliers.
         unsigned cleanbinsize = 7;  // number of points in the bin
         float nsigcut = 2.5;        // clipping region in units of sigma
         
-        spectralOrders.fitOrderSpacingPolynomial(flat, *badpix, slit, nsamples, sampleCenterPosition, referenceOrderNumber, referenceOrderSeparation, detectionMethod, FFTfilter, (float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, cleanbinsize, nsigcut, fdata);
-
+        spectralOrders.fitOrderSpacingPolynomial(flat, *badpix, slit, nsamples, sampleCenterPosition, referenceOrderNumber, (float)referenceOrderSeparation, detectionMethod, FFTfilter, (float)gain, (float)noise, subformat.x1, subformat.x2, subformat.y1, subformat.y2, cleanbinsize, nsigcut, &fdata);
         // Note: spacing polynomial must be changed to order number versus order separation
         // then one can project all separations as a map and identify orders later in
         // in geometry. The way it works now it is relying on a single point to identify
         // all orders and this has shown to be unreliable.
         
-        if (fdata != NULL) {
-            fdata->close();
+        if (fdata.is_open()) {
+            fdata.close();
             if (!scriptfilename.empty()) {
                 GenerateOrderSpacingPlot(scriptfilename,plotfilename,datafilename, interactive);
             }
         }
         
-		//
-		// now flush out the order spacing output
-		//
-		if (!orderspacingoutput.empty()) {
-			spectralOrders.WriteSpectralOrders(orderspacingoutput, Orderspacing);
-		}
-        if(badpix)
-            delete badpix;
-        
+		// flush out the order spacing output
+		if (!orderspacingoutput.empty()) spectralOrders.WriteSpectralOrders(orderspacingoutput, Orderspacing);
+		
+        if(badpix) delete badpix;
 		flat.operaFITSImageClose();
 	}
 	catch (operaException e) {
@@ -384,57 +232,6 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" +
-	" --orderspacingoutput=<ORDP_FILE>"
-	" --masterbias=<FITS_IMAGE>"
-	" --masterflat=<FITS_IMAGE>"
-	" --badpixelmask=<FITS_IMAGE>"
-    " --inputGainFile=<GAIN_FILE>"
-    " --subformat=<\"UNS_VALUE UNS_VALUE UNS_VALUE UNS_VALUE\">"
-    " --detectionMethod=<UNS_VALUE>"
-    " --FFTfilter=<BOOL>"
-    " --aperture=<UNS_VALUE>"
-    " --numberOfsamples=<UNS_VALUE>"
-    " --sampleCenterPosition=<UNS_VALUE>"
-    " --referenceOrderNumber=<UNS_VALUE>"
-    " --referenceOrderSeparation=<FLT_VALUE>"
-    " --plotfilename=<EPS_FILE>"
-	" --datafilename=<DATA_FILE>"
-	" --scriptfilename=<GNUPLOT_FILE>"
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --masterbias=/Users/edermartioli/opera//calibrations/PolarData/masterbias_OLAPAa_pol_Normal.fits.fz --masterflat=/Users/edermartioli//opera//calibrations/PolarData/masterflat_OLAPAa_pol_Normal.fits.fz --badpixelmask=/Users/edermartioli/opera-1.0//config/badpix_olapa-a.fits.fz --inputGainFile=/Users/edermartioli//opera//calibrations/PolarData/OLAPAa_pol_Normal.gain.gz --subformat=\"8 2040 3 4600\" --aperture=26 --detectionMethod=2 --FFTfilter=0 --numberOfsamples=30  --sampleCenterPosition=2300 --orderspacingoutput=OLAPAa_pol_Normal.ordp.gz --datafilename=spacing.dat --scriptfilename=spacing.gnu --plotfilename=spacing.eps -v\n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -o, --orderspacingoutput=<FILE_NAME>, Order spacing output file name\n"    
-	"  -b, --masterbias=<FITS_IMAGE>, FITS image with masterbias\n"
-	"  -f, --masterflat=<FITS_IMAGE>, FITS image with masterflat\n"
-	"  -m, --badpixelmask=<FITS_IMAGE>, FITS image with badpixel mask\n"
-	"  -g, --inputGainFile=<GAIN_FILE>, Input noise/gain/bias file\n"
-    "  -s, --subformat=<\"UNS_VALUE UNS_VALUE UNS_VALUE UNS_VALUE\">, Image subformat to be inspected\n"
-	"  -M, --detectionMethod=<UNS_VALUE>, Method for detecting orders\n"
-    "                              Available options are = 1, 2, and  3, where: \n"
-    "                              1. Gaussian (default)\n"
-    "                              2. IP \n"
-    "                              3. Top-hat\n"
-    "  -R, --FFTfilter=<BOOL>, Activate Fourier smoothing filter\n"
-    "  -A, --aperture=<UNS_VALUE>, Aperture size in pixel units\n"
-    "  -N, --numberOfsamples=<UNS_VALUE>, Number of row samples for detecting orders\n"
-    "  -Y, --sampleCenterPosition=<UNS_VALUE>, Detector position to center samples. Position along the dispersion direction (rows for Espadons)\n"
-    "  -O, --referenceOrderNumber=<UNS_VALUE>, Number of reference order for order number identification\n"
-    "  -r, --referenceOrderSeparation=<FLT_VALUE>, Order separation in pixels for order number identification\n"
-	"  -P, --plotfilename=<EPS_FILE>\n"
-	"  -F, --datafilename=<DATA_FILE>\n"
-	"  -S, --scriptfilename=<GNUPLOT_FILE>\n"
-	"  -I, --interactive=<BOOL>\n\n";
-}
-
 void GenerateOrderSpacingPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, bool display)
 {
     FILE *fgnu;
@@ -444,7 +241,7 @@ void GenerateOrderSpacingPlot(string gnuScriptFileName, string outputPlotEPSFile
     
     fprintf(fgnu,"reset\n");
     fprintf(fgnu,"unset key\n");
-    fprintf(fgnu,"\nset xlabel \"order center (col pixels)\"\n");
+    fprintf(fgnu,"\nset xlabel \"order number \"\n");
     fprintf(fgnu,"set ylabel \"order separation (pixels)\"\n");
     
     if(!outputPlotEPSFileName.empty()) {
@@ -474,11 +271,6 @@ void GenerateOrderSpacingPlot(string gnuScriptFileName, string outputPlotEPSFile
     
     fclose(fgnu);
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());        
-    }
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if(!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }
-

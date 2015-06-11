@@ -3,7 +3,7 @@
  *******************************************************************
  Module name: operaSNR
  Version: 1.0
- Description: Calculate SNR stats.\.
+ Description: Calculate SNR stats.
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
@@ -35,18 +35,8 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
-#include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "libraries/operaException.h"
-#include "libraries/operaSpectralOrder.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
-
-#include "core-espadons/operaSNR.h"
+#include "libraries/operaArgumentHandler.h"
 
 /*! \file operaSNR.cpp */
 
@@ -67,84 +57,29 @@ using namespace std;
  * \ingroup core
  */
 
-
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
 	
 	string inputfilename; 
 	string outputfilename; 
 	string wcalfilename; 
 	string object;
-	
-	operaSpectralOrder_t spectralOrderType = SNR;
-	
-	bool debug=false, verbose=false, trace=false, plot=false;
-	
+	unsigned spectralOrderType_val = SNR;
 	bool centralsnr = false;
 	
-	struct option longopts[] = {
-		{"input",						1,	NULL, 'i'},
-		{"output",						1,	NULL, 'o'},
-		{"wavelengthCalibration",		1,	NULL, 'w'},
-		{"object",						1,	NULL, 'O'},	// needed for Libre-Esprit output
-		{"spectrumtype",				1,  NULL, 'T'},	
-		{"centralsnr",					1,  NULL, 'C'},	
-		
-		{"plot",		optional_argument, NULL, 'p'},       
-		{"verbose",		optional_argument, NULL, 'v'},
-		{"debug",		optional_argument, NULL, 'd'},
-		{"trace",		optional_argument, NULL, 't'},
-		{"help",		no_argument, NULL, 'h'},
-		{0,0,0,0}};
+	args.AddRequiredArgument("input", inputfilename, "Input spectrum file");
+	args.AddRequiredArgument("output", outputfilename, "Output SNR file");
+	args.AddRequiredArgument("wavelengthCalibration", wcalfilename, "Wavelength calibration file");
+	args.AddRequiredArgument("object", object, "Object name, needed for Libre-Esprit output");
+	args.AddRequiredArgument("spectrumtype", spectralOrderType_val, "Spectrum type");
+	args.AddRequiredArgument("centralsnr", centralsnr, "Use central SNR");
 	
-	while((opt = getopt_long(argc, argv, "i:o:w:T:O:C:v::d::p::t::h", 
-							 longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'i':
-				inputfilename = optarg;
-				break;    
-			case 'o':
-				outputfilename = optarg;
-				break; 
-			case 'w':
-				wcalfilename = optarg;
-				break; 
-			case 'T':		// spectrum type
-				spectralOrderType = (operaSpectralOrder_t)atoi(optarg);
-				break;
-			case 'O':
-				object = optarg;
-				break;   
-			case 'C':
-				centralsnr = atoi(optarg) == 1;
-				break;   
-				
-			case 'p':
-				plot = true;
-				break;
-			case 'v':
-				verbose = true;
-				break;
-			case 'd':
-				debug = true;
-				break;
-			case 't':
-				trace = true;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
 	try {
+		args.Parse(argc, argv);
+		
+		operaSpectralOrder_t spectralOrderType = operaSpectralOrder_t(spectralOrderType_val);
+		
 		if (inputfilename.empty()) {
 			throw operaException("operaSNR: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
@@ -155,7 +90,7 @@ int main(int argc, char *argv[])
 			throw operaException("operaSNR: wcal: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
 		
-		if (verbose) {
+		if (args.verbose) {
 			cout << "operaSNR: input = " << inputfilename << endl; 
 			cout << "operaSNR: object = " << object << endl; 
 			cout << "operaSNR: output = " << outputfilename << endl;
@@ -201,19 +136,3 @@ int main(int argc, char *argv[])
 	}
 	return EXIT_SUCCESS;
 } 
-
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth] --outputfilename=... --inputfilename=... \n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -p, --plot, Turn on plotting \n"
-	"  -o, --outputfilename=$(spectradir)$*i.sn\n"
-	"  -i, --inputfilename=$(spectradir)$*iu.s\n\n";
-}
-

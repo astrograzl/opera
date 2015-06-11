@@ -413,7 +413,7 @@ int main(int argc, char *argv[])
         
         spectralOrders.ReadSpectralOrders(inputBarycentricCorrection);
         
-        double barycentricRV = spectralOrders.getBarycentricRadialVelocityCorrection();
+        double barycentricRV = spectralOrders.getRadialVelocityCorrection();
         
         if (verbose) {
             cout << "operaRadialVelocity: Barycentric Radial Velocity =" << barycentricRV << " km/s" << endl;

@@ -35,23 +35,12 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "libraries/operaException.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
-#include "libraries/operaLibCommon.h"
 #include "libraries/operaFit.h"						// for operaLMFitPolynomial
-#include "libraries/Polynomial.h"
-#include "libraries/operaFFT.h"
-#include "libraries/operaCCD.h"						// for MAXORDERS
 #include "libraries/operaSpectralTools.h"			// void calculateUniformSample, getFluxAtWavelength
 #include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 #define MAXFLUXREFERENCELENGTH 20000
 #define MAXNUMBEROFREFWLRANGES 1000
@@ -85,7 +74,7 @@ unsigned getReferenceSpectrumRange(unsigned nRefContinuum,double *refContinuumwl
 /*! 
  * operaCreateFlatResponse
  * \author Eder Martioli
- * \brief Flux Calibration with Standard source.
+ * \brief Flat Response Flux Calibration with Standard or Moon spectrum
  * \arg argc
  * \arg argv
  * \note --output=...
@@ -100,7 +89,6 @@ unsigned getReferenceSpectrumRange(unsigned nRefContinuum,double *refContinuumwl
 int main(int argc, char *argv[])
 {	
 	const double DELTA_WL = 1.0; // wavelength (in nm) range for stiching non-overlapping orders
-    const int NOT_PROVIDED = -999;
     
 	string inputUncalibratedSpectrum;
     string inputSpectrumFITSImage;
@@ -111,13 +99,12 @@ int main(int argc, char *argv[])
     string inputWavelengthMaskForUncalContinuum;
 	string outputFlatResponseFile;
     double wavelengthForNormalization = 548;
-    int ordernumber = NOT_PROVIDED;
+    int ordernumber = NOTPROVIDED;
     int minorder = 22;
     int maxorder = 62;    
 	unsigned numberOfPointsInUniformSample = 200;
     unsigned numberOfPointsInUniformRefSample = 70;
     unsigned binsize = 100;
-	
     bool outputFITS = false;
     
     args.AddRequiredArgument("inputUncalibratedSpectrum", inputUncalibratedSpectrum, "Spectrophotometric standard extracted uncalibrated spectrum");
@@ -128,22 +115,16 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("inputWavelengthMaskForRefContinuum", inputWavelengthMaskForRefContinuum, "Wavelength mask to detect continuum in reference spectrum");
 	args.AddRequiredArgument("inputWavelengthMaskForUncalContinuum", inputWavelengthMaskForUncalContinuum, "Wavelength mask to detect continuum in uncalibrated spectrum");
 	args.AddRequiredArgument("outputFlatResponseFile", outputFlatResponseFile, "Output flat response data file");
-	
 	args.AddOptionalArgument("wavelengthForNormalization", wavelengthForNormalization, 548, "Wavelength (nm) for normalization of reference spectrum");
-	args.AddOptionalArgument("ordernumber", ordernumber, NOT_PROVIDED, "Absolute order number to extract (default=all)");
-	args.AddOptionalArgument("minorder", minorder, NOT_PROVIDED, "Define minimum order number");
-	args.AddOptionalArgument("maxorder", maxorder, NOT_PROVIDED, "Define maximum order number");
+	args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
 	args.AddOptionalArgument("numberOfPointsInUniformSample", numberOfPointsInUniformSample, 200, "Define number of points in output data file");
 	args.AddOptionalArgument("numberOfPointsInUniformRefSample", numberOfPointsInUniformRefSample, 70, "Define number of poins in reference sample");
 	args.AddOptionalArgument("binsize", binsize, 100, "Number of points to bin for continuum estimate");
-	
     args.AddSwitch("outputFITS", outputFITS, "output data as FITS file? otherwise output is in ASCII LE format");
-
     
-	//"Example: "+string(modulename)+" --inputCalibratedSpectrum=HR1544_operaFluxCal.dat --inputUncalibratedSpectrum=1515004.e.gz --inputWaveFile=/Users/edermartioli/opera/calibrations/GalileanMoons/OLAPAa_pol_Normal.wcar.gz --outputFlatResponseFile=1515004.fcal.gz --normalizeCalibratedSpectrum=1 --binsize=210 --spectrumDataFilename=1515004.spec --continuumDataFilename=1515004.cont --scriptfilename=1515004fcal.gnu -v"
-	
 	try {
 		args.Parse(argc, argv);
+		
 		// we need an input uncalibrated spectrum...
 		if (inputUncalibratedSpectrum.empty()) {
 			throw operaException("operaCreateFlatResponse: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -179,7 +160,6 @@ int main(int argc, char *argv[])
 		if (outputFlatResponseFile.empty()) {
 			throw operaException("operaCreateFlatResponse: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
         }
-
         
 		if (args.verbose) {
 			cout << "operaCreateFlatResponse: input uncalibrated spectrum file = " << inputUncalibratedSpectrum << endl;
@@ -192,21 +172,15 @@ int main(int argc, char *argv[])
             cout << "operaCreateFlatResponse: wavelengthForNormalization= " << wavelengthForNormalization << " nm" << endl;
 			cout << "operaCreateFlatResponse: numberOfPointsInUniformSample = " << numberOfPointsInUniformSample << endl;
 			cout << "operaCreateFlatResponse: numberOfPointsInUniformRefSample = " << numberOfPointsInUniformRefSample << endl;
-            if(ordernumber != NOT_PROVIDED) cout << "operaCreateFlatResponse: ordernumber = " << ordernumber << endl;
+            if(ordernumber != NOTPROVIDED) cout << "operaCreateFlatResponse: ordernumber = " << ordernumber << endl;
             cout << "operaCreateFlatResponse: binsize = " << binsize << endl;
 		}
         
 		operaSpectralOrderVector spectralOrders(inputUncalibratedSpectrum);
         spectralOrders.ReadSpectralOrders(inputWaveFile);
 
-        if(minorder == NOT_PROVIDED) minorder = spectralOrders.getMinorder();
-        if(maxorder == NOT_PROVIDED) maxorder = spectralOrders.getMaxorder();
-        if(ordernumber != NOT_PROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-        
-		if (args.verbose) cout << "operaCreateFlatResponse: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
+        UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
+        if (args.verbose) cout << "operaCreateFlatResponse: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
 
 		/*
 		 * Flux calibration reference file:
@@ -317,7 +291,6 @@ int main(int argc, char *argv[])
 		cerr << "operaCreateFlatResponse: " << operaStrError(errno) << endl;
 		return EXIT_FAILURE;
 	}
-	
 	return EXIT_SUCCESS;
 } 
 
@@ -441,7 +414,6 @@ void normalizeIntensityByMaximum(unsigned np, double *intensity, double *varianc
 	}
 }
 
-
 double operaArrayMaxValue_d(unsigned np, const double *xarray, const double *yarray, double *maxx) {
 	double ymax = -3.4e+38;
 	double xmax = 0;
@@ -457,7 +429,6 @@ double operaArrayMaxValue_d(unsigned np, const double *xarray, const double *yar
     *maxx = xmax;
 	return ymax;
 }
-
 
 unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, float *refContinuumwl,float *refContinuumflux,float *refContinuumNormflux) {
     
@@ -496,9 +467,7 @@ unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRef
             nTotalPoints++;
         }
     }
-    
     delete[] wl0_vector;
     delete[] wlf_vector;
-    
     return nTotalPoints;
 }

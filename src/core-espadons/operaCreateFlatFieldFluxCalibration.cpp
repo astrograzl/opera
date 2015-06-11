@@ -35,36 +35,19 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
 #include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "libraries/operaException.h"
 #include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
-#include "libraries/operaLibCommon.h"
-#include "libraries/operaFit.h"						// for operaFitSpline
-#include "libraries/ladfit.h"						// for ladfit
-#include "libraries/Polynomial.h"
-#include "libraries/operaFFT.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
-#include "libraries/operaStats.h"					// for operaArrayMedian
-#include "libraries/operaSpectralTools.h"			//
-
-#include "core-espadons/operaCreateFlatFieldFluxCalibration.h"
-
-#define NOTPROVIDED -999
+#include "libraries/operaArgumentHandler.h"
+#include "libraries/operaCommonModuleElements.h"
 
 /*! \file operaCreateFlatFieldFluxCalibration.cpp */
 
 using namespace std;
 
-double getMedianValueInRange(operaSpectralElements *inputElements, unsigned centerElement, unsigned binsize);
+void GenerateCreateFlatFieldFluxCalibrationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string continuumDataFilename, unsigned NumberofBeams, bool display);
 
-int debug=0, verbose=0, trace=0, plot=0;
+double getMedianValueInRange(operaSpectralElements *inputElements, unsigned centerElement, unsigned binsize);
 
 /*! 
  * operaCreateFlatFieldFluxCalibration
@@ -83,123 +66,36 @@ int debug=0, verbose=0, trace=0, plot=0;
 
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
 	
 	string inputMasterFlatSpectrum;     // extracted masterflat spectrum (*.e.gz file)
 	string outputFluxCalibrationFile;   // fluxCalibration (*.fcal.gz file)
 	string wavelengthCalibration;
-
     double wavelengthForNormalization = 0.0;
-
-	int ordernumber = NOTPROVIDED;
-    
     unsigned binsize = 30;
-    
-    int minorder = 22;
-    bool minorderprovided = false;
-    int maxorder = 62;    
-    bool maxorderprovided = false;            
-    
-    bool interactive = false;
-    
-	int debug=0, verbose=0, trace=0, plot=0;
-    
-    string plotfilename;	
+    int ordernumber = NOTPROVIDED;
+    int minorder = NOTPROVIDED;
+    int maxorder = NOTPROVIDED;
+    string plotfilename;
 	string spectrumDataFilename;
-	string continuumDataFilename;	
-	string scriptfilename;	
+	string continuumDataFilename;
+	string scriptfilename;
+	bool interactive = false;
 	
-	struct option longopts[] = {
-		{"inputMasterFlatSpectrum",         1, NULL, 'i'},
-		{"outputFluxCalibrationFile",       1, NULL, 'o'},
-		{"wavelengthCalibration",           1, NULL, 'w'},
-		{"wavelengthForNormalization",      1, NULL, 'W'},
-        {"binsize",                         1, NULL, 'b'},
-		{"ordernumber",                     1, NULL, 'O'},
-		{"minorder",                        1, NULL, 'M'},
-		{"maxorder",                        1, NULL, 'X'},
-		{"plotfilename",                    1, NULL, 'P'},
-		{"spectrumDataFilename",            1, NULL, 'F'},
-		{"continuumDataFilename",           1, NULL, 'C'},        
-		{"scriptfilename",                  1, NULL, 'S'},  
-		{"interactive",                     0, NULL, 'I'},
-		{"plot",				optional_argument, NULL, 'p'},       
-		{"verbose",				optional_argument, NULL, 'v'},
-		{"debug",				optional_argument, NULL, 'd'},
-		{"trace",				optional_argument, NULL, 't'},
-		{"help",				no_argument, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "i:o:w:W:b:O:M:X:P:F:C:S:I:p::v::d::t::h",  longopts, NULL))  != -1)
-	{
-		switch(opt) 
-		{
-			case 'i':
-				inputMasterFlatSpectrum = optarg;	
-				break;    
-			case 'o':		// output
-				outputFluxCalibrationFile = optarg;
-				break;
-			case 'w':
-				wavelengthCalibration = optarg;
-				break;
-            case 'W':	
-				wavelengthForNormalization = atof(optarg);
-				break;
-            case 'b':		// binsize
-				binsize = atoi(optarg);
-				break;
-			case 'O':
-				ordernumber = atoi(optarg);
-				break;				
-			case 'M':
-				minorder = atoi(optarg);
-                minorderprovided = true;
-				break;  
-			case 'X':
-				maxorder = atoi(optarg);
-                maxorderprovided = true;
-				break;
-			case 'P':
-				plotfilename = optarg;
-				plot = 1;
-				break; 		                
-			case 'F':
-				spectrumDataFilename = optarg;
-				break; 	
-			case 'C':
-				continuumDataFilename = optarg;
-				break;                 
-			case 'S':
-				scriptfilename = optarg;
-				break;  
-			case 'I':		// for interactive plots
-				interactive = true;
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
+	args.AddRequiredArgument("inputMasterFlatSpectrum", inputMasterFlatSpectrum, "Spectrophotometric standard extracted uncalibrated spectrum");
+	args.AddRequiredArgument("outputFluxCalibrationFile", outputFluxCalibrationFile, "Output flux calibration conversion file");
+	args.AddRequiredArgument("wavelengthCalibration", wavelengthCalibration, "Input wavelength calibration file");
+	args.AddRequiredArgument("wavelengthForNormalization", wavelengthForNormalization, "Choose a wavelength for which the spectrum should be normalized");
+	args.AddRequiredArgument("binsize", binsize, "Number of points to bin for continuum estimate");
+	args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
+	args.AddOptionalArgument("plotfilename", plotfilename, "", "Output plot eps file name");
+	args.AddOptionalArgument("spectrumDataFilename", spectrumDataFilename, "", "Output data file name");
+	args.AddOptionalArgument("continuumDataFilename", continuumDataFilename, "", "Output data file name");
+	args.AddOptionalArgument("scriptfilename", scriptfilename, "", "Output gnuplot script file name");
+	args.AddSwitch("interactive", interactive, "For interactive plots");
 	
 	try {
+		args.Parse(argc, argv);
 		// we need an input uncalibrated spectrum...
 		if (inputMasterFlatSpectrum.empty()) {
 			throw operaException("operaCreateFlatFieldFluxCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -212,58 +108,28 @@ int main(int argc, char *argv[])
 			throw operaException("operaCreateFlatFieldFluxCalibration: wcal: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
 
-		if (verbose) {
-			cout << "operaCreateFlatFieldFluxCalibration: inputMasterFlatSpectrum = " << inputMasterFlatSpectrum << endl; 
+		if (args.verbose) {
+			cout << "operaCreateFlatFieldFluxCalibration: inputMasterFlatSpectrum = " << inputMasterFlatSpectrum << endl;
             cout << "operaCreateFlatFieldFluxCalibration: outputFluxCalibrationFile = " << outputFluxCalibrationFile << endl;
             cout << "operaCreateFlatFieldFluxCalibration: wavelengthCalibration = " << wavelengthCalibration << endl;
             cout << "operaCreateFlatFieldFluxCalibration: wavelengthForNormalization = " << wavelengthForNormalization << endl;
             cout << "operaCreateFlatFieldFluxCalibration: binsize = " << binsize << endl;
-            if(ordernumber != NOTPROVIDED) {
-                cout << "operaCreateFlatFieldFluxCalibration: ordernumber = " << ordernumber << endl;            
-            }   
-            if(plot) {
+            if(ordernumber != NOTPROVIDED) cout << "operaCreateFlatFieldFluxCalibration: ordernumber = " << ordernumber << endl;
+            if(args.plot) {
                 cout << "operaCreateFlatFieldFluxCalibration: plotfilename = " << plotfilename << endl;
                 cout << "operaCreateFlatFieldFluxCalibration: spectrumDataFilename = " << spectrumDataFilename << endl;
                 cout << "operaCreateFlatFieldFluxCalibration: continuumDataFilename = " << continuumDataFilename << endl;
-                cout << "operaCreateFlatFieldFluxCalibration: scriptfilename = " << scriptfilename << endl; 
-                if(interactive) {
-                    cout << "operaCreateFlatFieldFluxCalibration: interactive = YES" << endl; 
-                } else {
-                    cout << "operaCreateFlatFieldFluxCalibration: interactive = NO" << endl; 
-                }
+                cout << "operaCreateFlatFieldFluxCalibration: scriptfilename = " << scriptfilename << endl;
+				cout << "operaCreateFlatFieldFluxCalibration: interactive = " << (interactive ? "YES" : "NO")  << endl;
             }            
             
 		}
-        ofstream *fspecdata = NULL;
-        ofstream *fcontinuumdata = NULL;
-        
-        if (!spectrumDataFilename.empty()) {
-            fspecdata = new ofstream();
-            fspecdata->open(spectrumDataFilename.c_str());  
-        }    
-        
-        if (!continuumDataFilename.empty()) {
-            fcontinuumdata = new ofstream();
-            fcontinuumdata->open(continuumDataFilename.c_str());  
-        }          
         
 		operaSpectralOrderVector spectralOrders(inputMasterFlatSpectrum);
 		spectralOrders.ReadSpectralOrders(wavelengthCalibration);
 
-        if(!minorderprovided) {
-            minorder = spectralOrders.getMinorder();
-        }
-        if(!maxorderprovided) {
-            maxorder = spectralOrders.getMaxorder();            
-        }        
-        
-        if(ordernumber != NOTPROVIDED) {
-			minorder = ordernumber;
-			maxorder = ordernumber;
-		}
-        
-		if (verbose)
-			cout << "operaCreateFlatFieldFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;
+        UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
+		if (args.verbose) cout << "operaCreateFlatFieldFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;
   
         double maxFluxForNormalization = 0.0; //  DT May 08 2014 
         double maxBeamFluxForNormalization[MAXNUMBEROFBEAMS];
@@ -363,7 +229,7 @@ int main(int argc, char *argv[])
             }
         }
  
-        if(debug) {
+        if(args.debug) {
             cout << "refOrder=" << refOrder << endl;
             cout << "maxFluxForNormalization=" << maxFluxForNormalization << endl;
             for(unsigned beam = 0; beam < numberOfBeams; beam++) {
@@ -378,7 +244,7 @@ int main(int argc, char *argv[])
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 
             if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
-                if (verbose) {
+                if (args.verbose) {
 					cout << "operaCreateFlatFieldFluxCalibration: Calibrating order number: "<< order << endl;
                 }
                 operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
@@ -439,7 +305,7 @@ int main(int argc, char *argv[])
                 }
                 spectralOrder->sethasSpectralEnergyDistribution(true);
                 
-                if(debug) {
+                if(args.debug) {
                     for(unsigned i=0; i<SpectralElements->getnSpectralElements(); i++) {
                         cout << order << " " << i << " "
                         << SpectralElements->getwavelength(i) << " "
@@ -454,23 +320,15 @@ int main(int argc, char *argv[])
 			} //if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
             
             if (!spectralOrder->gethasSpectralElements() ||  !spectralOrder->gethasWavelength()) {
-				if (verbose)
-					cout << "operaCreateFlatFieldFluxCalibration: Skipping order number: "<< order << " no spectral elements." << endl;
+				if (args.verbose) cout << "operaCreateFlatFieldFluxCalibration: Skipping order number: "<< order << " no spectral elements." << endl;
 			}
         }
 
-        /*
-		 * and write output
-		 */
+		// write output
 		spectralOrders.WriteSpectralOrders(outputFluxCalibrationFile, Fcal);
 		
-        if (fspecdata != NULL && fcontinuumdata != NULL) {
-			fspecdata->close();
-            fcontinuumdata->close();
-            
-            if (!scriptfilename.empty()) {
-                GenerateCreateFlatFieldFluxCalibrationPlot(scriptfilename.c_str(),plotfilename.c_str(),spectrumDataFilename.c_str(),continuumDataFilename.c_str(), 2, interactive);
-            }
+        if (!spectrumDataFilename.empty() && !continuumDataFilename.empty() && !scriptfilename.empty()) {
+			GenerateCreateFlatFieldFluxCalibrationPlot(scriptfilename.c_str(),plotfilename.c_str(),spectrumDataFilename.c_str(),continuumDataFilename.c_str(), 2, interactive);
         }
         
 	}
@@ -482,108 +340,57 @@ int main(int argc, char *argv[])
 		cerr << "operaCreateFlatFieldFluxCalibration: " << operaStrError(errno) << endl;
 		return EXIT_FAILURE;
 	}
-	
 	return EXIT_SUCCESS;
 } 
 
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" +
-	" --inputMasterFlatSpectrum=<SPEC_FILE>"
-	" --outputFluxCalibrationFile=<SPEC_FILE>"
-	" --wavelengthCalibration=<WCAL_FILE>"
-	" --wavelengthForNormalization=<DBL_VALUE>"
-	" --binsize=<UNS_VALUE>"
-	" --ordernumber=<UNS_VALUE>"
-	" --minorder=<UNS_VALUE>"
-	" --maxorder=<UNS_VALUE>"
-	" --plotContinuum=<BOOL>"
-	" --plotfilename=<EPS_FILE>"
-	" --spectrumDataFilename=<DATA_FILE>"
-	" --continuumDataFilename=<DATA_FILE>"
-	" --scriptfilename=<GNUPLOT_FILE>"
-	" --interactive=<BOOL>\n\n"
-	" Example: "+string(modulename)+" --inputMasterFlatSpectrum=/Users/edermartioli/opera//calibrations/FCAL001-13BQ04-Sep12/ff_OLAPAa_pol_Normal.e.gz --wavelengthCalibration=/Users/edermartioli/opera//calibrations/FCAL001-13BQ04-Sep12/OLAPAa_pol_Normal.wcar.gz  --outputFluxCalibrationFile=/Users/edermartioli/opera//calibrations/FCAL001-13BQ04-Sep12/ff_OLAPAa_pol_Normal.fcal.gz  --binsize=50 -v \n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	"  -i, --inputMasterFlatSpectrum=<SPEC_FILE>,  Spectrophotometric standard extracted uncalibrated spectrum \n"
-	"  -o, --outputFluxCalibrationFile=<SPEC_FILE>,  Output flux calibration conversion file \n"
-	"  -w, --wavelengthCalibration=<WCAL_FILE>,  Input wavelength calibration file \n"
-    "  -W, --wavelengthForNormalization=<DBL_VALUE>, Choose a wavlength for which the spectrum should be normalized \n"
-	"  -b, --binsize=<UNS_VALUE>, Number of points to bin for continuum estimate \n"
-	"  -O, --ordernumber=<UNS_VALUE>, Absolute order number to extract (default=all)\n"
-	"  -M, --minorder=<UNS_VALUE>, Define minimum order number\n"
-	"  -X, --maxorder=<UNS_VALUE>, Define maximum order number\n"
-	"  -P, --plotfilename=<EPS_FILE>\n"
-	"  -c, --plotContinuum=<BOOL>, Switch to generate plot of continuum or normalized line spectra\n"
-	"  -F, --spectrumDataFilename=<DATA_FILE>\n"
-	"  -C, --continuumDataFilename=<DATA_FILE>\n"
-	"  -S, --scriptfilename=<GNUPLOT_FILE>\n"
-	"  -I, --interactive=<BOOL>\n\n";
-}
-
 void GenerateCreateFlatFieldFluxCalibrationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string continuumDataFilename, unsigned NumberofBeams, bool display)
 {
-    ofstream *fgnu = NULL;
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str());  // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str());  // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
+    fgnu << "reset" << endl;
+    fgnu << "unset key" << endl;
+    fgnu << "\nset xlabel \"wavelength (nm)\"" << endl;
+    fgnu << "set ylabel \"flux\"" << endl;
     
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key" << endl;
-    *fgnu << "\nset xlabel \"wavelength (nm)\"" << endl;
-    *fgnu << "set ylabel \"flux\"" << endl;
-    
-    *fgnu << "set pointsize 1.0" << endl;
+    fgnu << "set pointsize 1.0" << endl;
     
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         
-        *fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
+        fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
         ",\"" << continuumDataFilename << "\" u 4:5 w linespoint lw 2.5" << endl;
         
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
-        *fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
+        fgnu << "\nplot \"" << spectrumDataFilename << "\" u 6:7 w d" <<
         ",\"" << continuumDataFilename << "\" u 4:5 w linespoint lw 2.5" << endl;
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if (!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }
 
-double getMedianValueInRange(operaSpectralElements *inputElements, unsigned centerElement, unsigned binsize) {
-    
+double getMedianValueInRange(operaSpectralElements *inputElements, unsigned centerElement, unsigned binsize)
+{
     unsigned nElements = inputElements->getnSpectralElements();
     
     int i1 = (int)centerElement - (int)binsize/2;
@@ -596,9 +403,7 @@ double getMedianValueInRange(operaSpectralElements *inputElements, unsigned cent
     if((unsigned)i2 > nElements) {
         i2 = (int)nElements;
         i1 = (int)nElements - (int)binsize;
-        if(i1 < 0) {
-            i1 = 0;
-        }
+        if(i1 < 0) i1 = 0;
     }
 
     float *fluxInRange = new float[nElements];

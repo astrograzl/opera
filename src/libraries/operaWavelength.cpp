@@ -220,6 +220,21 @@ void operaWavelength::createDataVectors(unsigned NDataPoints) {
     maxNDataPoints = NDataPoints;
 }
 
+void operaWavelength::createDataVectors(unsigned NDataPoints, double *WavelengthData, double *WavelengthErrors, double *DistanceData){
+
+    createDataVectors(NDataPoints);
+    
+    nDataPoints = NDataPoints;
+
+    for(unsigned i=0; i< nDataPoints; i++ ) {
+        distanceData[i] = DistanceData[i];
+        wavelengthData[i] = WavelengthData[i];
+        wavelengthErrors[i] = WavelengthErrors[i];
+        matchAtlasindex[i] = i;
+        matchComparisonindex[i] = i;
+    }
+}
+
 void operaWavelength::deleteDataVectors(void) {
     if(distanceData) {
         free(distanceData);
@@ -676,54 +691,94 @@ void operaWavelength::deleteComparisonDataVectors(void) {
     maxNComparisonLines = 0;
 }
 
-void operaWavelength::refineWavelengthSolutionByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch, unsigned maxpolyorder) {
-	
-    double simulwl[MAXPOINTSINSIMULATEDSPECTRUM]; 
-    double atlasSimulSpectrum[MAXPOINTSINSIMULATEDSPECTRUM]; 
-    double comparisonSimulSpectrum[MAXPOINTSINSIMULATEDSPECTRUM]; 
-    unsigned NSimulatedPoints;
-	
-    calculateXCorrelation();
-	
-    double Maxcorrelation = getxcorrelation();     
+void operaWavelength::refineWavelengthSolutionOfSecondOrderByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch) {
     
-    int npar = wavelengthPolynomial->getOrderOfPolynomial();
-    double *par = (double *)wavelengthPolynomial->getVector();   
-    if(maxpolyorder > (unsigned)npar) {
-        maxpolyorder = (unsigned)npar;
-    }
+    // EM May 25 2015 -- it only works to search solutions on a 2nd order polynomial (parabola).
+    //                   I changed this function because the previous version was wrong and
+    //                   it wouldn't work. However it is not used by ESPaDOnS.
+    
     /*
-     * Below it attempts to find the coefficients that gives the highest correlation 
+     * Note that nPointsPerParameter and parameterRangetoSearch are input parameters
+     * that determine the step and range for which the coefficients will be searched
+     */
+    unsigned nPointsPerPar0 = nPointsPerParameter;
+    double par0RangetoSearch = parameterRangetoSearch;
+    unsigned nPointsPerPar1 = nPointsPerParameter;
+    double par1RangetoSearch = parameterRangetoSearch;
+    
+    double simulwl[MAXPOINTSINSIMULATEDSPECTRUM];
+    double atlasSimulSpectrum[MAXPOINTSINSIMULATEDSPECTRUM];
+    double comparisonSimulSpectrum[MAXPOINTSINSIMULATEDSPECTRUM];
+    unsigned NSimulatedPoints;
+    
+    int npar = 3;  // Force 2nd order polynomial
+    wavelengthPolynomial->setOrderOfPolynomial(npar);
+    double *par = (double *)wavelengthPolynomial->getVector();
+    
+    double maxpar0 = par[0];
+    double maxpar1 = par[1];
+    double maxpar2 = 0.0;
+    
+    double par0range = fabs(par[0] * par0RangetoSearch/100.0);
+    double dpar0 = par0range/double(nPointsPerPar0);
+    double par0ini = par[0] - par0range/2.0;
+    
+    double par1range = fabs(par[1] * par1RangetoSearch/100.0);
+    double dpar1 = par1range/double(nPointsPerPar1);
+    double par1ini = par[1] - par1range/2.0;
+    
+    double par2range = 1e-5;
+    double dpar2 = 2*par2range/double(nPointsPerPar1);
+    double par2ini = - par2range;
+    
+    /*
+     * Below it attempts to find the coefficients that gives the highest correlation
      * between the raw and atlas simulated spectra.
-     */    
-    for(unsigned k=0;k<maxpolyorder;k++) {    
-        /*
-         * Note that nPointsPerParameter and parameterRangetoSearch are input parameters
-         * that determine the step and range for which the coefficients will be searched
-         */                           
-        double dpar = fabs(par[k] * parameterRangetoSearch/100.0)/double(nPointsPerParameter);
-        double par0 = par[k] -  fabs(par[k] * parameterRangetoSearch/100.0)/2.0;
+     */
+    double Maxcorrelation = -1.0;
+    
+    par[2] = par2ini;
+    for (unsigned k=0;k<nPointsPerPar1; k++) {
         
-        double maxpar0 = par[k];
-        par[k] = par0;
-        
-        for(unsigned l=0; l<nPointsPerParameter; l++) {
-            recalculateComparisonLineswlVector();
-			
-            NSimulatedPoints = createAtlasSimulatedSpectrum(simulwl, atlasSimulSpectrum, NPOINTPERSIGMA);
-			
-            NSimulatedPoints = createComparisonSimulatedSpectrum(simulwl, comparisonSimulSpectrum, NPOINTPERSIGMA);  
-			
-            double crosscorrelation = operaCrossCorrelation(NSimulatedPoints,atlasSimulSpectrum,comparisonSimulSpectrum);                       
-			
-            if(crosscorrelation > Maxcorrelation) {
-                Maxcorrelation = crosscorrelation;
-                maxpar0 = par[k];
+        par[1] = par1ini;
+        for (unsigned j=0;j<nPointsPerPar1; j++) {
+            
+            par[0] = par0ini;
+            for (unsigned i=0;i<nPointsPerPar0; i++) {
+                
+                recalculateComparisonLineswlVector();
+                
+                NSimulatedPoints = createAtlasSimulatedSpectrumWithConstantFlux(simulwl, atlasSimulSpectrum, NPOINTPERSIGMA);
+                NSimulatedPoints = createComparisonSimulatedSpectrumWithConstantFlux(simulwl, comparisonSimulSpectrum, NPOINTPERSIGMA);
+                
+                double crosscorrelation = operaCrossCorrelation(NSimulatedPoints,atlasSimulSpectrum,comparisonSimulSpectrum);
+#ifdef PRINT_DEBUG
+                cout << par[0] << " " << par[1] << " " << par[2] << " " << crosscorrelation << endl;
+#endif
+                if(crosscorrelation > Maxcorrelation) {
+                    Maxcorrelation = crosscorrelation;
+                    maxpar0 = par[0];
+                    maxpar1 = par[1];
+                    maxpar2 = par[2];
+                }
+                
+                par[0] += dpar0;
             }
-            par[k] += dpar;
+#ifdef PRINT_DEBUG
+            cout << endl;
+#endif
+            par[1] += dpar1;
         }
-        par[k] = maxpar0;
+#ifdef PRINT_DEBUG
+        cout << endl;
+#endif
+        par[2] += dpar2;
     }
+    
+    par[0] = maxpar0;
+    par[1] = maxpar1;
+    par[2] = maxpar2;
+    
     recalculateComparisonLineswlVector();
     
     setxcorrelation(Maxcorrelation);
@@ -753,6 +808,79 @@ void operaWavelength::refineWavelengthSolutionByFindingMaxMatching(unsigned Npoi
         par[0] += dpar;
     }
     par[0] = maxpar0;
+}
+
+
+/*
+ * Function to create an Atlas simulated spectrum with all line fluxes constant = 1.0
+ */
+unsigned operaWavelength::createAtlasSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma) {
+    unsigned nLines = nAtlasLines;
+    double *lineCenters = atlasLineswl;
+    double *lineAmplitudes = new double[nLines];
+    
+    double wlc = getcentralWavelength();
+    double minwl = getinitialWavelength();
+    double maxwl = getfinalWavelength();
+    
+    double lineSigma = wlc/(spectralResolution.value);
+    double wlstep = lineSigma/(double)nstepspersigma;
+    
+    unsigned npoints = (unsigned)ceil(fabs(maxwl - minwl)/wlstep);
+    
+    double *sigmaVector = new double[nLines];
+    
+    for(unsigned i=0;i<nLines;i++) {
+        sigmaVector[i] = lineSigma;
+        lineAmplitudes[i] = 1.0;
+    }
+    
+    Gaussian spectrumModel(nLines,lineAmplitudes,sigmaVector,lineCenters);
+    
+    double wl = minwl;
+    
+    for(unsigned i=0;i<npoints;i++) {
+        outputSpectrum[i] = spectrumModel.EvaluateGaussian(wl);
+        outputwl[i] = wl;
+        wl += wlstep;
+    }
+    
+    delete[] sigmaVector;
+    
+    return npoints;
+}
+
+/*
+ * Function to create a comparison simulated spectrum with all line fluxes constant = 1.0
+ */
+unsigned operaWavelength::createComparisonSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma) {
+    unsigned nLines = nComparisonLines;
+    
+    if (nLines >= MAXPOINTSINSIMULATEDSPECTRUM) {
+        throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    double *lineAmplitudes = new double[nComparisonLines];
+    double wlc = getcentralWavelength();
+    double minwl = getinitialWavelength();
+    double maxwl = getfinalWavelength();
+    double lineSigma = wlc/(spectralResolution.value);
+    double wlstep = lineSigma/(double)nstepspersigma;
+    unsigned npoints = (unsigned)ceil(fabs(maxwl - minwl)/wlstep);
+    double *sigmaVector = new double[nLines];
+    for(unsigned i=0;i<nLines;i++) {
+        sigmaVector[i] = lineSigma;
+        lineAmplitudes[i] = 1.0;
+    }
+    recalculateComparisonLineswlVector();
+    Gaussian spectrumModel(nLines,lineAmplitudes,sigmaVector,comparisonLineswl);
+    double wl = minwl;
+    for(unsigned i=0;i<npoints;i++) {
+        outputSpectrum[i] = spectrumModel.EvaluateGaussian(wl);
+        outputwl[i] = wl;
+        wl += wlstep;
+    }
+    delete[] sigmaVector;
+    return npoints;
 }
 
 

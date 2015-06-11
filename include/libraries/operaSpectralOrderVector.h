@@ -71,7 +71,7 @@ private:
 	unsigned count;					// Note that this count is the count of actual orders, 
 									// not the length of the vector (which will be MAXORDERS)
 	GainBiasNoise *gainBiasNoise;	// flat stats
-	double BarycentricRadialVelocityCorrection;
+	double RadialVelocityCorrection;
 	double TelluricRadialVelocityCorrection;
 
 public:
@@ -139,15 +139,15 @@ public:
 	 */
 	GainBiasNoise *getGainBiasNoise();
 	/*! 
-	 * unsigned getBarycentricRadialVelocityCorrection();
-	 * \brief returns a double BarycentricRadialVelocityCorrection.
+	 * unsigned getRadialVelocityCorrection();
+	 * \brief returns a double RadialVelocityCorrection.
 	 */
-	double getBarycentricRadialVelocityCorrection();	
+	double getRadialVelocityCorrection();	
 	/*!
-	 * void setBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
-	 * \brief sets the double BarycentricRadialVelocityCorrection.
+	 * void setRadialVelocityCorrection(double RadialVelocityCorrection);
+	 * \brief sets the double RadialVelocityCorrection.
 	 */
-	void setBarycentricRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
+	void setRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
 	/*!
 	 * void setTelluricRadialVelocityCorrection(double TelluricRadialVelocityCorrection);
 	 * \brief sets the double TelluricRadialVelocityCorrection.
@@ -365,7 +365,7 @@ public:
     void correctFlatField(string inputFlatFluxCalibration, int Minorder, int Maxorder, bool StarPlusSky, bool starplusskyInvertSkyFiber);
     void saveExtendedRawFlux(int Minorder, int Maxorder);
     void normalizeFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams);
-    void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);
+    void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum,string fluxCalibration, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, double SkyOverStarFiberAreaRatio, bool StarPlusSky);
     void normalizeAndApplyFlatResponseINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, string flatResponse, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);
     unsigned getMaxNumberOfElementsInOrder(int Minorder, int Maxorder);
     unsigned getNumberofBeams(int Minorder, int Maxorder);

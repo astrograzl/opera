@@ -135,6 +135,8 @@ public:
 	
 	void createDataVectors(unsigned NDataPoints);
     
+    void createDataVectors(unsigned NDataPoints, double *WavelengthData, double *WavelengthErrors, double *DistanceData);
+
 	void deleteDataVectors(void);    
 	/*
 	 * Atlas wavelength data
@@ -216,9 +218,13 @@ public:
     
     double calculateWavelengthMedianPrecision(void);   
     
-    void refineWavelengthSolutionByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch, unsigned maxpolyorder);
+    void refineWavelengthSolutionOfSecondOrderByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch);
     
     void refineWavelengthSolutionByFindingMaxMatching(unsigned NpointsPerPar, double ParRangeSizeInPerCent, double acceptableMismatch);
+    
+    unsigned createAtlasSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
+    
+    unsigned createComparisonSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
     
     unsigned createAtlasSimulatedSpectrum(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
         
