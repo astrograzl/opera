@@ -41,6 +41,7 @@
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/operaSpectralElements.h"
@@ -245,9 +246,10 @@ int main(int argc, char *argv[])
 		}
 		operaFITSImage out(tempoutfilename, ESPADONS_DEFAULT_NAXIS1, ESPADONS_DEFAULT_NAXIS2, tushort, cNone);
 		if (spectrum) {
-			operaSpectralOrderVector spectralOrderVector(inputfilename);
-			spectralOrderVector.ReadSpectralOrders(geomfilename);		// geometry
-			spectralOrderVector.ReadSpectralOrders(wavefilename);		// wavelength
+			operaSpectralOrderVector spectralOrderVector;
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, inputfilename);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, geomfilename);		// geometry
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, wavefilename);		// wavelength
 			unsigned minorder = spectralOrderVector.getMinorder();
 			unsigned minactualorder = minorder;
 			unsigned maxorder = spectralOrderVector.getMaxorder();
@@ -367,9 +369,10 @@ int main(int argc, char *argv[])
 			}
 		}
 		if (snr) {
-			operaSpectralOrderVector spectralOrderVector(inputfilename);
-			spectralOrderVector.ReadSpectralOrders(geomfilename);		// geometry
-			spectralOrderVector.ReadSpectralOrders(wavefilename);		// wavelength
+			operaSpectralOrderVector spectralOrderVector;
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, inputfilename);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, geomfilename);		// geometry
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, wavefilename);		// wavelength
 			unsigned minorder = spectralOrderVector.getMinorder();
 			unsigned maxorder = spectralOrderVector.getMaxorder();
 			for (unsigned myorder=minorder; myorder <= maxorder; myorder++) {

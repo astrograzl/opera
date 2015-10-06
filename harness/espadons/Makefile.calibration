@@ -377,58 +377,6 @@ badpixelmask badpix:
 	echo "$(pref) badpixel mask complete in $(deltat)"
 
 #########################################################################################
-# Telescope setup - only done once
-#########################################################################################
-
-telescopesetup:
-	@start=$$SECONDS; \
-	if [ ! -e $(configdir)$(observatory).telescope$(gzip) ] ; then \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelescopeSetup \
-	--latitude=$(telescope_latitude) \
-	--longitude=$(telescope_longitude) \
-	--elevation=$(observatory_elevation) \
-	--CollectingArea=$(telescope_CollectingArea) \
-	--Aperture=$(telescope_Aperture) \
-	--FocalRatio=$(telescope_FocalRatio) \
-	--TelescopeMount=$(telescope_mount) \
-	--OpticalCoating=$(telescope_coating) \
-	--outputTelescopeFile=$(configdir)$(observatory).telescope$(gzip) $(optargs)" 2>&1 | tee -a $(logdir)$(observatory).telescopesetup.log ; \
-		echo "$(pref) Telescope setup completed in $(deltat)" ; \
-	fi
-
-#########################################################################################
-# Spectrograph setup -- Mode / speed based
-#########################################################################################
-spectrographsetup:
-ifneq ($(DATADIR),$(queuedir)/)
-	@start=$$SECONDS; \
-	$(call doAllCalibrationModes,$(observatory)_,spectrograph$(gzip)) ; \
-	echo "$(pref All modes of spectrograph setup complete in $(deltat)"
-else
-	@echo "$(pref)Please specify NIGHT= or DATADIR="
-endif
-
-%.spectrograph$(gzip):
-	@start=$$SECONDS; \
-	if [ ! -e $(condfigdir)$@ ] ; then \
-		echo "$(pref) Starting spectrograph setup for $(QUALIFIERS) ..." ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaSpectrographSetup \
-	--InjectionHoleDiameter=$(spectrograph_InjectionHoleDiameter) \
-	--OpticalFiber=$(spectrograph_OpticalFiber) \
-	--fiberLength=$(spectrograph_fiberLength) \
-	--fiberCoreDiameter=$(spectrograph_fiberCoreDiameter) \
-	--numberOfInputFibers=$(spectrograph_numberOfInputFibers) \
-	--numberOfSlices=$(spectrograph_numberOfSlices) \
-	--spectralResolution=$(spectrograph_spectralResolution) \
-	--pixelsize=$(spectrograph_pixelsize) \
-	--EspadonsCCDReadoutSpeed=$(spectrograph_EspadonsCCDReadoutSpeed) \
-	--SpectrographCCD=$(spectrograph_SpectrographCCD) \
-	--EspadonsInstrumentMode=$(spectrograph_InstrumentMode) \
-	--outputSpectrographFile=$(configdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$(observatory).spectrograph.log ; \
-		echo "$(pref) Spectrograph setup for $(QUALIFIERS) completed in $(deltat)" ; \
-	fi
-
-#########################################################################################
 # This section contains the calibration steps
 #########################################################################################
 
@@ -741,11 +689,13 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 			flats=`cat <$(byproductsdir)$*.glst | sed -n '/f.$(FITS)/p' | tail -n $(maximumflatsforgain) | tr '\n' ' '`; \
 			count=`$(bindir)operacount "$${flats}"`; \
 			needed=$(minimumflatsforgain) ; \
+			dsecargs="--DATASEC=\"$(datasec)\"" ; \
+			if [[ $($(DETECTOR)$(AMPLIFIER)_namps) == 2 ]] ; then \
+				dsecargs="--DSECA=\"$(dseca)\" --DSECB=\"$(dsecb)\"" ; \
+			fi ; \
 			if (( count >= needed )) ; then \
 				$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGain \
---DATASEC=\"$(datasec)\" \
---DSECA=\"$(dseca)\" \
---DSECB=\"$(dsecb)\" \
+$${dsecargs} \
 --badpixelmask=$(badpixelmask) \
 --defaultgain=$(gain) \
 --defaultnoise=$(noise) \
@@ -885,7 +835,7 @@ masterfluxcalibration_$(QUALIFIERS).fcal$(gzip):
 					if [ -e $(DATADIR)/$${odometer}o.$(FITS)$(inextension) ] ; then \
 						inputfits="$(DATADIR)/$${odometer}o.$(FITS)$(inextension)" ; \
 					fi ; \
-					mode=`$(bindir)operagetmode $${inputfits}`; \
+					mode=`$(bindir)$(OPERAGETMODE) $${inputfits}`; \
 					sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
 					if [[ "$(MODE)" == "$${mode}" && "$${seq}" == "$${sequence}" ]] ; then \
 						inputfcals="$$inputfcals --inputfcal=$(calibrationdir)$$fcal" ; \
@@ -926,7 +876,7 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 				if [ -e $(DATADIR)/$${odometer}o.$(FITS)$(inextension) ] ; then \
 					inputfits="$(DATADIR)/$${odometer}o.$(FITS)$(inextension)" ; \
 				fi ; \
-				mode=`$(bindir)operagetmode $${inputfits}`; \
+				mode=`$(bindir)$(OPERAGETMODE) $${inputfits}`; \
 				if [[ "$(MODE)" == "$${mode}" ]] ; then \
 					inputfcals="$$inputfcals --inputfcal=$(calibrationdir)$$fcal" ; \
 				fi ; \
@@ -997,6 +947,7 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 --pickImageRow=$(aperpickImageRow) \
 --nRowSamples=$(apernRowSamples) \
 --xbin=$(aperxbin) \
+--constantTilt=$(constanttiltflag) \
 $${pargs} \
 --ordernumber=$(ordernumber) \
 --outputApertureFile=$(calibrationdir)$@ \
@@ -1181,30 +1132,32 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 
 #########################################################################################
 # Refine the wavelength calibration
+# Skipping stitchorder (LMa, Aug20)
 #########################################################################################
 %.wcal$(gzip): masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting Wavelength refinement with operaStitchOrders for $(QUALIFIERS)" ;\
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="" ; \
+			pargs="--plotfilename=$(visualsdir)$*stitch.eps --datafilename=$(byproductsdir)$*stitch.pdat --scriptfilename=$(byproductsdir)$*stitch.gnu" ; \
 		fi ; \
 		wcar="$(configdir)wcal_ref.dat$(gzip)" ; \
 		if [ -e $(calibrationdir)$(QUALIFIERS).wcar$(gzip) ] ; then \
 			wcar=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) ; \
 		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaStitchOrders \
---inputSpectrum=$(calibrationdir)th_$(QUALIFIERS).e$(gzip) \
---inputWaveFile=$${wcar} \
---outputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
---orderOfReference=$(stitch_orderOfReference) \
---DWavelengthRange=$(stitch_DWavelengthRange) \
---DWavelengthStep=$(stitch_DWavelengthStep) \
---XCorrelationThreshold=$(stitch_XCorrelationThreshold) \
---sigmaThreshold=$(stitch_sigmaThreshold) \
-$${pargs} \
-$(optargs)" 2>&1 | tee -a $(logfile) ; \
-		echo "$(pref) Wavelength refinement with operaStitchOrders for $(QUALIFIERS) complete in $(deltat)" ; \
+		cp $(calibrationdir)$(QUALIFIERS).wcar$(gzip) $(calibrationdir)$(QUALIFIERS).wcal$(gzip); \
+#		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaStitchOrders \
+#--inputSpectrum=$(calibrationdir)th_$(QUALIFIERS).e$(gzip) \
+#--inputWaveFile=$${wcar} \
+#--outputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
+#--orderOfReference=$(stitch_orderOfReference) \
+#--RVRange=$(stitch_RVRange) \
+#--RVStep=$(stitch_RVStep) \
+#--XCorrelationThreshold=$(stitch_XCorrelationThreshold) \
+#--sigmaThreshold=$(stitch_sigmaThreshold) \
+#$${pargs} \
+#$(optargs)" 2>&1 | tee -a $(logfile) ; \
+#		echo "$(pref) Wavelength refinement with operaStitchOrders for $(QUALIFIERS) complete in $(deltat)" ; \
 	fi
 
 #########################################################################################

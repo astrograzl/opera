@@ -37,5 +37,15 @@
 # 
 #
 bindir=$opera/bin/
-echo -n `${bindir}/operagetheader --keyword=INSTMODE $1 | awk '{if ($1=="Polarimetry,") print "pol"; else if ($2=="star+sky,") print "sp1"; else print "sp2";}'`
+if [[ $# -eq 1 ]]; then
+	key=INSTMODE
+	filename=$1
+elif [[ $# -eq 2 ]]; then
+	key=$1
+	filename=$2
+else
+	echo "operagetmode: Invalid number of inputs"
+	exit
+fi
+echo -n `${bindir}/operagetheader --keyword=${key} ${filename} | awk '{if ($1=="Polarimetry,") print "pol"; else if ($2=="star+sky,") print "sp1"; else print "sp2";}'`
 exit

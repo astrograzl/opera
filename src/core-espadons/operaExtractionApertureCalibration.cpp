@@ -36,7 +36,7 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
 #include "libraries/ladfit.h"
 #include "libraries/operaArgumentHandler.h"
@@ -159,9 +159,10 @@ int main(int argc, char *argv[])
         if (!tiltdata1filename.empty()) ftiltdata1.open(tiltdata1filename.c_str());
         if (!tiltdata2filename.empty()) ftiltdata2.open(tiltdata2filename.c_str());
         
-		operaSpectralOrderVector spectralOrders(inputgeom);
-        spectralOrders.ReadSpectralOrders(inputprof);
-        if(!inputorderspacing.empty()) spectralOrders.ReadSpectralOrders(inputorderspacing);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputgeom);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputprof);
+        if(!inputorderspacing.empty()) operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputorderspacing);
         
         UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
         
@@ -600,7 +601,7 @@ int main(int argc, char *argv[])
         }        
         
         // output aperture to file...
-        spectralOrders.WriteSpectralOrders(outputApertureFile,Aperture);
+        operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputApertureFile,Aperture);
         
         if (ftiltdata1.is_open()) ftiltdata1.close();
         if (ftiltdata2.is_open()) ftiltdata2.close();

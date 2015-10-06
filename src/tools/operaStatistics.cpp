@@ -52,6 +52,7 @@
 #include "operaError.h"
 #include "libraries/operaException.h"
 #include "libraries/operaSpectralElements.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/operaFluxVector.h"
@@ -240,10 +241,11 @@ int main(int argc, char *argv[])
             case Polarimetry: {
                 
                 /* Create the spectral order vector based on inputs */
-                operaSpectralOrderVector orderVector(inputfilename);
+                operaSpectralOrderVector spectralOrders;
+                operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputfilename);
                 
-                unsigned minorder = orderVector.getMinorder();
-                unsigned maxorder = orderVector.getMaxorder();
+                unsigned minorder = spectralOrders.getMinorder();
+                unsigned maxorder = spectralOrders.getMaxorder();
                 
                 if(ordernumber != NOTPROVIDED) {
                     minorder = ordernumber;
@@ -251,7 +253,7 @@ int main(int argc, char *argv[])
                 }
                 
                 for (unsigned order=minorder; order<=maxorder; order++) {
-                    operaSpectralOrder *spectralOrder = orderVector.GetSpectralOrder(order);
+                    operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
                     operaPolarimetry *polarimetry = spectralOrder->getPolarimetry();
                     
                     unsigned length = polarimetry->getLength();
@@ -403,14 +405,14 @@ int main(int argc, char *argv[])
                 }
             }
                 break;
-            case LibreEspritSpectrum: {
+            /*case LibreEspritSpectrum: {
                 
                 unsigned minorder = 23;
                 unsigned maxorder = 60;
                 
                 unsigned count;
                 
-                /* Create the spectral order vector based on inputs */
+                // Create the spectral order vector based on inputs
                 operaSpectralOrderVector orderVector;
                 orderVector.readOrdersFromLibreEspritPolarimetry(inputfilename, StokesParameter, count, maxorder);
                 
@@ -449,13 +451,11 @@ int main(int argc, char *argv[])
                     if (verbose)
                         cout << "operaStatistics: Processing Stokes parameter: " << StokesParameter << endl;
                     
-                    /*
-                     * length and NumberOfSegments are two integer, which means that the division will drop any remaining fraction.
-                     * This way, NumberOfSegments times LengthOfSegments will always be smaller or equal to length.
-                     *      NumberOfSegments * LengthOfSegments <= length
-                     * If it's smaller, the remaining segment will be shorter than the others and will have no statistical meaning.
-                     * Thus it's neglected.
-                     */
+                    // length and NumberOfSegments are two integer, which means that the division will drop any remaining fraction.
+                    // This way, NumberOfSegments times LengthOfSegments will always be smaller or equal to length.
+                    //      NumberOfSegments * LengthOfSegments <= length
+                    // If it's smaller, the remaining segment will be shorter than the others and will have no statistical meaning.
+                    // Thus it's neglected.
                     unsigned LengthOfSegments = length / NumberOfSegments;
                     
                     unsigned LengthOfDivision = (unsigned)ceil((UpperLimit - LowerLimit)/IncrementOfDivision);
@@ -565,7 +565,7 @@ int main(int argc, char *argv[])
                     NumberOfPointsInEachDivision = NULL;
                 }
             }
-                break;
+                break;*/
             default:
                 break;
         }

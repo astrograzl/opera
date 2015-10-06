@@ -61,9 +61,8 @@ bin_PROGRAMS = operaConfigurationAccess$(EXEEXT) \
 	operacompress$(EXEEXT) operabiasinjector$(EXEEXT) \
 	operaPlotInstrumentProfile$(EXEEXT) operaStatistics$(EXEEXT) \
 	espqlh$(EXEEXT) catz$(EXEEXT) operaFITSDisplayImage$(EXEEXT) \
-	operaimagestats$(EXEEXT) operaExtractProducts$(EXEEXT) \
-	operads9thumbs$(EXEEXT) operaRotate$(EXEEXT) \
-	operaApplyTransform$(EXEEXT) operaEspadonsETC$(EXEEXT) \
+	operaimagestats$(EXEEXT) operads9thumbs$(EXEEXT) \
+	operaRotate$(EXEEXT) operaEspadonsETC$(EXEEXT) \
 	operaExtractImage$(EXEEXT) operaPlotOut$(EXEEXT) \
 	operaRotateMirrorCrop$(EXEEXT) operaMedianCombine$(EXEEXT) \
 	$(am__EXEEXT_1)
@@ -104,9 +103,6 @@ espqlh_LDADD = $(LDADD)
 am_opera_OBJECTS = opera.$(OBJEXT)
 opera_OBJECTS = $(am_opera_OBJECTS)
 opera_LDADD = $(LDADD)
-am_operaApplyTransform_OBJECTS = operaApplyTransform.$(OBJEXT)
-operaApplyTransform_OBJECTS = $(am_operaApplyTransform_OBJECTS)
-operaApplyTransform_LDADD = $(LDADD)
 am_operaConfigurationAccess_OBJECTS =  \
 	operaConfigurationAccess.$(OBJEXT)
 operaConfigurationAccess_OBJECTS =  \
@@ -124,9 +120,6 @@ operaEspadonsETC_LDADD = $(LDADD)
 am_operaExtractImage_OBJECTS = operaExtractImage.$(OBJEXT)
 operaExtractImage_OBJECTS = $(am_operaExtractImage_OBJECTS)
 operaExtractImage_LDADD = $(LDADD)
-am_operaExtractProducts_OBJECTS = operaExtractProducts.$(OBJEXT)
-operaExtractProducts_OBJECTS = $(am_operaExtractProducts_OBJECTS)
-operaExtractProducts_LDADD = $(LDADD)
 am_operaExtractRawSum_OBJECTS = operaExtractRawSum.$(OBJEXT)
 operaExtractRawSum_OBJECTS = $(am_operaExtractRawSum_OBJECTS)
 operaExtractRawSum_LDADD = $(LDADD)
@@ -228,31 +221,28 @@ CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
-	$(operaApplyTransform_SOURCES) \
 	$(operaConfigurationAccess_SOURCES) \
 	$(operaConvert2ampTo1amp_SOURCES) \
 	$(operaCreateBadpixMask_SOURCES) $(operaEspadonsETC_SOURCES) \
-	$(operaExtractImage_SOURCES) $(operaExtractProducts_SOURCES) \
-	$(operaExtractRawSum_SOURCES) $(operaFITS2txt_SOURCES) \
-	$(operaFITSDisplayImage_SOURCES) $(operaFITStoPNG_SOURCES) \
-	$(operaImage_SOURCES) $(operaMedianCombine_SOURCES) \
-	$(operaParameterAccess_SOURCES) $(operaPlot_SOURCES) \
-	$(operaPlotGeom_SOURCES) $(operaPlotInstrumentProfile_SOURCES) \
-	$(operaPlotOut_SOURCES) $(operaPlotWave_SOURCES) \
-	$(operaQueryImageInfo_SOURCES) $(operaRotate_SOURCES) \
-	$(operaRotateMirrorCrop_SOURCES) $(operaStatistics_SOURCES) \
-	$(operabiasinjector_SOURCES) $(operacompress_SOURCES) \
-	$(operads9thumbs_SOURCES) $(operagetheader_SOURCES) \
-	$(operaimagestats_SOURCES) $(operaimarith_SOURCES) \
-	$(operasaturated_SOURCES) $(operasetheader_SOURCES)
+	$(operaExtractImage_SOURCES) $(operaExtractRawSum_SOURCES) \
+	$(operaFITS2txt_SOURCES) $(operaFITSDisplayImage_SOURCES) \
+	$(operaFITStoPNG_SOURCES) $(operaImage_SOURCES) \
+	$(operaMedianCombine_SOURCES) $(operaParameterAccess_SOURCES) \
+	$(operaPlot_SOURCES) $(operaPlotGeom_SOURCES) \
+	$(operaPlotInstrumentProfile_SOURCES) $(operaPlotOut_SOURCES) \
+	$(operaPlotWave_SOURCES) $(operaQueryImageInfo_SOURCES) \
+	$(operaRotate_SOURCES) $(operaRotateMirrorCrop_SOURCES) \
+	$(operaStatistics_SOURCES) $(operabiasinjector_SOURCES) \
+	$(operacompress_SOURCES) $(operads9thumbs_SOURCES) \
+	$(operagetheader_SOURCES) $(operaimagestats_SOURCES) \
+	$(operaimarith_SOURCES) $(operasaturated_SOURCES) \
+	$(operasetheader_SOURCES)
 DIST_SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
-	$(operaApplyTransform_SOURCES) \
 	$(operaConfigurationAccess_SOURCES) \
 	$(operaConvert2ampTo1amp_SOURCES) \
 	$(operaCreateBadpixMask_SOURCES) $(operaEspadonsETC_SOURCES) \
-	$(operaExtractImage_SOURCES) $(operaExtractProducts_SOURCES) \
-	$(operaExtractRawSum_SOURCES) $(operaFITS2txt_SOURCES) \
-	$(operaFITSDisplayImage_SOURCES) \
+	$(operaExtractImage_SOURCES) $(operaExtractRawSum_SOURCES) \
+	$(operaFITS2txt_SOURCES) $(operaFITSDisplayImage_SOURCES) \
 	$(am__operaFITStoPNG_SOURCES_DIST) $(operaImage_SOURCES) \
 	$(operaMedianCombine_SOURCES) $(operaParameterAccess_SOURCES) \
 	$(am__operaPlot_SOURCES_DIST) \
@@ -315,25 +305,26 @@ LIBOBJS = @LIBOBJS@
 # This is for Linux...
 LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
-	-loperaSpectrumSimulation -loperaSpectralOrderVector \
-	-loperaSpectralOrder -loperaSpectralElements \
-	-loperaSpectralLines -loperaSpectralFeature \
-	-loperaExtractionAperture -loperaSpectralTools \
-	-loperaFluxVector -lGaussian -loperaInstrumentProfile \
-	-loperaGeometry -loperaWavelength -loperaEspadonsSubImage \
-	-loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage \
-	-loperaEspadonsImage -loperaMultiExtensionFITSCube \
-	-loperaMultiExtensionFITSImage -loperaFITSCube \
-	-loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT \
-	-loperaMuellerMatrix -loperaStokesVector -loperaFluxVector \
-	-loperaImageVector -loperaFITSSubImage -loperaImageVector \
-	-loperaGeometricShapes -loperaMatrix -lPolynomial \
-	-lLaurentPolynomial -loperaMath -loperaJD -loperaHelio \
-	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
-	-loperaConfigurationAccess -loperaParameterAccess -lPixelSet \
-	-loperaSpectralEnergyDistribution -loperaSpectrumSimulation \
-	-loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c \
-	-lz -lpthread -lm $(am__append_5) $(am__append_7)
+	-loperaSpectrumSimulation -loperaIOFormats \
+	-loperaSpectralOrderVector -loperaSpectralOrder \
+	-loperaSpectralElements -loperaSpectralLines \
+	-loperaSpectralFeature -loperaExtractionAperture \
+	-loperaSpectralTools -loperaFluxVector -lGaussian \
+	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
+	-loperaEspadonsSubImage -loperaFITSProduct \
+	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
+	-loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage \
+	-loperaFITSCube -loperaPolarimetry -loperaException \
+	-lGainBiasNoise -loperaFFT -loperaMuellerMatrix \
+	-loperaStokesVector -loperaFluxVector -loperaImageVector \
+	-loperaFITSSubImage -loperaImageVector -loperaGeometricShapes \
+	-loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath \
+	-loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage \
+	-loperaLMFit -loperaConfigurationAccess -loperaParameterAccess \
+	-lPixelSet -loperaSpectralEnergyDistribution \
+	-loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 \
+	-lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm \
+	$(am__append_5) $(am__append_7)
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -427,13 +418,13 @@ AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ \
 AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 	-loperaObservingConditions -loperaObjectInTheSky \
 	-loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation \
-	-loperaSpectralOrderVector -loperaSpectralOrder \
-	-loperaSpectralElements -loperaFluxVector -loperaSpectralLines \
-	-loperaSpectralFeature -loperaExtractionAperture \
-	-loperaSpectralTools -lGaussian -loperaInstrumentProfile \
-	-loperaGeometry -loperaWavelength -lPolynomial \
-	-lLaurentPolynomial -loperaMath -loperaJD -loperaHelio \
-	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-loperaIOFormats -loperaSpectralOrderVector \
+	-loperaSpectralOrder -loperaSpectralElements -loperaFluxVector \
+	-loperaSpectralLines -loperaSpectralFeature \
+	-loperaExtractionAperture -loperaSpectralTools -lGaussian \
+	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
+	-lPolynomial -lLaurentPolynomial -loperaMath -loperaJD \
+	-loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit \
 	-loperaConfigurationAccess -loperaParameterAccess \
 	-loperaFITSSubImage -loperaEspadonsSubImage -loperaPolarimetry \
 	-loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage \
@@ -458,10 +449,8 @@ operaMedianCombine_SOURCES = operaMedianCombine.cpp
 operaPlotOut_SOURCES = operaPlotOut.cpp
 operaExtractImage_SOURCES = operaExtractImage.cpp
 operaEspadonsETC_SOURCES = operaEspadonsETC.cpp operaEspadonsETC.h
-operaApplyTransform_SOURCES = operaApplyTransform.cpp
 operaRotate_SOURCES = operaRotate.cpp
 operads9thumbs_SOURCES = operads9thumbs.cpp
-operaExtractProducts_SOURCES = operaExtractProducts.cpp
 operaimagestats_SOURCES = operaimagestats.cpp
 operaFITSDisplayImage_SOURCES = operaFITSDisplayImage.cpp
 espqlh_SOURCES = espqlh.cpp
@@ -572,9 +561,6 @@ espqlh$(EXEEXT): $(espqlh_OBJECTS) $(espqlh_DEPENDENCIES) $(EXTRA_espqlh_DEPENDE
 opera$(EXEEXT): $(opera_OBJECTS) $(opera_DEPENDENCIES) $(EXTRA_opera_DEPENDENCIES) 
 	@rm -f opera$(EXEEXT)
 	$(CXXLINK) $(opera_OBJECTS) $(opera_LDADD) $(LIBS)
-operaApplyTransform$(EXEEXT): $(operaApplyTransform_OBJECTS) $(operaApplyTransform_DEPENDENCIES) $(EXTRA_operaApplyTransform_DEPENDENCIES) 
-	@rm -f operaApplyTransform$(EXEEXT)
-	$(CXXLINK) $(operaApplyTransform_OBJECTS) $(operaApplyTransform_LDADD) $(LIBS)
 operaConfigurationAccess$(EXEEXT): $(operaConfigurationAccess_OBJECTS) $(operaConfigurationAccess_DEPENDENCIES) $(EXTRA_operaConfigurationAccess_DEPENDENCIES) 
 	@rm -f operaConfigurationAccess$(EXEEXT)
 	$(CXXLINK) $(operaConfigurationAccess_OBJECTS) $(operaConfigurationAccess_LDADD) $(LIBS)
@@ -590,9 +576,6 @@ operaEspadonsETC$(EXEEXT): $(operaEspadonsETC_OBJECTS) $(operaEspadonsETC_DEPEND
 operaExtractImage$(EXEEXT): $(operaExtractImage_OBJECTS) $(operaExtractImage_DEPENDENCIES) $(EXTRA_operaExtractImage_DEPENDENCIES) 
 	@rm -f operaExtractImage$(EXEEXT)
 	$(CXXLINK) $(operaExtractImage_OBJECTS) $(operaExtractImage_LDADD) $(LIBS)
-operaExtractProducts$(EXEEXT): $(operaExtractProducts_OBJECTS) $(operaExtractProducts_DEPENDENCIES) $(EXTRA_operaExtractProducts_DEPENDENCIES) 
-	@rm -f operaExtractProducts$(EXEEXT)
-	$(CXXLINK) $(operaExtractProducts_OBJECTS) $(operaExtractProducts_LDADD) $(LIBS)
 operaExtractRawSum$(EXEEXT): $(operaExtractRawSum_OBJECTS) $(operaExtractRawSum_DEPENDENCIES) $(EXTRA_operaExtractRawSum_DEPENDENCIES) 
 	@rm -f operaExtractRawSum$(EXEEXT)
 	$(CXXLINK) $(operaExtractRawSum_OBJECTS) $(operaExtractRawSum_LDADD) $(LIBS)
@@ -675,13 +658,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/catz.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/espqlh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/opera.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaApplyTransform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaConfigurationAccess.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaConvert2ampTo1amp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCreateBadpixMask.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaEspadonsETC.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtractImage.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtractProducts.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtractRawSum.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFITS2txt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFITSDisplayImage.Po@am__quote@

@@ -271,8 +271,8 @@ int main(int argc, char *argv[])
         }         
         
 		operaSpectralOrderVector spectralOrders(inputUncalibratedSpectrum);
-        spectralOrders.ReadSpectralOrders(inputWaveFile);
-        spectralOrders.ReadSpectralOrders(inputfcal);
+        spectralOrders.ReadIntoSpectralOrders(inputWaveFile);
+        spectralOrders.ReadIntoSpectralOrders(inputfcal);
         
         unsigned NumberofBeams = 0;
         for (int order=minorder; order<=maxorder; order++) {
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
             BeamSpectralBinConstant[beam] = exposureTime;
         }
 
-        spectralOrders.ReadSpectralOrders(inputfcal);
+        spectralOrders.ReadIntoSpectralOrders(inputfcal);
         
         if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();

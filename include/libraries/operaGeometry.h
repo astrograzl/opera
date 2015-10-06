@@ -88,45 +88,47 @@ public:
 	
 	double CalculateAndSetOrderLength(void);	
 	
-	double getOrderLength(void);	
+	double getOrderLength(void) const;
 	
-	double CalculateDistance(double yMin, double yMax);
+	double CalculateDistance(double yMin, double yMax) const;
 	
 	void setNumberofPointsToBinInYDirection(unsigned Points);
 	
-	unsigned getNumberofPointsToBinInYDirection();
+	unsigned getNumberofPointsToBinInYDirection() const;
 	
 	void traceOrder(unsigned coeffs, double &chisqr, bool witherrors);
 	
 	Polynomial *getCenterPolynomial();
 	
+	const Polynomial *getCenterPolynomial() const;
+	
 	void setNdatapoints(unsigned dp);
 	
-	unsigned getNdatapoints(void);
+	unsigned getNdatapoints(void) const;
 	
-	double getYmin(void);
+	double getYmin(void) const;
 	
 	void setYmin(double min);
 	
-	double getCenterX(unsigned index);
+	double getCenterX(unsigned index) const;
 	
-	double getCenterY(unsigned index);
+	double getCenterY(unsigned index) const;
 	
-	double getCenterV(unsigned index);
+	double getCenterV(unsigned index) const;
 	
 	void setYmax(double max);
 	
-	double getYmax(void);
+	double getYmax(void) const;
 	
-	double getapertureWidth(void);
+	double getapertureWidth(void) const;
 	
 	void setapertureWidth(double width);
 	
-	axis_t getdispersionAxis(void);
+	axis_t getdispersionAxis(void) const;
 	
 	void setdispersionAxis(axis_t axis);
 	
-	dispersiondirection_t getdispersionDirection(void);
+	dispersiondirection_t getdispersionDirection(void) const;
 	
 	void setdispersionDirection(dispersiondirection_t direction);
 	
@@ -152,9 +154,9 @@ public:
 	
 	void setorderSeparation(double OrderSeparation);	
 	
-	double getorderSeparation(void); 
+	double getorderSeparation(void) const; 
     
-    double CalculateMinimumYBinSize(double y);  
+    double CalculateMinimumYBinSize(double y) const;
     
     void resetCenter(double x, double y, double xerror, unsigned index);
 	

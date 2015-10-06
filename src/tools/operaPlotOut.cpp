@@ -43,6 +43,7 @@
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/operaGeometry.h"
@@ -178,13 +179,14 @@ int main(int argc, char *argv[])
 			cout << "operaPlotOut: aperfilename = " << aperfilename << endl;
 		}
 		
-		operaSpectralOrderVector spectralOrders(geomfilename);	// get the geometry
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, geomfilename);	// get the geometry
 		
 		if (!wavefilename.empty()) {
-			spectralOrders.ReadSpectralOrders(wavefilename); // read wavelength calibration reference first guess
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wavefilename); // read wavelength calibration reference first guess
 		}
 		if (!aperfilename.empty()) {
-			spectralOrders.ReadSpectralOrders(aperfilename); // read aperture
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, aperfilename); // read aperture
 		}
 		unsigned minorder = spectralOrders.getMinorder();
 		unsigned maxorder = spectralOrders.getMaxorder();

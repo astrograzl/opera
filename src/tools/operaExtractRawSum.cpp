@@ -48,6 +48,7 @@
 #include "libraries/operaLibCommon.h"
 #include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
 #include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaInstrumentProfile.h"		// for operaInstrumentProfile
 #include "libraries/operaFITSImage.h"
 
@@ -244,13 +245,14 @@ int main(int argc, char *argv[])
 		//	badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);					
 		//}		
 		
-		operaSpectralOrderVector spectralOrders(inputGeometryName);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputGeometryName);
 		if (!inputWavelengthName.empty()) {
-			spectralOrders.ReadSpectralOrders(inputWavelengthName);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWavelengthName);
 		}
 		
 		unsigned amp = 0;	// for gain/noise
-		spectralOrders.readGainNoise(inputgain);
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputgain);
 		double gain = spectralOrders.getGainBiasNoise()->getGain(amp);
 		double noise = spectralOrders.getGainBiasNoise()->getNoise(amp);
 		
@@ -309,9 +311,9 @@ int main(int argc, char *argv[])
 			}
 		}
 		if (inputWavelengthName.empty()) {
-			spectralOrders.WriteSpectralOrders(outputSpectraFile, RawSpectrum);
+			operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputSpectraFile, RawSpectrum);
 		} else {
-			spectralOrders.WriteSpectralOrders(outputSpectraFile, CalibratedRawSpectrum);
+			operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputSpectraFile, CalibratedRawSpectrum);
 		}
 		inputImage.operaFITSImageClose();
 		

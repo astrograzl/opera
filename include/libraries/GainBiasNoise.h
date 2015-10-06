@@ -70,7 +70,7 @@ public:
 	 * \sa method double getBias();
 	 * \brief returns the Bias of amp
 	 */
-	double getBias(unsigned amp) { return biases[amp]; };
+	double getBias(unsigned amp) const { return biases[amp]; };
 	/*! 
 	 * \sa method void setBias(unsigned amp, double noise);
 	 * \brief sets the Bias of amp
@@ -80,13 +80,13 @@ public:
 	 * \sa method double getNoise();
 	 * \brief returns the Noise of amp
 	 */
-	double getNoise(unsigned amp) { return noises[amp]; };
+	double getNoise(unsigned amp) const { return noises[amp]; };
     
 	/*!
 	 * \sa method double getNoise();
 	 * \brief returns the Noise of amp with respect to pixel x,y
 	 */
-    double getNoise(unsigned x, unsigned y);
+    double getNoise(unsigned x, unsigned y) const;
 
 	/*!
 	 * \sa method void setNoise(unsigned amp, double noise);
@@ -98,13 +98,13 @@ public:
 	 * \sa method double getGain();
 	 * \brief returns the Gain of amp
 	 */
-	double getGain(unsigned amp) { return gains[amp]; };
+	double getGain(unsigned amp) const { return gains[amp]; };
     
     /*!
      * \sa method double getGain();
      * \brief returns the Gain of amp with respect to pixel x,y
      */
-    double getGain(unsigned x, unsigned y);
+    double getGain(unsigned x, unsigned y) const;
         
 	/*! 
 	 * \sa method void setGain(unsigned amp, double gain);
@@ -115,7 +115,7 @@ public:
 	 * \sa method double getDatasec();
 	 * \brief returns the datasec ot amp
 	 */
-	void getDatasec(unsigned amp, DATASEC_t &datasec);
+	void getDatasec(unsigned amp, DATASEC_t &datasec) const;
 	/*! 
 	 * \sa method void setDatasec(unsigned amp, DATASEC_t &datasec);
 	 * \brief sets the datsec of amp
@@ -125,7 +125,7 @@ public:
 	 * \sa method double getGainError();
 	 * \brief returns the Gain Error of amp
 	 */
-	double getGainError(unsigned amp) { return gainerrors[amp]; };
+	double getGainError(unsigned amp) const { return gainerrors[amp]; };
 	/*! 
 	 * \sa method void setGain(unsigned amp, double gain);
 	 * \brief sets the Gain Error of amp
@@ -135,7 +135,7 @@ public:
 	 * \sa method unsigned getAmps(void);
 	 * \brief sets the number of amps
 	 */
-	unsigned getAmps(void) { return namps; };
+	unsigned getAmps(void) const { return namps; };
 	/*! 
 	 * \sa method void setAmps(unsigned Amps);
 	 * \brief sets the number of amps

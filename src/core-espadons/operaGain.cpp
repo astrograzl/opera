@@ -35,7 +35,7 @@
 // $Locker$
 // $Log$
 
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaCCD.h"
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("gainMaxNBins", gainMaxNBins, "Maximum number of bins to use");
 	args.AddRequiredArgument("gainLowestCount", gainLowestCount, "Lowest pixel count value to be considered");
 	args.AddRequiredArgument("gainHighestCount", gainHighestCount, "Highest pixel count value to be considered");
-	args.AddOptionalArgument("subwindow", subwindow_str, "", "Subwindow where data will used for the gain/noise calculation \"x1 x2 y1 y2\"");
+	args.AddRequiredArgument("subwindow", subwindow_str, "Subwindow where data will used for the gain/noise calculation \"x1 x2 y1 y2\"");
 	args.AddOptionalArgument("DATASEC", datasec_str, "", "Valid data region on the amplifier (1 amp mode) \"x1 x2 y1 y2\"");
 	args.AddOptionalArgument("DSECA", dseca_str, "", "Valid data region on amplifier A (2 amp mode) \"x1 x2 y1 y2\"");
 	args.AddOptionalArgument("DSECB", dsecb_str, "", "Valid data region on amplifier B (2 amp mode) \"x1 x2 y1 y2\"");
@@ -117,16 +117,16 @@ int main(int argc, char *argv[])
 		args.Parse(argc, argv);
 
 		struct subwindow {
-			int x0, nx;
-			int y0, ny;
+			unsigned x0, nx, y0, ny;
 		} subwindow = {0,0,0,0};
 		DATASEC_t datasec = {1,2068,1,4608};
-		DATASEC_t dseca   = {21,1044,1,4608};
-		DATASEC_t dsecb   = {1045,2068,1,4608};
-		if (!subwindow_str.empty()) sscanf(subwindow_str.c_str(), "%d %d %d %d", &subwindow.x0, &subwindow.nx, &subwindow.y0, &subwindow.ny);
-		if (!datasec_str.empty()) sscanf(datasec_str.c_str(), "%u %u %u %u", &datasec.x1, &datasec.x2, &datasec.y1, &datasec.y2);
-		if (!dseca_str.empty()) sscanf(dseca_str.c_str(), "%u %u %u %u", &dseca.x1, &dseca.x2, &dseca.y1, &dseca.y2);
-		if (!dsecb_str.empty()) sscanf(dsecb_str.c_str(), "%u %u %u %u", &dsecb.x1, &dsecb.x2, &dsecb.y1, &dsecb.y2);
+		DATASEC_t dseca = {21,1044,1,4608};
+		DATASEC_t dsecb = {1045,2068,1,4608};
+		
+		SplitStringIntoVals(subwindow_str, subwindow.x0, subwindow.nx, subwindow.y0, subwindow.ny);
+		SplitStringIntoVals(datasec_str, datasec.x1, datasec.x2, datasec.y1, datasec.y2);
+		SplitStringIntoVals(dseca_str, dseca.x1, dseca.x2, dseca.y1, dseca.y2);
+		SplitStringIntoVals(dsecb_str, dsecb.x1, dsecb.x2, dsecb.y1, dsecb.y2);
 
 		string biasimgs[MAXIMAGES];
 		string flatimgs[MAXIMAGES];
@@ -137,164 +137,115 @@ int main(int argc, char *argv[])
 		ReadStringsFromFileIntoArray(biaslistfile, biasimgs, biasimgIndex, MAXIMAGES); // Read list of images from file
 		ReadStringsFromFileIntoArray(flatlistfile, flatimgs, flatimgIndex, MAXIMAGES); // Read list of images from file
 		
-		float gain[MAXNAMPS];
-		float noise[MAXNAMPS];
-		float gainError[MAXNAMPS];
-		float bias[MAXNAMPS];
-		for(unsigned i=0;i<MAXNAMPS;i++) {
-			gain[i] = defaultgain;	
-			noise[i] = defaultnoise;
-			gainError[i] = 0.0;	
-			bias[i] = 0.0;	
-		}
-		
-		// we need at least 2 biases...
-		if (biasimgIndex < 2) {
+		// we need at least 1 bias...
+		if (biasimgIndex < 1) {
 			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
 		// we need at least 2 flats to calc the gain...
 		if (flatimgIndex < 2) {
 			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
-		// we need an output...
-		if (output.empty()) {
-			throw operaException("operaGain: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
-		}
 		// only accept number of amplifiers = 1 or 2...
 		if (namps != 1 && namps != 2) {
 			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
+		//need DATASEC for 1 amplifier mode, but no DSECA and DSECB
+		if (namps == 1 && (datasec_str.empty() || !dseca_str.empty() || !dsecb_str.empty())) {
+			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		}
+		//need DSECA and DSECB for 2 amplifier mode, but no DATASEC
+		if (namps == 2 && (dseca_str.empty() || dsecb_str.empty() || !datasec_str.empty())) {
+			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		}
+		// we need an output...
+		if (output.empty()) {
+			throw operaException("operaGain: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
+		}
+		// this input wasn't required before, but we are being stricter about arguments now
+		if(badpixelmask.empty()) {
+			throw operaException("operaGain: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
+		}
 		
 		if (args.debug) {
-			for(unsigned i=0; i<biasimgIndex; i++)
-				cout << "operaGain: input bias: " << i << ' ' << biasimgs[i] << endl;
-			for(unsigned i=0; i<flatimgIndex;i ++)
-				cout << "operaGain: input flat: " << i << ' ' << flatimgs[i] << endl;		
+			for(unsigned i=0; i<biasimgIndex; i++) cout << "operaGain: input bias: " << i << ' ' << biasimgs[i] << endl;
+			for(unsigned i=0; i<flatimgIndex; i++) cout << "operaGain: input flat: " << i << ' ' << flatimgs[i] << endl;
 		}
 		
 		if (args.verbose) {
-			cout << "operaGain: subwindow = " << subwindow.x0 << " " << subwindow.nx << " "<< subwindow.y0  << " "<< subwindow.ny << endl; 
-			cout << "operaGain: gainMinPixPerBin = " << gainMinPixPerBin << " gainMinPixPerBin = " << gainMinPixPerBin << " gainLowestCount = " << gainLowestCount << " gainHighestCount = " << gainHighestCount << endl; 
+			cout << "operaGain: subwindow = " << subwindow.x0 << " " << subwindow.nx << " " << subwindow.y0  << " " << subwindow.ny << endl; 
+			cout << "operaGain: gainMinPixPerBin = " << gainMinPixPerBin << " gainMaxNBins = " << gainMaxNBins << " gainLowestCount = " << gainLowestCount << " gainHighestCount = " << gainHighestCount << endl; 
 		}
-		/*
-		 * open badpixelmask and load data into a vector
-		 */
 		
-		long npixels = subwindow.nx * subwindow.ny;
-		
-		int x1=0,x2=0,y1=0,y2=0;
-		int amp_x0=0,amp_y0=0,amp_xf=0,amp_yf=0;
-		
-		operaSpectralOrderVector *orders = new operaSpectralOrderVector();
-		
-        float *flatdata[MAXIMAGES];
-        float *biasdata[MAXIMAGES];
-        /*
-         * open bias images and load data into vectors
-         */
-        operaFITSImage *badpix = NULL;
-        operaFITSImage *biasIn = NULL;
-        operaFITSImage *flatIn = NULL;
-        
-        float *badpixdata = NULL;
-        
-		for (unsigned amp=1; amp<=namps; amp++) {	// loop over all possible amplifiers
-			for (unsigned i=0; i<biasimgIndex; i++) {	
-                biasIn = new operaFITSImage(biasimgs[i], tfloat, READONLY);					
-				if (i == 0) {
-                    if (!badpixelmask.empty()){
-                        badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
-                    } else {
-                        badpix = new operaFITSImage(biasIn->getnaxis1(),biasIn->getnaxis2(),tfloat);
-                        *badpix = 1.0;
-                    }
-                    badpixdata = (float *)badpix->operaFITSImageClonePixels(amp_x0, amp_y0, amp_xf, amp_yf);
-					// delete badpix;
-                    
-                    if (namps == 2) {
-                        if (amp == 1) {
-                            x1 = dseca.x1;
-                            x2 = dseca.x2;
-                            y1 = dseca.y1;
-                            y2 = dseca.y2;
-                            if (args.verbose) {
-                                cout << "operaGain: amp " << amp << " dseca = " << x1 << " : " << x2 << " , "<< y1  << " : "<< y2 << endl;
-                            }					
-						} else {
-                            x1 = dsecb.x1;
-                            x2 = dsecb.x2;
-                            y1 = dsecb.y1;
-                            y2 = dsecb.y2;
-							if (args.verbose) {
-								cout << "operaGain: amp " << amp << " dsecb = " << x1 << " : " << x2 << " , "<< y1  << " : "<< y2 << endl;
-							}
-                        }
-                        amp_x0 = x1 + subwindow.x0;
-                        amp_y0 = y1 + subwindow.y0;
-                        amp_xf = amp_x0 + subwindow.nx;
-                        amp_yf = amp_y0 + subwindow.ny;
-						datasec.x1 = x1;
-						datasec.x2 = x2;
-						datasec.y1 = y1;
-						datasec.y2 = y2;
-                        npixels = (amp_yf-amp_y0)*(amp_xf-amp_x0);
-					} else if (namps == 1) {
-                        x1 = datasec.x1;
-                        x2 = datasec.x2;
-                        y1 = datasec.y1;
-                        y2 = datasec.y2;
-                        amp_x0 = x1 + subwindow.x0;
-                        amp_y0 = y1 + subwindow.y0;
-                        amp_xf = amp_x0 + subwindow.nx;
-                        amp_yf = amp_y0 + subwindow.ny;
-                        npixels = (amp_yf-amp_y0)*(amp_xf-amp_x0);
-                        if (args.verbose) {
-                            cout << "operaGain: amp " << amp << " datasec = " << x1 << " : " << x2 << " , "<< y1  << " : "<< y2 << endl;
-                        }
-                    }
-					
-					if(amp_x0 < x1 || amp_y0 < y1 || amp_xf > x2 || amp_xf > y2) {
-						throw "operaGain: error: subwindow exceeds area of datasec\n";
-					}
-					
-					if (args.verbose) {
-						cout << "operaGain: amp = " << amp << ": xw1 = " << amp_x0 << " xw2 = " << amp_xf << " yw1 = "<< amp_y0  << " yw2 = "<< amp_yf   << " npixels = "<< npixels << endl; 
-					}					
-				}
-				
-				biasdata[i] = (float *)biasIn->operaFITSImageClonePixels(amp_x0, amp_y0, amp_xf, amp_yf);
+		operaSpectralOrderVector spectralOrders;
+
+		for (unsigned amp=0; amp<namps; amp++) { // loop over all possible amplifiers
+			float gain = defaultgain;
+			float noise = defaultnoise;
+			float gainError = 0.0;
+			float bias = 0.0;
+			
+			if (namps == 2) {
+				if (amp == 0) datasec = dseca;
+				else datasec = dsecb;
+			}
+			if (args.verbose) cout << "operaGain: amp " << amp+1 << " datasec = " << datasec.x1 << " : " << datasec.x2 << " , " << datasec.y1  << " : " << datasec.y2 << endl;
+			
+			int amp_x0 = datasec.x1 + subwindow.x0;
+			int amp_y0 = datasec.y1 + subwindow.y0;
+			int amp_xf = amp_x0 + subwindow.nx;
+			int amp_yf = amp_y0 + subwindow.ny;
+			long npixels = subwindow.ny * subwindow.nx;
+			
+			if(amp_xf > datasec.x2 || amp_yf > datasec.y2) {
+				throw "operaGain: error: subwindow exceeds area of datasec\n";
 			}
 			
-			/*
-			 * open flat images and load data into vectors
-			 */	
-			
-			for (unsigned i=0; i<flatimgIndex; i++) {	
-				flatIn = new operaFITSImage(flatimgs[i], tfloat, READONLY);			
-				flatdata[i] = (float *)flatIn->operaFITSImageClonePixels(amp_x0, amp_y0, amp_xf, amp_yf);
-			}
-			
-			operaCCDGainNoise(npixels, biasimgIndex, biasdata, flatimgIndex, flatdata, badpixdata, gainLowestCount, gainHighestCount, gainMaxNBins, gainMinPixPerBin, &gain[amp], &gainError[amp], &bias[amp], &noise[amp]);
-			
-			if (isnan(gain[amp])) throw operaException("operaGain: gain: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
-			if (isinf(gain[amp])) throw operaException("operaGain: gain: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
-			if (isnan(noise[amp])) throw operaException("operaGain: noise: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
-			if (isinf(noise[amp])) throw operaException("operaGain: noise: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
-			if (isnan(gainError[amp])) throw operaException("operaGain: gainError: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
-			if (isinf(gainError[amp])) throw operaException("operaGain: gainError: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
-			
-			// Note that ordersstores amps as zero-based....
-			orders->getGainBiasNoise()->setGain(amp-1, gain[amp]);
-			orders->getGainBiasNoise()->setGainError(amp-1, gainError[amp]);
-			orders->getGainBiasNoise()->setNoise(amp-1, noise[amp]);
-			orders->getGainBiasNoise()->setBias(amp-1, bias[amp]);
-			orders->getGainBiasNoise()->setDatasec(amp-1, datasec);
 			if (args.verbose) {
-				cout << "operaGain: amp " << amp << " gain " << gain[amp] << " gainError " << gainError[amp] << " Noise " << noise[amp]  << " Bias " << bias[amp] << endl; 
+				cout << "operaGain: amp = " << amp+1 << ": xw1 = " << amp_x0 << " xw2 = " << amp_xf << " yw1 = " << amp_y0  << " yw2 = " << amp_yf << " npixels = " << npixels << endl; 
+			}
+			
+			// open badpixelmask and load data into a vector
+			operaFITSImage badpix(badpixelmask, tfloat, READONLY);
+			float *badpixdata = (float *)badpix.operaFITSImageClonePixels(amp_x0, amp_y0, amp_xf, amp_yf);
+			
+			// open bias images and load data into vectors
+			float *biasdata[MAXIMAGES];
+			for (unsigned i=0; i<biasimgIndex; i++) {	
+                operaFITSImage biasIn(biasimgs[i], tfloat, READONLY);					
+				biasdata[i] = (float *)biasIn.operaFITSImageClonePixels(amp_x0, amp_y0, amp_xf, amp_yf);
+			}
+			
+			// open flat images and load data into vectors
+			float *flatdata[MAXIMAGES];
+			for (unsigned i=0; i<flatimgIndex; i++) {	
+				operaFITSImage flatIn(flatimgs[i], tfloat, READONLY);			
+				flatdata[i] = (float *)flatIn.operaFITSImageClonePixels(amp_x0, amp_y0, amp_xf, amp_yf);
+			}
+			
+			operaCCDGainNoise(npixels, biasimgIndex, biasdata, flatimgIndex, flatdata, badpixdata, gainLowestCount, gainHighestCount, gainMaxNBins, gainMinPixPerBin, &gain, &gainError, &bias, &noise);
+			
+			free(badpixdata);
+			for (unsigned i=0; i<biasimgIndex; i++) free(biasdata[i]);
+			for (unsigned i=0; i<flatimgIndex; i++) free(flatdata[i]);
+			
+			if (isnan(gain)) throw operaException("operaGain: gain: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
+			if (isinf(gain)) throw operaException("operaGain: gain: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
+			if (isnan(noise)) throw operaException("operaGain: noise: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
+			if (isinf(noise)) throw operaException("operaGain: noise: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
+			if (isnan(gainError)) throw operaException("operaGain: gainError: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
+			if (isinf(gainError)) throw operaException("operaGain: gainError: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
+			
+			spectralOrders.getGainBiasNoise()->setGain(amp, gain);
+			spectralOrders.getGainBiasNoise()->setGainError(amp, gainError);
+			spectralOrders.getGainBiasNoise()->setNoise(amp, noise);
+			spectralOrders.getGainBiasNoise()->setBias(amp, bias);
+			spectralOrders.getGainBiasNoise()->setDatasec(amp, datasec);
+			if (args.verbose) {
+				cout << "operaGain: amp " << amp+1 << " gain " << gain << " gainError " << gainError << " Noise " << noise  << " Bias " << bias << endl; 
 			}
 		}
-		orders->getGainBiasNoise()->setAmps(namps);
-		orders->WriteSpectralOrders(output, GainNoise);
+		spectralOrders.getGainBiasNoise()->setAmps(namps);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, output, GainNoise);
 	}
 	catch (operaException e) {
 		cout << "operaGain: " << e.getFormattedMessage() << endl;

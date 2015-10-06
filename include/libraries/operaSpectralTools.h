@@ -159,4 +159,8 @@ unsigned getSpectrumWithinWLRange(operaSpectralElements *inputSpectrum, double w
 
 bool getOverlappingWLRange(operaSpectralElements *refElements, operaSpectralElements *elementsToMatch, double &wl0, double &wlf);
 
+unsigned detectSpectralLinesInSpectralOrder(operaSpectralOrder *spectralOrder, double *linecenter, double *linecenterError, double *lineflux, double *linesigma, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, double nsigclip, double spectralResolution,bool emissionSpectrum);
+
+double calculateDeltaRadialVelocityInKPS(double telluricWL, double observedWL, double spectralResolution);
+
 #endif

@@ -48,6 +48,7 @@
 #include "libraries/operaFITSImage.h"
 #include "libraries/operaLib.h"
 #include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 
 /*! \file espqlh.cpp */
 
@@ -306,8 +307,9 @@ int main(int argc, char *argv[])
 											string spectrumpath = upenadir + "/spectra/" + night + "/" + odometer + ".q" + zipped;
 											string snrpath = upenadir + "/spectra/" + night + "/" + odometer + "q.sn" + zipped;
 											float peak = 0.0;
-											operaSpectralOrderVector spectralOrderVector(spectrumpath);
-											spectralOrderVector.ReadSpectralOrders(snrpath);
+											operaSpectralOrderVector spectralOrderVector;
+											operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, spectrumpath);
+											operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, snrpath);
 											unsigned minorder = spectralOrderVector.getMinorder();
 											unsigned maxorder = spectralOrderVector.getMaxorder();
 											if (ordernumber != 0) {

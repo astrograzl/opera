@@ -47,6 +47,7 @@
 
 #include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
 #include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
+#include "libraries/operaIOFormats.h"
 #include "libraries/GainBiasNoise.h"                // for operaGainBiasNoise
 
 #include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
@@ -479,10 +480,11 @@ int main(int argc, char *argv[])
             cout << "operaEspadonsETC: zenithalDistOfMoon = " << ObservingConditions->getzenithalDistofMoon() << endl;
 		}
      
-		operaSpectralOrderVector spectralOrders(inputSpectrum);
-        spectralOrders.ReadSpectralOrders(inputGainFile);        
-        spectralOrders.ReadSpectralOrders(inputApertureFile);
-        spectralOrders.ReadSpectralOrders(inputWaveFile);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputSpectrum);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputGainFile);        
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputApertureFile);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWaveFile);
         
         //GainBiasNoise *gainBiasNoise = spectralOrders.getGainBiasNoise();
         

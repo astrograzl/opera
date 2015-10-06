@@ -185,37 +185,37 @@ operaInstrumentProfile::~operaInstrumentProfile(void) {
  * Setter/Getters
  */
 
-unsigned operaInstrumentProfile::getNXPoints(void){
+unsigned operaInstrumentProfile::getNXPoints(void) const {
 	return NXPoints;
 }
 
-void operaInstrumentProfile::setNXPoints(unsigned npx){
+void operaInstrumentProfile::setNXPoints(unsigned npx) {
 	NXPoints = npx;
 }
 
-unsigned operaInstrumentProfile::getNYPoints(void){
+unsigned operaInstrumentProfile::getNYPoints(void) const {
 	return NYPoints;
 }
 
-void operaInstrumentProfile::setNYPoints(unsigned npy){
+void operaInstrumentProfile::setNYPoints(unsigned npy) {
 	NYPoints = npy;
 }
 
-unsigned operaInstrumentProfile::getNTotalPoints(void){
+unsigned operaInstrumentProfile::getNTotalPoints(void) const {
 	return NTotalPoints;
 }
 
-void operaInstrumentProfile::setNTotalPoints(unsigned np){
+void operaInstrumentProfile::setNTotalPoints(unsigned np) {
 	NTotalPoints = np;
 }
 
 // (fraction of pixel to sample PSF in dispersion direction)
-unsigned operaInstrumentProfile::getYsampling(void) {
+unsigned operaInstrumentProfile::getYsampling(void) const {
 	return Ysampling;
 }
 
 // (fraction of pixel to sample PSF in spatial direction)
-unsigned operaInstrumentProfile::getXsampling(void) {
+unsigned operaInstrumentProfile::getXsampling(void) const {
 	return Xsampling;
 }
 
@@ -234,12 +234,12 @@ void operaInstrumentProfile::setsampling(unsigned xsamp, unsigned ysamp) {
 }
 
 // (size along the spatial direction in pix units) 
-unsigned operaInstrumentProfile::getxsize(void) {
+unsigned operaInstrumentProfile::getxsize(void) const {
 	return xsize;
 }
 
 // (size along the dispersion direction in pix units)
-unsigned operaInstrumentProfile::getysize(void) {
+unsigned operaInstrumentProfile::getysize(void) const {
 	return ysize;
 }
 
@@ -491,27 +491,27 @@ void operaInstrumentProfile::setGeometricCenter(void){
 	geometricCenterY = (float)ysize/2.0;	
 }
 
-float operaInstrumentProfile::getGeometricCenterX(void){
+float operaInstrumentProfile::getGeometricCenterX(void) const {
 	return geometricCenterX;
 }
 
-float operaInstrumentProfile::getGeometricCenterY(void){	
+float operaInstrumentProfile::getGeometricCenterY(void) const {
 	return geometricCenterY;
 }
 
-float operaInstrumentProfile::getIPixXCoordinate(unsigned i){
+float operaInstrumentProfile::getIPixXCoordinate(unsigned i) const {
     float halfXgridstep = 1.0/float(2*getXsampling());
     return (float(1+2*i)*halfXgridstep - geometricCenterX);
 	//return (((float)i+0.5)/(float)Xsampling - geometricCenterX); 
 }
 
-float operaInstrumentProfile::getIPixYCoordinate(unsigned j){
+float operaInstrumentProfile::getIPixYCoordinate(unsigned j) const {
     float halfYgridstep = 1.0/float(2*getYsampling());
     return (float(1+2*j)*halfYgridstep - geometricCenterY);    
 	//return (((float)j+0.5)/(float)Ysampling - geometricCenterY);	
 }
 
-unsigned operaInstrumentProfile::getIPixiIndex(float xcoord){
+unsigned operaInstrumentProfile::getIPixiIndex(float xcoord) const {
 	int i = (int)round((xcoord + geometricCenterX)*(float)Xsampling - 0.5);
 	
 	if(i < 0 || i >= (int)NXPoints) {
@@ -521,7 +521,7 @@ unsigned operaInstrumentProfile::getIPixiIndex(float xcoord){
 	return (unsigned)i;
 }
 
-unsigned operaInstrumentProfile::getIPixjIndex(float ycoord){
+unsigned operaInstrumentProfile::getIPixjIndex(float ycoord) const {
 	int j = (int)round((ycoord + geometricCenterY)*(float)Ysampling - 0.5);
 	
 	if(j < 0 || j >= (int)NYPoints) {
@@ -531,7 +531,7 @@ unsigned operaInstrumentProfile::getIPixjIndex(float ycoord){
 	return (unsigned)j;
 }
 
-unsigned operaInstrumentProfile::getnDataPoints(void) {
+unsigned operaInstrumentProfile::getnDataPoints(void) const {
 	return nDataPoints;
 }
 
@@ -678,14 +678,14 @@ void operaInstrumentProfile::setdataCubeValues(float DataValue, unsigned i, unsi
 	dataCube[index][j][i] = DataValue;
 }
 
-float operaInstrumentProfile::getdataCubeValues(unsigned i, unsigned j, unsigned index) {
+float operaInstrumentProfile::getdataCubeValues(unsigned i, unsigned j, unsigned index) const {
 	if (index >= maxnDataPoints) {
 		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	return dataCube[index][j][i];
 }
 
-float operaInstrumentProfile::getdataGivenCoords(float xcoord, float ycoord, unsigned index) {
+float operaInstrumentProfile::getdataGivenCoords(float xcoord, float ycoord, unsigned index) const {
 	if (index >= maxnDataPoints) {
 		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -728,7 +728,7 @@ void operaInstrumentProfile::seterrorsCubeValues(float ErrorValue, unsigned i, u
 	errorsCube[index][j][i] = ErrorValue;
 }
 
-float operaInstrumentProfile::geterrorsCubeValues(unsigned i, unsigned j, unsigned index) {
+float operaInstrumentProfile::geterrorsCubeValues(unsigned i, unsigned j, unsigned index) const {
 	if (index >= maxnDataPoints) {
 		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -739,7 +739,7 @@ float* operaInstrumentProfile::getdistdVector(void){
 	return distd;
 }
 
-float operaInstrumentProfile::getdistd(unsigned index){
+float operaInstrumentProfile::getdistd(unsigned index) const {
 	if (index >= maxnDataPoints) {
 		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -883,15 +883,41 @@ PolynomialCoeffs_t *operaInstrumentProfile::getipPolyModelCoefficients(unsigned 
 	return ipPolyModel[j][i];
 }
 
-// DT -- BAD INTERFACE -- copies a pointer!!!! Mar 2013
-void operaInstrumentProfile::setipPolyModelCoefficients(PolynomialCoeffs_t *PolyModelCoeffs,unsigned i,unsigned j) {
+const PolynomialCoeffs_t *operaInstrumentProfile::getipPolyModelCoefficients(unsigned i,unsigned j) const {
 	if (j >= NYPoints) {
 		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	if (i >= NXPoints) {
 		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
-	ipPolyModel[j][i] = PolyModelCoeffs;
+	return ipPolyModel[j][i];
+}
+
+// DT -- BAD INTERFACE -- copies a pointer!!!! Mar 2013
+void operaInstrumentProfile::setipPolyModelCoefficients(PolynomialCoeffs_t PolyModelCoeffs,unsigned i,unsigned j) {
+	if (j >= NYPoints) {
+		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+	}
+	if (i >= NXPoints) {
+		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+	}
+	//ipPolyModel[j][i] = PolyModelCoeffs;
+	
+	PolynomialCoeffs_t *pp = (PolynomialCoeffs_t *)malloc(sizeof(PolynomialCoeffs_t));
+	if (!pp) {
+		throw operaException("operaSpectralOrderVector: ", operaErrorNoMemory, __FILE__, __FUNCTION__, __LINE__);	
+	}
+	*pp = PolyModelCoeffs;
+	ipPolyModel[j][i] = pp;
+	/*pp->orderofPolynomial = npar;
+	for (unsigned i=0; i < npar; i++) {
+		Float ProfileCoeff;
+		ss >> ProfileCoeff;
+		pp->p[i] = ProfileCoeff.f;
+	}
+	Float chisqr;
+	ss >> chisqr;
+	instrumentProfile->setipPolyModelCoefficients(pp, col, row);*/
 }
 
 CMatrix operaInstrumentProfile::getipDataFromPolyModel(float d, CMatrix ipmatrix) {
@@ -899,7 +925,7 @@ CMatrix operaInstrumentProfile::getipDataFromPolyModel(float d, CMatrix ipmatrix
 	Polynomial polyn;  
 	for (unsigned j=0; j<NYPoints; j++) {
 		for (unsigned i=0; i<NXPoints; i++) {
-			PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+			const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
 			polyn.setPolynomialCoeffs(pp);
 			ipmatrix[j][i] = (float)polyn.Evaluate((double)d);			
 		}
@@ -916,7 +942,7 @@ CMatrix operaInstrumentProfile::getipDataFromPolyModel(PixelSet *aperturePixels,
             
             unsigned i = (unsigned)aperturePixels->getiIndex(pix);
             unsigned j = (unsigned)aperturePixels->getjIndex(pix);    
-            PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+            const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
             polyn.setPolynomialCoeffs(pp);
             ipmatrix[j][i] = (float)polyn.Evaluate((double)d);	
         } else {
@@ -936,7 +962,7 @@ CMatrix operaInstrumentProfile::getipDataFromPolyModel(float d) {
 	
 	for (unsigned j=0; j<NYPoints; j++) {
 		for (unsigned i=0; i<NXPoints; i++) {
-			PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+			const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
 			Polynomial polyn(pp);  
 			ipmatrix[j][i] = polyn.Evaluate((double)d);			
 		}
@@ -946,9 +972,9 @@ CMatrix operaInstrumentProfile::getipDataFromPolyModel(float d) {
 }
 */
 
-float operaInstrumentProfile::getipDataFromPolyModel(float d, unsigned i, unsigned j) {
+float operaInstrumentProfile::getipDataFromPolyModel(float d, unsigned i, unsigned j) const {
 	
-	PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+	const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
 	
 	//Commented out the original way of doing this
 	/*Polynomial polyn(pp);  
@@ -957,7 +983,7 @@ float operaInstrumentProfile::getipDataFromPolyModel(float d, unsigned i, unsign
 	
 	//Switched to inline polynomial evaluation to optimize for operaExtraction
 	int polyOrder = pp->orderofPolynomial;
-	float* polyCoeffs = pp->p;
+	const float* polyCoeffs = pp->p;
 	
 	double eval = polyCoeffs[0];
 	double x_to_i = d;
@@ -968,9 +994,9 @@ float operaInstrumentProfile::getipDataFromPolyModel(float d, unsigned i, unsign
 	return (float)eval;
 }
 
-float operaInstrumentProfile::getipDataFromPolyModel(unsigned i, unsigned j, unsigned index) {
+float operaInstrumentProfile::getipDataFromPolyModel(unsigned i, unsigned j, unsigned index) const {
 	
-	PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+	const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
 	Polynomial polyn(pp);  
 	float modelValue = (float)polyn.Evaluate((double)getdistd(index));	
 	
@@ -983,7 +1009,7 @@ CMatrix operaInstrumentProfile::getipDataFromPolyModel(unsigned index, CMatrix i
 	}
 	for (unsigned j=0; j<NYPoints; j++) {
 		for (unsigned i=0; i<NXPoints; i++) {
-			PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+			const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
 			Polynomial polyn(pp);  
 			ipmatrix[j][i] = (float)polyn.Evaluate((double)getdistd(index));			
 		}
@@ -1004,7 +1030,7 @@ CMatrix operaInstrumentProfile::getipDataFromPolyModel(PixelSet *aperturePixels,
             unsigned i = (unsigned)aperturePixels->getiIndex(pix);
             unsigned j = (unsigned)aperturePixels->getjIndex(pix); 
             
-            PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+            const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
             Polynomial polyn(pp);  
             ipmatrix[j][i] = (float)polyn.Evaluate((double)getdistd(index));
         } else {
@@ -1024,7 +1050,7 @@ void operaInstrumentProfile::setipDataFromPolyModel(unsigned index){
 	}
 	for (unsigned j=0; j<NYPoints; j++) {
 		for (unsigned i=0; i<NXPoints; i++) {
-			PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+			const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
 			Polynomial polyn(pp);  
 			setdataCubeValues(polyn.Evaluate((double)getdistd(index)),i,j,index);
 		}
@@ -1037,7 +1063,7 @@ void operaInstrumentProfile::setipDataFromPolyModel(float d, unsigned index){
 	}
 	for (unsigned j=0; j<NYPoints; j++) {
 		for (unsigned i=0; i<NXPoints; i++) {
-			PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+			const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
 			Polynomial polyn(pp);  
 			setdataCubeValues(polyn.Evaluate((double)d),i,j,index);
 		}
@@ -1075,7 +1101,7 @@ void operaInstrumentProfile::setipDataFromPolyModel(PixelSet *aperturePixels, un
             
             unsigned i = (unsigned)aperturePixels->getiIndex(pix);
             unsigned j = (unsigned)aperturePixels->getjIndex(pix); 
-            PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+            const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
             Polynomial polyn(pp);  
             setdataCubeValues(polyn.Evaluate((double)getdistd(index)),i,j,index);
         } else {
@@ -1097,7 +1123,7 @@ void operaInstrumentProfile::setipDataFromPolyModel(PixelSet *aperturePixels, fl
             
             unsigned i = (unsigned)aperturePixels->getiIndex(pix);
             unsigned j = (unsigned)aperturePixels->getjIndex(pix); 
-            PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
+            const PolynomialCoeffs_t *pp = getipPolyModelCoefficients(i,j);
             Polynomial polyn(pp);  
             setdataCubeValues(polyn.Evaluate((double)d),i,j,index);
         } else {
@@ -1475,7 +1501,7 @@ void operaInstrumentProfile::setchisqrMatrix(CMatrix ChisqrMatrix){
 	chisqrMatrix = ChisqrMatrix;
 }
 
-float operaInstrumentProfile::getchisqrMatrixValue(unsigned i, unsigned j){
+float operaInstrumentProfile::getchisqrMatrixValue(unsigned i, unsigned j) const {
 	if (j >= NYPoints) {
 		throw operaException("operaInstrumentProfile: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -1513,7 +1539,7 @@ void operaInstrumentProfile::deleteDataCubes(void) {
     nDataPoints = 0;    
 }
 
-float operaInstrumentProfile::getIPphotoCenterX(float d) {
+float operaInstrumentProfile::getIPphotoCenterX(float d) const {
     
     float sumflux = 0;
     float xc = 0;
@@ -1528,7 +1554,7 @@ float operaInstrumentProfile::getIPphotoCenterX(float d) {
     return xc/sumflux;
 }
 
-float operaInstrumentProfile::getIPphotoCenterY(float d) {
+float operaInstrumentProfile::getIPphotoCenterY(float d) const {
     
     float sumflux = 0;
     float yc = 0;
@@ -1543,7 +1569,7 @@ float operaInstrumentProfile::getIPphotoCenterY(float d) {
     return yc/sumflux;    
 }
 
-float operaInstrumentProfile::getIPphotoCenterX(PixelSet *aperturePixels, float d) {
+float operaInstrumentProfile::getIPphotoCenterX(PixelSet *aperturePixels, float d) const {
     
     float sumflux = 0;
     float xc = 0;
@@ -1567,7 +1593,7 @@ float operaInstrumentProfile::getIPphotoCenterX(PixelSet *aperturePixels, float 
     return xc/sumflux;
 }
 
-float operaInstrumentProfile::getIPphotoCenterY(PixelSet *aperturePixels, float d) {
+float operaInstrumentProfile::getIPphotoCenterY(PixelSet *aperturePixels, float d) const {
     
     float sumflux = 0;
     float yc = 0;

@@ -125,11 +125,11 @@ operaWavelength::~operaWavelength() {
  * Methods
  */
 
-double operaWavelength::getDmin(void) {
+double operaWavelength::getDmin(void) const {
 	return dmin;
 }
 
-double operaWavelength::getDmax(void) {
+double operaWavelength::getDmax(void) const {
 	return dmax;
 }
 
@@ -141,14 +141,14 @@ void operaWavelength::setDmax(double Dmax) {
 	dmax = Dmax;
 }
 
-double operaWavelength::getDistance(unsigned index) {
+double operaWavelength::getDistance(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	return distanceData[index];
 }
 
-double operaWavelength::getWavelength(unsigned index) {
+double operaWavelength::getWavelength(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -156,40 +156,44 @@ double operaWavelength::getWavelength(unsigned index) {
 }
 
 
-double operaWavelength::getWavelengthError(unsigned index) {
+double operaWavelength::getWavelengthError(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	return wavelengthErrors[index];
 }
 
-unsigned operaWavelength::getMatchAtlasIndex(unsigned index) {
+unsigned operaWavelength::getMatchAtlasIndex(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
 	return matchAtlasindex[index];
 }
 
-unsigned operaWavelength::getMatchComparisonIndex(unsigned index) {
+unsigned operaWavelength::getMatchComparisonIndex(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
 	return matchComparisonindex[index];
 }
 
-double operaWavelength::getcentralWavelength(void) {
+double operaWavelength::getcentralWavelength(void) const {
 	return wavelengthPolynomial->Evaluate(dmin + (dmax - dmin)/2);
 }
 
-double operaWavelength::getinitialWavelength(void) {
+double operaWavelength::getinitialWavelength(void) const {
 	return wavelengthPolynomial->Evaluate(dmin);
 }
 
-double operaWavelength::getfinalWavelength(void) {
+double operaWavelength::getfinalWavelength(void) const {
 	return wavelengthPolynomial->Evaluate(dmax);
 }
 
 Polynomial *operaWavelength::getWavelengthPolynomial(void) {
+	return wavelengthPolynomial;
+}
+
+const Polynomial *operaWavelength::getWavelengthPolynomial(void) const {
 	return wavelengthPolynomial;
 }
 
@@ -204,7 +208,7 @@ void operaWavelength::setnDataPoints(unsigned NDataPoints) {
     nDataPoints = NDataPoints;
 }
 
-unsigned operaWavelength::getnDataPoints(void) {
+unsigned operaWavelength::getnDataPoints(void) const {
     return nDataPoints;
 }
 
@@ -383,7 +387,7 @@ void operaWavelength::setSpectralResolution(doubleValue_t Resolution) {
     spectralResolution = Resolution;
 }
 
-doubleValue_t operaWavelength::getSpectralResolution(void) {
+doubleValue_t operaWavelength::getSpectralResolution(void) const {
     return spectralResolution;
 }
 
@@ -422,11 +426,11 @@ void operaWavelength::setRadialVelocityPrecision(double radialvelocityprecision)
     radialVelocityPrecision = radialvelocityprecision;
 }
 
-double operaWavelength::getRadialVelocityPrecision(void) {
+double operaWavelength::getRadialVelocityPrecision(void) const {
     return radialVelocityPrecision;
 }
 
-double operaWavelength::getxcorrelation(void) {
+double operaWavelength::getxcorrelation(void) const {
     return xcorrelation;
 }
 
@@ -492,24 +496,24 @@ void operaWavelength::setnAtlasLines(unsigned NAtlasLines) {
     nAtlasLines = NAtlasLines;
 }
 
-unsigned operaWavelength::getnAtlasLines(void) {
+unsigned operaWavelength::getnAtlasLines(void) const {
     return nAtlasLines;
 }    
-double operaWavelength::getatlasLinesflux(unsigned index) {
+double operaWavelength::getatlasLinesflux(unsigned index) const {
 	if (index > nAtlasLines) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
     return atlasLinesflux[index];
 } 
 
-double operaWavelength::getatlasLineswl(unsigned index) {
+double operaWavelength::getatlasLineswl(unsigned index) const {
 	if (index > nAtlasLines) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
     return atlasLineswl[index];
 }
 
-double operaWavelength::getatlasLineswlError(unsigned index) {
+double operaWavelength::getatlasLineswlError(unsigned index) const {
 	if (index > nAtlasLines) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -586,32 +590,32 @@ void operaWavelength::setnComparisonLines(unsigned NComparisonLines) {
     maxNComparisonLines = NComparisonLines;
 }    
 
-unsigned operaWavelength::getnComparisonLines(void) {
+unsigned operaWavelength::getnComparisonLines(void) const {
     return nComparisonLines;
 }  
 
-double operaWavelength::getcomparisonLinesflux(unsigned index) {
+double operaWavelength::getcomparisonLinesflux(unsigned index) const {
 	if (index > nComparisonLines) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
     return comparisonLinesflux[index];
 } 
 
-double operaWavelength::getcomparisonLinespix(unsigned index) {
+double operaWavelength::getcomparisonLinespix(unsigned index) const {
 	if (index > nComparisonLines) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
     return comparisonLinespix[index];
 } 
 
-double operaWavelength::getcomparisonLinespixError(unsigned index) {
+double operaWavelength::getcomparisonLinespixError(unsigned index) const {
  	if (index > nComparisonLines) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	return comparisonLinespixError[index];
 } 
 
-double operaWavelength::getcomparisonLineswl(unsigned index) {
+double operaWavelength::getcomparisonLineswl(unsigned index) const {
 	if (index > nComparisonLines) {
 		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -1044,11 +1048,11 @@ void operaWavelength::matchAtlaswithComparisonLines(double acceptableMismatch) {
     setnDataPoints(nmatch);
 }
 
-double operaWavelength::getPerCentageOfComparisonMatch(void) {
+double operaWavelength::getPerCentageOfComparisonMatch(void) const {
     return 100*(double)getnDataPoints()/(double)nComparisonLines;
 }
 
-double operaWavelength::getPerCentageOfAtlasMatch(void) {
+double operaWavelength::getPerCentageOfAtlasMatch(void) const {
     return 100*(double)getnDataPoints()/(double)nAtlasLines;
 }
 

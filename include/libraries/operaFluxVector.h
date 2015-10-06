@@ -72,1058 +72,355 @@ class operaFluxVector {
 	
 private:
 	unsigned length;
-	bool istemp;
     TendsTowards_t towards;
 	double *fluxes;
 	double *variances;
 	
 public:
-	/*
-	 * Constructors / Destructors
-	 */
-    
-    /*!
+	/*!
      * \brief operaFluxVector constructor.
-     * \details This constructor creates an operaFluxVector with vectors of content 0.0.
-     * \param Length An unsigned number of elements in the operaFluxVector
+     * \details This constructor creates an operaFluxVector.
+     * \param Length Number of elements in the operaFluxVector
      * \param TendsTowards_t An optional TendsTowards_t value defaults to ToDefault
-     * \param Istemp An optional bool defaults to false
-     * \return void
      */
-	operaFluxVector(unsigned Length, TendsTowards_t Towards=ToDefault, bool Istemp=false);
+	operaFluxVector(unsigned Length, TendsTowards_t Towards=ToDefault);
     
     /*!
-     * \brief operaFluxVector constructor from a flux pointer and his variance pointer.
-     * \details This constructor creates an operaFluxVector with vectors of content given by a flux double pointer and his variance double pointer.
-     * \param Fluxes A double pointer
-     * \param Variances A double pointer
-     * \param Length An unsigned number of elements in the operaFluxVector
-     * \param TendsTowards_t An optional TendsTowards_t value defaults to ToDefault
-     * \param Istemp An optional bool defaults to false
-     * \return void
+     * \brief operaFluxVector constructor from flux and variance arrays.
+     * \details This constructor creates an operaFluxVector by copying the contents of two equal sized arrays holding the flux and variance.
+     * \param Fluxes An array with of the given length
+     * \param Variances An array with of the given length
+     * \param Length Number of elements in the operaFluxVector
+     * \param Towards An optional TendsTowards_t value defaults to ToDefault
      */
-	operaFluxVector(double *Fluxes, double *Variances, unsigned Length, TendsTowards_t Towards=ToDefault, bool Istemp=false);
+	operaFluxVector(double *Fluxes, double *Variances, unsigned Length, TendsTowards_t Towards=ToDefault);
     
     /*!
      * \brief operaFluxVector constructor from an operaFluxVector.
-     * \details This constructor creates an operaFluxVector with vectors of content given by an operaFluxVector.
-     * \param b An operaFluxVector address
-     * \param Length An unsigned number of elements in the operaFluxVector
-     * \param TendsTowards_t An optional TendsTowards_t value defaults to ToDefault
-     * \param Istemp An optional bool defaults to false
-     * \return void
+     * \details This constructor creates an operaFluxVector by copying the contents of an existing operaFluxVector.
+     * \param b An operaFluxVector to be copied
+     * \param Towards An optional TendsTowards_t value defaults to ToDefault
      */
-	operaFluxVector(operaFluxVector &b, TendsTowards_t Towards=ToDefault, bool Istemp=false);
+	operaFluxVector(const operaFluxVector &b, TendsTowards_t Towards=ToDefault);
 	
     /*!
-     * \brief operaFluxVector constructor from an operaFluxVector.
-     * \details This constructor creates an operaFluxVector with vectors of content given by an operaFluxVector.
-     * \param b An operaFluxVector pointer
-     * \param Length An unsigned number of elements in the operaFluxVector
-     * \param TendsTowards_t An optional TendsTowards_t value defaults to ToDefault
-     * \param Istemp An optional bool defaults to false
-     * \return void
-     */
-	operaFluxVector(operaFluxVector *b, TendsTowards_t Towards=ToDefault, bool Istemp=false);
-	
-    /*!
-     * \brief Destructor releases the pointers memory.
-     * \return void
+     * \brief Destructor.
      */
 	~operaFluxVector(void);
 	
-    /*
-	 * Getters/Setters
-	 */
-    
+    /*!
+     * \brief Sets the flux vector.
+     * \details Copies the contents of an existing flux array to the flux vector.
+     * \param Fluxes An array with the same length as the existing flux vector
+     * \return void
+     */
+	void setFluxVector(double *Fluxes);
+	
     /*!
      * \brief Sets the variance vector.
-     * \details A function that sets the variance vector content to the value of a given double pointer.
-     * \param Variances A double pointer
+     * \details Copies the contents of an existing variance array to the variance vector.
+     * \param Variances An array with the same length as the existing variance vector
      * \return void
      */
 	void setVarianceVector(double *Variances);
 	
     /*!
-     * \brief Sets the flux vector.
-     * \details A function that sets the flux vector content to the value of a given double pointer.
-     * \param Fluxes A double pointer
-     * \return void
-     */
-	void setVector(double *Fluxes);
-	
-    /*!
-     * \brief Sets the flux vector.
-     * \details A function that sets the flux and variance vector content to the value of given double pointers.
-	 * \param FluxVector An operaFluxVector address
-     * \return void
-     */
-	void setVector(operaFluxVector &fluxvector);
-	
-    /*!
-     * \brief Sets the flux and variance vector.
-     * \details A function that sets the flux and variance vector content to the value of given double pointers.
-     * \param Fluxes A double pointer
-     * \param Variances A double pointer
+     * \brief Sets the flux and variance vectors.
+     * \details Copies the contents of existing flux and variance arrays to the variance vector.
+     * \param Fluxes An array with the same length as the existing flux vector
+     * \param Variances An array with the same length as the existing variance vector
      * \return void
      */
 	void setVectors(double *Fluxes, double *Variances);
 	
     /*!
-     * \brief Gets the variance vector.
-     * \details A function that gets the variance vector.
-     * \return A double pointer
+     * \brief Sets the flux and variance vectors from an operaFluxVector.
+     * \details Copies the contents of flux and variance vectors from an existing operaFluxVector.
+	 * \param fluxvector An operaFluxVector with the same length as the existing vectors
+     * \return void
      */
-	double* getvariances() { return variances; };
+	void setVector(const operaFluxVector &fluxvector);
+	
+	/*!
+     * \brief Resizes the operaFluxVector.
+     * \details Resizes the flux and variance vectors, and sets length to the new size. Elements are preserved up to min(length, newlength).
+	 * \param newlength The new length to resize to
+     * \return void
+     */
+	void resize(unsigned newlength);
 	
     /*!
      * \brief Gets the flux vector.
-     * \details A function that gets the flux vector.
-     * \return A double pointer
+     * \return A pointer to the flux vector
      */
-	double* getfluxes() { return fluxes; };
+	double* getfluxes() { return fluxes; }
 	
     /*!
-     * \brief Gets a variance vector element.
-     * \details A function that gets a variance vector element.
-     * \param index An unsigned value
-     * \return A double value
+     * \brief Gets the variance vector.
+     * \return A pointer to the variance vector
      */
-	double getvariance(unsigned index) { return variances[index]; };
+	double* getvariances() { return variances; }
 	
     /*!
      * \brief Gets a flux vector element.
-     * \details A function that gets a flux vector element.
-     * \param index An unsigned value
-     * \return A double value
+     * \param index The index to get
+     * \return The flux at index
      */
-	double getflux(unsigned index) { return fluxes[index]; };    
-    
+	double getflux(unsigned index) const { return fluxes[index]; }
+	
     /*!
-     * \brief Sets a variance vector element.
-     * \details A function that sets a variance vector element.
-     * \param Variance A double value
-     * \param index An unsigned value
-     * \return void
+     * \brief Gets a variance vector element.
+     * \param index The index to get
+     * \return The variance at index
      */
-	void setvariance(double Variance, unsigned index) {variances[index] = Variance; };
+	double getvariance(unsigned index) const { return variances[index]; }
 	
     /*!
      * \brief Sets a flux vector element.
-     * \details A function that sets a flux vector element.
-     * \param Flux A double value
-     * \param index An unsigned value
+     * \param Flux The new flux value
+     * \param index The index to set
      * \return void
      */
-	void setflux(double Flux, unsigned index) {fluxes[index] = Flux; };     
+	void setflux(double Flux, unsigned index) { fluxes[index] = Flux; }
+    
+    /*!
+     * \brief Sets a variance vector element.
+     * \param Variance The new variance value
+     * \param index The index to set
+     * \return void
+     */
+	void setvariance(double Variance, unsigned index) { variances[index] = Variance; }
     
     /*!
      * \brief Gets the number of elements in the operaFluxVector.
-     * \details A function that gets the length of the vectors, which is the number of elements in the operaFluxVector.
-     * \return An unsigned value
+     * \return The length
      */
-	unsigned getlength() { return length; };
-    
-    /*!
-     * \brief Gets the boolean value of operaFluxVector.
-     * \details A function that gets the boolean value giving the temporary state of the operaFluxVector.
-     * \return A boolean value
-     */
-    bool getistemp() { return istemp; };
+	unsigned getlength() const { return length; }
     
     /*!
      * \brief Gets the TendsTowards_t value of operaFluxVector.
-     * \details A function that gets the TendsTowards_t value to which the operaFluxVector will tend to in case of infinity operations.
-     * \param index An unsigned value
-     * \return A TendsTowards_t value
+     * \return The TendsTowards_t value to which the operaFluxVector will tend to in case of infinity operations.
      */
-    TendsTowards_t gettowards(void) { return towards; };
+    TendsTowards_t gettowards(void) const { return towards; }
 	
     /*!
      * \brief Gets the error of a flux element.
-     * \details A function that gets the square root of a variance vector element, which is the error of the flux element.
-     * \return A double value
+     * \details Gets the square root of a variance vector element, which is the error of the flux element.
+     * \param index The index to get
+     * \return The error at index
      */
-	double geterror(unsigned index) { return sqrt(variances[index]); };
+	double geterror(unsigned index) const { return sqrt(variances[index]); }
 	
 	/*! 
 	 * \brief Indexing operator.
-     * \details The operator returns a flux / variance pair pointer of doubles of the vectors element.
-	 * \param i An unsigned value
-	 * \note Usage: pair<double,double>*p = FluxVector[i];
-     * \note To print : printf("%.2f %.2f\n", p->first, p->second);
-	 * \return A pair pointer of doubles
+	 * \param i The index to get
+	 * \note Usage: pair<double,double> p = FluxVector[i];
+     * \note To print : cout << p.first << p.second;
+	 * \return A pair of doubles containing the flux and variance at the given index
 	 */
-	pair<double,double>* operator[](unsigned i) {return new pair<double,double>(fluxes[i], variances[i]); };
-    
-	/*! 
-	 * \brief Assignment operator.
-     * \details The operator copies the fluxes and variances from the right side of the operator to the left side.
-     * \details If the operaFluxVector on the right side is temporary, it is deleted.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector a = operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator=(operaFluxVector* b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b->variances; 
-		if (length < b->length) {
-			throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-		}
-		unsigned n = length; 
-		while (n--) { *afluxes++ = *bfluxes++; *avariances++ = *bvariances++; }
-		if (b->istemp) delete b;
-		return *this;
-	};
+	pair<double,double> operator[](unsigned index) const {return pair<double,double>(fluxes[index], variances[index]); }
 	
     /*! 
 	 * \brief Assignment operator.
-     * \details The operator copies the fluxes and variances from the right side of the operator to the left side.
-     * \details If the operaFluxVector on the right side is temporary, it is deleted.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector a = operaFluxVector b;
-	 * \return An operaFluxVector address
+     * \details The operator copies the fluxes and variances from the right side.
+     * \details If the lengths are not equal, the vectors will be reallocated using the length of the right hand side.
+	 * \param b The rhs operaFluxVector
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator=(operaFluxVector& b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b.variances; 
-		if (length < b.length) {
-			throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-		}
-		unsigned n = length; 
-		while (n--) { *afluxes++ = *bfluxes++; *avariances++ = *bvariances++; }
-		if (b.istemp) delete &b;
-		return *this;
-	};
+	operaFluxVector& operator=(const operaFluxVector& b);
     
     /*! 
 	 * \brief Assignment operator.
-     * \details The operator copies the double from the right side of the operator to every value of the flux vector on the left side.
-     * \details It assigns the value 0 to the variances.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector a = double d;
-	 * \return An operaFluxVector address
+     * \details The operator every element of the flux vector to the given double and every element of the variance vector to 0.
+     * \param d The flux value
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator=(double d) {
-		double *afluxes = (double *)fluxes; 
-		double *avariances = (double *)variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ = d; *avariances++ = 0.0; }
-		return *this;
-	};
+	operaFluxVector& operator=(double d);
 	
     /*!
 	 * \brief Addition/assignment operator.
      * \details The operator adds and copies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector a += operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator+=(operaFluxVector* b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ += *bfluxes++; *avariances++ += *bvariances++; }
-		if (b->istemp) delete b;
-		return *this;
-	};
-	
-    /*!
-	 * \brief Addition/assignment operator.
-     * \details The operator adds and copies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector a += operaFluxVector b;
-	 * \return An operaFluxVector address
+     * \details The variances are updated accordingly.
+	 * \param b The rhs operaFluxVector
+	 * \return A reference to the operaFluxVector
 	 */	
-	operaFluxVector& operator+=(operaFluxVector& b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b.variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ += *bfluxes++; *avariances++ += *bvariances++; }
-		if (b.istemp) delete &b;
-		return *this;
-	};
+	operaFluxVector& operator+=(const operaFluxVector& b);
 	
 	/*! 
 	 * \brief Addition/assignment operator.
      * \details The operator adds and copies the double from the right side of the operator to every value of the flux vector on the left side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector a += double d;
-	 * \return An operaFluxVector address
+	 * \param d The flux value
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator+=(double d) {
-		double *afluxes = (double *)fluxes; 
-		double *avariances = (double *)variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ += d; *avariances++ += 0.0; }
-		return *this;
-	};
-	
-    /*!
-	 * \brief Subtraction/assignment operator.
-     * \details The operator subtracts and copies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector a -= operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator-=(operaFluxVector* b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ -= *bfluxes++; *avariances++ += *bvariances++; }
-		if (b->istemp) delete b;
-		return *this;
-	};
+	operaFluxVector& operator+=(double d);
 	
 	/*!
 	 * \brief Subtraction/assignment operator.
      * \details The operator subtracts and copies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector a -= operaFluxVector b;
-	 * \return An operaFluxVector address
+     * \details The variances are updated accordingly.
+	 * \param b The rhs operaFluxVector
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator-=(operaFluxVector& b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b.variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ -= *bfluxes++; *avariances++ += *bvariances++; }
-		if (b.istemp) delete &b;
-		return *this;
-	};
+	operaFluxVector& operator-=(const operaFluxVector& b);
 	
     /*! 
 	 * \brief Subtraction/assignment operator.
      * \details The operator subtracts and copies the double from the right side of the operator to every value of the flux vector on the left side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector a -= double d;
-	 * \return An operaFluxVector address
+	 * \param d The flux value
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator-=(double d) {
-		double *afluxes = (double *)fluxes; 
-		double *avariances = (double *)variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ -= d; *avariances++ += 0.0; }
-		return *this;
-	};
+	operaFluxVector& operator-=(double d);
 	
     /*!
 	 * \brief Multiplication/assignment operator.
      * \details The operator multiplies and copies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector a *= operaFluxVector b;
-	 * \return An operaFluxVector address
+     * \details The variances are updated accordingly.
+	 * \param b The rhs operaFluxVector
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator*=(operaFluxVector* b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes *= *bfluxes; double td = *avariances; *avariances++ = ( pow(*afluxes,2) * *bvariances++ ) + ( pow(*bfluxes,2) * td ); afluxes++; bfluxes++; }
-		if (b->istemp) delete b;
-		return *this;
-	};
-	
-    /*!
-	 * \brief Multiplication/assignment operator.
-     * \details The operator multiplies and copies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector a *= operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator*=(operaFluxVector& b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b.variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes *= *bfluxes; double td = *avariances; *avariances++ = ( pow(*afluxes,2) * *bvariances++ ) + ( pow(*bfluxes,2) * td ); afluxes++; bfluxes++; }
-		if (b.istemp) delete &b;
-		return *this;
-	};
+	operaFluxVector& operator*=(const operaFluxVector& b);
 	
     /*! 
 	 * \brief Multiplication/assignment operator.
      * \details The operator multiplies and copies the double from the right side of the operator to every value of the flux vector on the left side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector a *= double d;
-	 * \return An operaFluxVector address
+     * \details The variances are updated accordingly.
+	 * \param d The flux value
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator*=(double d) {
-		double *afluxes = (double *)fluxes; 
-		double *avariances = (double *)variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ *= d; *avariances++ *= pow(d,2); }
-		return *this;
-	};
+	operaFluxVector& operator*=(double d);
 	
     /*!
 	 * \brief Division/assignment operator.
      * \details The operator divides the elements on the left side of the operator by the corresponding elements on the right side and copies them to the left side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector a /= operaFluxVector b;
-	 * \return An operaFluxVector address
+     * \details The variances are updated accordingly.
+	 * \param b The rhs operaFluxVector
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator/=(operaFluxVector* b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-        switch (this->towards) {
-            case ToDefault:
-                while (n--) { *afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; }
-                break;
-            case ToINF:
-				while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = FP_INFINITE; *avariances++ = 0.0; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToNAN:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = FP_NAN; *avariances++ = FP_NAN; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToZero:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = 0.0; *avariances++ = 0.0; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToOne:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = 1.0; *avariances++ = 0.0; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            default:
-                break;
-        }
-		if (b->istemp) delete b;
-		return *this;
-	};
-	
-    /*!
-	 * \brief Division/assignment operator.
-     * \details The operator divides the elements on the left side of the operator by the corresponding elements on the right side and copies them to the left side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector a /= operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator/=(operaFluxVector& b) {
-		double *afluxes = (double *)fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)variances; 
-		double *bvariances = (double *)b.variances; 
-		unsigned n = length; 
-        switch (this->towards) {
-            case ToDefault:
-                while (n--) { *afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; }
-                break;
-            case ToINF:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = FP_INFINITE; *avariances++ = 0.0; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToNAN:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = FP_NAN; *avariances++ = FP_NAN; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToZero:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = 0.0; *avariances++ = 0.0; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToOne:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*afluxes++ = 1.0; *avariances++ = 0.0; bfluxes++; bvariances++;} else {*afluxes /= *bfluxes; double td = *avariances; *avariances++ = ( pow(*bfluxes,-2) * td) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-                
-            default:
-                break;
-        }
-		if (b.istemp) delete &b;
-		return *this;
-	};
+	operaFluxVector& operator/=(const operaFluxVector& b);
 	
     /*! 
 	 * \brief Division/assignment operator.
      * \details The operator divides every value of the flux vector on the left side of the operator by the double on the right side and copies them to the left side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector a /= double d;
-	 * \return An operaFluxVector address
+     * \details The variances are updated accordingly.
+	 * \param d The flux value
+	 * \return A reference to the operaFluxVector
 	 */
-	operaFluxVector& operator/=(double d) {
-		double *afluxes = (double *)fluxes; 
-		double *avariances = (double *)variances; 
-		unsigned n = length; 
-		while (n--) { *afluxes++ /= d; *avariances++ /= pow(d,2); }
-		return *this;
-	};
-	
-    /*!
-	 * \brief Multiplication operator.
-     * \details The operator multiplies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector t = operaFluxVector a * operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator*(operaFluxVector* b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes; 
-			tvariances = (double *)this->variances; 
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes; 
-			tvariances = (double *)t->variances; 
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)this->variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-		while (n--) { *tfluxes++ = *afluxes * *bfluxes; *tvariances++ = ( pow(*afluxes,2) * *bvariances++ ) + ( pow(*bfluxes,2) * *avariances++ ); afluxes++; bfluxes++; }
-		if (b->istemp) delete b;
-		return *t;
-	};
-	
-    /*!
-	 * \brief Multiplication operator.
-     * \details The operator multiplies the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector t = operaFluxVector a * operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator*(operaFluxVector& b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes; 
-			tvariances = (double *)this->variances; 
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes; 
-			tvariances = (double *)t->variances; 
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)this->variances; 
-		double *bvariances = (double *)b.variances; 
-		unsigned n = length; 
-		while (n--) { *tfluxes++ = *afluxes * *bfluxes; *tvariances++ = ( pow(*afluxes,2) * *bvariances++ ) + ( pow(*bfluxes,2) * *avariances++ ); afluxes++; bfluxes++; }
-		if (b.istemp) delete &b;
-		return *t;
-	};
-	
-    /*! 
-	 * \brief Multiplication operator.
-     * \details The operator multiplies the double from the right side of the operator to every value of the flux vector on the left side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector t = operaFluxVector a * double d;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator*(double d) {
-        double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes;
-			tvariances = (double *)this->variances;
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes;
-			tvariances = (double *)t->variances;
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes;
-		double *avariances = (double *)this->variances;
-		unsigned n = length;
-		while (n--) { *tfluxes++ = *afluxes++ * d; *tvariances++ = *avariances++ * pow(d,2); }
-		return *t;
-	};
-	
-    /*!
-	 * \brief Division operator.
-     * \details The operator divides the elements on the left side of the operator by the corresponding elements on the right side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector t = operaFluxVector a / operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator/(operaFluxVector* b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes; 
-			tvariances = (double *)this->variances; 
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes; 
-			tvariances = (double *)t->variances; 
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)this->variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-        switch (this->towards) {
-            case ToDefault:
-                while (n--) { *tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++;  }
-                break;
-            case ToINF:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = FP_INFINITE; *tvariances++ = 0.0; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToNAN:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = FP_NAN; *tvariances++ = FP_NAN; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToZero:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = 0.0; *tvariances++ = 0.0; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToOne:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = 1.0; *tvariances++ = 0.0; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-                
-            default:
-                break;
-        }
-		if (b->istemp) delete b;
-		return *t;
-	};
-	
-    /*!
-	 * \brief Division operator.
-     * \details The operator divides the elements on the left side of the operator by the corresponding elements on the right side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector t = operaFluxVector a / operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator/(operaFluxVector& b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes; 
-			tvariances = (double *)this->variances; 
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes; 
-			tvariances = (double *)t->variances; 
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)this->variances; 
-		double *bvariances = (double *)b.variances; 
-		unsigned n = length; 
-        switch (this->towards) {
-            case ToDefault:
-                while (n--) { *tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++;  }
-                break;
-            case ToINF:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = FP_INFINITE; *tvariances++ = 0.0; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToNAN:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = FP_NAN; *tvariances++ = FP_NAN; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToZero:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = 0.0; *tvariances++ = 0.0; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-            case ToOne:
-                while (n--) { if (isinf(*afluxes)&&isinf(*bfluxes)) {*tfluxes++ = 1.0; *tvariances++ = 0.0; afluxes++; bfluxes++; avariances++; bvariances++;} else {*tfluxes++ = *afluxes / *bfluxes; *tvariances++ = ( pow(*bfluxes,-2) * *avariances++ ) + ( pow(*afluxes / pow(*bfluxes,2),2) * *bvariances++ ); afluxes++; bfluxes++; } }
-                break;
-                
-            default:
-                break;
-        }
-		if (b.istemp) delete &b;
-		return *t;
-	};
-	
-    /*! 
-	 * \brief Division operator.
-     * \details The operator divides every value of the flux vector on the left side of the operator by the double on the right side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector t = operaFluxVector a / double d;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator/(double d) {
-        double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes;
-			tvariances = (double *)this->variances;
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes;
-			tvariances = (double *)t->variances;
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes;
-		double *avariances = (double *)this->variances;
-		unsigned n = length;
-		while (n--) { *tfluxes++ = *afluxes++ / d; *tvariances++ = *avariances++ / pow(d,2); }
-		return *t;
-	};
-	
-    /*!
-	 * \brief Addition operator.
-     * \details The operator adds the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector t = operaFluxVector a + operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator+(operaFluxVector* b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes; 
-			tvariances = (double *)this->variances; 
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes; 
-			tvariances = (double *)t->variances; 
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)this->variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-		while (n--) { *tfluxes++ = *afluxes++ + *bfluxes++; *tvariances++ = *avariances++ + *bvariances++; }
-		if (b->istemp) delete b;
-		return *t;
-	};
-	
-    /*!
-	 * \brief Addition operator.
-     * \details The operator adds the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector t = operaFluxVector a + operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator+(operaFluxVector& b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes;
-			tvariances = (double *)this->variances;
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes;
-			tvariances = (double *)t->variances;
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes;
-		double *bfluxes = (double *)b.fluxes;
-		double *avariances = (double *)this->variances;
-		double *bvariances = (double *)b.variances;
-		unsigned n = length;
-		while (n--) { *tfluxes++ = *afluxes++ + *bfluxes++; *tvariances++ = *avariances++ + *bvariances++; }
-		if (b.istemp) delete &b;
-		return *t;
-	};
-	
-    /*! 
-	 * \brief Addition operator.
-     * \details The operator adds the double from the right side of the operator to every value of the flux vector on the left side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector t = operaFluxVector a + double d;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator+(double d) {
-        double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes;
-			tvariances = (double *)this->variances;
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes;
-			tvariances = (double *)t->variances;
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes;
-		double *avariances = (double *)this->variances;
-		unsigned n = length;
-		while (n--) { *tfluxes++ = *afluxes++ + d; *tvariances++ = *avariances++ + 0.0; }
-		return *t;
-	};
-	
-    /*!
-	 * \brief Subtraction operator.
-     * \details The operator subtracts the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector pointer
-	 * \note Usage: operaFluxVector t = operaFluxVector a - operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator-(operaFluxVector* b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes; 
-			tvariances = (double *)this->variances; 
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes; 
-			tvariances = (double *)t->variances; 
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes; 
-		double *bfluxes = (double *)b->fluxes; 
-		double *avariances = (double *)this->variances; 
-		double *bvariances = (double *)b->variances; 
-		unsigned n = length; 
-		while (n--) { *tfluxes++ = *afluxes++ - *bfluxes++; *tvariances++ = *avariances++ + *bvariances++; }
-		if (b->istemp) delete b;
-		return *t;
-	};
-	
-    /*!
-	 * \brief Subtraction operator.
-     * \details The operator subtracts the elements on the right side of the operator to the corresponding elements on the left side.
-	 * \param b An operaFluxVector address
-	 * \note Usage: operaFluxVector t = operaFluxVector a - operaFluxVector b;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator-(operaFluxVector& b) {
-		double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes; 
-			tvariances = (double *)this->variances; 
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes; 
-			tvariances = (double *)t->variances; 
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes; 
-		double *bfluxes = (double *)b.fluxes; 
-		double *avariances = (double *)this->variances; 
-		double *bvariances = (double *)b.variances; 
-		unsigned n = length; 
-		while (n--) { *tfluxes++ = *afluxes++ - *bfluxes++; *tvariances++ = *avariances++ + *bvariances++; }
-		if (b.istemp) delete &b;
-		return *t;
-	};
-	
-    /*! 
-	 * \brief Subtraction operator.
-     * \details The operator subtracts the double from the right side of the operator to every value of the flux vector on the left side.
-	 * \param d A double value
-	 * \note Usage: operaFluxVector t = operaFluxVector a - double d;
-	 * \return An operaFluxVector address
-	 */
-	operaFluxVector& operator-(double d) {
-        double *tfluxes, *tvariances;
-		operaFluxVector *t = NULL;
-		if (this->istemp) {
-			t = this;
-			tfluxes = (double *)this->fluxes;
-			tvariances = (double *)this->variances;
-		} else {
-			t = new operaFluxVector(*this, towards, true);
-			tfluxes = (double *)t->fluxes;
-			tvariances = (double *)t->variances;
-		}
-		t->towards = this->towards;
-		double *afluxes = (double *)this->fluxes;
-		double *avariances = (double *)this->variances;
-		unsigned n = length;
-		while (n--) { *tfluxes++ = *afluxes++ - d; *tvariances++ = *avariances++ + 0.0; }
-		return *t;
-	};
+	operaFluxVector& operator/=(double d);
 };
 
 /*!
- * \brief Square root function.
- * \details The function applies a square root to every element in the flux vector.
- * \param b An operaFluxVector pointer
- * \note Usage: operaFluxVector t = Sqrt( operaFluxVector b );
- * \return An operaFluxVector address
+ * \brief Addition operator.
+ * \details Adds two operaFluxVectors without modifying either operaFluxVector.
+ * \param a An operaFluxVector
+ * \param b An operaFluxVector
+ * \return The resulting sum operaFluxVector
  */
-static inline operaFluxVector& Sqrt(operaFluxVector* b) {
-	operaFluxVector *t = new operaFluxVector(b->getlength(), b->gettowards(), true);
-	unsigned n = b->getlength();
-	double *bfluxes = b->getfluxes();
-	double *tfluxes = t->getfluxes();
-	double *bvariances = b->getvariances();
-	double *tvariances = t->getvariances();
-	while (n--) {
-		*tfluxes++ = sqrt(*bfluxes);
-		*tvariances++ = *bvariances++ / ( 4.0 * *bfluxes++ );
-	}
-	if (b->getistemp()) delete b;
-	return *t;
-}
+inline operaFluxVector operator+(operaFluxVector a, const operaFluxVector& b) { return a += b; }
+
+/*! 
+ * \brief Addition operator.
+ * \details Adds a flux value to an operaFluxVector without modifying it.
+ * \param a An operaFluxVector
+ * \param d The flux value
+ * \return The resulting sum operaFluxVector
+ */
+inline operaFluxVector operator+(operaFluxVector a, double d) { return a += d; }
+
+ /*!
+ * \brief Subtraction operator.
+ * \details Subtracts one operaFluxVector from another without modifying either operaFluxVector.
+ * \param a An operaFluxVector
+ * \param b An operaFluxVector
+ * \return The resulting difference operaFluxVector
+ */
+inline operaFluxVector operator-(operaFluxVector a, const operaFluxVector& b) { return a -= b; }
+
+/*! 
+ * \brief Subtraction operator.
+ * \details Subtracts a flux value from an operaFluxVector without modifying it.
+ * \param a An operaFluxVector
+ * \param d The flux value
+ * \return The resulting difference operaFluxVector
+ */
+inline operaFluxVector operator-(operaFluxVector a, double d) { return a -= d; }
+
+/*!
+ * \brief Multiplication operator.
+ * \details Multiplies two operaFluxVectors without modifying either operaFluxVector.
+ * \param a An operaFluxVector
+ * \param b An operaFluxVector
+ * \return The resulting product operaFluxVector
+ */
+inline operaFluxVector operator*(operaFluxVector a, const operaFluxVector& b) { return a *= b; }
+
+/*! 
+ * \brief Multiplication operator.
+ * \details Multilpies an operaFluxVector by a flux value without modifying it.
+ * \param a An operaFluxVector
+ * \param d The flux value
+ * \return The resulting product operaFluxVector
+ */
+inline operaFluxVector operator*(operaFluxVector a, double d) { return a*=d; }
+
+/*!
+ * \brief Division operator.
+ * \details Divides one operaFluxVector by another without modifying either operaFluxVector.
+ * \param a An operaFluxVector
+ * \param b An operaFluxVector
+ * \return The resulting quotient operaFluxVector
+ */
+inline operaFluxVector operator/(operaFluxVector a, const operaFluxVector& b) { return a /= b; }
+
+/*! 
+ * \brief Division operator.
+ * \details Divides an operaFluxVector by a flux value without modifying it.
+ * \param a An operaFluxVector
+ * \param d The flux value
+ * \return The resulting quotient operaFluxVector
+ */
+inline operaFluxVector operator/(operaFluxVector a, double d) { return a/=d; }
 
 /*!
  * \brief Square root function.
  * \details The function applies a square root to every element in the flux vector.
- * \param b An operaFluxVector address
- * \note Usage: operaFluxVector t = Sqrt( operaFluxVector b );
- * \return An operaFluxVector address
+ * \param b An operaFluxVector
+ * \return The resulting square root operaFluxVector
  */
-static inline operaFluxVector& Sqrt(operaFluxVector& b) {
-	operaFluxVector *t = new operaFluxVector(b.getlength(), b.gettowards(), true);
-	unsigned n = b.getlength();
-	double *bfluxes = b.getfluxes();
-	double *tfluxes = t->getfluxes();
-	double *bvariances = b.getvariances();
-	double *tvariances = t->getvariances();
-	while (n--) {
-		*tfluxes++ = sqrt(*bfluxes);
-		*tvariances++ = *bvariances++ / ( 4.0 * *bfluxes++ );
-	}
-	if (b.getistemp()) delete &b;
-	return *t;
-}
+operaFluxVector Sqrt(operaFluxVector b);
 
 /*!
  * \brief Power function.
- * \details The function raises to specified power every element in the flux vector.
- * \param b An operaFluxVector pointer
- * \param d A double value
- * \note Usage: operaFluxVector t = Pow( operaFluxVector b , double d );
- * \return An operaFluxVector address
+ * \details The function raises every element in the flux vector to the specified power.
+ * \param b An operaFluxVector
+ * \param d The power
+ * \return The resulting power operaFluxVector
  */
-static inline operaFluxVector& Pow(operaFluxVector* b, double d) {
-	operaFluxVector *t = new operaFluxVector(b->getlength(), b->gettowards(), true);
-	unsigned n = b->getlength();
-	double *bfluxes = b->getfluxes();
-	double *tfluxes = t->getfluxes();
-	double *bvariances = b->getvariances();
-	double *tvariances = t->getvariances();
-	while (n--) {
-		*tfluxes++ = pow(*bfluxes,d);
-		*tvariances++ = pow(d * pow(*bfluxes++,d-1.0),2) * *bvariances++;
-	}
-	if (b->getistemp()) delete b;
-	return *t;
-}
-
-/*!
- * \brief Power function.
- * \details The function raises to specified power every element in the flux vector.
- * \param b An operaFluxVector address
- * \param d A double value
- * \note Usage: operaFluxVector t = Pow( operaFluxVector b , double d );
- * \return An operaFluxVector address
- */
-static inline operaFluxVector& Pow(operaFluxVector& b, double d) {
-	operaFluxVector *t = new operaFluxVector(b.getlength(), b.gettowards(), true);
-	unsigned n = b.getlength();
-	double *bfluxes = b.getfluxes();
-	double *tfluxes = t->getfluxes();
-	double *bvariances = b.getvariances();
-	double *tvariances = t->getvariances();
-	while (n--) {
-		*tfluxes++ = pow(*bfluxes,d);
-		*tvariances++ = pow(d * pow(*bfluxes++,d-1.0),2) * *bvariances++;
-	}
-	if (b.getistemp()) delete &b;
-	return *t;
-}
+operaFluxVector Pow(operaFluxVector b, double d);
 
 /*!
  * \brief Sum function.
- * \details The function sums every element in the flux vector.
- * \param b An operaFluxVector pointer
- * \note Usage: double sum = Sum( operaFluxVector& b );
- * \note This function allocated storage which must be disposed of by the caller.
- * \return pointer to a pair of doubles
+ * \details Calculuates the sum of a flux vector.
+ * \param b An operaFluxVector
+ * \return A pair of doubles containing the sums for the fluxes and variances respspectively
  */
-static inline pair<double,double>Sum(operaFluxVector& b) {
-	unsigned n = b.getlength();
-	double sum = 0.0;
-	double var = 0.0;
-	double *pfluxes = b.getfluxes();
-	double *pvariances = b.getvariances();
-	while (n--) {
-		sum += *pfluxes++;
-		var += *pvariances++;
-	}
-	if (b.getistemp()) delete &b;
-	return pair<double,double>(sum, var);
-}
-
-/*!
- * \brief Sum function.
- * \details The function sums every element in the flux vector.
- * \param b An operaFluxVector pointer
- * \note Usage: double sum = Sum( operaFluxVector& b ).first;
- * \note This function allocated storage which must be disposed of by the caller.
- * \return pointer to a pair of doubles
- */
-static inline pair<double,double>Sum(operaFluxVector* b) {
-	unsigned n = b->getlength();
-	double sum = 0.0;
-	double var = 0.0;
-	double *pfluxes = b->getfluxes();
-	double *pvariances = b->getvariances();
-	while (n--) {
-		sum += *pfluxes++;
-		var += *pvariances++;
-	}
-	if (b->getistemp()) delete b;
-	return pair<double,double>(sum, var);
-}
+pair<double,double> Sum(const operaFluxVector& b);
 
 /*!
  * \brief Mean function.
- * \details The function returns the mean of the flux vector.
- * \param b An operaFluxVector pointer
- * \note Usage: double mean = Mean( operaFluxVector& b ).first;
- * \note This function allocated storage which must be disposed of by the caller.
- * \return pointer to a pair of doubles
+ * \details Calculuates the mean of a flux vector.
+ * \param b An operaFluxVector
+ * \return A pair of doubles containing the means of the fluxes and variances respspectively
  */
-static inline pair<double,double>Mean(operaFluxVector& b) {
-	unsigned n = b.getlength();
-	double sum = 0.0;
-	double var = 0.0;
-	double *pfluxes = b.getfluxes();
-	double *pvariances = b.getvariances();
-	while (n--) {
-		sum += *pfluxes++;
-		var += *pvariances++;
-	}
-	if (b.getistemp()) delete &b;
-	sum /= b.getlength();
-	var /= b.getlength();
-	return pair<double,double>(sum, var);
-}
+pair<double,double> Mean(const operaFluxVector& b);
 
 /*!
- * \brief Mean function.
- * \details The function returns the mean of the flux vector.
- * \param b An operaFluxVector pointer
- * \note Usage: double mean = Mean( operaFluxVector& b ).first;
- * \note This function allocated storage which must be disposed of by the caller.
- * \return pointer to a pair of doubles
+ * \brief Resizes a vector.
+ * \details Resizes a dynamic array, copying over existing elements that fit in the new range.
+ * \param vector The existing vector of doubles to be resized
+ * \param oldlength The previous length of the vector
+ * \param newlength The new length to resize to
+ * \return void
  */
-static inline pair<double,double>Mean(operaFluxVector* b) {
-	unsigned n = b->getlength();
-	double sum = 0.0;
-	double var = 0.0;
-	double *pfluxes = b->getfluxes();
-	double *pvariances = b->getvariances();
-	while (n--) {
-		sum += *pfluxes++;
-		var += *pvariances++;
-	}
-	if (b->getistemp()) delete b;
-	sum /= b->getlength();
-	var /= b->getlength();
-	return pair<double,double>(sum, var);
-}
-	
+void resizeVector(double *&vector, unsigned oldlength, unsigned newlength);
+
 #endif

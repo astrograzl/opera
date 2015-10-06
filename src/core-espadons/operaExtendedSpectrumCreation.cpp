@@ -27,7 +27,7 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
 
@@ -54,6 +54,7 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 	string wavelengthCalibration;
 	string inputFlatFluxCalibration;
     string inputWavelengthMaskForUncalContinuum;
+    string wlrangefile;
     unsigned numberOfPointsInUniformSample = 150;
     unsigned normalizationBinsize = 100;
     bool starplusskyInvertSkyFiber = false; // Only a parameter in star+sky mode
@@ -82,6 +83,7 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 	if(PolarimetryCorrection) args.AddRequiredArgument("polar", input, "Input file name (.p)");
 	else args.AddRequiredArgument("inputUncalibratedSpectrum", input, "Input file name (.e)");
 	args.AddRequiredArgument("outputCalibratedSpectrum", outputSpectraFile, "Output file name (.spc)");
+	args.AddOptionalArgument("wlrangefile", wlrangefile, "", "Table with order wavelength ranges");
 	args.AddRequiredArgument("object", object, "Output object name");
 	args.AddRequiredArgument("spectrumtype", spectralOrderTypeVal, "Spectrum type");
 	args.AddRequiredArgument("wavelengthCalibration", wavelengthCalibration, "Wavelength calibration file (.wcal)");
@@ -90,7 +92,7 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 	args.AddRequiredArgument("numberOfPointsInUniformSample", numberOfPointsInUniformSample, "");
 	args.AddRequiredArgument("normalizationBinsize", normalizationBinsize, "Binsize for normalization");
 	if(StarPlusSky) args.AddOptionalArgument("starplusskyInvertSkyFiber", starplusskyInvertSkyFiber, false, "Invert sky fiber (default is beam[0]=star, beam[1]=sky)");
-    args.AddOptionalArgument("SkyOverStarFiberAreaRatio", SkyOverStarFiberAreaRatio, 1.0, "Sky over Star fiber area ratio, to compensate for different apertures.");
+    if(StarPlusSky) args.AddOptionalArgument("SkyOverStarFiberAreaRatio", SkyOverStarFiberAreaRatio, 1.0, "Sky over Star fiber area ratio, to compensate for different apertures.");
     args.AddOptionalArgument("radialvelocitycorrection", radialvelocitycorrection, "", "Heliocentric wavelength correction file (.rvel)");
 	args.AddOptionalArgument("telluriccorrection", telluriccorrection, "", "Telluric wavelength correction file (.tell)");
 	args.AddOptionalArgument("flatResponse", flatResponse, "", "Flat response calibration file (LE .s file)");
@@ -116,6 +118,7 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 			cout << moduleName << ": output spectrum file = " << outputSpectraFile << endl;
 			cout << moduleName << ": spectrum type = " << spectralOrderType << endl;							
 			cout << moduleName << ": wavelength calibration file = " << wavelengthCalibration << endl;
+			cout << moduleName << ": wlrangefile = " << wlrangefile << endl;
             cout << moduleName << ": radialvelocitycorrection = " << radialvelocitycorrection << endl;
             cout << moduleName << ": telluriccorrection = " << telluriccorrection << endl;
             cout << moduleName << ": inputFlatFluxCalibration = " << inputFlatFluxCalibration << endl;
@@ -125,7 +128,8 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
             cout << moduleName << ": input flux calibration file = " << fluxCalibration << endl; 
             cout << moduleName << ": input flat response calibration file = " << flatResponse << endl;
             cout << moduleName << ": exposure time = " << exposureTime << endl;
-            cout << moduleName << ": SkyOverStarFiberAreaRatio = " << SkyOverStarFiberAreaRatio << endl;
+            if(StarPlusSky) cout << moduleName << ": SkyOverStarFiberAreaRatio = " << SkyOverStarFiberAreaRatio << endl;
+            if(StarPlusSky) cout << moduleName << ": starplusskyInvertSkyFiber = " << starplusskyInvertSkyFiber << endl;
 			cout << moduleName << ": absolute calibration = " << AbsoluteCalibration << endl;
             if (ordernumber != NOTPROVIDED) cout << moduleName << ": ordernumber = " << ordernumber << endl;            
             if (args.plot) {
@@ -139,8 +143,9 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 		/*
 		 * Down to business, read in all the source and calibration data.
 		 */
-        operaSpectralOrderVector spectralOrders(input);
-        spectralOrders.ReadSpectralOrders(wavelengthCalibration);
+        operaSpectralOrderVector spectralOrders;
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, input);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wavelengthCalibration);
         
 		UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
         if (args.verbose) cout << moduleName << ": minorder ="<< minorder << " maxorder=" << maxorder << endl;
@@ -148,20 +153,19 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
         int minPossibleOrder = 0;
         int maxPossibleOrder = 0;
         
+        // Allocate extended spectrum, and copy flux into raw, fcal, and normalized flux vectors
         for (int order=minorder; order<=maxorder; order++) {
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
             
 			if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
-				spectralOrder->getSpectralElements()->CreateExtendedvectors(spectralOrder->getSpectralElements()->getnSpectralElements());
+				spectralOrder->CreateExtendedVectors();
+                spectralOrder->CopyFluxVectorIntoRawFlux();
+                spectralOrder->CopyFluxVectorIntoFcalFlux();
+                spectralOrder->CopyFluxVectorIntoNormalizedFlux();
                 
-                // Save the raw flux for later
-                spectralOrder->getSpectralElements()->copyTOrawFlux();
-                spectralOrder->getSpectralElements()->copyTOnormalizedFlux();
-                spectralOrder->getSpectralElements()->copyTOfcalFlux();
-                
-                operaWavelength *Wavelength = spectralOrder->getWavelength();
-                spectralOrder->getSpectralElements()->setwavelengthsFromCalibration(Wavelength);
-                spectralOrder->getSpectralElements()->copyTOtell();
+				operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
+                SpectralElements->setwavelengthsFromCalibration(spectralOrder->getWavelength());
+                SpectralElements->copyTOtell();
                 
                 if(order < minPossibleOrder || minPossibleOrder==0) {
                     minPossibleOrder = order;
@@ -185,28 +189,40 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 
         // Load telluric correction for wavelength calibration
 		if (!telluriccorrection.empty()) {
-            spectralOrders.readTelluricRVINTOExtendendSpectra(telluriccorrection, minorder, maxorder);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, telluriccorrection);
+            spectralOrders.applyTelluricRVShiftINTOExtendendSpectra(minorder, maxorder);
 		}
         
-        // Load Heliocentric RV wavelength correction and also wavelength calibration
+        // Load Heliocentric RV wavelength correction
         if (!radialvelocitycorrection.empty()) {
-            spectralOrders.readRVCorrectionINTOExtendendSpectra(radialvelocitycorrection, wavelengthCalibration, minorder, maxorder);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, radialvelocitycorrection);
+            spectralOrders.setRVCorrectionINTOExtendendSpectra(minorder, maxorder);
         }
         
         // Correct flat-field
         if (!inputFlatFluxCalibration.empty()) {
-            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber);
-            spectralOrders.saveExtendedRawFlux(minorder, maxorder);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputFlatFluxCalibration);
+            spectralOrders.correctFlatField(minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber);
+            spectralOrders.saveExtendedFlux(minorder, maxorder);
         }
+        
+        // Trim orders
+        if(!wlrangefile.empty()) {
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wlrangefile);
+			spectralOrders.trimOrdersByWavelengthRanges(minorder, maxorder);
+		}
         
         // Flux Normalization and Flux Calibration
 		if (!inputWavelengthMaskForUncalContinuum.empty()) {
 			const double delta_wl = 1.0; // Wavelength range (in nm) for stiching non-overlapping orders
 			if(PolarimetryCorrection) exposureTime *= 4.0;
             if (!fluxCalibration.empty()) {
-                spectralOrders.normalizeAndCalibrateFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,fluxCalibration, exposureTime, AbsoluteCalibration,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, SkyOverStarFiberAreaRatio, StarPlusSky);
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrders, fluxCalibration);
+                spectralOrders.normalizeAndCalibrateFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum, exposureTime, AbsoluteCalibration,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, SkyOverStarFiberAreaRatio, StarPlusSky);
             } else if (!flatResponse.empty()) {
-                spectralOrders.normalizeAndApplyFlatResponseINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,flatResponse,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false, StarPlusSky);
+				bool flatResponseFITS = true;
+				spectralOrders.applyFlatResponseINTOExtendendSpectra(flatResponse, flatResponseFITS, minorder, maxorder);
+				spectralOrders.normalizeINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum, numberOfPointsInUniformSample, normalizationBinsize, delta_wl, minorder, maxorder, true);
             } else {
                 spectralOrders.normalizeFluxINTOExtendendSpectra(inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,normalizationBinsize, delta_wl, minorder, maxorder, false);
             }
@@ -216,7 +232,7 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
         
         // Output wavelength calibrated spectrum
 		spectralOrders.setObject(object);
-		spectralOrders.WriteSpectralOrders(outputSpectraFile, spectralOrderType);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputSpectraFile, spectralOrderType);
 
 		if (!spectrumDataFilename.empty() && !plotfilename.empty() && !scriptfilename.empty()) {
 			GenerateExtractionPlot(scriptfilename.c_str(),plotfilename.c_str(),spectrumDataFilename.c_str(), NumberofBeams, interactive);

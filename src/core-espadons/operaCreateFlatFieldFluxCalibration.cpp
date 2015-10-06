@@ -36,7 +36,7 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
@@ -125,8 +125,9 @@ int main(int argc, char *argv[])
             
 		}
         
-		operaSpectralOrderVector spectralOrders(inputMasterFlatSpectrum);
-		spectralOrders.ReadSpectralOrders(wavelengthCalibration);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputMasterFlatSpectrum);
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wavelengthCalibration);
 
         UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
 		if (args.verbose) cout << "operaCreateFlatFieldFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;
@@ -325,7 +326,7 @@ int main(int argc, char *argv[])
         }
 
 		// write output
-		spectralOrders.WriteSpectralOrders(outputFluxCalibrationFile, Fcal);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputFluxCalibrationFile, Fcal);
 		
         if (!spectrumDataFilename.empty() && !continuumDataFilename.empty() && !scriptfilename.empty()) {
 			GenerateCreateFlatFieldFluxCalibrationPlot(scriptfilename.c_str(),plotfilename.c_str(),spectrumDataFilename.c_str(),continuumDataFilename.c_str(), 2, interactive);

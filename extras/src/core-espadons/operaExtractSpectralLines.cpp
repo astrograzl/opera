@@ -266,8 +266,8 @@ int main(int argc, char *argv[])
         }
 		
 		operaSpectralOrderVector spectralOrders(inputgeom);
-        spectralOrders.ReadSpectralOrders(inputprof);
-		spectralOrders.readGainNoise(gainfilename);
+        spectralOrders.ReadIntoSpectralOrders(inputprof);
+		spectralOrders.ReadIntoSpectralOrders(gainfilename);
 		
 		unsigned amp = 0;
 		gain = spectralOrders.getGainBiasNoise()->getGain(amp);

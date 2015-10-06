@@ -36,12 +36,10 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
-
-unsigned readLEorderwavelength(string LEorderwavelength, int *orders, double *wl0, double *wlf);
 
 /*! \file operaGenerateLEFormats.cpp */
 
@@ -131,85 +129,34 @@ int main(int argc, char *argv[])
 		/*
 		 * Down to business, read in all the source and calibration data.
 		 */        
-		operaSpectralOrderVector spectralOrders(inputOperaSpectrum);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputOperaSpectrum);
 		
 		UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
         if (args.verbose) cout << "operaGenerateLEFormats: minorder ="<< minorder << " maxorder=" << maxorder << endl;
         
-        unsigned LEnp = 0;
-        int *LEorders = new int[MAXORDERS];
-        double *LEwl0 = new double[MAXORDERS];
-        double *LEwlf = new double[MAXORDERS];
-        
-        if (!LEorderwavelength.empty()) {
-            LEnp = readLEorderwavelength(LEorderwavelength, LEorders, LEwl0, LEwlf);
-        }
+        // Trim orders
+        if(!LEorderwavelength.empty()) {
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, LEorderwavelength);
+			spectralOrders.trimOrdersByWavelengthRanges(minorder, maxorder);
+		}
 
 		for (int order=minorder; order<=maxorder; order++) {
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
             
 			if (spectralOrder->gethasSpectralElements()) {
                 operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
-                unsigned nElements = spectralElements->getnSpectralElements();
-                
-                double wl0 = spectralElements->getwavelength(0);
-                double wlf = spectralElements->getwavelength(nElements-1);
-                
-                for (unsigned i=0; i<LEnp; i++) {
-                    if(order == LEorders[i]) {
-                        if (LEwl0[i] > wl0 && LEwl0[i] < wlf) wl0 = LEwl0[i];
-                        if (LEwlf[i] < wlf && LEwlf[i] > wl0) wlf = LEwlf[i];
-                        break;
-                    }
-                }
-                
-                unsigned newIndexElem = 0;
-                
-                for(unsigned indexElem=0;indexElem<nElements;indexElem++) {
-                    
-                    double wl = spectralElements->getwavelength(indexElem);
-                    double flux = spectralElements->getFlux(indexElem);
-                    double fluxVariance = spectralElements->getFluxVariance(indexElem);
-                    double tell = spectralElements->gettell(indexElem);
-                    double rvel = spectralElements->getrvel(indexElem);
-                    double normalizedFlux = spectralElements->getnormalizedFlux(indexElem);
-                    double normalizedFluxVariance = spectralElements->getnormalizedFluxVariance(indexElem);
-                    double fcalFlux = spectralElements->getfcalFlux(indexElem);
-                    double fcalFluxVariance = spectralElements->getfcalFluxVariance(indexElem);
-                    double rawFlux = spectralElements->getrawFlux(indexElem);
-                    double rawFluxVariance = spectralElements->getrawFluxVariance(indexElem);
-                    
-                    if (wl > wl0 && wl < wlf) {
-                        spectralElements->setwavelength(wl,newIndexElem);
-                        spectralElements->setFlux(flux,newIndexElem);
-                        spectralElements->setFluxVariance(fluxVariance,newIndexElem);
-                        spectralElements->settell(tell,newIndexElem);
-                        spectralElements->setrvel(rvel,newIndexElem);
-                        spectralElements->setnormalizedFlux(normalizedFlux,newIndexElem);
-                        spectralElements->setfcalFlux(fcalFlux,newIndexElem);
-                        spectralElements->setrawFlux(rawFlux,newIndexElem);
-                        spectralElements->setnormalizedFluxVariance(normalizedFluxVariance,newIndexElem);
-                        spectralElements->setfcalFluxVariance(fcalFluxVariance,newIndexElem);
-                        spectralElements->setrawFluxVariance(rawFluxVariance,newIndexElem);
-                        
-                        newIndexElem++;
-                    } else if (wl > wl0 && wl > wlf) {
-                        break;
-                    }
-                }
-                
-                spectralElements->setnSpectralElements(newIndexElem);
-                
+				
                 if (spectralElements->getHasExtendedBeamFlux()){
                     switch (fluxType) {
                         case RawFluxInElectronsPerElement:
-                            //spectralElements->copyFROMrawFlux();
+							spectralOrder->CopyRawFluxIntoFluxVector();
                             break;
                         case NormalizedFluxToContinuum:
-                            spectralElements->copyFROMnormalizedFlux();
+							spectralOrder->CopyNormalizedFluxIntoFluxVector();
                             break;
                         case CalibratedFluxNormalizedToRefWavelength:
-                            spectralElements->copyFROMfcalFlux();
+							spectralOrder->CopyFcalFluxIntoFluxVector();
                             break;
                         default:
                             break;
@@ -235,7 +182,7 @@ int main(int argc, char *argv[])
 		}        
  		// output wavelength/flux calibrated spectrum...
 		spectralOrders.setObject(object);
-		spectralOrders.WriteSpectralOrders(outputLEfilename, LibreEspritSpectrumType);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputLEfilename, LibreEspritSpectrumType);
 	}
 	catch (operaException e) {
 		cerr << "operaGenerateLEFormats: " << e.getFormattedMessage() << endl;
@@ -246,37 +193,4 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
-}
-
-/*
- * Read LE order wavelength ranges
- */
-unsigned readLEorderwavelength(string LEorderwavelength, int *orders, double *wl0, double *wlf) {
-    ifstream astream;
-    string dataline;
-    
-    int tmporder = 0;
-    double tmpwl0 = -1.0;
-    double tmpwlf = -1.0;
-    unsigned np = 0;
-    
-    astream.open(LEorderwavelength.c_str());
-    if (astream.is_open()) {
-        while (astream.good()) {
-            getline(astream, dataline);
-            if (strlen(dataline.c_str())) {
-                if (dataline.c_str()[0] == '#') {
-                    // skip comments
-                } else {
-                    sscanf(dataline.c_str(), "%d %lf %lf", &tmporder, &tmpwl0, &tmpwlf);
-                    orders[np] = tmporder,
-                    wl0[np] = tmpwl0;
-                    wlf[np] = tmpwlf;
-                    np++;
-                }	// skip comments
-            }
-        } // while (astream.good())
-        astream.close();
-    }	// if (astream.open())
-    return np;
 }

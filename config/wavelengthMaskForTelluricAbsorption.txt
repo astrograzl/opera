@@ -1,11 +1,12 @@
 ## List of spectral regions containing absorption telluric features
 ## By Eder Martioli - LNA Jan 23, 2015
+## Modified by Lison Malo (remove 3 last regions) -CFHT Jul 16, 2015
 588.500 600.000
 644.650 654.000
 691.500 705.500
 716.000 742.500
 757.816 776.902
 810.000 846.000
-910.000 920.000
-930.000 950.000
-965.000 986.000
+## 910.000 920.000
+## 930.000 950.000
+## 965.000 986.000

@@ -113,6 +113,8 @@ public:
 	 * Getters/Setters
 	 */
 	
+	void resize(unsigned Length);
+	
     /*!
      * \brief Sets the length of the Stokes vectors.
      * \details A function that sets the value of the variable holding the number of elements in the operaStokesVector.
@@ -126,7 +128,7 @@ public:
      * \details A function that gets the value of the variable holding the number of elements in the operaStokesVector.
      * \return An unsigned value
      */
-	unsigned getLength(void);
+	unsigned getLength(void) const;
 
     /*!
      * \brief Set the method used to calculate polarization.
@@ -141,7 +143,7 @@ public:
      * \details Supported methods are Difference=1, Ratio=2, DifferenceWithBeamSwapped=3, NewMethod=4.
      * \return A typedef method_t value
      */
-	method_t getmethod(void) {return method;};
+	method_t getmethod(void) const {return method;};
     
 	/*!
 	 * \brief Gets a wavelength vector address.
@@ -153,7 +155,7 @@ public:
 	 * \param indexEleme the index
 	 * \return Wavelength a wavelength value
 	 */
-	double getwavelength(unsigned indexElem);
+	double getwavelength(unsigned indexElem) const;
 	/*!
 	 * \brief Sets a wavelength value at indexElem.
 	 * \param Wavelength a wavelength value
@@ -172,7 +174,7 @@ public:
 	 * \brief Determines whether wavelength information is avilable.
 	 * \return bool
 	 */
-	bool getHasWavelength() { return hasWavelength; };
+	bool getHasWavelength() const { return hasWavelength; };
 	/*!
 	 * \brief Sets whether wavelength information is avilable.
 	 * \param bool HasWavelength
@@ -206,6 +208,7 @@ public:
      * \return An operaStokesVector pointer
      */
     operaStokesVector* getStokesVector(void);
+    const operaStokesVector* getStokesVector(void) const;
     
     /*!
      * \brief Gets a Stokes parameter of the Stokes vector.
@@ -214,6 +217,7 @@ public:
      * \return An operaFluxVector pointer
      */
     operaFluxVector* getStokesParameter(stokes_parameter_t StokesIndex);
+    const operaFluxVector* getStokesParameter(stokes_parameter_t StokesIndex) const;
     
     /*!
      * \brief Sets a Stokes parameter of the degree of polarization vector.
@@ -241,6 +245,7 @@ public:
      * \return An operaStokesVector pointer
      */
     operaStokesVector* getDegreeOfPolarization(void);
+    const operaStokesVector* getDegreeOfPolarization(void) const;
     
     /*!
      * \brief Gets a Stokes parameter of the degree of polarization vector.
@@ -249,6 +254,7 @@ public:
      * \return An operaFluxVector pointer
      */
     operaFluxVector* getDegreeOfPolarization(stokes_parameter_t StokesIndex);
+    const operaFluxVector* getDegreeOfPolarization(stokes_parameter_t StokesIndex) const;
     
     /*!
      * \brief Sets a Stokes parameter of the first null polarization vector.
@@ -276,6 +282,7 @@ public:
      * \return An operaStokesVector pointer
      */
     operaStokesVector* getFirstNullPolarization(void);
+    const operaStokesVector* getFirstNullPolarization(void) const;
     
     /*!
      * \brief Gets a Stokes parameter of the first null polarization vector.
@@ -284,6 +291,7 @@ public:
      * \return An operaFluxVector pointer
      */
     operaFluxVector* getFirstNullPolarization(stokes_parameter_t StokesIndex);
+    const operaFluxVector* getFirstNullPolarization(stokes_parameter_t StokesIndex) const;
     
     /*!
      * \brief Sets a Stokes parameter of the second null polarization vector.
@@ -311,6 +319,7 @@ public:
      * \return An operaStokesVector pointer
      */
     operaStokesVector* getSecondNullPolarization(void);
+    const operaStokesVector* getSecondNullPolarization(void) const;
     
     /*!
      * \brief Gets a Stokes parameter of the second null polarization vector.
@@ -319,34 +328,35 @@ public:
      * \return An operaFluxVector pointer
      */
     operaFluxVector* getSecondNullPolarization(stokes_parameter_t StokesIndex);
+    const operaFluxVector* getSecondNullPolarization(stokes_parameter_t StokesIndex) const;
     
     /*!
      * \brief Gets the boolean value of Stokes I.
      * \details A function that gets the boolean value giving the state of the Stokes I parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasStokesI(void);
+    bool getHasStokesI(void) const;
     
     /*!
      * \brief Gets the boolean value of Stokes Q.
      * \details A function that gets the boolean value giving the state of the Stokes Q parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasStokesQ(void);
+    bool getHasStokesQ(void) const;
     
     /*!
      * \brief Gets the boolean value of Stokes U.
      * \details A function that gets the boolean value giving the state of the Stokes U parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasStokesU(void);
+    bool getHasStokesU(void) const;
     
     /*!
      * \brief Gets the boolean value of Stokes V.
      * \details A function that gets the boolean value giving the state of the Stokes V parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasStokesV(void);
+    bool getHasStokesV(void) const;
     
     /*!
      * \brief Get the boolean value of a given Stokes.
@@ -354,7 +364,7 @@ public:
      * \param StokesIndex choice of Stokes parameter
      * \return A boolean value
      */
-    bool getHasStokes(stokes_parameter_t StokesIndex);
+    bool getHasStokes(stokes_parameter_t StokesIndex) const;
     
     /*!
      * \brief Sets the boolean value of Stokes I.
@@ -402,28 +412,28 @@ public:
      * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes I parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasDegreeOfStokesI(void);
+    bool getHasDegreeOfStokesI(void) const;
     
     /*!
      * \brief Gets the boolean value of the degree of polarization of Stokes Q.
      * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes Q parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasDegreeOfStokesQ(void);
+    bool getHasDegreeOfStokesQ(void) const;
     
     /*!
      * \brief Gets the boolean value of the degree of polarization of Stokes U.
      * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes U parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasDegreeOfStokesU(void);
+    bool getHasDegreeOfStokesU(void) const;
     
     /*!
      * \brief Gets the boolean value of the degree of polarization of Stokes V.
      * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes V parameter in the Stokes vector.
      * \return A boolean value
      */
-    bool getHasDegreeOfStokesV(void);
+    bool getHasDegreeOfStokesV(void) const;
     
     /*!
      * \brief Get the boolean value of the degree of polarization of a given Stokes.
@@ -431,7 +441,7 @@ public:
      * \param StokesIndex choice of Stokes parameter
      * \return A boolean value
      */
-    bool getHasDegreeOfStokes(stokes_parameter_t StokesIndex);
+    bool getHasDegreeOfStokes(stokes_parameter_t StokesIndex) const;
 
     /*!
      * \brief Sets the boolean value of the degree of polarization of Stokes I.
@@ -479,14 +489,14 @@ public:
      * \details A function that gets the boolean value of the first null polarization vector.
      * \return A boolean value
      */
-    bool getHasFirstNullPolarization(void);
+    bool getHasFirstNullPolarization(void) const;
     
     /*!
      * \brief Gets the boolean value of the second null polarization vector.
      * \details A function that gets the boolean value of the second null polarization vector.
      * \return A boolean value
      */
-    bool getHasSecondNullPolarization(void);
+    bool getHasSecondNullPolarization(void) const;
     
     /*!
      * \brief Sets the boolean value of the first null polarization vector.

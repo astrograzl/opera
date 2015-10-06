@@ -42,6 +42,7 @@
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
@@ -50,8 +51,6 @@
 #include "libraries/Polynomial.h"
 #include "libraries/operaFFT.h"
 #include "libraries/gzstream.h"
-
-#include "core-espadons/operaFluxCalibration.h"
 
 #define NOTPROVIDED -999
 
@@ -81,6 +80,8 @@ int debug=0, verbose=0, trace=0, plot=0;
  * \return EXIT_STATUS
  * \ingroup core
  */
+
+static void printUsageSyntax(char * modulename);
 
 void GenerateBinPolarPlot(string gnuScriptFileName, string outputPlotEPSFileName, string spectrumDataFilename, string binnedDataFilename, bool display);
 
@@ -244,8 +245,9 @@ int main(int argc, char *argv[])
             fbinneddata->open(outputBinnedSpectrum.c_str());  
         }
         
-		operaSpectralOrderVector spectralOrders(inputPolarSpectrum);
-		spectralOrders.ReadSpectralOrders(inputWaveFile); // read wavelength calibration
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputPolarSpectrum);
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWaveFile); // read wavelength calibration
         
         if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();

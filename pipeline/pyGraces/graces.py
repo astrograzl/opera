@@ -3,7 +3,7 @@
 Created on May 28 2015
 @author: Eder Martioli
 Laboratorio Nacional de Astrofisica, Brazil
-Last update on May 28 2015
+Last update on Jul 24 2015
 """
 import sys, os
 import subprocess
@@ -57,7 +57,8 @@ class ConfigFiles :
         self.TELLURICSPECTRUM = Dirs.CONFIGDIR + "KPNO_atmtrans.dat.gz"
         self.LEORDERWAVELENGTH = Dirs.CONFIGDIR + "LE_order_wavelength.dat"
         
-        self.STANDARDLISTFILE = Dirs.STANDARDSDIR + "operaStandardStars.dat"
+        #self.STANDARDLISTFILE = Dirs.STANDARDSDIR + "operaStandardStars.dat"
+        self.STANDARDLISTFILE = Dirs.STANDARDSDIR + "operaStandardStarsForGRACES.dat"
         self.readStandards(Dirs,self.STANDARDLISTFILE)
         
         self.SYNTHETICSPECTRUM = Dirs.CONFIGDIR + "/syntethicSpectra/Teff5500.spec"
@@ -66,7 +67,6 @@ class ConfigFiles :
         #self.OLAPAFLATRESPONSE = Dirs.CONFIGDIR + "flat_resp_olapa.s"
         self.OLAPAFLATRESPONSE = Dirs.CONFIGDIR + "flat_resp_olapa.fits.gz"
         self.EEV1FLATRESPONSE = Dirs.CONFIGDIR + "flat_resp_eev1.s"
-    
     
     # Function below reads list of standard stars for which there is available calibration data
     def readStandards(self, Dirs, stdListFilename) :
@@ -162,7 +162,6 @@ class InstMode :
             self.INSTRUMENTMODEKEY="FOURSLICE"
             self.STARPLUSKYMODEFLAG=0
             self.INVERTSKYFIBERFLAG=""
-            self.SKYOVERSTARFIBERAREARATIO=1.0
             self.SPCMODULE="operaStarOnly"
             self.recenterIPUsingSliceSymmetry="0"
             self.NUMBEROFSLICES="4"
@@ -172,14 +171,14 @@ class InstMode :
             self.ORDSPCAPERTURE=32
             self.SPACINGREFERENCEORDERNUMBER=47
             self.SPACINGREFERENCEORDERSEPARATION=55
-            self.GEOMAPERTURE=32
+            self.GEOMAPERTURE=30
             self.GEOMMAXNORDERS=40
             self.GEOMMINORDERTOUSE=21
             self.REFERENCELINEWIDTH=1.8
-            self.IPXSIZE="32"
-            self.IPYSIZE="5"
+            self.IPXSIZE="34"
+            self.IPYSIZE="7"
             self.IPXSAMPLING="3"
-            self.IPYSAMPLING="5"
+            self.IPYSAMPLING="7"
             self.TILTANGLE="-2.0"
             self.CONSTANTTILTFLAG="1"
             self.APERAPERTURE=32
@@ -189,13 +188,13 @@ class InstMode :
             self.RADIALVELOCITYSTEP=0.15
             self.RADIALVELOCITYSEARCHRANGE=200
             self.RADIALVELOCITYSEARCHSTEP=0.5
-        
+            self.GRACESFLATRESPONSE = "graces_StarOnly_flatresp.fits.gz"
+
         elif (self.mode == 2) :
             self.INSTRUMENTMODESHORTNAME="StarPlusSky"
             self.INSTRUMENTMODEKEY="TWOSLICE"
             self.STARPLUSKYMODEFLAG=1
             self.INVERTSKYFIBERFLAG="--starplusskyInvertSkyFiber=1"
-            self.SKYOVERSTARFIBERAREARATIO=1.0
             self.SPCMODULE="operaStarPlusSky"
             self.recenterIPUsingSliceSymmetry="1"
             self.NUMBEROFSLICES="4"
@@ -211,7 +210,7 @@ class InstMode :
             self.REFERENCELINEWIDTH=2.5
             self.IPXSIZE="32"
             self.IPYSIZE="5"
-            self.IPXSAMPLING="3"
+            self.IPXSAMPLING="5"
             self.IPYSAMPLING="5"
             self.TILTANGLE="-1.0"
             self.CONSTANTTILTFLAG="1"
@@ -222,6 +221,7 @@ class InstMode :
             self.RADIALVELOCITYSTEP=0.15
             self.RADIALVELOCITYSEARCHRANGE=200
             self.RADIALVELOCITYSEARCHSTEP=0.5
+            self.GRACESFLATRESPONSE = "graces_StarPlusSky_flatresp.fits.gz"
 
 ##################################
 
@@ -379,6 +379,7 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         
         ### Create TARGETS for flux calibration Standards ######
         standardname = ""
+        
         if config.hasStandard(objectname.replace(" ", "")) :
             standardname = objectname.replace(" ", "")
         elif config.hasStandard(objectname) :
@@ -906,15 +907,16 @@ def testCalibrationListCommand(Dirs, Instmode, Readmode, keyword, allowanyreadou
 
 #### Function to generate a command line for mastercalibrations: ####
 def MasterCalibrationCommand(Dirs, bin, product, list) :
-    commandline = Dirs.EXE + bin + " --output=" + product + " --list=" + list
+    commandline = Dirs.EXE + bin + " --output=" + product + " --imagelistfile=" + list
     return commandline
 ###########################################
 
 #### Function to generate a command line for mastercomparison: ####
 def MasterComparisonCommand(Dirs, product, list, badpix, masterbias) :
     commandline = Dirs.EXE + 'operaMasterComparison --output=' + product + \
-    ' --listofimages=' + list + ' --badpixelmask=' + badpix + ' --masterbias=' + masterbias + \
-    ' --combineMethod=1 --saturationLimit=65535 --outputExposureTime=40 --truncateOuputFluxToSaturation=1 --expTimeFITSKeyword=EXPTIME'
+    ' --imagelistfile=' + list + ' --badpixelmask=' + badpix + ' --masterbias=' + masterbias + \
+    ' --combineMethod=1 --saturationLimit=65535 --outputExposureTime=40 ' +\
+    ' --biasConstant=0 --truncateOuputFluxToSaturation=1 --expTimeFITSKeyword=EXPTIME'
     return commandline
 ###########################################
 
@@ -1088,7 +1090,7 @@ def objectExtractionCommand(Dirs, product, inputImage, masterbias, masterflat, b
     ' --inputInstrumentProfileFile=' + profproduct + ' --inputApertureFile=' + aperproduct + \
     ' --starplusskymode=' + str(Instmode.STARPLUSKYMODEFLAG) + ' ' + Instmode.INVERTSKYFIBERFLAG + \
     ' --spectrumtype=7 --spectrumtypename=OptimalBeamSpectrum --backgroundBinsize=300 --sigmaclip=6 ' + \
-    ' --removeBackground=0 --iterations=3 --onTargetProfile=1 --usePolynomialFit=0 --starplusskymode=0 --maxthreads=4'
+    ' --removeBackground=0 --iterations=3 --onTargetProfile=1 --usePolynomialFit=0 --maxthreads=4'
     
     return commandline
 ###########################################
@@ -1185,7 +1187,7 @@ def CreateFlatResponseCommand(Dirs, product, inputSpectrum, inputImage, stdcalda
     ' --inputFlatFluxCalibration=' + flatSpectrum + ' --inputWavelengthMaskForRefContinuum=' + config.ATLASWAVELENGTHMASK + \
     ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK + ' --inputWaveFile=' + wave + \
     ' --wavelengthForNormalization=' + str(Instmode.WAVELENGTHFORNORMALIZATION) + \
-    ' --numberOfPointsInUniformSample=300 --numberOfPointsInUniformRefSample=70 --binsize=750'
+    ' --numberOfPointsInUniformSample=300 --numberOfPointsInUniformRefSample=100 --binsize=800'
     
     return commandline
 ##########################################
@@ -1209,10 +1211,10 @@ def SpcModuleCommand(Dirs, product, Instmode, config, inputSpectrum, flatSpectru
     
     commandline = Dirs.EXE + Instmode.SPCMODULE + ' --outputCalibratedSpectrum=' + product + \
     ' --inputUncalibratedSpectrum=' + inputSpectrum + ' --inputFlatFluxCalibration=' + flatSpectrum  + \
-    ' --fluxCalibration=' + inputFcal + ' --flatResponse=' + config.OLAPAFLATRESPONSE + \
+    ' --fluxCalibration=' + inputFcal + ' --flatResponse=' + Dirs.CONFIGDIR + Instmode.GRACESFLATRESPONSE + \
     ' --radialvelocitycorrection=' + rvelwave + ' --telluriccorrection=' + tellwave + ' --wavelengthCalibration=' + wave +\
     ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK + ' ' + Instmode.INVERTSKYFIBERFLAG + \
-    ' --object="' + objectname + '" --etime=' + str(exptime) + ' --SkyOverStarFiberAreaRatio=' + str(Instmode.SKYOVERSTARFIBERAREARATIO) + \
+    ' --object="' + objectname + '" --etime=' + str(exptime) + \
     ' --spectrumtype=17 --numberOfPointsInUniformSample=150 --normalizationBinsize=750 --AbsoluteCalibration=0'
     
     return commandline

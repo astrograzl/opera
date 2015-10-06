@@ -35,22 +35,16 @@
 // $Locker$
 // $Log$
 
-#include "globaldefines.h"
-#include "operaError.h"
-#include "libraries/operaException.h"
-#include "libraries/operaSpectralOrderVector.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaWavelength.h" // for MAXORDEROFWAVELENGTHPOLYNOMIAL
-#include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaArgumentHandler.h"
-#include "core-espadons/operaCalculateSpectralResolution.h"
+#include "libraries/operaCommonModuleElements.h"
 #include <fstream>
 
 /*! \file operaCalculateSpectralResolution.cpp */
 
 using namespace std;
 
-#define NOTPROVIDED -999
+void GenerateSpectralResolutionPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileNames[], string origdataFileNames[], unsigned npolynomials, LaurentPolynomial *polynomials[], bool display);
 
 /*! 
  * operaCalculateSpectralResolution
@@ -80,11 +74,9 @@ int main(int argc, char *argv[])
     unsigned maxorderofpolynomial = 4; // maximum degree of polynomial for wavelength solution
     unsigned binsizeToRemoveOutliers = 7;
     double thresholdToRemoveOutliers = 2;
-
-    int minoutputorder = 22;
-    int maxoutputorder = 61;
+    int minoutputorder = NOTPROVIDED;
+    int maxoutputorder = NOTPROVIDED;
     int ordernumber = NOTPROVIDED;
-
     string plotfilename;
 	string datafilename;
 	string scriptfilename;
@@ -98,14 +90,8 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("maxorderofpolynomial", maxorderofpolynomial, "Maximum degree of polynomial for input wavelength solution");
 	args.AddOptionalArgument("binsizeToRemoveOutliers", binsizeToRemoveOutliers, 7, "?");
 	args.AddOptionalArgument("thresholdToRemoveOutliers", thresholdToRemoveOutliers, 4, "?");
-	args.AddOptionalArgument("minoutputorder", minoutputorder, 22, "Define minimum output order number");
-	args.AddOptionalArgument("maxoutputorder", maxoutputorder, 61, "Define maximum output order number");
-	args.AddOptionalArgument("ordernumber", ordernumber, NOTPROVIDED, "Absolute order number to extract (default=all)");
-	args.AddOptionalArgument("plotfilename", plotfilename, "", "eps file");
-	args.AddOptionalArgument("datafilename", datafilename, "", "data file");
-	args.AddOptionalArgument("scriptfilename", scriptfilename, "", "gnuplot file");
-	args.AddSwitch("interactive", interactive, "For interactive plots");
-	//" Example: "+string(modulename)+" --inputWaveFile=/Users/edermartioli/opera/calibrations/PolarData/OLAPAa_pol_Normal.wcal.gz --minorderOfLaurentPolynomial=-3 --maxorderOfLaurentPolynomial=0 --outputResolutionFile=/Users/edermartioli/opera/calibrations/PolarData/OLAPAa_pol_Normal.disp.gz --datafilename=disp.dat --scriptfilename=disp.gnu\n\n"
+	args.AddOrderLimitArguments(ordernumber, minoutputorder, maxoutputorder, NOTPROVIDED);
+	args.AddPlotFileArguments(plotfilename, datafilename, scriptfilename, interactive);
 	
 	try {
 		args.Parse(argc, argv);
@@ -126,9 +112,7 @@ int main(int argc, char *argv[])
 			cout << "operaCalculateSpectralResolution: maxorderofpolynomial = " << maxorderofpolynomial << endl;
 			cout << "operaCalculateSpectralResolution: binsizeToRemoveOutliers = " << binsizeToRemoveOutliers << endl;
 			cout << "operaCalculateSpectralResolution: thresholdToRemoveOutliers = " << thresholdToRemoveOutliers << endl;
-            if(ordernumber != NOTPROVIDED) {
-                cerr << "operaWavelengthCalibration: ordernumber = " << ordernumber << endl;
-            }
+            if(ordernumber != NOTPROVIDED) cout << "operaWavelengthCalibration: ordernumber = " << ordernumber << endl;
             if(args.plot) {
                 cout << "operaCalculateSpectralResolution: plotfilename = " << plotfilename << endl;
                 cout << "operaCalculateSpectralResolution: datafilename = " << datafilename << endl;
@@ -136,14 +120,11 @@ int main(int argc, char *argv[])
             }
 		}
         
-        ofstream *fdata = NULL;
-        ofstream *forigdata = NULL;
-        
-		operaSpectralOrderVector spectralOrdervector(inputWaveFile);
-		//unsigned NumberofBeams = 0;
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWaveFile);
 		
-		unsigned minorder = spectralOrdervector.getMinorder();
-		unsigned maxorder = spectralOrdervector.getMaxorder();
+		unsigned minorder = spectralOrders.getMinorder();
+		unsigned maxorder = spectralOrders.getMaxorder();
 
         if(maxorder <= minorder) {
 			throw operaException("operaCalculateSpectralResolution: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
@@ -164,11 +145,10 @@ int main(int argc, char *argv[])
             double dispersion = 0;
             double dispersionError = 0;
             
+            ofstream fdata;
+            ofstream forigdata;
             if (!datafilename.empty()) {
-                fdata = new ofstream();
-                forigdata = new ofstream();
-                
-				string basefilename = datafilename;
+                string basefilename = datafilename;
 				string directory =  "./";
 				if (datafilename.find_last_of("/") != string::npos) {
 					basefilename = datafilename.substr(datafilename.find_last_of("/")+1);
@@ -177,13 +157,13 @@ int main(int argc, char *argv[])
                 coeffDatafilenames[wlcoeffIndex] = directory + "/" + itos(wlcoeffIndex) + "_" + basefilename;
                 coeffOriginalDatafilenames[wlcoeffIndex] = directory + "/" + itos(wlcoeffIndex) + "_origData_" + basefilename;
 				
-                forigdata->open(coeffOriginalDatafilenames[wlcoeffIndex].c_str());
-                fdata->open(coeffDatafilenames[wlcoeffIndex].c_str());
+                forigdata.open(coeffOriginalDatafilenames[wlcoeffIndex].c_str());
+                fdata.open(coeffDatafilenames[wlcoeffIndex].c_str());
 				
             }
             
             for (unsigned order=minorder; order<=maxorder; order++) {
-                operaSpectralOrder *spectralOrder = spectralOrdervector.GetSpectralOrder(order);
+                operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 				if (spectralOrder->gethasWavelength()) {
 					Polynomial *wavelengthPolynomial =  spectralOrder->getWavelength()->getWavelengthPolynomial();
 
@@ -194,8 +174,8 @@ int main(int argc, char *argv[])
 					if(wlcoeffIndex < npar){
 						dispersion = par[wlcoeffIndex];
 						dispersionError = (errpar[wlcoeffIndex]*errpar[wlcoeffIndex]);
-						if(forigdata != NULL) {
-							*forigdata << wlcoeffIndex << " " << order << " " << dispersion << " " << dispersionError << endl;
+						if(forigdata.is_open()) {
+							forigdata << wlcoeffIndex << " " << order << " " << dispersion << " " << dispersionError << endl;
 						}
 						dispersionPolynomial[wlcoeffIndex]->setDataValues(index,(double)order, dispersion, sqrt(dispersionError));
 						index++;
@@ -210,9 +190,9 @@ int main(int argc, char *argv[])
             }
             dispersionPolynomial[wlcoeffIndex]->removeOutLiersFromDataSet(binsizeToRemoveOutliers,thresholdToRemoveOutliers);
 
-            if(fdata != NULL) {
+            if(fdata.is_open()) {
                 for (unsigned i=0; i<dispersionPolynomial[wlcoeffIndex]->getnDataPoints(); i++) {
-                    *fdata << wlcoeffIndex << " "
+                    fdata << wlcoeffIndex << " "
                     << dispersionPolynomial[wlcoeffIndex]->getXdataValue(i) << " "
                     << dispersionPolynomial[wlcoeffIndex]->getYdataValue(i) << " "
                     << dispersionPolynomial[wlcoeffIndex]->getYerrorValue(i) << endl;
@@ -231,10 +211,10 @@ int main(int argc, char *argv[])
                 cout << "operaCalculateSpectralResolution: RMS=" <<  rms << endl;
             
             PolynomialCoeffs_t *pc = dispersionPolynomial[wlcoeffIndex]->getLaurentPolynomialCoeffs();
-            spectralOrdervector.setDispersionPolynomial(wlcoeffIndex,minorderOfLaurentPolynomial,maxorderOfLaurentPolynomial,pc);
-            if(fdata != NULL) {
-				fdata->close(); 
-				forigdata->close();
+            spectralOrders.setDispersionPolynomial(wlcoeffIndex,minorderOfLaurentPolynomial,maxorderOfLaurentPolynomial,pc);
+            if(fdata.is_open()) {
+				fdata.close(); 
+				forigdata.close();
            }
         }
         
@@ -244,16 +224,8 @@ int main(int argc, char *argv[])
             }
         }
         
-        if(minoutputorder == NOTPROVIDED) minoutputorder = spectralOrdervector.getMinorder();
-        if(maxoutputorder == NOTPROVIDED) maxoutputorder = spectralOrdervector.getMaxorder();
-		if(ordernumber != NOTPROVIDED) {
-			minoutputorder = ordernumber;
-			maxoutputorder = ordernumber;
-		}
-		
-		if (args.verbose) {
-			cerr << "operaWavelengthCalibration: minorder = " << minoutputorder << " maxorder = " << maxoutputorder << endl;
-		}
+        UpdateOrderLimits(ordernumber, minoutputorder, maxoutputorder, spectralOrders);
+		if (args.verbose) cerr << "operaWavelengthCalibration: minorder = " << minoutputorder << " maxorder = " << maxoutputorder << endl;
         
         /*
          * Below it uses the echelle dispersion calibration to update the wavelength solution
@@ -261,7 +233,7 @@ int main(int argc, char *argv[])
          */
         if (!outputWaveFile.empty()) {
             for (unsigned order=minoutputorder; order<=maxoutputorder; order++) {
-                operaSpectralOrder *spectralOrder = spectralOrdervector.GetSpectralOrder(order);
+                operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 				if (!spectralOrder->getWavelength()) {
 					spectralOrder->createWavelength(MAXORDEROFWAVELENGTHPOLYNOMIAL);
 				}
@@ -287,13 +259,13 @@ int main(int argc, char *argv[])
         for(unsigned wlcoeffIndex=0; wlcoeffIndex < maxorderofpolynomial; wlcoeffIndex++) {
             delete dispersionPolynomial[wlcoeffIndex];
         }
-        spectralOrdervector.setnumberOfDispersionPolynomials(maxorderofpolynomial);
+        spectralOrders.setnumberOfDispersionPolynomials(maxorderofpolynomial);
         
         if (!outputResolutionFile.empty()) {
-			spectralOrdervector.WriteSpectralOrders(outputResolutionFile, Disp);
+			operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputResolutionFile, Disp);
 		}
         if (!outputWaveFile.empty()) {
-            spectralOrdervector.WriteSpectralOrders(outputWaveFile, Wave);
+            operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputWaveFile, Wave);
 		}
         
 	}
@@ -311,126 +283,116 @@ int main(int argc, char *argv[])
 
 void GenerateSpectralResolutionPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileNames[], string origdataFileNames[], unsigned npolynomials, LaurentPolynomial *polynomials[], bool display)
 {
-    ofstream *fgnu = NULL;
+    if (gnuScriptFileName.empty()) exit(EXIT_FAILURE);
+	remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
+	ofstream fgnu(gnuScriptFileName.c_str());
     
-    if (!gnuScriptFileName.empty()) {
-        remove(gnuScriptFileName.c_str()); // delete any existing file with the same name
-        fgnu = new ofstream();
-        fgnu->open(gnuScriptFileName.c_str());
-    } else {
-        exit(EXIT_FAILURE);
-    }
+    fgnu << "reset" << endl;
+    fgnu << "unset key\n" << endl;
+    fgnu << "set ylabel \"y (nm, nm/pixel, nm/pixel^2,..)\"" << endl;
+    fgnu << "set xlabel \"order number\"" << endl;
     
-    *fgnu << "reset" << endl;
-    *fgnu << "unset key\n" << endl;
-    *fgnu << "set ylabel \"y (nm, nm/pixel, nm/pixel^2,..)\"" << endl;
-    *fgnu << "set xlabel \"order number\"" << endl;
-    
-    *fgnu << "set pointsize 1.0" << endl;
+    fgnu << "set pointsize 1.0" << endl;
     
     for(unsigned k=0;k<npolynomials;k++) {
-        *fgnu << "poly" << k;
-        polynomials[k]->printEquation(fgnu);
+        fgnu << "poly" << k;
+        polynomials[k]->printEquation(&fgnu);
     }
     
-    *fgnu << "NX=2; NY=2" << endl;
-    *fgnu << "DX=0.1; DY=0.1; SX=0.4; SY=0.4" << endl;
-    *fgnu << "set bmargin DX; set tmargin DX; set lmargin DY; set rmargin DY" << endl;
-    *fgnu << "set size SX*NX+DX*2,SY*NY+DY*2" << endl;
+    fgnu << "NX=2; NY=2" << endl;
+    fgnu << "DX=0.1; DY=0.1; SX=0.4; SY=0.4" << endl;
+    fgnu << "set bmargin DX; set tmargin DX; set lmargin DY; set rmargin DY" << endl;
+    fgnu << "set size SX*NX+DX*2,SY*NY+DY*2" << endl;
     
     if(!outputPlotEPSFileName.empty()) {
-        *fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
+        fgnu << "\nset terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "set output \"" << outputPlotEPSFileName << "\"" << endl;
         
-        *fgnu << "set multiplot" << endl;
-        *fgnu << "set size 0.9*SX,0.9*SY" << endl;
+        fgnu << "set multiplot" << endl;
+        fgnu << "set size 0.9*SX,0.9*SY" << endl;
         
-        *fgnu << "unset xlabel" << endl;
-        *fgnu << "unset y2tics; set ytics" << endl;
-        *fgnu << "unset y2tics; set ylabel \"{/Symbol l}(x=0) (nm)\"" << endl;
-        *fgnu << "set origin DX,DY+SY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[0] << "\" u 2:3 w p pt 6, \"" << dataFileNames[0] << "\" u 2:3 w p pt 7, poly0f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset xlabel" << endl;
+        fgnu << "unset y2tics; set ytics" << endl;
+        fgnu << "unset y2tics; set ylabel \"{/Symbol l}(x=0) (nm)\"" << endl;
+        fgnu << "set origin DX,DY+SY" << endl;
+        fgnu << "plot \"" << origdataFileNames[0] << "\" u 2:3 w p pt 6, \"" << dataFileNames[0] << "\" u 2:3 w p pt 7, poly0f(x)" << endl;
+        fgnu << endl;
 		
-        *fgnu << "unset xlabel" << endl;
-        *fgnu << "unset ytics; set y2tics" << endl;
-        *fgnu << "unset ylabel; set y2label \"d{/Symbol l}/dx (x=0) (nm/pixel)\"" << endl;
-        *fgnu << "set origin DX+SX,DY+SY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[1] << "\" u 2:3 w p pt 6, \"" << dataFileNames[1] << "\" u 2:3 w p pt 7, poly1f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset xlabel" << endl;
+        fgnu << "unset ytics; set y2tics" << endl;
+        fgnu << "unset ylabel; set y2label \"d{/Symbol l}/dx (x=0) (nm/pixel)\"" << endl;
+        fgnu << "set origin DX+SX,DY+SY" << endl;
+        fgnu << "plot \"" << origdataFileNames[1] << "\" u 2:3 w p pt 6, \"" << dataFileNames[1] << "\" u 2:3 w p pt 7, poly1f(x)" << endl;
+        fgnu << endl;
         
-        *fgnu << "unset x2label; set xlabel \"order number\"" << endl;
-        *fgnu << "unset y2tics; set ytics" << endl;
-        *fgnu << "unset y2label; set ylabel \"(1/2)*d^2{/Symbol l}/dx^2 (x=0) (nm/pixel^2)\"" << endl;
-        *fgnu << "set origin DX,DY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[2] << "\" u 2:3 w p pt 6, \"" << dataFileNames[2] << "\" u 2:3 w p pt 7, poly2f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset x2label; set xlabel \"order number\"" << endl;
+        fgnu << "unset y2tics; set ytics" << endl;
+        fgnu << "unset y2label; set ylabel \"(1/2)*d^2{/Symbol l}/dx^2 (x=0) (nm/pixel^2)\"" << endl;
+        fgnu << "set origin DX,DY" << endl;
+        fgnu << "plot \"" << origdataFileNames[2] << "\" u 2:3 w p pt 6, \"" << dataFileNames[2] << "\" u 2:3 w p pt 7, poly2f(x)" << endl;
+        fgnu << endl;
 		
-        *fgnu << "unset x2label; set xlabel \"order number\"" << endl;
-        *fgnu << "unset ytics; set y2tics" << endl;
-        *fgnu << "unset ylabel; set y2label \"(1/6)*d^3{/Symbol l}/dx^3 (x=0)  (nm/pixel^3)\"" << endl;
-        *fgnu << "set origin DX+SX,DY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[3] << "\" u 2:3 w p pt 6, \"" << dataFileNames[3] << "\" u 2:3 w p pt 7, poly3f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset x2label; set xlabel \"order number\"" << endl;
+        fgnu << "unset ytics; set y2tics" << endl;
+        fgnu << "unset ylabel; set y2label \"(1/6)*d^3{/Symbol l}/dx^3 (x=0)  (nm/pixel^3)\"" << endl;
+        fgnu << "set origin DX+SX,DY" << endl;
+        fgnu << "plot \"" << origdataFileNames[3] << "\" u 2:3 w p pt 6, \"" << dataFileNames[3] << "\" u 2:3 w p pt 7, poly3f(x)" << endl;
+        fgnu << endl;
         
-        *fgnu << "unset multiplot" << endl;
+        fgnu << "unset multiplot" << endl;
         
         if (display) {
-            *fgnu << "\nset terminal x11" << endl;
-            *fgnu << "set output" << endl;
-            *fgnu << "replot" << endl;
+            fgnu << "\nset terminal x11" << endl;
+            fgnu << "set output" << endl;
+            fgnu << "replot" << endl;
         } else {
-            *fgnu << "\n#set terminal x11" << endl;
-            *fgnu << "#set output" << endl;
-            *fgnu << "#replot" << endl;
+            fgnu << "\n#set terminal x11" << endl;
+            fgnu << "#set output" << endl;
+            fgnu << "#replot" << endl;
         }
     } else {
-        *fgnu << "set multiplot" << endl;
-        *fgnu << "set size 0.9*SX,0.9*SY" << endl;
+        fgnu << "set multiplot" << endl;
+        fgnu << "set size 0.9*SX,0.9*SY" << endl;
         
-        *fgnu << "unset xlabel" << endl;
-        *fgnu << "unset y2tics; set ytics" << endl;
-        *fgnu << "unset y2tics; set ylabel \"{/Symbol l}(x=0) (nm)\"" << endl;
-        *fgnu << "set origin DX,DY+SY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[0] << "\" u 2:3 w p pt 6, \"" << dataFileNames[0] << "\" u 2:3 w p pt 7, poly0f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset xlabel" << endl;
+        fgnu << "unset y2tics; set ytics" << endl;
+        fgnu << "unset y2tics; set ylabel \"{/Symbol l}(x=0) (nm)\"" << endl;
+        fgnu << "set origin DX,DY+SY" << endl;
+        fgnu << "plot \"" << origdataFileNames[0] << "\" u 2:3 w p pt 6, \"" << dataFileNames[0] << "\" u 2:3 w p pt 7, poly0f(x)" << endl;
+        fgnu << endl;
         
-        *fgnu << "unset xlabel" << endl;
-        *fgnu << "unset ytics; set y2tics" << endl;
-        *fgnu << "unset ylabel; set y2label \"d{/Symbol l}/dx (x=0) (nm/pixel)\"" << endl;
-        *fgnu << "set origin DX+SX,DY+SY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[1] << "\" u 2:3 w p pt 6, \"" << dataFileNames[1] << "\" u 2:3 w p pt 7, poly1f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset xlabel" << endl;
+        fgnu << "unset ytics; set y2tics" << endl;
+        fgnu << "unset ylabel; set y2label \"d{/Symbol l}/dx (x=0) (nm/pixel)\"" << endl;
+        fgnu << "set origin DX+SX,DY+SY" << endl;
+        fgnu << "plot \"" << origdataFileNames[1] << "\" u 2:3 w p pt 6, \"" << dataFileNames[1] << "\" u 2:3 w p pt 7, poly1f(x)" << endl;
+        fgnu << endl;
         
-        *fgnu << "unset x2label; set xlabel \"order number\"" << endl;
-        *fgnu << "unset y2tics; set ytics" << endl;
-        *fgnu << "unset y2label; set ylabel \"(1/2)*d^2{/Symbol l}/dx^2 (x=0) (nm/pixel^2)\"" << endl;
-        *fgnu << "set origin DX,DY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[2] << "\" u 2:3 w p pt 6, \"" << dataFileNames[2] << "\" u 2:3 w p pt 7, poly2f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset x2label; set xlabel \"order number\"" << endl;
+        fgnu << "unset y2tics; set ytics" << endl;
+        fgnu << "unset y2label; set ylabel \"(1/2)*d^2{/Symbol l}/dx^2 (x=0) (nm/pixel^2)\"" << endl;
+        fgnu << "set origin DX,DY" << endl;
+        fgnu << "plot \"" << origdataFileNames[2] << "\" u 2:3 w p pt 6, \"" << dataFileNames[2] << "\" u 2:3 w p pt 7, poly2f(x)" << endl;
+        fgnu << endl;
         
-        *fgnu << "unset x2label; set xlabel \"order number\"" << endl;
-        *fgnu << "unset ytics; set y2tics" << endl;
-        *fgnu << "unset ylabel; set y2label \"(1/6)*d^3{/Symbol l}/dx^3 (x=0)  (nm/pixel^3)\"" << endl;
-        *fgnu << "set origin DX+SX,DY" << endl;
-        *fgnu << "plot \"" << origdataFileNames[3] << "\" u 2:3 w p pt 6, \"" << dataFileNames[3] << "\" u 2:3 w p pt 7, poly3f(x)" << endl;
-        *fgnu << endl;
+        fgnu << "unset x2label; set xlabel \"order number\"" << endl;
+        fgnu << "unset ytics; set y2tics" << endl;
+        fgnu << "unset ylabel; set y2label \"(1/6)*d^3{/Symbol l}/dx^3 (x=0)  (nm/pixel^3)\"" << endl;
+        fgnu << "set origin DX+SX,DY" << endl;
+        fgnu << "plot \"" << origdataFileNames[3] << "\" u 2:3 w p pt 6, \"" << dataFileNames[3] << "\" u 2:3 w p pt 7, poly3f(x)" << endl;
+        fgnu << endl;
         
-        *fgnu << "unset multiplot" << endl;
+        fgnu << "unset multiplot" << endl;
         
-        *fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
-        *fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
-        *fgnu << "#replot" << endl;
-        *fgnu << "#set terminal x11" << endl;
-        *fgnu << "#set output" << endl;
+        fgnu << "\n#set terminal postscript enhanced color solid lw 1.5 \"Helvetica\" 14" << endl;
+        fgnu << "#set output \"outputPlotEPSFileName.eps\"" << endl;
+        fgnu << "#replot" << endl;
+        fgnu << "#set terminal x11" << endl;
+        fgnu << "#set output" << endl;
     }
     
-    fgnu->close();
+    fgnu.close();
     
-    if (display) {
-        systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
-    } else {
-        if(!outputPlotEPSFileName.empty())
-            systemf("gnuplot %s",gnuScriptFileName.c_str());
-    }
+    if (display) systemf("gnuplot -persist %s",gnuScriptFileName.c_str());
+    else if(!outputPlotEPSFileName.empty()) systemf("gnuplot %s",gnuScriptFileName.c_str());
 }

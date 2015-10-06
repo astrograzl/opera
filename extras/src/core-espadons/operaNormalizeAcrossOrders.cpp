@@ -273,7 +273,7 @@ int main(int argc, char *argv[])
 //        unsigned numberOfprintouts = 2; // for 3D plotting
         
 		operaSpectralOrderVector spectralOrders(inputUncalibratedSpectrum);
-        spectralOrders.ReadSpectralOrders(inputWaveFile);
+        spectralOrders.ReadIntoSpectralOrders(inputWaveFile);
 
         if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();

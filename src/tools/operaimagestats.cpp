@@ -42,6 +42,7 @@
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/operaSpectralElements.h"
@@ -269,7 +270,8 @@ int main(int argc, char *argv[])
 		
 		// given a wl, get the order it is in
 		if (getorder && !wavefilename.empty()) {
-			operaSpectralOrderVector spectralOrderVector(wavefilename);
+			operaSpectralOrderVector spectralOrderVector;
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, wavefilename);
 			unsigned minorder = spectralOrderVector.getMinorder();
 			unsigned maxorder = spectralOrderVector.getMaxorder();
 			bool found = false;
@@ -357,7 +359,8 @@ int main(int argc, char *argv[])
 				fitsimage.operaFITSImageClose();
 			}
 			if (peakunsaturatedorder) {
-				operaSpectralOrderVector spectralOrderVector(filename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, filename);
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				float maxflux = 0.0;
@@ -382,7 +385,8 @@ int main(int argc, char *argv[])
 				cout << mymaxorder << ' ';
 			}
 			if (maxsnr) {
-				operaSpectralOrderVector spectralOrderVector(filename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, filename);
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				float maxsnr = -999.0;
@@ -400,7 +404,8 @@ int main(int argc, char *argv[])
 				cout << (int)maxsnr << ' ';
 			}
 			if (smoothedpeaksnr) {
-				operaSpectralOrderVector spectralOrderVector(filename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, filename);
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				float peak = -999.0;
@@ -417,9 +422,10 @@ int main(int argc, char *argv[])
 				cout << (int)peak << ' ';
 			}
 			if (snr) {
-				operaSpectralOrderVector spectralOrderVector(filename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, filename);
 				if (!specfilename.empty()) {
-					spectralOrderVector.ReadSpectralOrders(specfilename);
+					operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, specfilename);
 				}
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
@@ -451,8 +457,9 @@ int main(int argc, char *argv[])
 			}
 			// given an x,y image coordinate, find the SNR at that point
 			if (snrpoint && !geomfilename.empty()) {
-				operaSpectralOrderVector spectralOrderVector(geomfilename);
-				spectralOrderVector.ReadSpectralOrders(filename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, geomfilename);
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, filename);
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				for (unsigned myorder=minorder; myorder <= maxorder; myorder++) {
@@ -468,7 +475,7 @@ int main(int argc, char *argv[])
 									unsigned k = (unsigned)y; // an approximation, should be distance
 									float wl = 0.0;
 									if (!wavefilename.empty()) {
-										spectralOrderVector.ReadSpectralOrders(wavefilename);		// wavelength
+										operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, wavefilename);		// wavelength
 										if (spectralOrder->gethasWavelength()) {
 											operaWavelength *wavelength = spectralOrder->getWavelength();
 											Polynomial *wavelengthPolynomial = wavelength->getWavelengthPolynomial();
@@ -501,7 +508,8 @@ int main(int argc, char *argv[])
 			}
 			// given an x,y image coordinate, find the order at that point
 			if (getorder && !geomfilename.empty()) {
-				operaSpectralOrderVector spectralOrderVector(geomfilename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, geomfilename);
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				for (unsigned myorder=minorder; myorder <= maxorder; myorder++) {
@@ -521,8 +529,9 @@ int main(int argc, char *argv[])
 			}
 			// give the orders xmin, ymin, wlmin, xmax, ymax wlmax values
 			if (orders && !geomfilename.empty() && !wavefilename.empty()) {
-				operaSpectralOrderVector spectralOrderVector(geomfilename);	// geometry
-				spectralOrderVector.ReadSpectralOrders(wavefilename);		// wavelength
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, geomfilename);	// geometry
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, wavefilename);		// wavelength
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				for (unsigned myorder=minorder; myorder <= maxorder; myorder++) {
@@ -542,7 +551,8 @@ int main(int argc, char *argv[])
 			}
 			// get the aperture tilt
 			if (tilt && !aperfilename.empty()) {
-				operaSpectralOrderVector spectralOrderVector(aperfilename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, aperfilename);
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				for (unsigned myorder=minorder; myorder <= maxorder; myorder++) {
@@ -554,7 +564,8 @@ int main(int argc, char *argv[])
 				}
 			}
 			if (spectrum) {
-				operaSpectralOrderVector spectralOrderVector(filename);
+				operaSpectralOrderVector spectralOrderVector;
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrderVector, filename);
 				unsigned minorder = spectralOrderVector.getMinorder();
 				unsigned maxorder = spectralOrderVector.getMaxorder();
 				for (unsigned myorder=minorder; myorder <= maxorder; myorder++) {

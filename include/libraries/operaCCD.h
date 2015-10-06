@@ -45,7 +45,7 @@
  * \ingroup libraries
  */
 
-#define MAXORDERS 100
+#define MAXORDERS 200
 #define MAXIPPOINTS 100
 
 #define DETECTTHRESHOLD 0.4

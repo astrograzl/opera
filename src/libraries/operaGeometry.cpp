@@ -102,7 +102,7 @@ operaGeometry::~operaGeometry() {
  * Methods
  */
 
-double operaGeometry::getOrderLength(void){
+double operaGeometry::getOrderLength(void) const {
 	return orderLength;
 }
 
@@ -114,14 +114,14 @@ double operaGeometry::CalculateAndSetOrderLength() {
 /*
  * Does not set order length -- used for temporary calculations of distance
  */
-double operaGeometry::CalculateDistance(double yMin, double yMax) {
+double operaGeometry::CalculateDistance(double yMin, double yMax) const {
     
     int npar = getCenterPolynomial()->getOrderOfPolynomial();
     double *par = (double *)getCenterPolynomial()->getVector();
 	return LengthofPolynomial(yMin, yMax, par, npar);
 }
 
-double operaGeometry::CalculateMinimumYBinSize(double y){
+double operaGeometry::CalculateMinimumYBinSize(double y) const {
 	int npar = geometryPolynomial->getOrderOfPolynomial();
 	double *par = (double *)geometryPolynomial->getVector();    
     
@@ -137,7 +137,7 @@ void operaGeometry::setNumberofPointsToBinInYDirection(unsigned Points) {
 	NumberofPointsToBinInYDirection = Points;
 }
 
-unsigned operaGeometry::getNumberofPointsToBinInYDirection() {
+unsigned operaGeometry::getNumberofPointsToBinInYDirection() const {
 	return NumberofPointsToBinInYDirection;
 }
 
@@ -222,6 +222,10 @@ Polynomial *operaGeometry::getCenterPolynomial() {
 	return geometryPolynomial;
 }
 
+const Polynomial *operaGeometry::getCenterPolynomial() const {
+	return geometryPolynomial;
+}
+
 void operaGeometry::setNdatapoints(unsigned np) {
 	if (np > Ndatapoints) {
 		throw operaException("operaGeometry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -229,11 +233,11 @@ void operaGeometry::setNdatapoints(unsigned np) {
 	Ndatapoints = np; 
 }
 
-unsigned operaGeometry::getNdatapoints(void) {
+unsigned operaGeometry::getNdatapoints(void) const {
 	return Ndatapoints; 
 }
 
-double operaGeometry::getYmin(void) {
+double operaGeometry::getYmin(void) const {
 	return ymin; 
 }
 
@@ -241,7 +245,7 @@ void operaGeometry::setYmin(double min) {
 	ymin = min; 
 }
 
-double operaGeometry::getYmax(void) {
+double operaGeometry::getYmax(void) const {
 	return ymax; 
 }
 
@@ -249,21 +253,21 @@ void operaGeometry::setYmax(double max) {
 	ymax = max; 
 }
 
-double operaGeometry::getCenterX(unsigned index) {
+double operaGeometry::getCenterX(unsigned index) const {
 	if (index >= Ndatapoints) {
 		throw operaException("operaGeometry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	return OrderCenters.xs[index];
 }
 
-double operaGeometry::getCenterY(unsigned index) {
+double operaGeometry::getCenterY(unsigned index) const {
 	if (index >= Ndatapoints) {
 		throw operaException("operaGeometry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	return OrderCenters.ys[index];
 }
 
-double operaGeometry::getCenterV(unsigned index) {
+double operaGeometry::getCenterV(unsigned index) const {
 	if (index >= Ndatapoints) {
 		throw operaException("operaGeometry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -280,14 +284,14 @@ void operaGeometry::resetCenter(double x, double y, double xerror, unsigned inde
     OrderCenters.ys[index] = y;    
 }
 
-double operaGeometry::getapertureWidth(void) {
+double operaGeometry::getapertureWidth(void) const {
 	return apertureWidth; 
 }
 void operaGeometry::setapertureWidth(double width) {
 	apertureWidth = width; 
 }
 
-axis_t operaGeometry::getdispersionAxis(void) {
+axis_t operaGeometry::getdispersionAxis(void) const {
 	return dispersionAxis;
 }
 
@@ -295,7 +299,7 @@ void operaGeometry::setdispersionAxis(axis_t axis) {
 	dispersionAxis = axis;
 }
 
-dispersiondirection_t operaGeometry::getdispersionDirection(void) {  
+dispersiondirection_t operaGeometry::getdispersionDirection(void) const {  
 	return dispersionDirection;
 }
 
@@ -437,6 +441,6 @@ void operaGeometry::setorderSeparation(double OrderSeparation) {
 	orderSeparation = OrderSeparation;
 }
 
-double operaGeometry::getorderSeparation(void) {
+double operaGeometry::getorderSeparation(void) const {
 	return orderSeparation;	
 }

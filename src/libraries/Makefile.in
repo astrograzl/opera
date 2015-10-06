@@ -159,7 +159,7 @@ libgzstream_la_OBJECTS = $(am_libgzstream_la_OBJECTS)
 libgzstream_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(libgzstream_la_LDFLAGS) $(LDFLAGS) -o $@
-liboperaArgumentHandler_la_DEPENDENCIES = libArgumentHandler.la
+liboperaArgumentHandler_la_LIBADD =
 am_liboperaArgumentHandler_la_OBJECTS = operaArgumentHandler.lo
 liboperaArgumentHandler_la_OBJECTS =  \
 	$(am_liboperaArgumentHandler_la_OBJECTS)
@@ -173,8 +173,7 @@ liboperaCCD_la_OBJECTS = $(am_liboperaCCD_la_OBJECTS)
 liboperaCCD_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(liboperaCCD_la_LDFLAGS) $(LDFLAGS) -o $@
-liboperaCommonModuleElements_la_DEPENDENCIES =  \
-	liboperaSpectralOrderVector.la
+liboperaCommonModuleElements_la_LIBADD =
 am_liboperaCommonModuleElements_la_OBJECTS =  \
 	operaCommonModuleElements.lo
 liboperaCommonModuleElements_la_OBJECTS =  \
@@ -280,6 +279,12 @@ liboperaHelio_la_OBJECTS = $(am_liboperaHelio_la_OBJECTS)
 liboperaHelio_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(liboperaHelio_la_LDFLAGS) $(LDFLAGS) -o $@
+liboperaIOFormats_la_LIBADD =
+am_liboperaIOFormats_la_OBJECTS = operaIOFormats.lo
+liboperaIOFormats_la_OBJECTS = $(am_liboperaIOFormats_la_OBJECTS)
+liboperaIOFormats_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(liboperaIOFormats_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaImage_la_LIBADD =
 am_liboperaImage_la_OBJECTS = operaImage.lo
 liboperaImage_la_OBJECTS = $(am_liboperaImage_la_OBJECTS)
@@ -549,7 +554,8 @@ SOURCES = $(liboperaFFT_a_SOURCES) $(liboperaPNG_a_SOURCES) \
 	$(liboperaFluxVector_la_SOURCES) \
 	$(liboperaGeometricShapes_la_SOURCES) \
 	$(liboperaGeometry_la_SOURCES) $(liboperaHelio_la_SOURCES) \
-	$(liboperaImage_la_SOURCES) $(liboperaImageVector_la_SOURCES) \
+	$(liboperaIOFormats_la_SOURCES) $(liboperaImage_la_SOURCES) \
+	$(liboperaImageVector_la_SOURCES) \
 	$(liboperaInstrumentEnvironmentSetup_la_SOURCES) \
 	$(liboperaInstrumentProfile_la_SOURCES) \
 	$(liboperaJD_la_SOURCES) $(liboperaLMFit_la_SOURCES) \
@@ -594,7 +600,8 @@ DIST_SOURCES = $(liboperaFFT_a_SOURCES) \
 	$(liboperaFluxVector_la_SOURCES) \
 	$(liboperaGeometricShapes_la_SOURCES) \
 	$(liboperaGeometry_la_SOURCES) $(liboperaHelio_la_SOURCES) \
-	$(liboperaImage_la_SOURCES) $(liboperaImageVector_la_SOURCES) \
+	$(liboperaIOFormats_la_SOURCES) $(liboperaImage_la_SOURCES) \
+	$(liboperaImageVector_la_SOURCES) \
 	$(liboperaInstrumentEnvironmentSetup_la_SOURCES) \
 	$(liboperaInstrumentProfile_la_SOURCES) \
 	$(liboperaJD_la_SOURCES) $(liboperaLMFit_la_SOURCES) \
@@ -770,7 +777,7 @@ lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaFluxVector.la li
 	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectrumSimulation.la liboperaSpectralEnergyDistribution.la \
 	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la \
 	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la \
-	libArgumentHandler.la liboperaArgumentHandler.la liboperaCommonModuleElements.la
+	libArgumentHandler.la liboperaArgumentHandler.la liboperaCommonModuleElements.la liboperaIOFormats.la
 
 liboperaInstrumentEnvironmentSetup_la_SOURCES = operaInstrumentEnvironmentSetup.cpp operaInstrumentEnvironmentSetup.h
 liboperaInstrumentEnvironmentSetup_la_LDFLAGS = -version-info 1:0:0
@@ -884,10 +891,10 @@ libArgumentHandler_la_SOURCES = ArgumentHandler.cpp ArgumentHandler.h
 libArgumentHandler_la_LDFLAGS = -version-info 1:0:0
 liboperaArgumentHandler_la_SOURCES = operaArgumentHandler.cpp operaArgumentHandler.h
 liboperaArgumentHandler_la_LDFLAGS = -version-info 1:0:0
-liboperaArgumentHandler_la_LIBADD = libArgumentHandler.la
 liboperaCommonModuleElements_la_SOURCES = operaCommonModuleElements.cpp operaCommonModuleElements.h
 liboperaCommonModuleElements_la_LDFLAGS = -version-info 1:0:0
-liboperaCommonModuleElements_la_LIBADD = liboperaSpectralOrderVector.la
+liboperaIOFormats_la_SOURCES = operaIOFormats.cpp operaIOFormats.h
+liboperaIOFormats_la_LDFLAGS = -version-info 1:0:0
 
 #
 # if we want png plotting support, bring in the freetype includes
@@ -1053,6 +1060,8 @@ liboperaGeometry.la: $(liboperaGeometry_la_OBJECTS) $(liboperaGeometry_la_DEPEND
 	$(liboperaGeometry_la_LINK) -rpath $(libdir) $(liboperaGeometry_la_OBJECTS) $(liboperaGeometry_la_LIBADD) $(LIBS)
 liboperaHelio.la: $(liboperaHelio_la_OBJECTS) $(liboperaHelio_la_DEPENDENCIES) $(EXTRA_liboperaHelio_la_DEPENDENCIES) 
 	$(liboperaHelio_la_LINK) -rpath $(libdir) $(liboperaHelio_la_OBJECTS) $(liboperaHelio_la_LIBADD) $(LIBS)
+liboperaIOFormats.la: $(liboperaIOFormats_la_OBJECTS) $(liboperaIOFormats_la_DEPENDENCIES) $(EXTRA_liboperaIOFormats_la_DEPENDENCIES) 
+	$(liboperaIOFormats_la_LINK) -rpath $(libdir) $(liboperaIOFormats_la_OBJECTS) $(liboperaIOFormats_la_LIBADD) $(LIBS)
 liboperaImage.la: $(liboperaImage_la_OBJECTS) $(liboperaImage_la_DEPENDENCIES) $(EXTRA_liboperaImage_la_DEPENDENCIES) 
 	$(liboperaImage_la_LINK) -rpath $(libdir) $(liboperaImage_la_OBJECTS) $(liboperaImage_la_LIBADD) $(LIBS)
 liboperaImageVector.la: $(liboperaImageVector_la_OBJECTS) $(liboperaImageVector_la_DEPENDENCIES) $(EXTRA_liboperaImageVector_la_DEPENDENCIES) 
@@ -1147,6 +1156,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGeometricShapes.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGeometry.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaHelio.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaIOFormats.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaImage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaImageVector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaInstrumentEnvironmentSetup.Plo@am__quote@

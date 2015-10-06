@@ -325,6 +325,8 @@ SPEED_Fast_HEADERVALUE		:= 'Fast:%'
 SPEED_Normal_HEADERVALUE	:= 'Normal:%'
 SPEED_Slow_HEADERVALUE		:= 'Slow:%'
 SPEED_XSlow_HEADERVALUE		:= 'xSlow:%'
+#
+OPERAGETMODE		:= operagetmode $(MODE_HEADERKEY)
 
 #########################################################################################
 #

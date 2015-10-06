@@ -128,10 +128,10 @@ operaStokesVector::operaStokesVector(operaFluxVector *StokesVector[4], bool Iste
 {
     length = StokesVector[StokesI]->getlength();
     istemp = Istemp;
-    stokesVector[StokesI] = new operaFluxVector(StokesVector[StokesI]);
-    stokesVector[StokesQ] = new operaFluxVector(StokesVector[StokesQ]);
-    stokesVector[StokesU] = new operaFluxVector(StokesVector[StokesU]);
-    stokesVector[StokesV] = new operaFluxVector(StokesVector[StokesV]);
+    stokesVector[StokesI] = new operaFluxVector(*StokesVector[StokesI]);
+    stokesVector[StokesQ] = new operaFluxVector(*StokesVector[StokesQ]);
+    stokesVector[StokesU] = new operaFluxVector(*StokesVector[StokesU]);
+    stokesVector[StokesV] = new operaFluxVector(*StokesVector[StokesV]);
 }
 
 /*
@@ -147,10 +147,10 @@ operaStokesVector::operaStokesVector(operaFluxVector *StokesVectorI, operaFluxVe
 {
     length = StokesVectorI->getlength();
     istemp = Istemp;
-    stokesVector[StokesI] = new operaFluxVector(StokesVectorI);
-    stokesVector[StokesQ] = new operaFluxVector(StokesVectorQ);
-    stokesVector[StokesU] = new operaFluxVector(StokesVectorU);
-    stokesVector[StokesV] = new operaFluxVector(StokesVectorV);
+    stokesVector[StokesI] = new operaFluxVector(*StokesVectorI);
+    stokesVector[StokesQ] = new operaFluxVector(*StokesVectorQ);
+    stokesVector[StokesU] = new operaFluxVector(*StokesVectorU);
+    stokesVector[StokesV] = new operaFluxVector(*StokesVectorV);
 }
 
 /*
@@ -178,6 +178,21 @@ operaStokesVector::~operaStokesVector()
  */
 
 /*
+ * \brief Resizes the operaStokesVector.
+ * \details Resizes each of the 4 operaFluxVectors.
+ * \param Length The new length to resize to
+ * \return void
+ */
+void operaStokesVector::resize(unsigned Length)
+{
+	stokesVector[StokesI]->resize(Length);
+    stokesVector[StokesQ]->resize(Length);
+    stokesVector[StokesU]->resize(Length);
+    stokesVector[StokesV]->resize(Length);
+    length = Length;
+}
+
+/*
  * \brief Sets the length of the vectors.
  * \details A function that sets the value of the variable holding the number of elements in the operaFluxVector.
  * \param Length An unsigned number of elements
@@ -193,7 +208,7 @@ void operaStokesVector::setLength(unsigned Length)
  * \details A function that returns the value of the variable holding the number of elements in the operaFluxVector.
  * \return An unsigned value
  */
-unsigned operaStokesVector::getLength(void)
+unsigned operaStokesVector::getLength(void) const
 {
     return length;
 }
@@ -321,7 +336,7 @@ double* operaStokesVector::getStokesParameterVariances(stokes_parameter_t Stokes
  * \param index An unsigned index to the element
  * \return A double value
  */
-double operaStokesVector::getStokesParameterFlux(stokes_parameter_t StokesIndex, unsigned index)
+double operaStokesVector::getStokesParameterFlux(stokes_parameter_t StokesIndex, unsigned index) const
 {
 #ifdef RANGE_CHECK
     if (StokesIndex < 0 || StokesIndex >= 4) {
@@ -338,7 +353,7 @@ double operaStokesVector::getStokesParameterFlux(stokes_parameter_t StokesIndex,
  * \param index An unsigned index to the element
  * \return A double value
  */
-double operaStokesVector::getStokesParameterVariance(stokes_parameter_t StokesIndex, unsigned index)
+double operaStokesVector::getStokesParameterVariance(stokes_parameter_t StokesIndex, unsigned index) const
 {
 #ifdef RANGE_CHECK
     if (StokesIndex < 0 || StokesIndex >= 4) {

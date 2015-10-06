@@ -52,6 +52,8 @@ Date: Aug/2011
 #include "operaError.h"
 #include "libraries/operaSpectralTools.h"
 
+#include "libraries/operaSpectralLines.h"       // for operaSpectralLines
+#include "libraries/operaSpectralFeature.h"    // for operaSpectralFeature
 #include "libraries/operaLibCommon.h"           // for SPEED_OF_LIGHT_M
 #include "libraries/operaStats.h"               // for operaCrossCorrelation
 #include "libraries/operaFFT.h"                 // for operaXCorrelation
@@ -509,6 +511,7 @@ void calculateUniformSample(unsigned np,float *wl,float *flux, unsigned npout, f
             }
         }
     }
+    uniform_flux[npout-1] = flux[np-1]; //otherwise we sometimes miss the last point due to rounding errors
 }
 
 float getFluxAtWavelength(unsigned np,float *wl,float *flux,float wavelengthForNormalization) {
@@ -627,3 +630,166 @@ bool getOverlappingWLRange(operaSpectralElements *refElements, operaSpectralElem
     
     return overlap;
 }
+
+
+unsigned detectSpectralLinesInSpectralOrder(operaSpectralOrder *spectralOrder, double *linecenter, double *linecenterError, double *lineflux, double *linesigma, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, double nsigclip, double spectralResolution,bool emissionSpectrum) {
+    
+    double linewidth = 0;
+    double linewidth_err = 0;
+
+    if (!spectralOrder->gethasSpectralElements() || !spectralOrder->gethasWavelength()) {
+        throw operaException("detectSpectralLinesInSpectralOrder: order has no elements/wavelength. ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    unsigned nlinesinorder = 0;
+    
+    operaSpectralElements *compSpectrum = spectralOrder->getSpectralElements();
+    
+    double *saveSpectrum = NULL;
+    
+    operaWavelength *wavelength =  spectralOrder->getWavelength();
+    compSpectrum->setwavelengthsFromCalibration(wavelength);
+    
+    if(!emissionSpectrum) {
+        saveSpectrum = new double[compSpectrum->getnSpectralElements()];
+        // transform spectrum to emission, so we can use the line detection algorithm
+        for(unsigned indexElem=0;indexElem < compSpectrum->getnSpectralElements(); indexElem++) {
+            saveSpectrum[indexElem] = compSpectrum->getFlux(indexElem);
+            
+            double invertedFlux = 1.0 - compSpectrum->getFlux(indexElem) + DetectionThreshold;
+            if(invertedFlux < 0 || isnan(invertedFlux)) {
+                invertedFlux = 0.0;
+            }
+            compSpectrum->setFlux(invertedFlux,indexElem);
+            
+            //cout << indexElem << " " << compSpectrum->getwavelength(indexElem) << " " << invertedFlux << " " << saveSpectrum[indexElem] << endl;
+        }
+    }
+    
+    linewidth = wavelength->getcentralWavelength()/spectralResolution;
+    
+    operaSpectralLines compLines(compSpectrum,linewidth,wavelength_disp);
+    
+    operaFluxVector *compfluxvector = compSpectrum->getFluxVector();
+    
+#ifdef PRINT_DEBUG
+    for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
+        cout << compSpectrum->getdistd(i) << " " << compSpectrum->getwavelength(i) << " " << compfluxvector->getflux(i) << " " << compSpectrum->getXCorrelation(i) << endl;
+    }
+#endif
+    if(!compSpectrum->getHasXCorrelation()){
+        double compSpectrumwl[MAXPOINTSINSIMULATEDSPECTRUM];
+        double compSpectrumflux[MAXPOINTSINSIMULATEDSPECTRUM];
+        double compXcorr[MAXPOINTSINSIMULATEDSPECTRUM];
+        
+        for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
+            compSpectrumwl[i] = compSpectrum->getwavelength(i);
+            compSpectrumflux[i] = compfluxvector->getflux(i);
+        }
+        
+        calculateXCorrWithGaussian(compSpectrum->getnSpectralElements(), compSpectrumwl, compSpectrumflux, compXcorr, linewidth);
+        for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
+            compSpectrum->setXCorrelation(compXcorr[i], i);
+        }
+        compSpectrum->setHasXCorrelation(true);
+    }
+    double CompLocalMaxFilterWidth = LocalMaxFilterWidth*(linewidth);
+    
+    double meanVariance = 0;
+    unsigned nvarpoints = 0;
+    for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
+        if(!isnan(compfluxvector->getvariance(i))) {
+            meanVariance += compfluxvector->getvariance(i);
+            nvarpoints++;
+        }
+    }
+    double CompMinPeakDepth = MinPeakDepth*sqrt(meanVariance/(double)nvarpoints);
+    
+    compLines.detectSpectralFeatures(DetectionThreshold,CompLocalMaxFilterWidth,CompMinPeakDepth);
+    
+    unsigned line = 0;
+    float flinesigma[MAXREFWAVELENGTHSPERORDER];
+    
+    for(unsigned feature=0;feature<compLines.getNFeatures();feature++) {
+        operaSpectralFeature *currentFeature = compLines.getSpectralFeature(feature);
+        double *center = currentFeature->getGaussianFit()->getCenterVector();
+        double *centerError = currentFeature->getGaussianFit()->getCenterErrorVector();
+        double *sigma = currentFeature->getGaussianFit()->getSigmaVector();
+        double *amplitude = currentFeature->getGaussianFit()->getAmplitudeVector();
+        for(unsigned l=0; l<currentFeature->getnLines(); l++) {
+            linecenter[line] = center[l];
+            linecenterError[line] = centerError[l];
+            lineflux[line] = amplitude[l];
+            linesigma[line] = sigma[l];
+            flinesigma[line] = (float)linesigma[line];
+#ifdef PRINT_DEBUG
+            //    cout << center[l] <<  " " << centerError[l] << " " << amplitude[l] << " " << sigma[l] << " " << " " << currentFeature->getnLines() << " " << currentFeature->getGaussianFit()->getGaussianChisqr() << endl;
+#endif
+            line++;
+        }
+    }
+    
+    nlinesinorder = line;
+    if (nlinesinorder > 0) {
+        linewidth = (double)operaArrayMedian(nlinesinorder,flinesigma);
+        linewidth_err = (double)operaArrayMedianSigma(nlinesinorder,flinesigma,(float)(linewidth));
+        
+        line = 0;
+        for(unsigned feature=0;feature<compLines.getNFeatures();feature++) {
+            operaSpectralFeature *currentFeature = compLines.getSpectralFeature(feature);
+            double *center = currentFeature->getGaussianFit()->getCenterVector();
+            double *centerError = currentFeature->getGaussianFit()->getCenterErrorVector();
+            double *sigma = currentFeature->getGaussianFit()->getSigmaVector();
+            double *amplitude = currentFeature->getGaussianFit()->getAmplitudeVector();
+            for(unsigned l=0; l<currentFeature->getnLines(); l++) {
+                if(sigma[l] > linewidth - (double)nsigclip*(linewidth_err) && sigma[l] < linewidth + (double)nsigclip*(linewidth_err)) {
+                    linecenter[line] = center[l];
+                    linecenterError[line] = centerError[l];
+                    lineflux[line] = amplitude[l];
+                    linesigma[line] = sigma[l];
+                    flinesigma[line] = (float)linesigma[line];
+#ifdef PRINT_DEBUG
+                    //cout << center[l] <<  " " << centerError[l] << " " << amplitude[l] << " " << sigma[l] << " " << " " << currentFeature->getnLines() << " " << currentFeature->getGaussianFit()->getGaussianChisqr() << endl;
+#endif
+                    line++;
+                }
+            }
+        }
+        
+        nlinesinorder = line;
+        if (nlinesinorder > 0) {
+            linewidth = (double)operaArrayMedian(nlinesinorder,flinesigma);
+            linewidth_err = (double)operaArrayMedianSigma(nlinesinorder,flinesigma,(float)(linewidth));
+            compSpectrum->setHasWavelength(true);
+        }
+    }
+
+    if(!emissionSpectrum) {
+        // transform spectrum back to absorption
+        for(unsigned indexElem=0;indexElem < compSpectrum->getnSpectralElements(); indexElem++) {
+            compSpectrum->setFlux(saveSpectrum[indexElem],indexElem);
+        }
+
+        for(unsigned i=0; i<nlinesinorder; i++) {
+            double emissionFlux = lineflux[i];
+            lineflux[i] = 1.0 - emissionFlux;
+        }
+        delete[] saveSpectrum;
+    }
+
+    doubleValue_t Resolution;
+    
+    Resolution.value = wavelength->getcentralWavelength()/linewidth;
+    Resolution.error = linewidth_err * wavelength->getcentralWavelength()/(linewidth*linewidth);
+    
+    wavelength->setSpectralResolution(Resolution);
+
+    return nlinesinorder;
+}
+
+double calculateDeltaRadialVelocityInKPS(double telluricWL, double observedWL, double spectralResolution) {
+    double linewidth = telluricWL/spectralResolution;
+    double radialVelocity = (telluricWL - observedWL)*SPEED_OF_LIGHT_KMS/telluricWL;
+    return radialVelocity;
+}
+

@@ -50,6 +50,7 @@
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralOrderVector.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
@@ -409,9 +410,9 @@ int main(int argc, char *argv[])
         foutRVfile = new ofstream();
         foutRVfile->open(outputRVFile.c_str());
         
-        operaSpectralOrderVector spectralOrders(inputObjectSpectrum);
-        
-        spectralOrders.ReadSpectralOrders(inputBarycentricCorrection);
+        operaSpectralOrderVector spectralOrders;
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputObjectSpectrum);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputBarycentricCorrection);
         
         double barycentricRV = spectralOrders.getRadialVelocityCorrection();
         
@@ -419,7 +420,7 @@ int main(int argc, char *argv[])
             cout << "operaRadialVelocity: Barycentric Radial Velocity =" << barycentricRV << " km/s" << endl;
         }
         
-        spectralOrders.ReadSpectralOrders(inputWaveFile); // This merges in the wavelength calibration information
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWaveFile); // This merges in the wavelength calibration information
         
         if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();
@@ -445,8 +446,9 @@ int main(int argc, char *argv[])
         //---------------------------------
         // Correct for flat-field
         if (!inputFlatFluxCalibration.empty()) {
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputFlatFluxCalibration);
             bool starplusskyInvertSkyFiber = false;
-            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber);
+            spectralOrders.correctFlatField(minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber);
         }
         //---------------------------------
         

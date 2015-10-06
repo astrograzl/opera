@@ -36,7 +36,7 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaCCD.h"
 #include "libraries/operaFFT.h"
 #include "libraries/operaArgumentHandler.h"
@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 		operaSpectralOrderVector spectralOrders(MAXORDERS, ny, ny, 0);
         
         // Read order spacing polynomial
-        spectralOrders.readOrderSpacingPolynomial(inputOrderSpacing);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputOrderSpacing);
         unsigned npars = spectralOrders.getOrderSpacingPolynomial()->getOrderOfPolynomial();
         double *par = spectralOrders.getOrderSpacingPolynomial()->getVector();
         
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 		double noise = 5;
         if (!inputGainFile.empty()) {
 			unsigned amp = 0;
-            spectralOrders.readGainNoise(inputGainFile);
+            operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputGainFile);
             gain = spectralOrders.getGainBiasNoise()->getGain(amp);
             noise = spectralOrders.getGainBiasNoise()->getNoise(amp);
 		}
@@ -473,7 +473,7 @@ int main(int argc, char *argv[])
         }
 		
         // Write out geometry calibration file
-		if (!outputGeomFile.empty()) spectralOrders.WriteSpectralOrders(outputGeomFile, Geom);
+		if (!outputGeomFile.empty()) operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputGeomFile, Geom);
         
         if(badpix) delete badpix;
 		flat.operaFITSImageClose();

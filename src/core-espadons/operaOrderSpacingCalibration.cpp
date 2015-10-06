@@ -36,7 +36,7 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaCCD.h"					// for MAXORDERS
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 		// Read gain and noise from input file
         if (!inputGainFile.empty()) {
 			unsigned amp = 0;
-            spectralOrders.readGainNoise(inputGainFile);
+            operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputGainFile);
             gain = spectralOrders.getGainBiasNoise()->getGain(amp);
             noise = spectralOrders.getGainBiasNoise()->getNoise(amp);
 		}
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
         }
         
 		// flush out the order spacing output
-		if (!orderspacingoutput.empty()) spectralOrders.WriteSpectralOrders(orderspacingoutput, Orderspacing);
+		if (!orderspacingoutput.empty()) operaIOFormats::WriteFromSpectralOrders(spectralOrders, orderspacingoutput, Orderspacing);
 		
         if(badpix) delete badpix;
 		flat.operaFITSImageClose();

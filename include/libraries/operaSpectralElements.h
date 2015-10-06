@@ -123,49 +123,49 @@ public:
 	
 	void Deletevectors(void);
 	
-	void Resizevector(unsigned nElements, operaSpectralOrder_t format);
+	void resize(unsigned nElements);
 	
 	void setnSpectralElements(unsigned nElem);
 	
-	unsigned getnSpectralElements(void);
+	unsigned getnSpectralElements(void) const;
 	
 	void setelementHeight(double Height);
 	
-	double getelementHeight(void);
+	double getelementHeight(void) const;
 	
-	bool getHasRawSpectrum() { return hasRawFlux; };
+	bool getHasRawSpectrum() const { return hasRawFlux; };
 	
 	void setHasRawSpectrum(bool HasRawFlux) { hasRawFlux = HasRawFlux; };
 	
-	bool getHasStandardSpectrum() { return hasStandardFlux; };
+	bool getHasStandardSpectrum() const { return hasStandardFlux; };
 	
 	void setHasStandardSpectrum(bool HasStandardFlux) { hasStandardFlux = HasStandardFlux; };
 	
-	bool getHasOptimalSpectrum() { return hasOptimalFlux; };
+	bool getHasOptimalSpectrum() const { return hasOptimalFlux; };
 	
 	void setHasOptimalSpectrum(bool HasOptimalFlux) { hasOptimalFlux = HasOptimalFlux; };
 	
-	bool getHasOperaOptimalSpectrum() { return hasOperaOptimalFlux; };
+	bool getHasOperaOptimalSpectrum() const { return hasOperaOptimalFlux; };
 	
 	void setHasOperaOptimalSpectrum(bool HasOperaOptimalFlux) { hasOperaOptimalFlux = HasOperaOptimalFlux; };
 	
-	bool getHasXCorrelation() { return hasXCorrelation; };
+	bool getHasXCorrelation() const { return hasXCorrelation; };
 	
 	void setHasXCorrelation(bool HasXCorrelation) { hasXCorrelation = HasXCorrelation; };
     
-	bool getHasWavelength() { return hasWavelength; };
+	bool getHasWavelength() const { return hasWavelength; };
 	
 	void setHasWavelength(bool HasWavelength) { hasWavelength = HasWavelength; };
     
-	bool getHasDistance() { return hasDistance; };
+	bool getHasDistance() const { return hasDistance; };
 	
 	void setHasDistance(bool HasDistance) { hasDistance = HasDistance; };
     
-	bool getHasFluxSNR() { return hasFluxSNR; };
+	bool getHasFluxSNR() const { return hasFluxSNR; };
 	
 	void setHasFluxSNR(bool HasFluxSNR) { hasFluxSNR = HasFluxSNR; };
     
-	bool getHasExtendedBeamFlux() { return hasExtendedBeamFlux; };
+	bool getHasExtendedBeamFlux() const { return hasExtendedBeamFlux; };
 	
 	void setHasExtendedBeamFlux(bool HasExtendedBeamFlux) { hasExtendedBeamFlux = HasExtendedBeamFlux; };
     
@@ -175,62 +175,62 @@ public:
 	
 	operaFluxVector *getFluxVector(void);
 	
-	double getFlux(unsigned indexElem);
+	double getFlux(unsigned indexElem) const;
 	
 	void setFluxVector(operaFluxVector *Flux);
 	
 	void setFlux(double Flux, unsigned indexElem);
 	
-	double getFluxVariance(unsigned indexElem);
+	double getFluxVariance(unsigned indexElem) const;
 		
 	void setFluxVariance(double FluxVariance, unsigned indexElem);
 	
-	double getFluxSNR(unsigned indexElem);
+	double getFluxSNR(unsigned indexElem) const;
 	
 	void setFluxSNR(double FluxSNR, unsigned indexElem);
 	
 	/*
 	 * others
 	 */
-	double getphotoCenterX(unsigned indexElem);
-	double getphotoCenterY(unsigned indexElem);
+	double getphotoCenterX(unsigned indexElem) const;
+	double getphotoCenterY(unsigned indexElem) const;
 	void setphotoCenter(double x, double y, unsigned indexElem);
-	double getdistd(unsigned indexElem);
+	double getdistd(unsigned indexElem) const;
 	void setdistd(double Distd, unsigned indexElem);
-	double getwavelength(unsigned indexElem);
+	double getwavelength(unsigned indexElem) const;
 	void setwavelength(double Wavelength, unsigned indexElem);
     void setwavelengthsFromCalibration(operaWavelength *Wavelength);
-	double getXCorrelation(unsigned indexElem);  
+	double getXCorrelation(unsigned indexElem) const;  
 	void setXCorrelation(double Xcorr, unsigned indexElem);    
 
-	double gettell(unsigned indexElem);  
+	double gettell(unsigned indexElem) const;  
 	void settell(double value, unsigned indexElem);    
 	void copyTOtell(void);
 	void copyFROMtell(void);
-	double getrvel(unsigned indexElem);  
+	double getrvel(unsigned indexElem) const;  
 	void setrvel(double value, unsigned indexElem);    
 	void copyTOrvel(void);
 	void copyFROMrvel(void);
-	double getnormalizedFlux(unsigned indexElem);  
+	double getnormalizedFlux(unsigned indexElem) const;  
 	void setnormalizedFlux(double value, unsigned indexElem);
-	double getnormalizedFluxVariance(unsigned indexElem);
+	double getnormalizedFluxVariance(unsigned indexElem) const;
     void setnormalizedFluxVariance(double value, unsigned indexElem);
 	void copyTOnormalizedFlux(void);
 	void copyFROMnormalizedFlux(void);
-	double getfcalFlux(unsigned indexElem);
+	double getfcalFlux(unsigned indexElem) const;
 	void setfcalFlux(double value, unsigned indexElem);
-	double getfcalFluxVariance(unsigned indexElem);    
+	double getfcalFluxVariance(unsigned indexElem) const;    
     void setfcalFluxVariance(double value, unsigned indexElem);    
 	void copyTOfcalFlux(void);
 	void copyFROMfcalFlux(void);
-	double getrawFlux(unsigned indexElem);  
+	double getrawFlux(unsigned indexElem) const;  
 	void setrawFlux(double value, unsigned indexElem);
-	double getrawFluxVariance(unsigned indexElem);
+	double getrawFluxVariance(unsigned indexElem) const;
     void setrawFluxVariance(double value, unsigned indexElem);
 	void copyTOrawFlux(void);
 	void copyFROMrawFlux(void);
 	
-	operaSpectralOrder_t getSpectrumType(void);	
+	operaSpectralOrder_t getSpectrumType(void) const;	
 	
 	void setSpectrumType(operaSpectralOrder_t format);
 	
@@ -242,7 +242,7 @@ public:
 	/*
 	 * Other Methods
 	 */
-    double getFluxSum(void);
+    double getFluxSum(void) const;
     
 };
 #endif

@@ -35,7 +35,7 @@
 // $Locker$
 // $Log$
 
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaArgumentHandler.h"
 
 /*! \file operaBias.cpp */
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 		operaSpectralOrderVector spectralOrders;
 		unsigned namps = 0;
 		if (!gainNoiseBias.empty()) {
-			spectralOrders.readGainNoise(gainNoiseBias);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, gainNoiseBias);
 			namps = spectralOrders.getGainBiasNoise()->getAmps();
 		}
 		if (args.verbose) {
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
 			spectralOrders.getGainBiasNoise()->setBias(1, medianBiasB);
 		}
 		if (namps < 2) spectralOrders.getGainBiasNoise()->setAmps(nampsexpected);
-		spectralOrders.WriteSpectralOrders(output, GainNoise);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, output, GainNoise);
 	}
 	catch (operaException e) {
 		cerr << "operaBias: " << e.getFormattedMessage() << endl;

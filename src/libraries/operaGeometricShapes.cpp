@@ -69,7 +69,7 @@ operaPoint::operaPoint(float xp, float yp) {
     Ycoord = yp;
 }
 
-operaPoint::operaPoint(Line &inputLine1, Line &inputLine2) {
+operaPoint::operaPoint(const Line &inputLine1, const Line &inputLine2) {
     if(inputLine1.getSlope() == inputLine2.getSlope()) {
         throw operaException("operaPoint: error: no intersection point; input lines are parallel. ", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);                
     }
@@ -81,12 +81,12 @@ operaPoint::operaPoint(Line &inputLine1, Line &inputLine2) {
     Ycoord = yintersec;    
 }
 
-operaPoint::operaPoint(operaPoint &APoint) {
+operaPoint::operaPoint(const operaPoint &APoint) {
     Xcoord = APoint.Xcoord;
     Ycoord = APoint.Ycoord;
 }
 
-void operaPoint::setPoint(operaPoint &APoint) {
+void operaPoint::setPoint(const operaPoint &APoint) {
     Xcoord = APoint.Xcoord;
     Ycoord = APoint.Ycoord;
 }
@@ -124,27 +124,27 @@ Box::Box(unsigned X1, unsigned X2, unsigned Y1, unsigned Y2, unsigned XDim, unsi
 	yDim = YDim;
 }
 
-unsigned Box::getX1(void) {
+unsigned Box::getX1(void) const {
 	return x1;
 }
 
-unsigned Box::getX2(void) {
+unsigned Box::getX2(void) const {
 	return x2;
 }
 
-unsigned Box::getY1(void) {
+unsigned Box::getY1(void) const {
 	return y1;
 }
 
-unsigned Box::getY2(void) {
+unsigned Box::getY2(void) const {
 	return y2;
 }
 
-unsigned Box::getDX(void) {
+unsigned Box::getDX(void) const {
 	return x2-x1;
 }
 
-unsigned Box::getDY(void) {
+unsigned Box::getDY(void) const {
 	return y2-y1;
 }
 
@@ -164,7 +164,7 @@ void Box::setY2(unsigned Y2) {
 	y2 = Y2;
 }
 
-unsigned Box::getSize(void) {
+unsigned Box::getSize(void) const {
 	return ((y2-y1)*(x2-x1));
 }
 
@@ -213,7 +213,7 @@ center(0,0)
     deleteCMatrix(pointMatrix);
 }
 
-Rectangle::Rectangle(float Width, float Height, float Angle, operaPoint &Center) {   
+Rectangle::Rectangle(float Width, float Height, float Angle, const operaPoint &Center) {   
     if(Width <= 0 || Height <= 0){
         throw operaException("Rectangle: error: sides must be greater than zero",operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
     }   
@@ -245,7 +245,7 @@ Rectangle::Rectangle(float Width, float Height, float Angle, operaPoint &Center)
     deleteCMatrix(pointMatrix);
 }
 
-Rectangle::Rectangle(float Width, float Height, float Angle, operaPoint *Center) {   
+Rectangle::Rectangle(float Width, float Height, float Angle, const operaPoint *Center) {   
     if(Width <= 0 || Height <= 0){
         throw operaException("Rectangle: error: sides must be greater than zero",operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
     }   
@@ -277,7 +277,7 @@ Rectangle::Rectangle(float Width, float Height, float Angle, operaPoint *Center)
     deleteCMatrix(pointMatrix);
 }
 
-Rectangle::Rectangle(Rectangle &aRectangle) {   
+Rectangle::Rectangle(const Rectangle &aRectangle) {   
     width = aRectangle.width;
     height = aRectangle.height;
     angle = aRectangle.angle;
@@ -288,7 +288,7 @@ Rectangle::Rectangle(Rectangle &aRectangle) {
     }
 }
 
-void Rectangle::setRectangle(Rectangle &aRectangle) {
+void Rectangle::setRectangle(const Rectangle &aRectangle) {
     width = aRectangle.width;
     height = aRectangle.height;
     angle = aRectangle.angle;
@@ -299,7 +299,7 @@ void Rectangle::setRectangle(Rectangle &aRectangle) {
     }
 }
 
-void Rectangle::setRectangle(float Width, float Height, float Angle, operaPoint &Center) {
+void Rectangle::setRectangle(float Width, float Height, float Angle, const operaPoint &Center) {
     width = Width;
     height = Height;
     angle = Angle;
@@ -347,7 +347,7 @@ center(0,0)
     radius = Radius;
 }
 
-Circle::Circle(float Radius, operaPoint &Center) {
+Circle::Circle(float Radius, const operaPoint &Center) {
     if(Radius <= 0){
         throw operaException("Circle: error: radius must be greater than zero",operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
     }          
@@ -355,12 +355,12 @@ Circle::Circle(float Radius, operaPoint &Center) {
     center = Center;   
 }
 
-Circle::Circle(Circle &ACircle) {
+Circle::Circle(const Circle &ACircle) {
     radius = ACircle.radius;
     center.setPoint(ACircle.center);   
 }
 
-void Circle::setCircle(Circle &ACircle) {
+void Circle::setCircle(const Circle &ACircle) {
     radius = ACircle.radius;
     center.setPoint(ACircle.center);   
 }
@@ -374,7 +374,7 @@ nSides(0)
 { 
 }
 
-Polygon::Polygon(unsigned NSides, operaPoint *Vertices[]) {
+Polygon::Polygon(unsigned NSides, const operaPoint *Vertices[]) {
     if(NSides < 3){
         throw operaException("Polygon: error: number of sides must be 3 or greater", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
     }
@@ -388,7 +388,7 @@ Polygon::Polygon(unsigned NSides, operaPoint *Vertices[]) {
     simplePolygonization(); // organize vertices to make polygon simple, i.e. with no intersecting lines     
 }
 
-Polygon::Polygon(unsigned NSides, operaPoint Vertices[]) {
+Polygon::Polygon(unsigned NSides, const operaPoint Vertices[]) {
     if(NSides < 3){
         throw operaException("Polygon: error: number of sides must be 3 or greater", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
     }
@@ -402,7 +402,7 @@ Polygon::Polygon(unsigned NSides, operaPoint Vertices[]) {
     simplePolygonization(); // organize vertices to make polygon simple, i.e. with no intersecting lines     
 }
 
-Polygon::Polygon(Polygon &Poly) {
+Polygon::Polygon(const Polygon &Poly) {
     
     nSides = Poly.nSides;
     
@@ -413,7 +413,7 @@ Polygon::Polygon(Polygon &Poly) {
     simplePolygonization(); // organize vertices to make polygon simple, i.e. with no intersecting lines     
 }
 
-void Polygon::setPolygon(Polygon &Poly) {
+void Polygon::setPolygon(const Polygon &Poly) {
     
     nSides = Poly.nSides;
     
@@ -455,7 +455,7 @@ length(BIG)
 	midPoint.setPoint(0, intercept);
 }
 
-Line::Line(float Slope, operaPoint &SamplePoint) :
+Line::Line(float Slope, const operaPoint &SamplePoint) :
 width(0),
 length(BIG)
 {
@@ -476,7 +476,7 @@ midPoint(0,0)
     length = Length;
 }
 
-Line::Line(float Slope, float Width, float Length, operaPoint &MidPoint) {
+Line::Line(float Slope, float Width, float Length, const operaPoint &MidPoint) {
     if(Width < 0 || Length <= 0){
         throw operaException("Line: error: line dimensions must be greater than zero", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
     }          
@@ -487,7 +487,7 @@ Line::Line(float Slope, float Width, float Length, operaPoint &MidPoint) {
     intercept = midPoint.getYcoord() - slope*midPoint.getXcoord();
 }
 
-Line::Line(float Slope, float Width, float Length, operaPoint *MidPoint) {
+Line::Line(float Slope, float Width, float Length, const operaPoint *MidPoint) {
     if(Width < 0 || Length <= 0){
         throw operaException("Line: error: line dimensions must be greater than zero", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
     }          
@@ -509,7 +509,7 @@ Line::Line(float Slope, float Intercept, float Width, float Length) {
 	midPoint.setPoint(0, intercept);
 }
 
-Line::Line(Line &inputLine) {
+Line::Line(const Line &inputLine) {
 	slope = inputLine.slope;
 	width = inputLine.width;
 	length = inputLine.length;
@@ -520,7 +520,7 @@ Line::Line(Line &inputLine) {
 /*
  * Create a line of line position type LinePosition_t
  */
-Line::Line(Line &inputLine, LinePosition_t LinePosition)
+Line::Line(const Line &inputLine, LinePosition_t LinePosition)
 {
 	switch (LinePosition) {
 		case line_duplicate: {
@@ -596,7 +596,7 @@ Line::Line(Line &inputLine, LinePosition_t LinePosition)
 	}
 }
 
-void Line::setLine(Line &ALine) {
+void Line::setLine(const Line &ALine) {
     slope = ALine.slope;
     width = ALine.width;
     length = ALine.length;
@@ -630,11 +630,11 @@ Line::~Line(void) {
  * Setter/Getters
  */
 
-float operaPoint::getXcoord(void) {
+float operaPoint::getXcoord(void) const {
     return Xcoord;
 }
 
-float operaPoint::getYcoord(void) {
+float operaPoint::getYcoord(void) const {
     return Ycoord;
 }
 
@@ -643,7 +643,7 @@ void operaPoint::setPoint(float xp, float yp) {
     Ycoord = yp;
 }
 
-float Circle::getRadius(void) {
+float Circle::getRadius(void) const {
     return radius;
 }
 
@@ -651,19 +651,27 @@ operaPoint* Circle::getCenter(void) {
     return &center;
 }
 
+const operaPoint* Circle::getCenter(void) const {
+    return &center;
+}
+
 operaPoint* Rectangle::getCorner(unsigned index) {
     return &corners[index];
 }
 
-float Rectangle::getWidth(void) {
+const operaPoint* Rectangle::getCorner(unsigned index) const {
+    return &corners[index];
+}
+
+float Rectangle::getWidth(void) const {
 	return width;   
 }
 
-float Rectangle::getHeight(void) {
+float Rectangle::getHeight(void) const {
     return height;    
 }
 
-float Rectangle::getAngle(void) {
+float Rectangle::getAngle(void) const {
     return angle;    
 }
 
@@ -671,15 +679,19 @@ operaPoint* Rectangle::getCenter(void) {
     return &center;
 }
 
-float Line::getSlope(void) {
+const operaPoint* Rectangle::getCenter(void) const {
+    return &center;
+}
+
+float Line::getSlope(void) const {
 	return slope;     
 }
 
-float Line::getWidth(void) {
+float Line::getWidth(void) const {
 	return width;     
 }
 
-float Line::getLength(void) {
+float Line::getLength(void) const {
 	return length;     
 }
 
@@ -687,15 +699,23 @@ operaPoint *Line::getMidPoint(void) {
 	return &midPoint;     
 }
 
+const operaPoint *Line::getMidPoint(void) const {
+	return &midPoint;     
+}
+
 void Polygon::setNSides(unsigned NSides){
     nSides = NSides;   
 }
 
-unsigned Polygon::getNSides(void){
+unsigned Polygon::getNSides(void) const {
     return nSides;     
 }
 
 operaPoint* Polygon::getVertex(unsigned index){
+    return &vertices[index];     
+}
+
+const operaPoint* Polygon::getVertex(unsigned index) const {
     return &vertices[index];     
 }
 
@@ -764,7 +784,7 @@ void Polygon::simplePolygonization(void) {
  * \ingroup libraries
  */
 
-bool Polygon::pointInPolygon(operaPoint &testPoint) {
+bool Polygon::pointInPolygon(const operaPoint &testPoint) const {
     
     // Comment: Eder, April 10 2012. 
     // This function still doesn't work properly
@@ -797,7 +817,7 @@ void Polygon::printVertexCoordinates(void) {
     cout << endl;
 }
 
-bool Circle::pointInCircle(operaPoint &TestPoint) {
+bool Circle::pointInCircle(const operaPoint &TestPoint) const {
 	
     bool PointIsInside = FALSE;
     
@@ -823,7 +843,7 @@ void Rectangle::printCorners(void) {
     cout << endl;    
 }
 
-bool Rectangle::pointInRectangle(operaPoint &TestPoint) {
+bool Rectangle::pointInRectangle(const operaPoint &TestPoint) const {
 	
     float lineSlope;
     float lineWidth;
@@ -839,7 +859,7 @@ bool Rectangle::pointInRectangle(operaPoint &TestPoint) {
         lineLength = getWidth();
     }
 	
-    operaPoint* lineMidPoint = getCenter();
+    const operaPoint* lineMidPoint = getCenter();
     
     Line rectangleCenterLine(lineSlope,lineWidth,lineLength,lineMidPoint); 
     
@@ -852,11 +872,11 @@ void Line::printLineEquation(void) {
     cout << "y = " << slope << "*x + " << intercept << endl;
 }
 
-float Line::getYcoord(float x) {
+float Line::getYcoord(float x) const {
     return slope*x + intercept;
 }
 
-float Line::getXcoord(float y) {
+float Line::getXcoord(float y) const {
     if(slope == 0) {
         throw operaException("Line: error: x is undetermined because slope is zero", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);        
     }
@@ -867,7 +887,7 @@ float Line::getXcoord(float y) {
 /*
  * These need to be fixed. They generate new points each time -- that the caller has to clean up.
  */
-Line *Line::newPerpendicularLine(Line &inputLine) {
+Line *Line::newPerpendicularLine(const Line &inputLine) const {
     
     float perpendicularSlope = -(1./inputLine.getSlope());
     
@@ -875,14 +895,12 @@ Line *Line::newPerpendicularLine(Line &inputLine) {
     
     float perpendicularLength = inputLine.getWidth();
     
-    operaPoint *perpendicularMidPoint = inputLine.getMidPoint();
-    
-    Line *perpendicularLine = new Line(perpendicularSlope,perpendicularWidth,perpendicularLength,perpendicularMidPoint);
+    Line *perpendicularLine = new Line(perpendicularSlope,perpendicularWidth,perpendicularLength,inputLine.getMidPoint());
     
     return perpendicularLine;
 }
 
-Line *Line::newTopLine(Line &inputLine) {
+Line *Line::newTopLine(const Line &inputLine) const {
     float ShiftInYDirection = inputLine.getLineYWidth()/2.0;
     
     Line *perpendicularline = newPerpendicularLine(inputLine);
@@ -898,7 +916,7 @@ Line *Line::newTopLine(Line &inputLine) {
     return topline;
 }
 
-Line *Line::newBottomLine(Line &inputLine) {
+Line *Line::newBottomLine(const Line &inputLine) const {
     float ShiftInYDirection = inputLine.getLineYWidth()/2.0;
     
     Line *perpendicularline = newPerpendicularLine(inputLine);
@@ -914,7 +932,7 @@ Line *Line::newBottomLine(Line &inputLine) {
     return bottomline;
 }
 
-Line *Line::newLeftLine(Line &inputLine) {
+Line *Line::newLeftLine(const Line &inputLine) const {
     float midPointXshift = (length/2)*cos(atan(slope));
     
     Line *perpendicularline = newPerpendicularLine(inputLine);
@@ -928,7 +946,7 @@ Line *Line::newLeftLine(Line &inputLine) {
     return leftline;
 }
 
-Line *Line::newRightLine(Line &inputLine) {
+Line *Line::newRightLine(const Line &inputLine) const {
     float midPointXshift = (length/2)*cos(atan(slope));
 	
     Line *perpendicularline = newPerpendicularLine(inputLine);
@@ -942,7 +960,7 @@ Line *Line::newRightLine(Line &inputLine) {
     return rightline;
 }
 
-operaPoint* Line::newIntersectionPoint(Line &inputLine) {
+operaPoint* Line::newIntersectionPoint(const Line &inputLine) const {
     if(inputLine.getSlope() == getSlope()) {
         throw operaException("Line: error: no intersection point; input line is parallel. ", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);                
     }
@@ -956,11 +974,11 @@ operaPoint* Line::newIntersectionPoint(Line &inputLine) {
 }
 
 
-float Line::getIntercept(void) {
+float Line::getIntercept(void) const {
     return intercept;
 }
 
-bool Line::pointOnLine(operaPoint &TestPoint) {
+bool Line::pointOnLine(const operaPoint &TestPoint) const {
     float ShiftInXDirection = (length/2)*cos(atan(slope));
 	
     float xmin = midPoint.getXcoord() - ShiftInXDirection;
@@ -974,14 +992,14 @@ bool Line::pointOnLine(operaPoint &TestPoint) {
     return false;
 }
 
-void Line::setMidPoint(operaPoint &MidPoint) {
+void Line::setMidPoint(const operaPoint &MidPoint) {
     midPoint.setPoint(MidPoint.getXcoord(), MidPoint.getYcoord());
 }
 
-void Line::setMidPoint(operaPoint *MidPoint) {
+void Line::setMidPoint(const operaPoint *MidPoint) {
     midPoint.setPoint(MidPoint->getXcoord(), MidPoint->getYcoord());
 }
-bool Line::pointInLineWidth(operaPoint &TestPoint, Line &inputLine) {
+bool Line::pointInLineWidth(const operaPoint &TestPoint, const Line &inputLine) const {
     bool PointIsIN = FALSE;
 	
     Line *topline = newTopLine(inputLine);
@@ -1004,7 +1022,7 @@ bool Line::pointInLineWidth(operaPoint &TestPoint, Line &inputLine) {
     return PointIsIN;
 }
 
-float Line::getLineYWidth(void) {
+float Line::getLineYWidth(void) const {
     float ShiftInYDirection = width/(2*cos(atan(slope)));
     
     return 2*ShiftInYDirection;

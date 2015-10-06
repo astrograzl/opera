@@ -95,31 +95,33 @@ public:
 	/*
 	 * Methods
 	 */
-	double getDmin(void);
+	double getDmin(void) const;
 	
-	double getDmax(void);
+	double getDmax(void) const;
 	
 	void setDmin(double Dmin);
 	
 	void setDmax(double Dmax);
 	
-	double getDistance(unsigned index);
+	double getDistance(unsigned index) const;
 	
-	double getWavelength(unsigned index);
+	double getWavelength(unsigned index) const;
 	
-	double getWavelengthError(unsigned index);
+	double getWavelengthError(unsigned index) const;
 
-	unsigned getMatchAtlasIndex(unsigned index);
+	unsigned getMatchAtlasIndex(unsigned index) const;
     
-	unsigned getMatchComparisonIndex(unsigned index);
+	unsigned getMatchComparisonIndex(unsigned index) const;
     
-	double getcentralWavelength(void);
+	double getcentralWavelength(void) const;
 	
-	double getinitialWavelength(void);
+	double getinitialWavelength(void) const;
 	
-	double getfinalWavelength(void);
+	double getfinalWavelength(void) const;
 	
 	Polynomial *getWavelengthPolynomial(void);
+	
+	const Polynomial *getWavelengthPolynomial(void) const;
 	
 	void CalculateWavelengthSolution(unsigned maxcoeffs, bool witherrors);
     
@@ -131,7 +133,7 @@ public:
     
     void setnDataPoints(unsigned NDataPoints);
     
-    unsigned getnDataPoints(void);
+    unsigned getnDataPoints(void) const;
 	
 	void createDataVectors(unsigned NDataPoints);
     
@@ -144,13 +146,13 @@ public:
 	
     void setnAtlasLines(unsigned NAtlasLines);
     
-    unsigned getnAtlasLines(void);   
+    unsigned getnAtlasLines(void) const;   
 
-    double getatlasLinesflux(unsigned index);
+    double getatlasLinesflux(unsigned index) const;
     
-    double getatlasLineswl(unsigned index);
+    double getatlasLineswl(unsigned index) const;
     
-    double getatlasLineswlError(unsigned index);    
+    double getatlasLineswlError(unsigned index) const;    
     
     void setatlasLinesflux(double AtlasLinesflux, unsigned index);
     
@@ -170,15 +172,15 @@ public:
     
     void setnComparisonLines(unsigned NComparisonLines);
 
-    unsigned getnComparisonLines(void);
+    unsigned getnComparisonLines(void) const;
 
-    double getcomparisonLinesflux(unsigned index);
+    double getcomparisonLinesflux(unsigned index) const;
     
-    double getcomparisonLinespix(unsigned index);
+    double getcomparisonLinespix(unsigned index) const;
     
-    double getcomparisonLinespixError(unsigned index);    
+    double getcomparisonLinespixError(unsigned index) const;
     
-    double getcomparisonLineswl(unsigned index);    
+    double getcomparisonLineswl(unsigned index) const;
     
     void setcomparisonLinesflux(double ComparisonLinesflux, unsigned index);
     
@@ -200,7 +202,7 @@ public:
       */
     void setSpectralResolution(doubleValue_t Resolution);
     
-    doubleValue_t getSpectralResolution(void);
+    doubleValue_t getSpectralResolution(void) const;
 	
     void calculateSpectralResolution(doubleValue_t ResolutionElementInPixels);
     
@@ -210,11 +212,11 @@ public:
     
     void setRadialVelocityPrecision(double radialvelocityprecision);    
     
-    double getRadialVelocityPrecision(void);   
+    double getRadialVelocityPrecision(void) const;
     
     void calculateRadialVelocityPrecision(void);
     
-    double calculateWavelengthRMSPrecision(void);    
+    double calculateWavelengthRMSPrecision(void);
     
     double calculateWavelengthMedianPrecision(void);   
     
@@ -230,7 +232,7 @@ public:
         
     unsigned createComparisonSimulatedSpectrum(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
 
-	double getxcorrelation(void);
+	double getxcorrelation(void) const;
 	
 	void setxcorrelation(double Xcorrelation); 
     
@@ -238,9 +240,9 @@ public:
     
     void matchAtlaswithComparisonLines(double acceptableMismatch);    
             
-    double getPerCentageOfComparisonMatch(void);    
+    double getPerCentageOfComparisonMatch(void) const;
     
-    double getPerCentageOfAtlasMatch(void);
+    double getPerCentageOfAtlasMatch(void) const;
     
     void filterDataPointsBySigmaClip(double nsig);
     

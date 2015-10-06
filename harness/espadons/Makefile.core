@@ -181,7 +181,7 @@ else
 			echo "$(epref) File $@ is not currently in the archive." 2>&1 | tee -a $(errfile) ; \
 	else \
 		detector=`$(bindir)operagetdetector $${arfile}` ; \
-		mode=`$(bindir)operagetmode $${arfile}` ; \
+		mode=`$(bindir)$(OPERAGETMODE) $${arfile}` ; \
 		speed=`$(bindir)operagetspeed $${arfile}` ; \
 		amplifier=`$(bindir)operagetamplifier $${arfile}` ; \
 		$(ECHO) $(MAKE) -f $(makedir)Makefile $*m.$(FITS)$(extension) DETECTOR=$${detector} MODE=$${mode} OSET=$${oset} SPEED=$${speed} AMPLIFIER=$${amplifier} DATADIR=`dirname $${arfile}` TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory ; \
@@ -199,7 +199,7 @@ else
 		echo "$(epref) $(DATADIR)$@ does not exist, please check your DATADIR path." 2>&1 | tee -a $(errfile) ; \
 	else \
 		detector=`$(bindir)operagetdetector $(DATADIR)$@` ; \
-		mode=`$(bindir)operagetmode $(DATADIR)$@` ; \
+		mode=`$(bindir)$(OPERAGETMODE) $(DATADIR)$@` ; \
 		speed=`$(bindir)operagetspeed $(DATADIR)$@` ; \
 		amplifier=`$(bindir)operagetamplifier $(DATADIR)$@` ; \
 		$(ECHO) $(MAKE) -f $(makedir)Makefile $*m.$(FITS)$(extension) DETECTOR=$${detector} MODE=$${mode} OSET=$${oset} SPEED=$${speed} AMPLIFIER=$${amplifier} DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory ; \
@@ -213,7 +213,7 @@ endif
 
 #########################################################################################
 # MEF Extended FITS product - Note: cNone is used here so bintables are not created
-# CSV is optional as a product
+# CSV is optional as a product (no longer produced at all)
 # removed --parameters=$(tmpdir)$*m.parm - caused fitsio errors with invalid chars in comment
 #		$(ECHO) $(MAKE) -f $(makedir)Makefile parameters --no-print-directory >$(tmpdir)$*m.parm
 #########################################################################################
@@ -229,57 +229,21 @@ endif
 		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
 			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
 		fi ; \
-		if [[ "$(MODE)" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
-		fi ; \
-		if [ -e $(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) ] ; then \
-			fcal="$(calibrationdir)masterfluxcalibration_$(QUALIFIERS)$${sequence}.fcal$(gzip) --sequence=$${sequence}" ; \
-		fi ; \
-		wcal="$(configdir)wcal_ref.dat$(gzip)" ; \
-		if [ -e $(calibrationdir)$(QUALIFIERS).wcal$(gzip) ] ; then \
-			wcal=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-		fi ; \
 		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			rvel="$(calibrationdir)$*i.rvel$(gzip)" ; \
-		fi ; \
-		if [ -s $(calibrationdir)$*p.rvel$(gzip) ] ; then \
-			prvel="$(calibrationdir)$*p.rvel$(gzip)" ; \
+			rvel="$(calibrationdir)$*i.rvel$(extension)" ; \
 		fi ; \
 		if [ -s $(calibrationdir)$*i.tell$(gzip) ] ; then \
-			tell="$(calibrationdir)$*i.tell$(gzip)" ; \
-		fi ; \
-		if [ -s $(calibrationdir)$*p.tell$(gzip) ] ; then \
-			ptell="$(calibrationdir)$*p.tell$(gzip)" ; \
-		fi ; \
-		if [ -s $(spectradir)$*.p$(gzip) ] ; then \
-			polar="$(spectradir)$*.p$(gzip)" ; \
-		fi ; \
-		if [ -s $(spectradir)$*ie.sn$(gzip) ] ; then \
-			snr="$(spectradir)$*ie.sn$(gzip)" ; \
-		fi ; \
-		if [ -s $(spectradir)$*pe.sn$(gzip) ] ; then \
-			snr="$(spectradir)$*pe.sn$(gzip)" ; \
+			tell="$(calibrationdir)$*i.tell$(extension)" ; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
---beam=$(spectradir)$*.e$(gzip) \
---centralsnr \
---polar=$${polar} \
---gain=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
---geom=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
---ordp=$(calibrationdir)$(QUALIFIERS).ordp$(gzip) \
+--spectrumfile=$(spectradir)$*.spc$(gzip) \
+--spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
+--snr=$(spectradir)$*i.sn$(extension) \
 --rvel=$${rvel} \
---prvel=$${prvel} \
 --tell=$${tell} \
---ptell=$${ptell} \
---wave=$${wcal} \
---fcal=$${fcal} \
---snr=$${snr} \
---aper=$(calibrationdir)$(QUALIFIERS).aper$(gzip) \
---prof=$(calibrationdir)$(QUALIFIERS).prof$(gzip) \
 --version=\"$(versionstr)\" \
 --date=\"$(shell date)\" \
---spectrumtype=$(DefaultCalibratedSpectrumTypeName) \
---compressiontype=$(cNone) \
+--compressiontype=$(compressiontype) \
 --input=$${inputfits} \
 --output=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if  (( $(TRACE) != 1 )) ; then echo "$(pref) fits `$(bindir)operafitsverify $(VERBOSE) $(spectradir)$@`"; fi; \
@@ -290,60 +254,31 @@ endif
 # CSV
 #########################################################################################
 
-%.csv$(gzip): %.e$(gzip)
-ifeq ($(GENERATE_CSV),1)
-	@start=$$SECONDS; \
-	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting CSV creation for $* $(QUALIFIERS)" ; \
-		if [ -s $(spectradir)$*.p$(gzip) ] ; then \
-			polar="$(spectradir)$*.p$(gzip)" ; \
-		fi ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
---version=\"$(versionstr)\" \
---date=\"$(shell date)\" \
---object=\"$${object}\" \
---polar=$${polar} \
---es=$(spectradir)$*.e$(gzip) \
---input=$${inputfits} \
---spectrumtype=$(OperaCSV) \
---csv=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
-		echo "$(pref) CSV $@ created in $(deltat)" ; \
-	fi
-endif
-
-#########################################################################################
-# line spectrum from master comparison.
-# Note: Although normalized flat is listed as a dependency, in fact it is optional
-# and creation of the flat is signaled by a flag "CREATE_NORMALIZED_FLAT" in the
-# Makefile.parameters
-#########################################################################################
-
-%.l$(gzip): normalizedflat_$(QUALIFIERS).$(FITS)$(extension)
-	@start=$$SECONDS; \
-	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting spectral line generation for $@" ; \
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--plotfilename=$(visualsdir)$*l.eps --linesdatafilename=$(byproductsdir)$*l.ldat --specdatafilename=$(byproductsdir)$*l.sdat --scriptfilename=$(byproductsdir)$*l.gnu" ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaExtractSpectralLines \
---inputGeometryFile=$(calibrationdir)$(QUALIFIERS).geom$(gzip) \
---inputInstrumentProfileFile=$(calibrationdir)$(QUALIFIERS).prof$(gzip) \
---mastercomparison=$(calibrationdir)mastercomparison_$(QUALIFIERS).$(FITS)$(extension) \
---masterbias=$(calibrationdir)masterbias_$(QUALIFIERS).$(FITS)$(extension) \
---badpixelmask=$(badpixelmask) \
---gain=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
---referenceLineWidth=$(referenceLineWidth) \
---spectralElementHeight=$(spectralElementHeight) \
---ordernumber=$(ordernumber) \
-$${pargs} \
---outputSpectraFile=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
-		echo "$(pref) Spectral lines $@ created in $(deltat)" ; \
-	fi
+# %.csv$(gzip): %.e$(gzip)
+# ifeq ($(GENERATE_CSV),1)
+# 	@start=$$SECONDS; \
+# 	if [ ! -e $(spectradir)$@ ] ; then \
+# 		echo "$(pref) Starting CSV creation for $* $(QUALIFIERS)" ; \
+# 		if [ -s $(spectradir)$*.p$(gzip) ] ; then \
+# 			polar="$(spectradir)$*.p$(gzip)" ; \
+# 		fi ; \
+# 		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
+# 		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
+# 			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
+# 		fi ; \
+# 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
+# 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaCreateProduct \
+# --version=\"$(versionstr)\" \
+# --date=\"$(shell date)\" \
+# --object=\"$${object}\" \
+# --polar=$${polar} \
+# --es=$(spectradir)$*.e$(gzip) \
+# --input=$${inputfits} \
+# --spectrumtype=$(OperaCSV) \
+# --csv=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
+# 		echo "$(pref) CSV $@ created in $(deltat)" ; \
+# 	fi
+# endif
 
 #########################################################################################
 # Basic thorium intensity spectrum.
@@ -351,6 +286,7 @@ $${pargs} \
 # and creation of the flat is signaled by a flag "CREATE_NORMALIZED_FLAT" in the
 # Makefile.parameters
 # Note: spectral lines are no longer used in wavelength calibration, so are not created...
+# To get the plot option running, add this keyword at the end: $${pargs} \
 #########################################################################################
 
 th_$(QUALIFIERS).e$(gzip): $(QUALIFIERS).geom$(gzip) normalizedflat_$(QUALIFIERS).$(FITS)$(extension) # th_$(QUALIFIERS).l$(gzip)
@@ -384,13 +320,13 @@ $${nargs} \
 --spectrumtypename=RawBeamSpectrum \
 --ordernumber=$(ordernumber) \
 --maxthreads=$(maxthreads) \
-$${pargs} \
 --outputSpectraFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)th_$(QUALIFIERS).log ; \
 		echo "$(pref) Thorium Spectrum $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
 # flat field intensity spectrum.
+# To get the plot option running, add this keyword at the end: $${pargs} \
 #########################################################################################
 
 ff_$(QUALIFIERS).e$(gzip): $(QUALIFIERS).aper$(gzip)
@@ -424,7 +360,6 @@ $${nargs} \
 --starplusskymode=0 \
 --ordernumber=$(ordernumber) \
 --maxthreads=$(maxthreads) \
-$${pargs} \
 --outputSpectraFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)ff_$(QUALIFIERS).log ; \
 		echo "$(pref) flat field Spectrum $@ created in $(deltat)" ; \
 	fi
@@ -445,19 +380,28 @@ $${pargs} \
 		fi ; \
 		etime=`$(bindir)operagetheader --keyword=EXPTIME $${inputfits}` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
-		mode=`$(bindir)operagetmode $${inputfits}`; \
+		mode=`$(bindir)$(OPERAGETMODE) $${inputfits}`; \
 		if [[ "$${mode}" == "pol" ]] ; then \
 			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
 		fi ; \
+		if [[ "$${mode}" == "sp1" ]] ; then \
+			ssfiber="--SkyOverStarFiberAreaRatio=$(ssfiberarearatio)"; \
+		fi ; \
 		wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-		if [ -s $(calibrationdir)$*i.tell$(gzip) ] ; then \
-			if (( $(wanttelluriccorrection) == 1 )) ; then \
+		if (( $(wanttelluriccorrection) == 1 )) ; then \
+			if [ -s $(calibrationdir)$*i.tell$(gzip) ] ; then \
 				tell="--telluriccorrection=$(calibrationdir)$*i.tell$(gzip)" ; \
+			else \
+				echo "Error: missing telluric correction file $(calibrationdir)$*i.tell$(gzip)" | tee -a $(errfile) $(logdir)$*.log ; \
+				exit 1 ; \
 			fi ; \
 		fi ; \
-		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
-			if (( $(wantheliocentriccorrection) == 1 )) ; then \
+		if (( $(wantheliocentriccorrection) == 1 )) ; then \
+			if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
 				rvel="--radialvelocitycorrection=$(calibrationdir)$*i.rvel$(gzip)" ; \
+			else \
+				echo "Error: missing heliocentric correction file $(calibrationdir)$*i.rvel$(gzip)" | tee -a $(errfile) $(logdir)$*.log ; \
+				exit 1 ; \
 			fi ; \
 		fi ; \
 		if [[ "$${mode}" == "pol" ]] ; then \
@@ -474,12 +418,14 @@ $${pargs} \
 --inputUncalibratedSpectrum=$(spectradir)$*.e$(gzip) \
 --spectrumtype=$(DefaultCalibratedSpectrumType) \
 --wavelengthCalibration=$${wavelengthCalibration} \
+--wlrangefile=$(configdir)$(LEOrderWavelength) \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
 --inputWavelengthMaskForUncalContinuum=$(configdir)$(extractor_WavelengthMaskForUncalContinuum) \
 --object=\"$${object}\" \
 $${tell} \
 $${rvel} \
 $${fcal} \
+$${ssfiber} \
 --flatResponse=$(configdir)$(extractor_FlatResponse) \
 --numberOfPointsInUniformSample=$(extractor_numberOfPointsInUniformSample) \
 --normalizationBinsize=$(extractor_normalizationBinsize) \
@@ -514,14 +460,20 @@ $${pargs} \
 			pargs="--plotfilename=$(visualsdir)$*p.eps --datafilename=$(byproductsdir)$*p.sdat --scriptfilename=$(byproductsdir)$*p.gnu" ; \
 		fi ; \
 		wavelengthCalibration=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) ; \
-		if [ -s $(calibrationdir)$*p.tell$(gzip) ] ; then \
-			if (( $(wanttelluriccorrection) == 1 )) ; then \
+		if (( $(wanttelluriccorrection) == 1 )) ; then \
+			if [ -s $(calibrationdir)$*p.tell$(gzip) ] ; then \
 				tell="--telluriccorrection=$(calibrationdir)$*p.tell$(gzip)" ; \
+			else \
+				echo "Error: missing telluric correction file $(calibrationdir)$*p.tell$(gzip)" | tee -a $(errfile) $(logdir)$*.log ; \
+				exit 1 ; \
 			fi ; \
 		fi ; \
-		if [ -s $(calibrationdir)$*p.rvel$(gzip) ] ; then \
-			if (( $(wantheliocentriccorrection) == 1 )) ; then \
+		if (( $(wantheliocentriccorrection) == 1 )) ; then \
+			if [ -s $(calibrationdir)$*p.rvel$(gzip) ] ; then \
 				rvel="--radialvelocitycorrection=$(calibrationdir)$*p.rvel$(gzip)" ; \
+			else \
+				echo "Error: missing heliocentric correction file $(calibrationdir)$*p.rvel$(gzip)" | tee -a $(errfile) $(logdir)$*.log ; \
+				exit 1 ; \
 			fi ; \
 		fi ; \
 		if (( $(operawantfcal) == 0 )) ; then \
@@ -535,6 +487,7 @@ $${pargs} \
 --polar=$(spectradir)$*.p$(gzip) \
 --spectrumtype=$(ExtendedPolarimetry) \
 --wavelengthCalibration=$${wavelengthCalibration} \
+--wlrangefile=$(configdir)$(LEOrderWavelength) \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
 --flatResponse=$(configdir)$(extractor_FlatResponse) \
 --numberOfPointsInUniformSample=$(extractor_numberOfPointsInUniformSample) \
@@ -557,6 +510,7 @@ $${pargs} \
 # and creation of the flat is signaled by a flag "CREATE_NORMALIZED_FLAT" in the
 # Makefile.parameters
 # Note: spectral lines are no longer used in wavelength calibration, so are not created...
+# To get the plot option running, add this keyword at the end: $${pargs} \
 #########################################################################################
 %.e$(gzip): normalizedflat_$(QUALIFIERS).$(FITS)$(extension) th_$(QUALIFIERS).e$(gzip)
 	@start=$$SECONDS; \
@@ -597,7 +551,6 @@ $${nargs} \
 --removeBackground=$(extraction_removeBackground) \
 --iterations=$(extraction_iterations) \
 --maxthreads=$(maxthreads) \
-$${pargs} \
 --outputSpectraFile=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 			echo "$(pref) Spectrum $@ created in $(deltat)" ; \
 		fi ; \
@@ -611,13 +564,13 @@ $${pargs} \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting telluric correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--xcorrsplotfilename=$(visualsdir)$*itellxcor.eps --specplotfilename=$(visualsdir)$*itell.eps --xcorrdatafilename=$(byproductsdir)$*itellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*itellxcorrfit.pdat --specdatafilename=$(byproductsdir)$*itell.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --xcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu" ; \
+			pargs="--specdatafilename=$(byproductsdir)$*itell.pdat --rvcorrdatafilename=$(byproductsdir)$*itellrvcorr.pdat --rvcorrfitdatafilename=$(byproductsdir)$*itellrvcorrfit.pdat --specscriptfilename=$(byproductsdir)$*itell.gnu --specplotfilename=$(visualsdir)$*itell.eps --rvcorrscriptfilename=$(byproductsdir)$*itellxcorr.gnu --rvcorrsplotfilename=$(visualsdir)$*itellrvcorr.eps" ; \
 		fi ; \
 		if [[ "$(telluric_useFitToFindMaximum)" != "0" ]] ; then \
-			opt_switches="${opt_switches} --useFitToFindMaximum"; \
+			opt_switches="$${opt_switches} --useFitToFindMaximum"; \
 		fi ; \
 		if [[ "$(starplusskymode)" != "0" ]] ; then \
-			opt_switches="${opt_switches} --StarPlusSky"; \
+			opt_switches="$${opt_switches} --StarPlusSky"; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelluricWavelengthCorrection \
 --inputObjectSpectrum=$(spectradir)$*.e$(gzip) \
@@ -631,6 +584,7 @@ $${pargs} \
 --XCorrelationThreshold=$(telluric_XCorrelationThreshold) \
 --normalizationBinsize=$(telluric_normalizationbinsize) \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--RVCorrectionMethod=$(telluric_correction_method) \
 $${pargs} \
 $${opt_switches} \
 --outputWaveFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
@@ -677,9 +631,8 @@ $${opt_switches} \
 #		if OBJECT in list of standard stars in config/ i.e. HR1544_operaFluxCal
 #			STANDARD_STAR=prefix e.g. HR1544
 #
-# NOTES: the skyobj target for the standard star is made with a recursive call to make.
-# (and is commented out for now).
-# obscond is specific to CFHT headers and is commented out for now...
+# NOTES: call to make for skyobj for the standard star is commented out.
+# obscond is specific to CFHT headers and is commented out for now.
 #########################################################################################
 %i.fcal$(gzip): %.e$(gzip) # %.obscond$(gzip)
 	@start=$$SECONDS; \
@@ -787,97 +740,6 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 	fi
 
 #########################################################################################
-# Sky Objects Standard Star name based, sorted out from odometers
-# The standard star selection is made in the .fcal rule above
-#  
-#########################################################################################
-
-%.skyobj$(gzip):
-	@start=$$SECONDS; \
-	if [ ! -e $(configdir)standardstars/$@ ] ; then \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits} | sed -e 's: ::g'` ; \
-		runid=`$(bindir)operagetheader --keyword=RUNID $${inputfits} | sed -e 's: ::'` ; \
-		echo "$(pref) Starting sky object creation for $$runid $$object $(QUALIFIERS)" ;\
-		line=`grep $${object} $(configdir)standardstars/operaStandardStars.dat` ; \
-		if [[ "$${line}" != "" ]] ; then \
-			ra=`echo $${line} | awk '{print $$2}'` ; \
-			dec=`echo $${line} | awk '{print $$3}'` ; \
-			ProperMotionRA=`echo $${line} | awk '{print $$4}'` ; \
-			ProperMotionDec=`echo $${line} | awk '{print $$5}'` ; \
-			Parallax=`echo $${line} | awk '{print $$6}'` ; \
-			V_magnitude=`echo $${line} | awk '{print $$7}'` ; \
-			EffectiveTemperature=`echo $${line} | awk '{print $$8}'` ; \
-			RadialVelocity=`echo $${line} | awk '{print $$9}'` ; \
-			SpectralType=`echo $${line} | awk '{print $$10}'` ; \
-			$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaObjectInTheSkySetup \
---sourceID=\"$${object}\" \
---RA=$${ra} \
---Dec=$${dec} \
---ProperMotion=\"$${ProperMotionRA} $${ProperMotionDec}\" \
---Parallax=$${Parallax} \
---V_magnitude=$${V_magnitude} \
---EffectiveTemperature=$${EffectiveTemperature} \
---RadialVelocity=$${RadialVelocity} \
---SpectralType=$${SpectralType} \
---outputObjectInTheSkyFile=$(configdir)standardstars/$@ \
-$${pargs} \
-$(optargs)" 2>&1 | tee -a $(logfile); \
-			echo "$(pref) sky object creation for $@ $$runid $$object $(QUALIFIERS) complete in $(deltat)" ; \
-		fi ; \
-	fi
-
-#########################################################################################
-# Observing Conditions - Odometer based
-# MOONANGL=               111.00 / Angle from object to moon at start in degrees  
-# MOONPHAS=                 0.62 / Moon phase @ 0 HST, 0..1 new>full, -1..0 >new  
-# MOONUP  = 'True    '           / Moon up? True or False                         
-# MOONALT =                12.90 / Moon altitude at start in degrees              
-# MOONAZ  =               247.10 / Moon azimuth at start in deg, 0=N 90=E 270=W  
-#  
-#########################################################################################
-%.obscond$(gzip):
-	@start=$$SECONDS; \
-	if [ ! -e $(spectradir)$@ ] ; then \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $${inputfits} | awk '{printf("%d", $$1);}'` ; \
-		MJDATE=`$(bindir)operagetheader --keyword=MJDATE $${inputfits}` ; \
-		airmass=`$(bindir)operagetheader --keyword=AIRMASS $${inputfits}` ; \
-		moonphase=`$(bindir)operagetheader --keyword=MOONPHAS $${inputfits}` ; \
-		moonangle=`$(bindir)operagetheader --keyword=MOONANGL $${inputfits}` ; \
-		moonalt=`$(bindir)operagetheader --keyword=MOONALT $${inputfits}` ; \
-		if [[ "`grep $* $(configdir)standardstars/operaStandardObservingConditions.dat`" != "" ]] ; then \
-			imagequality="--imageQuality=`grep $* $(configdir)standardstars/operaStandardObservingConditions.dat | awk '{print $$2}'`" ; \
-		fi  ; \
-		if [[ "$(USE_SYBASE)" == "1" ]] ; then \
-			photometric="--photometric=`$(bindir)wiropdb \"select is_phot from xexp where _obsid=$*\" | tail -1`" ; \
-			observercomments="--observercomments=\"`$(bindir)/espgetobscomment type=obs $(NIGHT) | grep $*o | tr '\n' ' ' | tr '"' ' '`\"" ; \
-			qccomments="--qccomments=\"`$(bindir)/espgetobscomment type=qc $(NIGHT) | grep $*o | tr '\n' ' ' | tr '"' ' '`\"" ; \
-		fi ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaObservingConditionsSetup \
---JDTime=$${MJDATE} \
---exposureTime=$${etime} \
---airmass=$${airmass} \
-$${imagequality} \
-$${photometric} \
-$${observercomments} \
-$${qccomments} \
---moonphase=$${moonphase} \
---moonalt=$${moonalt} \
---angularDistFromMoon=$${moonangle} \
---outputObservingConditionsFile=$(spectradir)$@ \
-$${pargs} \
-$(optargs)" 2>&1 | tee -a $(logfile); \
-		echo "$(pref) Observing conditions for $* completed in $(deltat)" ; \
-	fi
-
-#########################################################################################
 # Extended OPERA-format Raw Polarimetry.
 # Note that P3 and P4 may be empty
 # typedef enum { StokesI=0, StokesQ, StokesU, StokesV} stokes_parameter_t;
@@ -920,13 +782,13 @@ $${pargs} \
 	if [ ! -e $(calibrationdir)$@ ] ; then \
 		echo "$(pref) Starting polarimetric telluric correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
-			pargs="--xcorrsplotfilename=$(visualsdir)$*ptellxcor.eps --specplotfilename=$(visualsdir)$*ptell.eps --xcorrdatafilename=$(byproductsdir)$*ptellxcorr.pdat --xcorrfitdatafilename=$(byproductsdir)$*ptellxcorrfit.pdat --specdatafilename=$(byproductsdir)$*ptells.pdat --specscriptfilename=$(byproductsdir)$*ptell.gnu --xcorrscriptfilename=$(byproductsdir)$*ptellxcorr.gnu" ; \
+			pargs="--specdatafilename=$(byproductsdir)$*ptell.pdat --rvcorrdatafilename=$(byproductsdir)$*ptellrvcorr.pdat --rvcorrfitdatafilename=$(byproductsdir)$*ptellrvcorrfit.pdat --specscriptfilename=$(byproductsdir)$*ptell.gnu --specplotfilename=$(visualsdir)$*ptell.eps --rvcorrscriptfilename=$(byproductsdir)$*ptellxcorr.gnu --rvcorrsplotfilename=$(visualsdir)$*ptellrvcorr.eps" ; \
 		fi ; \
 		if [[ "$(telluric_useFitToFindMaximum)" != "0" ]] ; then \
-			opt_switches="${opt_switches} --useFitToFindMaximum"; \
+			opt_switches="$${opt_switches} --useFitToFindMaximum"; \
 		fi ; \
 		if [[ "$(starplusskymode)" != "0" ]] ; then \
-			opt_switches="${opt_switches} --StarPlusSky"; \
+			opt_switches="$${opt_switches} --StarPlusSky"; \
 		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelluricWavelengthCorrection \
 --inputObjectSpectrum=$(spectradir)$*.p$(gzip) \
@@ -940,6 +802,7 @@ $${pargs} \
 --XCorrelationThreshold=$(telluric_XCorrelationThreshold) \
 --normalizationBinsize=$(telluric_normalizationbinsize) \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--RVCorrectionMethod=$(telluric_correction_method) \
 $${pargs} \
 $${opt_switches} \
 --outputWaveFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
@@ -976,18 +839,9 @@ $${opt_switches} \
 		fi ; \
 		echo "$(pref) Heliocentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		MJDATE1=`$(bindir)operagetheader --keyword=MJDATE $${PF1}` ; \
-		MJDATE2=`$(bindir)operagetheader --keyword=MJDATE $${PF2}` ; \
-		MJDATE3=`$(bindir)operagetheader --keyword=MJDATE $${PF3}` ; \
 		MJDATE4=`$(bindir)operagetheader --keyword=MJDATE $${PF4}` ; \
-		MEANJDATE=`echo $${MJDATE1} $${MJDATE2} $${MJDATE3} $${MJDATE4} | awk '{ printf("%f", ($$1+$$2+$$3+$$4) / 4.0)}'` ; \
-		ETIME1=`$(bindir)operagetheader --keyword=EXPTIME $${PF1}` ; \
-		ETIME2=`$(bindir)operagetheader --keyword=EXPTIME $${PF2}` ; \
-		ETIME3=`$(bindir)operagetheader --keyword=EXPTIME $${PF3}` ; \
 		ETIME4=`$(bindir)operagetheader --keyword=EXPTIME $${PF4}` ; \
-		RDTIME1=`$(bindir)operagetheader --keyword=RDTIME $${PF1}` ; \
-		RDTIME2=`$(bindir)operagetheader --keyword=RDTIME $${PF2}` ; \
-		RDTIME3=`$(bindir)operagetheader --keyword=RDTIME $${PF3}` ; \
-		exposure=`echo $${ETIME1} $${ETIME2} $${ETIME3} $${ETIME4} $${RDTIME1} $${RDTIME2} $${RDTIME3} | awk '{ printf("%f", $$1+$$2+$$3+$$4+$$5+$$6+$$7)}'` ; \
+		exposure=`echo $${MJDATE1} $${MJDATE4} $${ETIME4} | awk '{ printf("%f", ($$2-$$1)*86400.0 + $$3)}'` ; \
 		startha=`$(bindir)operagetheader --keyword=HA $${PF1}` ; \
 		absra_center=`$(bindir)operagetheader --keyword=RA_DEG $${inputfits}` ; \
 		absdec_center=`$(bindir)operagetheader --keyword=DEC_DEG $${inputfits}` ; \
@@ -1000,7 +854,7 @@ $${opt_switches} \
 --observatory_coords=\"$(observatory_coords)\" \
 --object_coords=\"$${absra_center} $${absdec_center}\" \
 --observatory_elevation=$(observatory_elevation) \
---MJDTime=$${MEANJDATE} \
+--MJDTime=$${MJDATE1} \
 --ha_start=$${startha} \
 --etime=$${exposure} \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \

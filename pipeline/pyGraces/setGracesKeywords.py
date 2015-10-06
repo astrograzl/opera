@@ -25,6 +25,7 @@ def main(argv):
         if opt == '-h':
             print 'setGracesKeywords.py -i <inputlist> -m <instmode> -r <readspeed> -t <obstype>\n'
             print 'Available options are:'            
+            print '-i , --inputlist=: "listoffiles.txt" '
             print '-m , --instmode=: "staronly" or "starsky" '
             print '-r , --readspeed=: "fast" or "normal" or "slow" '
             print '-t , --obstype=: "bias" or "flat" or "arc" or "object" \n'

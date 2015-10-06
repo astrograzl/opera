@@ -36,7 +36,7 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaFit.h"						// for operaLMFitPolynomial
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
@@ -148,8 +148,9 @@ int main(int argc, char *argv[])
         if (!spectrumDataFilename.empty()) fspecdata.open(spectrumDataFilename.c_str());
         if (!outputDataFilename.empty()) foutdata.open(outputDataFilename.c_str());
         
-		operaSpectralOrderVector spectralOrders(inputReferenceSpectrum);
-        spectralOrders.ReadSpectralOrders(inputWaveFile);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputReferenceSpectrum);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWaveFile);
         
         UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
 		if (args.verbose) cout << "operaMasterFluxCalibration: minorder ="<< minorder << " maxorder=" << maxorder << endl;
@@ -234,7 +235,8 @@ int main(int argc, char *argv[])
         
         for(unsigned index=0; index<inputFcalIndex; index++) {
             // read input flux calibration
-            operaSpectralOrderVector inputSpectralOrders(inputfcal[index]);
+            operaSpectralOrderVector inputSpectralOrders;
+            operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputfcal[index]);
             
             // get wavelengthForNormalization
             if(index==0) {
@@ -413,7 +415,7 @@ int main(int argc, char *argv[])
         /*
          * and write output
          */
-        spectralOrders.WriteSpectralOrders(outputfcal, Fcal);
+        operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputfcal, Fcal);
         
         delete[] referenceWavelength;
         delete[] inputWavelength;

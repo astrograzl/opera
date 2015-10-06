@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
 
 		operaSpectralOrderVector spectralOrders(inputSpectraFile);
         if (inputWaveFile.empty()) {
-            spectralOrders.ReadSpectralOrders(inputWaveFile);
+            spectralOrders.ReadIntoSpectralOrders(inputWaveFile);
         }
         if(!minorderprovided) {
             minorder = spectralOrders.getMinorder();

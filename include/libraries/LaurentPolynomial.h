@@ -83,7 +83,7 @@ public:
 	 * \note usage:  n = getnDataPoints();
 	 * \return unsigned
 	 */
-    unsigned getnDataPoints(void);
+    unsigned getnDataPoints(void) const;
 	
 	/*!
 	 * void createDataVectors(unsigned NDataPoints)
@@ -118,9 +118,9 @@ public:
      */
     void setDataVectors(unsigned NDataPoints, double *Xvector, double *Yvector, double *Yerrorvector);
     
-    double getYerrorValue(unsigned index);
-    double getYdataValue(unsigned index);
-    double getXdataValue(unsigned index);
+    double getYerrorValue(unsigned index) const;
+    double getYdataValue(unsigned index) const;
+    double getXdataValue(unsigned index) const;
     
 	/*!
 	 * double Get(const unsigned index)
@@ -129,7 +129,7 @@ public:
 	 * \param index is a const unsigned index of the coefficient to get
 	 * \return double
 	 */
-	double Get(const unsigned index);	
+	double Get(const unsigned index) const;
 	/*!
 	 * void Set(const double x, const unsigned index)
 	 * \brief This function sets the LaurentPolynomial value at index.
@@ -145,7 +145,7 @@ public:
 	 * \param x is a double input value for which the given LaurentPolynomial is evaluated
 	 * \return double value of evaluation of the LaurentPolynomial
 	 */
-	double Evaluate(const double x);	
+	double Evaluate(const double x) const;
 	/*!
 	 * double double* getVector();
 	 * \brief This function returns the double *LaurentPolynomialVector.
@@ -173,14 +173,14 @@ public:
 	 * \note usage: int npar = getMinorderOfLaurentPolynomial<float>();
 	 * \note usage: int npar = getMinorderOfLaurentPolynomial();
 	 */
-	int getMinorderOfLaurentPolynomial(void);
+	int getMinorderOfLaurentPolynomial(void) const;
 	/*!
 	 * unsigned getMaxorderOfLaurentPolynomial(void);
 	 * \brief This function returns the int maximum order of LaurentPolynomial.
 	 * \note usage: int npar = getMaxorderOfLaurentPolynomial<float>();
 	 * \note usage: int npar = getMaxorderOfLaurentPolynomial();
 	 */
-	int getMaxorderOfLaurentPolynomial(void);
+	int getMaxorderOfLaurentPolynomial(void) const;
     
 	/*!
 	 * void getNumberOfCoefficients(void);
@@ -188,9 +188,9 @@ public:
 	 * \note usage: getNumberOfCoefficients();
 	 * \return void
 	 */
-	unsigned getNumberOfCoefficients(void);
+	unsigned getNumberOfCoefficients(void) const;
     
-	double getCoefficient(unsigned index);
+	double getCoefficient(unsigned index) const;
     
 	/*!
 	 * void setCoefficient(unsigned index, double value);
@@ -205,7 +205,7 @@ public:
 	 * \note usage: double err = getCoefficientError(3);
 	 * \return double
 	 */
-	double getCoefficientError(unsigned index);	
+	double getCoefficientError(unsigned index) const;
 	/*!
 	 * void setCoefficientError(unsigned index, double value);
 	 * \brief This function sets a coefficent error at the index.
@@ -220,7 +220,7 @@ public:
 	 * \note allocates storage that must be freed
 	 * \return PolynomialCoeffs_t  * - the PolynomialCoeffs_t struct *
 	 */
-	PolynomialCoeffs_t* getLaurentPolynomialCoeffs();	
+	PolynomialCoeffs_t* getLaurentPolynomialCoeffs();
 	/*!
 	 * void setLaurentPolynomialCoeffs(PolynomialCoeffs_t* coeffs);
 	 * \brief This function sets a PolynomialCoeffs_t struct.
@@ -240,14 +240,14 @@ public:
 	 * \note usage: double c = getChisqr();
 	 * \return double
 	 */
-	double getChisqr(void);
+	double getChisqr(void) const;
     /*
      * double calculateRMSofResiduals(void)
      * \brief This function calculates the root mean square of residuals.
      * \brief usage: double rms = calculateRMSofResiduals();
      * \return double
      */
-    double calculateRMSofResiduals(void);
+    double calculateRMSofResiduals(void) const;
     
 	/*!
 	 * void printEquation(ostream *pout)

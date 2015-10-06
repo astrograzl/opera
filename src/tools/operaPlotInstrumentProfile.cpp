@@ -44,6 +44,7 @@
 #include "libraries/operaException.h"
 #include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
 #include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralElements.h"		// for operaSpectralOrder_t
 #include "libraries/operaInstrumentProfile.h"		// for operaInstrumentProfile
 
@@ -202,10 +203,11 @@ int main(int argc, char *argv[])
             fdata->open(datafilename.c_str());  
         }        
         
-        operaSpectralOrderVector spectralOrders(inputprof);
+        operaSpectralOrderVector spectralOrders;
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputprof);
         
 		if (!inputgeom.empty()) {
-            spectralOrders.ReadSpectralOrders(inputgeom); 
+            operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputgeom); 
             if(!minorderprovided) {
                 minorder = spectralOrders.getMinorder();
             }

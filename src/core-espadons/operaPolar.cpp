@@ -36,7 +36,7 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
 
@@ -263,17 +263,10 @@ int main(int argc, char *argv[])
     args.AddRequiredArgument("method", methodVal, "Method for calculation of polarisation (1 = Difference, 2 = Ratio)");
     args.AddRequiredArgument("numberofexposures", NumberOfExposures, "Number of input files to use (2 or 4)");
     args.AddRequiredArgument("inputWaveFile", inputWaveFile, "Wavelength calibration file (.wcal)");
-    
-    args.AddOptionalArgument("ordernumber", ordernumber, NOTPROVIDED, "Absolute order number to extract (default=all)");
-	args.AddOptionalArgument("minorder", minorder, NOTPROVIDED, "Only consider this order range");
-	args.AddOptionalArgument("maxorder", maxorder, NOTPROVIDED, "Only consider this order range");
-    
-    args.AddOptionalArgument("plotfilename", plotfilename, "", "Output plot eps file name");
-    args.AddOptionalArgument("datafilename", datafilename, "", "Output plot data file name");
-    args.AddOptionalArgument("scriptfilename", scriptfilename, "", "Output gnuplot script file name");
+    args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
+    args.AddPlotFileArguments(plotfilename, datafilename, scriptfilename, interactive);
     args.AddOptionalArgument("generate3DPlot", generate3DPlot, false, "Switch to generate 3D or 2D plot spectra");
     args.AddOptionalArgument("plotContinuum", plotContinuum, false, "Switch to generate plot of flux or degree of polarization spectra");
-    args.AddOptionalArgument("interactive", interactive, false, "For interactive plots");
     
 	try {
 		args.Parse(argc, argv);
@@ -316,23 +309,24 @@ int main(int argc, char *argv[])
 		}
         
         /* Create output spectral order vector based on base spectrum (i=0)*/
-        operaSpectralOrderVector outputorderVector(input[0]);
-        if (!inputWaveFile.empty()) outputorderVector.ReadSpectralOrders(inputWaveFile);
+        operaSpectralOrderVector outputorderVector;
+        operaIOFormats::ReadIntoSpectralOrders(outputorderVector, input[0]);
+        if (!inputWaveFile.empty()) operaIOFormats::ReadIntoSpectralOrders(outputorderVector, inputWaveFile);
         
         UpdateOrderLimits(ordernumber, minorder, maxorder, outputorderVector);
 		if (args.verbose) cerr << "operaPolar: minorder = " << minorder << " maxorder = " << maxorder << endl;
         
         /* Create the spectral order vector based on inputs */
-        operaSpectralOrderVector *spectralOrdervector[4];
+        operaSpectralOrderVector spectralOrdervector[4];
         for(unsigned i=0;i<NumberOfExposures;i++) {
             /* Inputs file name check */
             if (input[i].empty()) {
                 throw operaException("operaPolar: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
             }
             /* Create the spectral order vector based on inputs */
-            spectralOrdervector[i] = new operaSpectralOrderVector(input[i]);
             if (!inputWaveFile.empty()) {
-                spectralOrdervector[i]->ReadSpectralOrders(inputWaveFile);
+				operaIOFormats::ReadIntoSpectralOrders(spectralOrdervector[i], input[i]);
+                operaIOFormats::ReadIntoSpectralOrders(spectralOrdervector[i], inputWaveFile);
             }
         }
         
@@ -349,7 +343,7 @@ int main(int argc, char *argv[])
             unsigned spectralElementsTest = 0;
             
             for(unsigned i=0;i<NumberOfExposures;i++) {
-                spectralOrder[i] = spectralOrdervector[i]->GetSpectralOrder(order);
+                spectralOrder[i] = spectralOrdervector[i].GetSpectralOrder(order);
                 
                 if(spectralOrder[i]->gethasSpectralElements()) {
                     spectralElements[i] = spectralOrder[i]->getSpectralElements();
@@ -485,7 +479,7 @@ int main(int argc, char *argv[])
             }
         }
 
-		outputorderVector.WriteSpectralOrders(outputfilename, Polarimetry);
+		operaIOFormats::WriteFromSpectralOrders(outputorderVector, outputfilename, Polarimetry);
         
         if (fdata.is_open()) {
             fdata.close();

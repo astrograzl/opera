@@ -108,7 +108,12 @@ private:
 	bool hasPolarimetry;    
 	bool hasSNR;
 	bool hasCenterSNROnly;
-	bool hasSpectralEnergyDistribution;    
+	bool hasSpectralEnergyDistribution;
+	
+	double minwavelength;
+	double maxwavelength;
+	bool hasWavelengthRange;
+	double snrSpectralBinSize;
 	
 public:
 	
@@ -140,13 +145,13 @@ public:
     
 	void deleteBeamsAndBackgroundElements(void);    
 	
-	void createBeamsAndBackgrounds(unsigned nElements, unsigned nBeams, operaSpectralOrder_t format);
+	void createBeamsAndBackgrounds(unsigned nElements, unsigned nBeams, operaSpectralOrder_t format, bool extendedbeams = false);
     
     void deletePolarimetry(void);
     
     void createPolarimetry(unsigned nElements);
     
-	unsigned getorder(void);
+	unsigned getorder(void) const;
 	
 	void sethasSpectralElements(bool HasSpectralElement);
 	
@@ -170,27 +175,27 @@ public:
     
 	void sethasSpectralEnergyDistribution(bool HasSpectralEnergyDistribution);     
 	
-	bool gethasSpectralElements(void);
+	bool gethasSpectralElements(void) const;
 	
-	bool gethasSkyElements(void);	
+	bool gethasSkyElements(void) const;
     
-	bool gethasGeometry(void);
+	bool gethasGeometry(void) const;
 	
-	bool gethasWavelength(void);
+	bool gethasWavelength(void) const;
 	
-	bool gethasInstrumentProfile(void);
+	bool gethasInstrumentProfile(void) const;
 	
-	bool gethasSpectralLines(void);    
+	bool gethasSpectralLines(void) const;
     
-	bool gethasExtractionApertures(void);     
+	bool gethasExtractionApertures(void) const;
 	
-	bool gethasPolarimetry(void);     
+	bool gethasPolarimetry(void) const;
     
-	bool gethasSNR(void);     
+	bool gethasSNR(void) const;
     
-	bool gethasCenterSNROnly(void);     
+	bool gethasCenterSNROnly(void) const;
     
-	bool gethasSpectralEnergyDistribution(void);       
+	bool gethasSpectralEnergyDistribution(void) const;
 	
 	void createGeometry(unsigned maxdatapoints, unsigned maxValues);
 	
@@ -204,36 +209,50 @@ public:
 	void createSpectralEnergyDistribution(void);
 #endif	
 	operaSpectralElements *getSpectralElements(void);
+	const operaSpectralElements *getSpectralElements(void) const;
 	
-	operaSpectralElements *getSkyElements(void);	
+	operaSpectralElements *getSkyElements(void);
+    const operaSpectralElements *getSkyElements(void) const;
     
 	operaGeometry *getGeometry(void);
+	const operaGeometry *getGeometry(void) const;
 	
 	operaWavelength *getWavelength(void);
+	const operaWavelength *getWavelength(void) const;
 	
 	operaInstrumentProfile *getInstrumentProfile(void);
+	const operaInstrumentProfile *getInstrumentProfile(void) const;
 	
 	void setSpectralLines(operaSpectralLines *spectralLines);
 	
 	operaSpectralLines *getSpectralLines(void);
+	const operaSpectralLines *getSpectralLines(void) const;
 	
     operaPolarimetry *getPolarimetry(void);
+    const operaPolarimetry *getPolarimetry(void) const;
     
     operaSpectralEnergyDistribution *getSpectralEnergyDistribution(void);
+	const operaSpectralEnergyDistribution *getSpectralEnergyDistribution(void) const;
 	
     operaSpectralElements *getBeamElements(unsigned beam);
+	const operaSpectralElements *getBeamElements(unsigned beam) const;
 	
-    operaInstrumentProfile *getBeamProfiles(unsigned beam);    
+    operaInstrumentProfile *getBeamProfiles(unsigned beam);
+    const operaInstrumentProfile *getBeamProfiles(unsigned beam) const;
     
     operaSpectralEnergyDistribution *getBeamSED(unsigned beam);
+	const operaSpectralEnergyDistribution *getBeamSED(unsigned beam) const;
 	
     operaSpectralElements *getBackgroundElements(unsigned LeftOrRight);
+    const operaSpectralElements *getBackgroundElements(unsigned LeftOrRight) const;
     
 	operaExtractionAperture *getExtractionApertures(unsigned beam);
+	const operaExtractionAperture *getExtractionApertures(unsigned beam) const;
 	
 	operaExtractionAperture *calculateMainApertureFromExtractionBeams(bool useIP);
     
     operaExtractionAperture *getBackgroundApertures(unsigned LeftOrRight);
+    const operaExtractionAperture *getBackgroundApertures(unsigned LeftOrRight) const;
     
     void setBeamElements(unsigned beam, operaSpectralElements *beamElements);
     
@@ -245,31 +264,31 @@ public:
 	
     void setBackgroundApertures(unsigned LeftOrRight, operaExtractionAperture *backgroundApertures);
 	
-	double getCenterSNR(void);
+	double getCenterSNR(void) const;
 	
 	void setCenterSNR(double Snr);
     
-	unsigned getnumberOfBeams(void);   
+	unsigned getnumberOfBeams(void) const;
     
 	void setnumberOfBeams(unsigned NumberOfBeams);    
     
-	doubleValue_t getTiltInDegrees(void);   
+	doubleValue_t getTiltInDegrees(void) const;
     
 	void setTiltInDegrees(doubleValue_t TiltInDegrees); 
     
     void setTiltInDegrees(double tilt, double error);
     
-    double getTiltInDegreesValue(void);
+    double getTiltInDegreesValue(void) const;
     
-    double getTiltInDegreesError(void);
+    double getTiltInDegreesError(void) const;
 	
     double *getSNRVector(void);    
 	
 	void calculateSNR(void);
 	
-	float getCentralSmoothedSNR(int upperlowerbound);
+	float getCentralSmoothedSNR(int upperlowerbound) const;
 	
-	float getPeakSmoothedSNR(int upperlowerbound);
+	float getPeakSmoothedSNR(int upperlowerbound) const;
 
 	void NormalizeFlat(operaFITSImage &flatMatrix, operaFITSImage &outputMatrix, unsigned nx, unsigned ny, unsigned binsize);
 	
@@ -321,7 +340,7 @@ public:
 
 	void calculateXCorrBetweenIPandImage(operaFITSImage &Image, operaFITSImage &badpix, ostream *pout);
 	
-	operaSpectralOrder_t getSpectrumType(void);
+	operaSpectralOrder_t getSpectrumType(void) const;
 	
 	void setSpectrumType(operaSpectralOrder_t format);
 	
@@ -329,9 +348,22 @@ public:
 	
 	void printBeamSpectrum(string addFirstColumnEntry, ostream *pout);
 	
+	double getminwavelength() const;
+	double getmaxwavelength() const;
+	bool gethasWavelengthRange() const;
+	void setminwavelength(double wl);
+	void setmaxwavelength(double wl);
+	void sethasWavelengthRange(bool hasRange);
+	double getsnrSpectralBinSize() const;
+	void setsnrSpectralBinSize(double spectralbinsize);
+	
 	/*
 	 * Normalization/Flux Calibration...
 	 */
+	void fitSEDUncalibratedFluxToSample(unsigned uniform_npoints, float *uniform_wl, float *uniform_flux, float **uniform_beamflux);
+	
+	void fitSEDFcalAndThroughputToFlatResp(unsigned npoints, float *frwavelength, float *flatresp);
+	
 	void applyNormalization(unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial, ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, unsigned numberOfprintouts);
 	
     void applyNormalizationForEmissionSpectrum(unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial, ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, unsigned numberOfprintouts);
@@ -388,6 +420,16 @@ public:
     void applyRvelWavelengthCorrection(double RVcorrectionInKmPerSecond);
 	void setExtendedRvelWavelengthCorrection(double RVcorrectionInKmPerSecond);
     void applyWavelengthCorrectionFromExtendedRvel(void);
+    
+    void CreateExtendedVectors();
+	void CopyFluxVectorIntoRawFlux();
+	void CopyRawFluxIntoFluxVector();
+	void CopyFluxVectorIntoFcalFlux();
+	void CopyFcalFluxIntoFluxVector();
+	void CopyFluxVectorIntoNormalizedFlux();
+	void CopyNormalizedFluxIntoFluxVector();
+	
+    void TrimOrderToWavelengthRange(double wl0, double wlf);
 };
 
 #endif

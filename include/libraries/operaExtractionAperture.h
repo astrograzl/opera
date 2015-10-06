@@ -153,35 +153,47 @@ public:
 	
     void setShape(apertureShape Shape);  
     
-    apertureShape getShape(void);      
+    apertureShape getShape(void) const;
     
-	PixelSet* getSubpixels(void);     
+	PixelSet* getSubpixels(void);
+	
+	const PixelSet* getSubpixels(void) const;
     
     void setCircleAperture(Circle *CircleAperture);  
     
-    Circle *getCircleAperture(void);     
+    Circle *getCircleAperture(void);
+    
+    const Circle *getCircleAperture(void) const;
     
     void setRectangleAperture(Rectangle *RectangleAperture);  
     
-    Rectangle* getRectangleAperture(void); 
+    Rectangle* getRectangleAperture(void);
+    
+    const Rectangle* getRectangleAperture(void) const;
     
     void setPolygonAperture(Polygon *PolygonAperture);  
     
-    Polygon* getPolygonAperture(void); 
+    Polygon* getPolygonAperture(void);
+    
+    const Polygon* getPolygonAperture(void) const;
     
     void setLineAperture(Line *LineAperture);  
     
-    Line* getLineAperture(void);     
+    Line* getLineAperture(void);
+    
+    const Line* getLineAperture(void) const;
     
     void setBoundingBox(Rectangle *BoundingBox);  
     
     Rectangle *getBoundingBox(void);
     
+    const Rectangle *getBoundingBox(void) const;
+    
     void setSampling(unsigned Xsampling, unsigned Ysampling);  
     
-    unsigned getXsampling(void);
+    unsigned getXsampling(void) const;
     
-    unsigned getYsampling(void);
+    unsigned getYsampling(void) const;
 
     void setSubpixels(void);    
     
@@ -199,7 +211,7 @@ public:
     
     void setSubpixels(operaInstrumentProfile *instrumentProfile);     
 
-    float getFluxFraction(void);
+    float getFluxFraction(void) const;
     
     void setFluxFraction(float FluxFraction);
     

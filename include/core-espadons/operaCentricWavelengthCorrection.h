@@ -39,6 +39,10 @@
  * \ingroup libraries
  */
 
+const double JDTime1 = 2400000.5;
+
 int CentricWavelengthCorrection(int argc, char *argv[], const std::string modulename, const bool barycentric);
+
+double CalculateSOFABarycentricCorrection(double latitudeInDeg, double longitudeInDeg, double elevation, double MJDTime, double raInHrs, double decInDeg, double haInHrs, bool debug, std::string modulename);
 
 #endif

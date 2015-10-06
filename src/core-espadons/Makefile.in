@@ -58,23 +58,17 @@ bin_PROGRAMS = operaSNR$(EXEEXT) operaWavelengthCalibration$(EXEEXT) \
 	operaMasterComparison$(EXEEXT) operaMasterBias$(EXEEXT) \
 	operaMasterFabPerot$(EXEEXT) \
 	operaInstrumentProfileCalibration$(EXEEXT) \
-	operaPixelSensitivityMap$(EXEEXT) operaNormalize$(EXEEXT) \
-	operaCreateProduct$(EXEEXT) operaExtractSpectralLines$(EXEEXT) \
+	operaPixelSensitivityMap$(EXEEXT) operaCreateProduct$(EXEEXT) \
 	operaExtractionApertureCalibration$(EXEEXT) \
 	operaStarPlusSky$(EXEEXT) operaStarOnly$(EXEEXT) \
-	operaPolarIntensity$(EXEEXT) operaFluxCalibration$(EXEEXT) \
+	operaPolarIntensity$(EXEEXT) \
 	operaCreateFluxCalibration$(EXEEXT) \
 	operaTelluricWavelengthCorrection$(EXEEXT) \
 	operaBarycentricWavelengthCorrection$(EXEEXT) \
 	operaOrderSpacingCalibration$(EXEEXT) \
-	operaEchelleDispersionCalibration$(EXEEXT) \
 	operaPolarimetryCorrection$(EXEEXT) \
 	operaCalculateSpectralResolution$(EXEEXT) \
 	operaMasterFluxCalibration$(EXEEXT) \
-	operaObjectInTheSkySetup$(EXEEXT) \
-	operaObservingConditionsSetup$(EXEEXT) \
-	operaSpectrographSetup$(EXEEXT) operaTelescopeSetup$(EXEEXT) \
-	operaNormalizeAcrossOrders$(EXEEXT) \
 	operaCreateFlatFieldFluxCalibration$(EXEEXT) \
 	operaStitchOrders$(EXEEXT) operaGenerateLEFormats$(EXEEXT) \
 	operaCreateFlatResponse$(EXEEXT) \
@@ -131,16 +125,6 @@ operaCreateFluxCalibration_LDADD = $(LDADD)
 am_operaCreateProduct_OBJECTS = operaCreateProduct.$(OBJEXT)
 operaCreateProduct_OBJECTS = $(am_operaCreateProduct_OBJECTS)
 operaCreateProduct_LDADD = $(LDADD)
-am_operaEchelleDispersionCalibration_OBJECTS =  \
-	operaEchelleDispersionCalibration.$(OBJEXT)
-operaEchelleDispersionCalibration_OBJECTS =  \
-	$(am_operaEchelleDispersionCalibration_OBJECTS)
-operaEchelleDispersionCalibration_LDADD = $(LDADD)
-am_operaExtractSpectralLines_OBJECTS =  \
-	operaExtractSpectralLines.$(OBJEXT)
-operaExtractSpectralLines_OBJECTS =  \
-	$(am_operaExtractSpectralLines_OBJECTS)
-operaExtractSpectralLines_LDADD = $(LDADD)
 am_operaExtraction_OBJECTS = operaExtraction.$(OBJEXT)
 operaExtraction_OBJECTS = $(am_operaExtraction_OBJECTS)
 operaExtraction_LDADD = $(LDADD)
@@ -149,9 +133,6 @@ am_operaExtractionApertureCalibration_OBJECTS =  \
 operaExtractionApertureCalibration_OBJECTS =  \
 	$(am_operaExtractionApertureCalibration_OBJECTS)
 operaExtractionApertureCalibration_LDADD = $(LDADD)
-am_operaFluxCalibration_OBJECTS = operaFluxCalibration.$(OBJEXT)
-operaFluxCalibration_OBJECTS = $(am_operaFluxCalibration_OBJECTS)
-operaFluxCalibration_LDADD = $(LDADD)
 am_operaGain_OBJECTS = operaGain.$(OBJEXT)
 operaGain_OBJECTS = $(am_operaGain_OBJECTS)
 operaGain_LDADD = $(LDADD)
@@ -194,24 +175,6 @@ am_operaMasterFluxCalibration_OBJECTS =  \
 operaMasterFluxCalibration_OBJECTS =  \
 	$(am_operaMasterFluxCalibration_OBJECTS)
 operaMasterFluxCalibration_LDADD = $(LDADD)
-am_operaNormalize_OBJECTS = operaNormalize.$(OBJEXT)
-operaNormalize_OBJECTS = $(am_operaNormalize_OBJECTS)
-operaNormalize_LDADD = $(LDADD)
-am_operaNormalizeAcrossOrders_OBJECTS =  \
-	operaNormalizeAcrossOrders.$(OBJEXT)
-operaNormalizeAcrossOrders_OBJECTS =  \
-	$(am_operaNormalizeAcrossOrders_OBJECTS)
-operaNormalizeAcrossOrders_LDADD = $(LDADD)
-am_operaObjectInTheSkySetup_OBJECTS =  \
-	operaObjectInTheSkySetup.$(OBJEXT)
-operaObjectInTheSkySetup_OBJECTS =  \
-	$(am_operaObjectInTheSkySetup_OBJECTS)
-operaObjectInTheSkySetup_LDADD = $(LDADD)
-am_operaObservingConditionsSetup_OBJECTS =  \
-	operaObservingConditionsSetup.$(OBJEXT)
-operaObservingConditionsSetup_OBJECTS =  \
-	$(am_operaObservingConditionsSetup_OBJECTS)
-operaObservingConditionsSetup_LDADD = $(LDADD)
 am_operaOrderSpacingCalibration_OBJECTS =  \
 	operaOrderSpacingCalibration.$(OBJEXT)
 operaOrderSpacingCalibration_OBJECTS =  \
@@ -241,9 +204,6 @@ operaReductionSet_LDADD = $(LDADD)
 am_operaSNR_OBJECTS = operaSNR.$(OBJEXT)
 operaSNR_OBJECTS = $(am_operaSNR_OBJECTS)
 operaSNR_LDADD = $(LDADD)
-am_operaSpectrographSetup_OBJECTS = operaSpectrographSetup.$(OBJEXT)
-operaSpectrographSetup_OBJECTS = $(am_operaSpectrographSetup_OBJECTS)
-operaSpectrographSetup_LDADD = $(LDADD)
 am_operaStarOnly_OBJECTS = operaStarOnly.$(OBJEXT) \
 	operaExtendedSpectrumCreation.$(OBJEXT)
 operaStarOnly_OBJECTS = $(am_operaStarOnly_OBJECTS)
@@ -255,9 +215,6 @@ operaStarPlusSky_LDADD = $(LDADD)
 am_operaStitchOrders_OBJECTS = operaStitchOrders.$(OBJEXT)
 operaStitchOrders_OBJECTS = $(am_operaStitchOrders_OBJECTS)
 operaStitchOrders_LDADD = $(LDADD)
-am_operaTelescopeSetup_OBJECTS = operaTelescopeSetup.$(OBJEXT)
-operaTelescopeSetup_OBJECTS = $(am_operaTelescopeSetup_OBJECTS)
-operaTelescopeSetup_LDADD = $(LDADD)
 am_operaTelluricWavelengthCorrection_OBJECTS =  \
 	operaTelluricWavelengthCorrection.$(OBJEXT)
 operaTelluricWavelengthCorrection_OBJECTS =  \
@@ -281,46 +238,28 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
 SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
 	$(operaBias_SOURCES) \
 	$(operaCalculateSpectralResolution_SOURCES) \
 	$(operaCreateFlatFieldFluxCalibration_SOURCES) \
 	$(operaCreateFlatResponse_SOURCES) \
 	$(operaCreateFluxCalibration_SOURCES) \
-	$(operaCreateProduct_SOURCES) \
-	$(operaEchelleDispersionCalibration_SOURCES) \
-	$(operaExtractSpectralLines_SOURCES) \
-	$(operaExtraction_SOURCES) \
+	$(operaCreateProduct_SOURCES) $(operaExtraction_SOURCES) \
 	$(operaExtractionApertureCalibration_SOURCES) \
-	$(operaFluxCalibration_SOURCES) $(operaGain_SOURCES) \
-	$(operaGenerateLEFormats_SOURCES) \
+	$(operaGain_SOURCES) $(operaGenerateLEFormats_SOURCES) \
 	$(operaGeometryCalibration_SOURCES) \
 	$(operaHeliocentricWavelengthCorrection_SOURCES) \
 	$(operaInstrumentProfileCalibration_SOURCES) \
 	$(operaMasterBias_SOURCES) $(operaMasterComparison_SOURCES) \
 	$(operaMasterFabPerot_SOURCES) $(operaMasterFlat_SOURCES) \
 	$(operaMasterFluxCalibration_SOURCES) \
-	$(operaNormalize_SOURCES) \
-	$(operaNormalizeAcrossOrders_SOURCES) \
-	$(operaObjectInTheSkySetup_SOURCES) \
-	$(operaObservingConditionsSetup_SOURCES) \
 	$(operaOrderSpacingCalibration_SOURCES) \
 	$(operaPixelSensitivityMap_SOURCES) $(operaPolar_SOURCES) \
 	$(operaPolarIntensity_SOURCES) \
 	$(operaPolarimetryCorrection_SOURCES) \
 	$(operaReductionSet_SOURCES) $(operaSNR_SOURCES) \
-	$(operaSpectrographSetup_SOURCES) $(operaStarOnly_SOURCES) \
-	$(operaStarPlusSky_SOURCES) $(operaStitchOrders_SOURCES) \
-	$(operaTelescopeSetup_SOURCES) \
+	$(operaStarOnly_SOURCES) $(operaStarPlusSky_SOURCES) \
+	$(operaStitchOrders_SOURCES) \
 	$(operaTelluricWavelengthCorrection_SOURCES) \
 	$(operaWavelengthCalibration_SOURCES)
 DIST_SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
@@ -329,31 +268,22 @@ DIST_SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
 	$(operaCreateFlatFieldFluxCalibration_SOURCES) \
 	$(operaCreateFlatResponse_SOURCES) \
 	$(operaCreateFluxCalibration_SOURCES) \
-	$(operaCreateProduct_SOURCES) \
-	$(operaEchelleDispersionCalibration_SOURCES) \
-	$(operaExtractSpectralLines_SOURCES) \
-	$(operaExtraction_SOURCES) \
+	$(operaCreateProduct_SOURCES) $(operaExtraction_SOURCES) \
 	$(operaExtractionApertureCalibration_SOURCES) \
-	$(operaFluxCalibration_SOURCES) $(operaGain_SOURCES) \
-	$(operaGenerateLEFormats_SOURCES) \
+	$(operaGain_SOURCES) $(operaGenerateLEFormats_SOURCES) \
 	$(operaGeometryCalibration_SOURCES) \
 	$(operaHeliocentricWavelengthCorrection_SOURCES) \
 	$(operaInstrumentProfileCalibration_SOURCES) \
 	$(operaMasterBias_SOURCES) $(operaMasterComparison_SOURCES) \
 	$(operaMasterFabPerot_SOURCES) $(operaMasterFlat_SOURCES) \
 	$(operaMasterFluxCalibration_SOURCES) \
-	$(operaNormalize_SOURCES) \
-	$(operaNormalizeAcrossOrders_SOURCES) \
-	$(operaObjectInTheSkySetup_SOURCES) \
-	$(operaObservingConditionsSetup_SOURCES) \
 	$(operaOrderSpacingCalibration_SOURCES) \
 	$(operaPixelSensitivityMap_SOURCES) $(operaPolar_SOURCES) \
 	$(operaPolarIntensity_SOURCES) \
 	$(operaPolarimetryCorrection_SOURCES) \
 	$(operaReductionSet_SOURCES) $(operaSNR_SOURCES) \
-	$(operaSpectrographSetup_SOURCES) $(operaStarOnly_SOURCES) \
-	$(operaStarPlusSky_SOURCES) $(operaStitchOrders_SOURCES) \
-	$(operaTelescopeSetup_SOURCES) \
+	$(operaStarOnly_SOURCES) $(operaStarPlusSky_SOURCES) \
+	$(operaStitchOrders_SOURCES) \
 	$(operaTelluricWavelengthCorrection_SOURCES) \
 	$(operaWavelengthCalibration_SOURCES)
 am__can_run_installinfo = \
@@ -404,7 +334,8 @@ LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 # This is for Linux...
-LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
+LIBS = -loperaCommonModuleElements -loperaIOFormats \
+	-loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
 	-loperaSpectralOrderVector -loperaSpectralOrder \
 	-loperaSpectralElements -loperaSpectralLines \
@@ -423,9 +354,8 @@ LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaLMFit -loperaConfigurationAccess -loperaParameterAccess \
 	-lPixelSet -loperaSpectralEnergyDistribution \
 	-loperaSpectrumSimulation -loperaStats -loperaLib \
-	-lArgumentHandler -loperaArgumentHandler \
-	-loperaCommonModuleElements -lfftw3 -lgzstream -lcfitsio \
-	-lsofa_c -lz -lpthread -lm $(am__append_2)
+	-loperaArgumentHandler -lArgumentHandler -lfftw3 -lgzstream \
+	-lcfitsio -lsofa_c -lz -lpthread -lm $(am__append_2)
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -513,9 +443,9 @@ top_srcdir = @top_srcdir@
 # what flags you want to pass to the C compiler & linker
 AM_CFLAGS = --pedantic -Wall -std=c99 -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/ -I../../include/ -I/usr/local/include/
 AM_CXXFLAGS = --pedantic -Wall -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -I../../include/ -I/usr/include/ -I/usr/local/include/ -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/
-AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
-	-loperaObservingConditions -loperaObjectInTheSky \
-	-loperaSpectrograph -loperaTelescope \
+AM_LDFLAGS = -loperaCommonModuleElements -loperaIOFormats \
+	-loperaInstrumentEnvironmentSetup -loperaObservingConditions \
+	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
 	-loperaSpectralOrderVector -loperaSpectralOrder \
 	-loperaSpectralElements -loperaSpectralLines \
 	-loperaSpectralFeature -loperaExtractionAperture \
@@ -532,49 +462,39 @@ AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 	-loperaStokesVector -loperaImageVector -loperaGeometricShapes \
 	-loperaMatrix -loperaSpectralEnergyDistribution \
 	-loperaSpectrumSimulation -lPixelSet -loperaStats -loperaLib \
-	-lArgumentHandler -loperaArgumentHandler \
-	-loperaCommonModuleElements -lfftw3 -lgzstream -lcfitsio -lz \
-	-lsofa_c -lpthread -lm $(am__append_1)
+	-loperaArgumentHandler -lArgumentHandler -lfftw3 -lgzstream \
+	-lcfitsio -lz -lsofa_c -lpthread -lm $(am__append_1)
 operaCreateFlatResponse_SOURCES = operaCreateFlatResponse.cpp
 operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp
 operaStitchOrders_SOURCES = operaStitchOrders.cpp
 operaCreateFlatFieldFluxCalibration_SOURCES = operaCreateFlatFieldFluxCalibration.cpp
-operaNormalizeAcrossOrders_SOURCES = operaNormalizeAcrossOrders.cpp operaNormalizeAcrossOrders.h
-operaTelescopeSetup_SOURCES = operaTelescopeSetup.cpp operaTelescopeSetup.h
-operaSpectrographSetup_SOURCES = operaSpectrographSetup.cpp operaSpectrographSetup.h
-operaObservingConditionsSetup_SOURCES = operaObservingConditionsSetup.cpp operaObservingConditionsSetup.h
-operaObjectInTheSkySetup_SOURCES = operaObjectInTheSkySetup.cpp operaObjectInTheSkySetup.h
 operaMasterFluxCalibration_SOURCES = operaMasterFluxCalibration.cpp
-operaCalculateSpectralResolution_SOURCES = operaCalculateSpectralResolution.cpp operaCalculateSpectralResolution.h
-operaPolarimetryCorrection_SOURCES = operaPolarimetryCorrection.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
-operaEchelleDispersionCalibration_SOURCES = operaEchelleDispersionCalibration.cpp operaEchelleDispersionCalibration.h
+operaCalculateSpectralResolution_SOURCES = operaCalculateSpectralResolution.cpp
+operaPolarimetryCorrection_SOURCES = operaPolarimetryCorrection.cpp operaExtendedSpectrumCreation.cpp
 operaOrderSpacingCalibration_SOURCES = operaOrderSpacingCalibration.cpp
 operaCreateFluxCalibration_SOURCES = operaCreateFluxCalibration.cpp
-operaFluxCalibration_SOURCES = operaFluxCalibration.cpp operaFluxCalibration.h
-operaExtractSpectralLines_SOURCES = operaExtractSpectralLines.cpp operaExtractSpectralLines.h
-operaStarPlusSky_SOURCES = operaStarPlusSky.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
-operaPolarIntensity_SOURCES = operaPolarIntensity.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
-operaStarOnly_SOURCES = operaStarOnly.cpp operaExtendedSpectrumCreation.cpp operaExtendedSpectrumCreation.h
+operaStarPlusSky_SOURCES = operaStarPlusSky.cpp operaExtendedSpectrumCreation.cpp
+operaPolarIntensity_SOURCES = operaPolarIntensity.cpp operaExtendedSpectrumCreation.cpp
+operaStarOnly_SOURCES = operaStarOnly.cpp operaExtendedSpectrumCreation.cpp
 operaExtraction_SOURCES = operaExtraction.cpp
-operaNormalize_SOURCES = operaNormalize.cpp operaNormalize.h
 operaCreateProduct_SOURCES = operaCreateProduct.cpp
 operaGeometryCalibration_SOURCES = operaGeometryCalibration.cpp
 operaSNR_SOURCES = operaSNR.cpp
 operaBias_SOURCES = operaBias.cpp
-operaMasterFlat_SOURCES = operaMasterFlat.cpp operaMasterCalibration.cpp operaMasterCalibration.h
+operaMasterFlat_SOURCES = operaMasterFlat.cpp operaMasterCalibration.cpp
 operaMasterComparison_SOURCES = operaMasterComparison.cpp
-operaMasterBias_SOURCES = operaMasterBias.cpp operaMasterCalibration.cpp operaMasterCalibration.h
-operaMasterFabPerot_SOURCES = operaMasterFabPerot.cpp operaMasterCalibration.cpp operaMasterCalibration.h
+operaMasterBias_SOURCES = operaMasterBias.cpp operaMasterCalibration.cpp
+operaMasterFabPerot_SOURCES = operaMasterFabPerot.cpp operaMasterCalibration.cpp
 operaPolar_SOURCES = operaPolar.cpp
 operaGain_SOURCES = operaGain.cpp
-operaReductionSet_SOURCES = operaReductionSet.cpp operaReductionSet.h
-operaWavelengthCalibration_SOURCES = operaWavelengthCalibration.cpp operaWavelengthCalibration.h
+operaReductionSet_SOURCES = operaReductionSet.cpp
+operaWavelengthCalibration_SOURCES = operaWavelengthCalibration.cpp
 operaInstrumentProfileCalibration_SOURCES = operaInstrumentProfileCalibration.cpp
 operaExtractionApertureCalibration_SOURCES = operaExtractionApertureCalibration.cpp
-operaPixelSensitivityMap_SOURCES = operaPixelSensitivityMap.cpp operaPixelSensitivityMap.h
-operaTelluricWavelengthCorrection_SOURCES = operaTelluricWavelengthCorrection.cpp operaTelluricWavelengthCorrection.h
-operaBarycentricWavelengthCorrection_SOURCES = operaBarycentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.h
-operaHeliocentricWavelengthCorrection_SOURCES = operaHeliocentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.h
+operaPixelSensitivityMap_SOURCES = operaPixelSensitivityMap.cpp
+operaTelluricWavelengthCorrection_SOURCES = operaTelluricWavelengthCorrection.cpp
+operaBarycentricWavelengthCorrection_SOURCES = operaBarycentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp
+operaHeliocentricWavelengthCorrection_SOURCES = operaHeliocentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp
 all: all-am
 
 .SUFFIXES:
@@ -676,21 +596,12 @@ operaCreateFluxCalibration$(EXEEXT): $(operaCreateFluxCalibration_OBJECTS) $(ope
 operaCreateProduct$(EXEEXT): $(operaCreateProduct_OBJECTS) $(operaCreateProduct_DEPENDENCIES) $(EXTRA_operaCreateProduct_DEPENDENCIES) 
 	@rm -f operaCreateProduct$(EXEEXT)
 	$(CXXLINK) $(operaCreateProduct_OBJECTS) $(operaCreateProduct_LDADD) $(LIBS)
-operaEchelleDispersionCalibration$(EXEEXT): $(operaEchelleDispersionCalibration_OBJECTS) $(operaEchelleDispersionCalibration_DEPENDENCIES) $(EXTRA_operaEchelleDispersionCalibration_DEPENDENCIES) 
-	@rm -f operaEchelleDispersionCalibration$(EXEEXT)
-	$(CXXLINK) $(operaEchelleDispersionCalibration_OBJECTS) $(operaEchelleDispersionCalibration_LDADD) $(LIBS)
-operaExtractSpectralLines$(EXEEXT): $(operaExtractSpectralLines_OBJECTS) $(operaExtractSpectralLines_DEPENDENCIES) $(EXTRA_operaExtractSpectralLines_DEPENDENCIES) 
-	@rm -f operaExtractSpectralLines$(EXEEXT)
-	$(CXXLINK) $(operaExtractSpectralLines_OBJECTS) $(operaExtractSpectralLines_LDADD) $(LIBS)
 operaExtraction$(EXEEXT): $(operaExtraction_OBJECTS) $(operaExtraction_DEPENDENCIES) $(EXTRA_operaExtraction_DEPENDENCIES) 
 	@rm -f operaExtraction$(EXEEXT)
 	$(CXXLINK) $(operaExtraction_OBJECTS) $(operaExtraction_LDADD) $(LIBS)
 operaExtractionApertureCalibration$(EXEEXT): $(operaExtractionApertureCalibration_OBJECTS) $(operaExtractionApertureCalibration_DEPENDENCIES) $(EXTRA_operaExtractionApertureCalibration_DEPENDENCIES) 
 	@rm -f operaExtractionApertureCalibration$(EXEEXT)
 	$(CXXLINK) $(operaExtractionApertureCalibration_OBJECTS) $(operaExtractionApertureCalibration_LDADD) $(LIBS)
-operaFluxCalibration$(EXEEXT): $(operaFluxCalibration_OBJECTS) $(operaFluxCalibration_DEPENDENCIES) $(EXTRA_operaFluxCalibration_DEPENDENCIES) 
-	@rm -f operaFluxCalibration$(EXEEXT)
-	$(CXXLINK) $(operaFluxCalibration_OBJECTS) $(operaFluxCalibration_LDADD) $(LIBS)
 operaGain$(EXEEXT): $(operaGain_OBJECTS) $(operaGain_DEPENDENCIES) $(EXTRA_operaGain_DEPENDENCIES) 
 	@rm -f operaGain$(EXEEXT)
 	$(CXXLINK) $(operaGain_OBJECTS) $(operaGain_LDADD) $(LIBS)
@@ -721,18 +632,6 @@ operaMasterFlat$(EXEEXT): $(operaMasterFlat_OBJECTS) $(operaMasterFlat_DEPENDENC
 operaMasterFluxCalibration$(EXEEXT): $(operaMasterFluxCalibration_OBJECTS) $(operaMasterFluxCalibration_DEPENDENCIES) $(EXTRA_operaMasterFluxCalibration_DEPENDENCIES) 
 	@rm -f operaMasterFluxCalibration$(EXEEXT)
 	$(CXXLINK) $(operaMasterFluxCalibration_OBJECTS) $(operaMasterFluxCalibration_LDADD) $(LIBS)
-operaNormalize$(EXEEXT): $(operaNormalize_OBJECTS) $(operaNormalize_DEPENDENCIES) $(EXTRA_operaNormalize_DEPENDENCIES) 
-	@rm -f operaNormalize$(EXEEXT)
-	$(CXXLINK) $(operaNormalize_OBJECTS) $(operaNormalize_LDADD) $(LIBS)
-operaNormalizeAcrossOrders$(EXEEXT): $(operaNormalizeAcrossOrders_OBJECTS) $(operaNormalizeAcrossOrders_DEPENDENCIES) $(EXTRA_operaNormalizeAcrossOrders_DEPENDENCIES) 
-	@rm -f operaNormalizeAcrossOrders$(EXEEXT)
-	$(CXXLINK) $(operaNormalizeAcrossOrders_OBJECTS) $(operaNormalizeAcrossOrders_LDADD) $(LIBS)
-operaObjectInTheSkySetup$(EXEEXT): $(operaObjectInTheSkySetup_OBJECTS) $(operaObjectInTheSkySetup_DEPENDENCIES) $(EXTRA_operaObjectInTheSkySetup_DEPENDENCIES) 
-	@rm -f operaObjectInTheSkySetup$(EXEEXT)
-	$(CXXLINK) $(operaObjectInTheSkySetup_OBJECTS) $(operaObjectInTheSkySetup_LDADD) $(LIBS)
-operaObservingConditionsSetup$(EXEEXT): $(operaObservingConditionsSetup_OBJECTS) $(operaObservingConditionsSetup_DEPENDENCIES) $(EXTRA_operaObservingConditionsSetup_DEPENDENCIES) 
-	@rm -f operaObservingConditionsSetup$(EXEEXT)
-	$(CXXLINK) $(operaObservingConditionsSetup_OBJECTS) $(operaObservingConditionsSetup_LDADD) $(LIBS)
 operaOrderSpacingCalibration$(EXEEXT): $(operaOrderSpacingCalibration_OBJECTS) $(operaOrderSpacingCalibration_DEPENDENCIES) $(EXTRA_operaOrderSpacingCalibration_DEPENDENCIES) 
 	@rm -f operaOrderSpacingCalibration$(EXEEXT)
 	$(CXXLINK) $(operaOrderSpacingCalibration_OBJECTS) $(operaOrderSpacingCalibration_LDADD) $(LIBS)
@@ -754,9 +653,6 @@ operaReductionSet$(EXEEXT): $(operaReductionSet_OBJECTS) $(operaReductionSet_DEP
 operaSNR$(EXEEXT): $(operaSNR_OBJECTS) $(operaSNR_DEPENDENCIES) $(EXTRA_operaSNR_DEPENDENCIES) 
 	@rm -f operaSNR$(EXEEXT)
 	$(CXXLINK) $(operaSNR_OBJECTS) $(operaSNR_LDADD) $(LIBS)
-operaSpectrographSetup$(EXEEXT): $(operaSpectrographSetup_OBJECTS) $(operaSpectrographSetup_DEPENDENCIES) $(EXTRA_operaSpectrographSetup_DEPENDENCIES) 
-	@rm -f operaSpectrographSetup$(EXEEXT)
-	$(CXXLINK) $(operaSpectrographSetup_OBJECTS) $(operaSpectrographSetup_LDADD) $(LIBS)
 operaStarOnly$(EXEEXT): $(operaStarOnly_OBJECTS) $(operaStarOnly_DEPENDENCIES) $(EXTRA_operaStarOnly_DEPENDENCIES) 
 	@rm -f operaStarOnly$(EXEEXT)
 	$(CXXLINK) $(operaStarOnly_OBJECTS) $(operaStarOnly_LDADD) $(LIBS)
@@ -766,9 +662,6 @@ operaStarPlusSky$(EXEEXT): $(operaStarPlusSky_OBJECTS) $(operaStarPlusSky_DEPEND
 operaStitchOrders$(EXEEXT): $(operaStitchOrders_OBJECTS) $(operaStitchOrders_DEPENDENCIES) $(EXTRA_operaStitchOrders_DEPENDENCIES) 
 	@rm -f operaStitchOrders$(EXEEXT)
 	$(CXXLINK) $(operaStitchOrders_OBJECTS) $(operaStitchOrders_LDADD) $(LIBS)
-operaTelescopeSetup$(EXEEXT): $(operaTelescopeSetup_OBJECTS) $(operaTelescopeSetup_DEPENDENCIES) $(EXTRA_operaTelescopeSetup_DEPENDENCIES) 
-	@rm -f operaTelescopeSetup$(EXEEXT)
-	$(CXXLINK) $(operaTelescopeSetup_OBJECTS) $(operaTelescopeSetup_LDADD) $(LIBS)
 operaTelluricWavelengthCorrection$(EXEEXT): $(operaTelluricWavelengthCorrection_OBJECTS) $(operaTelluricWavelengthCorrection_DEPENDENCIES) $(EXTRA_operaTelluricWavelengthCorrection_DEPENDENCIES) 
 	@rm -f operaTelluricWavelengthCorrection$(EXEEXT)
 	$(CXXLINK) $(operaTelluricWavelengthCorrection_OBJECTS) $(operaTelluricWavelengthCorrection_LDADD) $(LIBS)
@@ -790,12 +683,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCreateFlatResponse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCreateFluxCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCreateProduct.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaEchelleDispersionCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtendedSpectrumCreation.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtractSpectralLines.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtraction.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaExtractionApertureCalibration.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFluxCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGain.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGenerateLEFormats.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGeometryCalibration.Po@am__quote@
@@ -807,10 +697,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMasterFabPerot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMasterFlat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMasterFluxCalibration.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaNormalize.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaNormalizeAcrossOrders.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaObjectInTheSkySetup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaObservingConditionsSetup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaOrderSpacingCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaPixelSensitivityMap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaPolar.Po@am__quote@
@@ -818,11 +704,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaPolarimetryCorrection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaReductionSet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaSNR.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaSpectrographSetup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStarOnly.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStarPlusSky.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStitchOrders.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaTelescopeSetup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaTelluricWavelengthCorrection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaWavelengthCalibration.Po@am__quote@
 

@@ -124,6 +124,14 @@ public:
 	 */
     
     /*!
+     * \brief Resizes the operaStokesVector.
+     * \details Resizes each of the 4 operaFluxVectors.
+	 * \param Length The new length to resize to
+     * \return void
+     */
+    void resize(unsigned Length);
+    
+    /*!
      * \brief Sets the length of the vectors.
      * \details A function that sets the value of the variable holding the number of elements in the operaFluxVector.
      * \param Length An unsigned number of elements
@@ -136,7 +144,7 @@ public:
      * \details A function that returns the value of the variable holding the number of elements in the operaFluxVector.
      * \return An unsigned value
      */
-	unsigned getLength(void);
+	unsigned getLength(void) const;
     
     /*!
      * \brief Sets Stokes parameters.
@@ -208,7 +216,7 @@ public:
      * \param index An unsigned index to the element
      * \return A double value
      */
-    double getStokesParameterFlux(stokes_parameter_t StokesIndex, unsigned index);
+    double getStokesParameterFlux(stokes_parameter_t StokesIndex, unsigned index) const;
     
     /*!
      * \brief Gets a Stokes parameter element variance.
@@ -217,7 +225,7 @@ public:
      * \param index An unsigned index to the element
      * \return A double value
      */
-    double getStokesParameterVariance(stokes_parameter_t StokesIndex, unsigned index);
+    double getStokesParameterVariance(stokes_parameter_t StokesIndex, unsigned index) const;
 	
     /*
 	 * Operators

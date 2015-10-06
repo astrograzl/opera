@@ -201,7 +201,7 @@ void operaSpectralEnergyDistribution::setnDataPoints(unsigned NDataPoints) {
     nDataPoints = NDataPoints;
 }
 
-unsigned operaSpectralEnergyDistribution::getnDataPoints(void) {
+unsigned operaSpectralEnergyDistribution::getnDataPoints(void) const {
     return nDataPoints;
 }
 
@@ -209,7 +209,7 @@ void operaSpectralEnergyDistribution::setwavelengthForNormalization(double Wavel
     wavelengthForNormalization = WavelengthForNormalization;
 }
 
-double operaSpectralEnergyDistribution::getwavelengthForNormalization(void) {
+double operaSpectralEnergyDistribution::getwavelengthForNormalization(void) const {
     return wavelengthForNormalization;
 }
 
@@ -273,28 +273,28 @@ void operaSpectralEnergyDistribution::setspectralEnergyData(double SpectralEnerg
     spectralEnergyData->setflux(SpectralEnergy,index);
 }
 
-double operaSpectralEnergyDistribution::getdistanceData(unsigned index) {
+double operaSpectralEnergyDistribution::getdistanceData(unsigned index) const {
     if (index > nDataPoints) {
 		throw operaException("operaSpectralEnergyDistribution: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}       
     return distanceData[index];
 }
 
-double operaSpectralEnergyDistribution::getwavelengthData(unsigned index) {
+double operaSpectralEnergyDistribution::getwavelengthData(unsigned index) const {
     if (index > nDataPoints) {
 		throw operaException("operaSpectralEnergyDistribution: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}    
     return wavelengthData[index];    
 }
 
-double operaSpectralEnergyDistribution::getfluxData(unsigned index) {
+double operaSpectralEnergyDistribution::getfluxData(unsigned index) const {
     if (index > fluxData->getlength()) {
 		throw operaException("operaSpectralEnergyDistribution: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}    
     return fluxData->getflux(index);    
 }
 
-double operaSpectralEnergyDistribution::getspectralEnergyData(unsigned index) {
+double operaSpectralEnergyDistribution::getspectralEnergyData(unsigned index) const {
     if (index > spectralEnergyData->getlength()) {
 		throw operaException("operaSpectralEnergyDistribution: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}    
@@ -385,7 +385,7 @@ void operaSpectralEnergyDistribution::setnumberOfMaskedRegions(unsigned nMaskedR
     numberOfMaskedRegions = nMaskedRegions;
 }
 
-unsigned operaSpectralEnergyDistribution::getnumberOfMaskedRegions(void) {
+unsigned operaSpectralEnergyDistribution::getnumberOfMaskedRegions(void) const {
     return numberOfMaskedRegions;
 }
 
@@ -398,14 +398,14 @@ void operaSpectralEnergyDistribution::setMaskRegion(unsigned index, double Wavel
 }
 
 
-double operaSpectralEnergyDistribution::getMaskRegionWavelength1(unsigned index) {
+double operaSpectralEnergyDistribution::getMaskRegionWavelength1(unsigned index) const {
     if (index > MAXNUMBEROFMASKEDREGIONS) {
 		throw operaException("operaSpectralEnergyDistribution: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
     return MaskWavelength1[index];
 }
 
-double operaSpectralEnergyDistribution::getMaskRegionWavelength2(unsigned index) {
+double operaSpectralEnergyDistribution::getMaskRegionWavelength2(unsigned index) const {
     if (index > MAXNUMBEROFMASKEDREGIONS) {
 		throw operaException("operaSpectralEnergyDistribution: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}

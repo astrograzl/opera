@@ -35,7 +35,8 @@
 // $Locker$
 // $Log$
 
-#include "libraries/operaSpectralOrderVector.h"
+#include <iomanip>
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaSpectralFeature.h"
 #include "libraries/operaSpectralTools.h"
 #include "libraries/operaCCD.h"							// for MAXORDERS
@@ -195,7 +196,7 @@ int main(int argc, char *argv[])
     args.AddOptionalArgument("uncalibrated_spectrum", uncalibrated_spectrum, "", "File containing the uncalibrated raw spectrum");
     args.AddOptionalArgument("uncalibrated_linewidth", uncalibrated_linewidth, 1.5, "Line width in pixels, necessary only if using input spectrum");
     args.AddRequiredArgument("inputGeomFile", geometryfilename, "Input geometry calibration file");
-    args.AddOptionalArgument("inputLineSetFilename", inputLineSetFilename, "", "input vector of wl and dists for lines identified manually");
+    args.AddOptionalArgument("inputLineSetFilename", inputLineSetFilename, "", "Input vector of wl and dists for lines identified manually");
     args.AddOptionalArgument("inputWaveFile", wlcal_initialguess, "", "Input wavelength calibration file (initial guess)");
     
     args.AddOptionalArgument("parseSolution", parseSolution, false, "Parse parameters to search solution - use only when initial guess is poor");
@@ -223,7 +224,6 @@ int main(int argc, char *argv[])
 	args.AddOptionalArgument("compdatafilename", compdatafilename, "", "Output comparison data file name");
 	args.AddOptionalArgument("ordersscriptfilename", ordersscriptfilename, "", "Output orders gnuplot script file name");
 	args.AddOptionalArgument("specscriptfilename", specscriptfilename, "", "Output spectrum gnuplot script file name");
-	
 	args.AddOptionalArgument("generate3DPlot", generate3DPlot, false, "Choose a 3D plot of the spectra instead of 2D");
 	args.AddOptionalArgument("subtractCentralWavelength", subtractCentralWavelength, true, "Choose to subtract order central wavelength for plot");
 	args.AddSwitch("interactive", interactive, "For interactive plots");
@@ -243,48 +243,49 @@ int main(int argc, char *argv[])
 		if (geometryfilename.empty()) {
 			throw operaException("operaWavelengthCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}
-        // we need either a wlcal_initialguess, the initial guess at a polynomial, or an input set of lines in file inputLineSetFilename ...
+        // we need either an initial guess at a polynomial in wlcal_initialguess, or an input set of lines in file inputLineSetFilename ...
         if (wlcal_initialguess.empty() && inputLineSetFilename.empty()) {
             throw operaException("operaWavelengthCalibration: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
         }
         
 		if (args.verbose) {
-			cerr << "operaWavelengthCalibration: atlas_lines = " << atlas_lines << endl;
-			cerr << "operaWavelengthCalibration: atlas_spectrum = " << atlas_spectrum << endl;            
-			cerr << "operaWavelengthCalibration: uncalibrated_lines = " << uncalibrated_lines << endl;
-            cerr << "operaWavelengthCalibration: uncalibrated_spectrum = " << uncalibrated_spectrum << endl;
-            cerr << "operaWavelengthCalibration: inputLineSetFilename = " << inputLineSetFilename << endl;
-			cerr << "operaWavelengthCalibration: geometryfilename = " << geometryfilename << endl;            
-			cerr << "operaWavelengthCalibration: wlcal_initialguess = " << wlcal_initialguess << endl; 
-			cerr << "operaWavelengthCalibration: outputWave = " << outputWave << endl;            
-			cerr << "operaWavelengthCalibration: parseSolution = " << parseSolution << endl;
-			cerr << "operaWavelengthCalibration: normalizeUncalibratedSpectrum = " << normalizeUncalibratedSpectrum << endl;
-			cerr << "operaWavelengthCalibration: normalizationBinSize = " << normalizationBinSize << endl;
-			cerr << "operaWavelengthCalibration: LocalMaxFilterWidth = " << LocalMaxFilterWidth << endl;
-			cerr << "operaWavelengthCalibration: ParRangeSizeInPerCent = " << ParRangeSizeInPerCent << endl;
-			cerr << "operaWavelengthCalibration: NpointsPerPar = " << NpointsPerPar << endl;
-			cerr << "operaWavelengthCalibration: maxNIter = " << maxNIter << endl;
-			cerr << "operaWavelengthCalibration: minNumberOfLines = " << minNumberOfLines << endl;
-			cerr << "operaWavelengthCalibration: maxorderofpolynomial = " << maxorderofpolynomial << endl;
-			cerr << "operaWavelengthCalibration: dampingFactor = " << dampingFactor << endl;
-			cerr << "operaWavelengthCalibration: initialAcceptableMismatch = " << initialAcceptableMismatch << endl;
-			cerr << "operaWavelengthCalibration: nsigclip = " << nsigclip << endl;
-			cerr << "operaWavelengthCalibration: DetectionThreshold = " << DetectionThreshold << endl;
-			cerr << "operaWavelengthCalibration: MinPeakDepth = " << MinPeakDepth << endl;
+			cout << "operaWavelengthCalibration: atlas_lines = " << atlas_lines << endl;
+			cout << "operaWavelengthCalibration: atlas_spectrum = " << atlas_spectrum << endl;            
+			cout << "operaWavelengthCalibration: uncalibrated_lines = " << uncalibrated_lines << endl;
+            cout << "operaWavelengthCalibration: uncalibrated_spectrum = " << uncalibrated_spectrum << endl;
+            cout << "operaWavelengthCalibration: uncalibrated_linewidth = " << uncalibrated_linewidth << endl;
+            cout << "operaWavelengthCalibration: inputLineSetFilename = " << inputLineSetFilename << endl;
+			cout << "operaWavelengthCalibration: geometryfilename = " << geometryfilename << endl;            
+			cout << "operaWavelengthCalibration: wlcal_initialguess = " << wlcal_initialguess << endl; 
+			cout << "operaWavelengthCalibration: outputWave = " << outputWave << endl;            
+			cout << "operaWavelengthCalibration: parseSolution = " << parseSolution << endl;
+			cout << "operaWavelengthCalibration: normalizeUncalibratedSpectrum = " << normalizeUncalibratedSpectrum << endl;
+			cout << "operaWavelengthCalibration: normalizationBinSize = " << normalizationBinSize << endl;
+			cout << "operaWavelengthCalibration: LocalMaxFilterWidth = " << LocalMaxFilterWidth << endl;
+			cout << "operaWavelengthCalibration: ParRangeSizeInPerCent = " << ParRangeSizeInPerCent << endl;
+			cout << "operaWavelengthCalibration: NpointsPerPar = " << NpointsPerPar << endl;
+			cout << "operaWavelengthCalibration: maxNIter = " << maxNIter << endl;
+			cout << "operaWavelengthCalibration: minNumberOfLines = " << minNumberOfLines << endl;
+			cout << "operaWavelengthCalibration: maxorderofpolynomial = " << maxorderofpolynomial << endl;
+			cout << "operaWavelengthCalibration: dampingFactor = " << dampingFactor << endl;
+			cout << "operaWavelengthCalibration: initialAcceptableMismatch = " << initialAcceptableMismatch << endl;
+			cout << "operaWavelengthCalibration: nsigclip = " << nsigclip << endl;
+			cout << "operaWavelengthCalibration: DetectionThreshold = " << DetectionThreshold << endl;
+			cout << "operaWavelengthCalibration: MinPeakDepth = " << MinPeakDepth << endl;
             if(ordernumber != NOTPROVIDED) {
-                cerr << "operaWavelengthCalibration: ordernumber = " << ordernumber << endl;            
+                cout << "operaWavelengthCalibration: ordernumber = " << ordernumber << endl;            
             }
             if(args.plot) {                
-                cerr << "operaWavelengthCalibration: ordersplotfilename = " << ordersplotfilename << endl;
-                cerr << "operaWavelengthCalibration: specplotfilename = " << specplotfilename << endl;
-                cerr << "operaWavelengthCalibration: ordersscriptfilename = " << ordersscriptfilename << endl;
-                cerr << "operaWavelengthCalibration: specscriptfilename = " << specscriptfilename << endl;
-                cerr << "operaWavelengthCalibration: ordersdatafilename = " << ordersdatafilename << endl;
-                cerr << "operaWavelengthCalibration: atlasdatafilename = " << atlasdatafilename << endl;
-                cerr << "operaWavelengthCalibration: compdatafilename = " << compdatafilename << endl;
-                cerr << "operaWavelengthCalibration: linesdatafilename = " << linesdatafilename << endl;
-                cerr << "operaWavelengthCalibration: generate3DPlot = " << generate3DPlot << endl;
-                cerr << "operaWavelengthCalibration: subtractCentralWavelength = " << subtractCentralWavelength << endl;
+                cout << "operaWavelengthCalibration: ordersplotfilename = " << ordersplotfilename << endl;
+                cout << "operaWavelengthCalibration: specplotfilename = " << specplotfilename << endl;
+                cout << "operaWavelengthCalibration: ordersscriptfilename = " << ordersscriptfilename << endl;
+                cout << "operaWavelengthCalibration: specscriptfilename = " << specscriptfilename << endl;
+                cout << "operaWavelengthCalibration: ordersdatafilename = " << ordersdatafilename << endl;
+                cout << "operaWavelengthCalibration: atlasdatafilename = " << atlasdatafilename << endl;
+                cout << "operaWavelengthCalibration: compdatafilename = " << compdatafilename << endl;
+                cout << "operaWavelengthCalibration: linesdatafilename = " << linesdatafilename << endl;
+                cout << "operaWavelengthCalibration: generate3DPlot = " << generate3DPlot << endl;
+                cout << "operaWavelengthCalibration: subtractCentralWavelength = " << subtractCentralWavelength << endl;
             }            
 		}
 		
@@ -298,17 +299,18 @@ int main(int argc, char *argv[])
         if (!linesdatafilename.empty()) flinesdata.open(linesdatafilename.c_str());
         if (!ordersdatafilename.empty()) fordersdata.open(ordersdatafilename.c_str());
         
-		operaSpectralOrderVector spectralOrders(geometryfilename);	// get the geometry
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, geometryfilename);	// get the geometry
 		
         /*
          * Read wavelength calibration initial guess
          */
-        if (!wlcal_initialguess.empty()) spectralOrders.ReadSpectralOrders(wlcal_initialguess); // read wavelength calibration reference first guess
-		if (!uncalibrated_lines.empty()) spectralOrders.ReadSpectralOrders(uncalibrated_lines); // merge in the uncalibrated lines information
-        if (!uncalibrated_spectrum.empty()) spectralOrders.ReadSpectralOrders(uncalibrated_spectrum); // merge in the uncalibrated spectrum information
+        if (!wlcal_initialguess.empty()) operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wlcal_initialguess); // read wavelength calibration reference first guess
+		if (!uncalibrated_lines.empty()) operaIOFormats::ReadIntoSpectralOrders(spectralOrders, uncalibrated_lines); // merge in the uncalibrated lines information
+        if (!uncalibrated_spectrum.empty()) operaIOFormats::ReadIntoSpectralOrders(spectralOrders, uncalibrated_spectrum); // merge in the uncalibrated spectrum information
 
         UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
-		if (args.verbose) cerr << "operaWavelengthCalibration: minorder = " << minorder << " maxorder = " << maxorder << endl;
+		if (args.verbose) cout << "operaWavelengthCalibration: minorder = " << minorder << " maxorder = " << maxorder << endl;
     
         /*
          * Read input set of lines and find wavelength initial solution
@@ -326,7 +328,7 @@ int main(int argc, char *argv[])
 		 *		lambda vs. intensity, intensityVariance
 		 */
 		if (!atlas_spectrum.empty()) {      
-			if (args.verbose) cerr << "operaWavelengthCalibration: reading atlas spectrum " << atlas_spectrum << endl;            
+			if (args.verbose) cout << "operaWavelengthCalibration: reading atlas spectrum " << atlas_spectrum << endl;            
             nPointsInAtlasSpectrum = readAtlasSpectrum(atlas_spectrum, atlasWavelength, atlasIntensity, atlasVariance);
         }
 		/*
@@ -334,7 +336,7 @@ int main(int argc, char *argv[])
 		 *		lambda vs. intensity
 		 */        
 		if (!atlas_lines.empty()) {         
-			if (args.verbose) cerr << "operaWavelengthCalibration: reading atlas lines " << atlas_lines << endl;            
+			if (args.verbose) cout << "operaWavelengthCalibration: reading atlas lines " << atlas_lines << endl;            
             thatlaslines = readThoriumArgonAtlas(atlas_lines, thAtlasWavelength, thAtlasIntensity);        
         }
         
@@ -422,7 +424,7 @@ int main(int argc, char *argv[])
                  */
                 if (!uncalibrated_lines.empty()) {             
 					if (args.verbose) {
-						cerr << "operaWavelengthCalibration: reading uncalibrated lines " << uncalibrated_lines << endl;            
+						cout << "operaWavelengthCalibration: reading uncalibrated lines " << uncalibrated_lines << endl;            
 					}        
                     rawlinesinorder = getRawLines(spectralOrder, rawlinecenter, rawlinecenterError, rawlineflux, rawlinesigma, &rawlinewidth, &rawlinewidth_err);
                 }
@@ -433,7 +435,7 @@ int main(int argc, char *argv[])
                  */            
                 if (!uncalibrated_spectrum.empty() && spectralOrder->gethasSpectralElements()) {
 					if (args.verbose) {
-						cerr << "operaWavelengthCalibration: reading uncalibrated spectrum " << uncalibrated_spectrum << endl;            
+						cout << "operaWavelengthCalibration: reading uncalibrated spectrum " << uncalibrated_spectrum << endl;            
 					}
                     rawlinesinorder = getRawLinesFromUncalSpectrum(spectralOrder, rawlinecenter, rawlinecenterError, rawlineflux, rawlinesigma, &rawlinewidth, &rawlinewidth_err, LocalMaxFilterWidth, MinPeakDepth, DetectionThreshold, nsigclip);
                 }
@@ -459,7 +461,7 @@ int main(int argc, char *argv[])
                  */
                 if (!atlas_lines.empty()) {   
 					if (args.verbose) {
-						cerr << "operaWavelengthCalibration: reading atlas lines " << atlas_lines << endl;            
+						cout << "operaWavelengthCalibration: reading atlas lines " << atlas_lines << endl;            
 					}        
                     double *thwl = NULL, *thintensity = NULL;
                     atlaslinesinorder = getThoriumArgonAtlasRange(wl0, wlf, &thwl, &thintensity);  
@@ -475,7 +477,7 @@ int main(int argc, char *argv[])
                  */    
                 if (!atlas_spectrum.empty()) {    
 					if (args.verbose) {
-						cerr << "operaWavelengthCalibration: reading atlas spectrum " << atlas_spectrum << endl;            
+						cout << "operaWavelengthCalibration: reading atlas spectrum " << atlas_spectrum << endl;            
 					}
                     atlaslinesinorder = getAtlasLinesFromSpectrum(wavelength, rawlinewidth, uncalibrated_linewidth, order, atlasLineswl, atlasLineswlError, atlasLinesflux, fatlasdata, LocalMaxFilterWidth, MinPeakDepth, DetectionThreshold, generate3DPlot);
                 }
@@ -687,17 +689,18 @@ int main(int argc, char *argv[])
 					}
 				}
                 
-                wavelength->createComparisonDataVectors(rawlinesinorder,rawlinecenter,rawlinecenterError,rawlineflux);
+                //CU Jul 16, 2015 - Commented out since this seems to throw away all the calculations that were already done...
+                /*wavelength->createComparisonDataVectors(rawlinesinorder,rawlinecenter,rawlinecenterError,rawlineflux);
                 wavelength->createAtlasDataVectors(atlaslinesinorder,atlasLineswl, atlasLineswlError,atlasLinesflux);
                 wavelength->calculateSpectralResolution(ResolutionElementInPixels);
-                wavelength->matchAtlaswithComparisonLines(ResolutionElementInPixels.value/2);
+                wavelength->matchAtlaswithComparisonLines(ResolutionElementInPixels.value/2);*/
                 bestnpar = maxorderofpolynomial;
                 
                 if (wavelength->getnDataPoints() > 1) {
 					if(wavelength->getnDataPoints() <= bestnpar) {
 						bestnpar = wavelength->getnDataPoints()-1;
 					}
-                    wavelength->filterDataPointsBySigmaClip((double)nsigclip/2);
+                    //wavelength->filterDataPointsBySigmaClip((double)nsigclip/2); //CU Jul 16, 2015 - We no longer need to filter points out at this stage
 					wavelength->CalculateWavelengthSolution(bestnpar,false);
                     
                     double ComparisonMatchPercentage =  wavelength->getPerCentageOfComparisonMatch();
@@ -788,7 +791,7 @@ int main(int argc, char *argv[])
                                 }
                             }
                             
-                            fcompdata << order << " " << dist << " " << wl << " " << flux/maxflux << " " << matchlinesflux << " " << slitview  << " " << wl_central << endl;
+                            fcompdata << order << setprecision(8) << " " << dist << " " << wl << " " << flux/maxflux << " " << matchlinesflux << " " << slitview  << " " << wl_central << endl;
                         }
                         fcompdata << endl;
                     }
@@ -796,19 +799,24 @@ int main(int argc, char *argv[])
                 } else if (fcompdata.is_open() && !generate3DPlot){
                     /*** NOTE ***/
                     // Below it produces data for a 2D plot of spectrum.
-                    
+                    fcompdata << "order dist wl flux centralwl" << endl;
                     for (unsigned i=0; i<spectralElements->getnSpectralElements(); i++) {
                         double dist = spectralElements->getdistd(i);
                         double wl = wavelength->evaluateWavelength(dist);
                         double flux = spectralElements->getFlux(i);
-                        fcompdata << order << " " << dist << " " << wl << " " << flux/maxflux << " " << wl_central << endl;
+                        fcompdata << order << setprecision(8) << " " << fixed << dist << " " << fixed << wl << " " << scientific << flux/maxflux << " " << fixed << wl_central << endl;
                     }
                     fcompdata << endl;
                 }
                 
                 if(flinesdata.is_open()) {
+					flinesdata << "order dist wavelength comparisonflux resolution centralwl comparisonwl atlaswl atlasflux" << endl;
                     for(unsigned lines=0;lines<wavelength->getnDataPoints();lines++){
-                        flinesdata << order << " " << wavelength->getDistance(lines) << " " << wavelength->getWavelength(lines) << " " << ((wavelength->getcomparisonLinesflux(wavelength->getMatchComparisonIndex(lines))/maxflux)/2.0) << " " << wavelength->convertPixelToWavelength(ResolutionElementInPixels.value) << " " << wl_central << endl;
+                        flinesdata << order << " " << setprecision(8);
+                        flinesdata << fixed << wavelength->getDistance(lines) << " " << wavelength->getWavelength(lines) << " ";
+                        flinesdata << scientific << (wavelength->getcomparisonLinesflux(wavelength->getMatchComparisonIndex(lines))/maxflux)/2.0 << " ";
+                        flinesdata << fixed << wavelength->convertPixelToWavelength(ResolutionElementInPixels.value) << " " << wl_central << " " << wavelength->getcomparisonLineswl(wavelength->getMatchComparisonIndex(lines)) << " " << wavelength->getatlasLineswl(wavelength->getMatchAtlasIndex(lines)) << " ";
+                        flinesdata << scientific << (wavelength->getatlasLinesflux(wavelength->getMatchAtlasIndex(lines))/maxflux)/2.0 << endl;
                     }
                     flinesdata << endl;
                 }
@@ -867,7 +875,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        spectralOrders.WriteSpectralOrders(outputWave, Wave);  
+        operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputWave, Wave);
         
         //delete[] convolvedAtlas;
 	}
@@ -1538,7 +1546,7 @@ unsigned getAtlasLinesFromSpectrum(operaWavelength *wavelength, double rawlinewi
      */
     double atlasXcorr[MAXPOINTSINSIMULATEDSPECTRUM];
     if (args.verbose) {
-        cerr << "operaWavelengthCalibration: calculating cross correlation with Gaussian.." << endl;
+        cout << "operaWavelengthCalibration: calculating cross correlation with Gaussian.." << endl;
     }
     calculateXCorrWithGaussian(npatlasspecinorder,thwl,thintensity,atlasXcorr,wavelength->convertPixelToWavelength(rawlinewidth));
     
@@ -1548,7 +1556,7 @@ unsigned getAtlasLinesFromSpectrum(operaWavelength *wavelength, double rawlinewi
      */
     double convolvedAtlas[MAXPOINTSINSIMULATEDSPECTRUM];
     if (args.verbose) {
-        cerr << "operaWavelengthCalibration: Convolving specctrum with Gaussian.." << endl;
+        cout << "operaWavelengthCalibration: Convolving specctrum with Gaussian.." << endl;
     }
     convolveSpectrumWithGaussian(npatlasspecinorder,thwl,thintensity,convolvedAtlas,wavelength->convertPixelToWavelength(rawlinewidth));
     
@@ -1668,7 +1676,7 @@ unsigned readLineSet(string inputLineSetFilename, int order, double *wavelengthD
                         np++;
                     } else if ((tmpo != order && np)  || np >= MAXREFWAVELENGTHS) {
                         if(np >= MAXREFWAVELENGTHS) {
-                            cerr << "operaWavelengthCalibration: WARNING! np= " << np << " > MAXREFWAVELENGTHS="<<MAXREFWAVELENGTHS<< endl;
+                            cout << "operaWavelengthCalibration: WARNING! np= " << np << " > MAXREFWAVELENGTHS="<<MAXREFWAVELENGTHS<< endl;
                         }
                         break;
                     }

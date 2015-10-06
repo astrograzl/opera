@@ -77,7 +77,7 @@ extern "C" {
 	 */
 	// spline and 2D-spline interpolation and related functions
 	void operaFitSpline(unsigned nin, float *xin, float *yin, unsigned nout, float *xout, float *yout);
-	void operaFitSplineDouble(unsigned nin, double *xin, double *yin, unsigned nout, double *xout, double *yout);
+	void operaFitSplineDouble(const unsigned nin, const double *xin, const double *yin, const unsigned nout, const double *xout, double *yout);
 	void operaFit2DSpline(unsigned nxin, float *xin, unsigned nyin, float *yin, float *fxyin, unsigned nxout, float *xout, unsigned nyout, float *yout, float *fxyout);
 	int cubicspline(float *x, float *y, unsigned n, float yp1, float ypn, float *y2);
 	int cubicsplineDouble(double *x, double *y, unsigned n, double yp1, double ypn, double *y2);

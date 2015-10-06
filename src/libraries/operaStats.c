@@ -559,55 +559,34 @@ void operaArrayHeapSort(unsigned np, float *arr) { // based on heapsort
 //void spline_dsrt(int n, double x[], int index[])
 void operaArrayIndexSort(int n, float x[], int index[])
 {
-    int i, indexr, ir, j, l;
-    for (i=0; i < n; i++)
-    {
-        index[i]=i;
-    }
-    if (n < 2)
-    {
-        return;
-    }
-    l=n>>1;
-    ir=n-1;
-    for (;;)
-    {
-        if (l > 0)
-        {
-            indexr=index[--l];
+    for (unsigned i=0; i < n; i++) index[i]=i;
+    int sifting, parent, current, child;
+    parent=n/2;
+    for (int heapsize=n; heapsize > 1;) {
+		// Still "heapifying" the array - starting from last parent node, ending at root
+        if (parent > 0) {
+            sifting=index[--parent]; // Shift parent back by one then mark it as the node to sift down
         }
-        else
-        {
-            indexr=index[ir];
-            index[ir]=index[0];
-            if (--ir == 0)
-            {
-                index[0]=indexr;
-                break;
-            }
+        
+        // Sort the heap by swapping the root to the end of the remaining heap, then repair the heap
+        else {
+			heapsize--;
+            sifting=index[heapsize]; // Mark previous last node as value to be sifted down
+            index[heapsize]=index[0]; // Take root (largest remaining value) and move to previous end
         }
-        i=l;
-        j=(l<<1)+1;
-        while (j <= ir)
-        {
-            if (j < ir && x[index[j]] < x[index[j+1]])
-            {
-                j++;
-            }
-            if (x[indexr] < x[index[j]])
-            {
-                index[i]=index[j];
-                i=j;
-                j++; // DT Jan 2013 this doesn't make any sense... j+=j++;
-            }
-            else
-            {
-                j=ir+1;
-            }
+        
+        // Sift marked value down
+        current = parent;
+        child = 2*current+1; // Left child of current
+        while (child < heapsize) {
+            if (child+1 < heapsize && x[index[child]] < x[index[child+1]]) child++; // Select the larger child
+            if (x[sifting] >= x[index[child]]) break; // If the value being sifted down is larger than the children, we are done sifting
+			index[current]=index[child]; // Move the value of the larger child up, then go down and repeat
+			current = child;
+			child = 2*current+1;
         }
-        index[i]=indexr;
+        index[current]=sifting; // Take the value being sifted and store it in the selected location
     }
-    return;
 }
 
 /* 
@@ -621,55 +600,34 @@ void operaArrayIndexSort(int n, float x[], int index[])
 //void spline_dsrt(int n, double x[], int index[])
 void operaArrayIndexSort_d(int n, double x[], int index[])
 {
-    int i, indexr, ir, j, l;
-    for (i=0; i < n; i++)
-    {
-        index[i]=i;
-    }
-    if (n < 2)
-    {
-        return;
-    }
-    l=n>>1;
-    ir=n-1;
-    for (;;)
-    {
-        if (l > 0)
-        {
-            indexr=index[--l];
+    for (unsigned i=0; i < n; i++) index[i]=i;
+    int sifting, parent, current, child;
+    parent=n/2;
+    for (int heapsize=n; heapsize > 1;) {
+		// Still "heapifying" the array - starting from last parent node, ending at root
+        if (parent > 0) {
+            sifting=index[--parent]; // Shift parent back by one then mark it as the node to sift down
         }
-        else
-        {
-            indexr=index[ir];
-            index[ir]=index[0];
-            if (--ir == 0)
-            {
-                index[0]=indexr;
-                break;
-            }
+        
+        // Sort the heap by swapping the root to the end of the remaining heap, then repair the heap
+        else {
+			heapsize--;
+            sifting=index[heapsize]; // Mark previous last node as value to be sifted down
+            index[heapsize]=index[0]; // Take root (largest remaining value) and move to previous end
         }
-        i=l;
-        j=(l<<1)+1;
-        while (j <= ir)
-        {
-            if (j < ir && x[index[j]] < x[index[j+1]])
-            {
-                j++;
-            }
-            if (x[indexr] < x[index[j]])
-            {
-                index[i]=index[j];
-                i=j;
-                j++; // DT Jan 2013 this doesn't make any sense... j+=j++;
-            }
-            else
-            {
-                j=ir+1;
-            }
+        
+        // Sift marked value down
+        current = parent;
+        child = 2*current+1; // Left child of current
+        while (child < heapsize) {
+            if (child+1 < heapsize && x[index[child]] < x[index[child+1]]) child++; // Select the larger child
+            if (x[sifting] >= x[index[child]]) break; // If the value being sifted down is larger than the children, we are done sifting
+			index[current]=index[child]; // Move the value of the larger child up, then go down and repeat
+			current = child;
+			child = 2*current+1;
         }
-        index[i]=indexr;
+        index[current]=sifting; // Take the value being sifted and store it in the selected location
     }
-    return;
 }
 
 /* 

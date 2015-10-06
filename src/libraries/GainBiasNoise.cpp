@@ -82,7 +82,7 @@ GainBiasNoise::~GainBiasNoise() {
  * \sa method double getDatasec();
  * \brief returns the datasec ot amp
  */
-void GainBiasNoise::getDatasec(unsigned amp, DATASEC_t &datasec) {
+void GainBiasNoise::getDatasec(unsigned amp, DATASEC_t &datasec) const {
 	if (amp > namps) {
 		throw operaException("GainBiasNoise ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -103,7 +103,7 @@ void GainBiasNoise::setDatasec(unsigned amp, DATASEC_t &datasec) {
  * \sa method double getNoise();
  * \brief returns the Noise of amp
  */
-double GainBiasNoise::getNoise(unsigned x, unsigned y) {
+double GainBiasNoise::getNoise(unsigned x, unsigned y) const {
     unsigned current_amp = 0;
     for(unsigned amp=0;amp<namps; amp++) {
         if(x >= ampsDataSec[amp].x1 && x <= ampsDataSec[amp].x2 &&
@@ -119,7 +119,7 @@ double GainBiasNoise::getNoise(unsigned x, unsigned y) {
  * \sa method double getGain();
  * \brief returns the Gain of amp
  */
-double GainBiasNoise::getGain(unsigned x, unsigned y) {
+double GainBiasNoise::getGain(unsigned x, unsigned y) const {
     unsigned current_amp = 0;
     for(unsigned amp=0;amp<namps; amp++) {
         if(x >= ampsDataSec[amp].x1 && x <= ampsDataSec[amp].x2 &&

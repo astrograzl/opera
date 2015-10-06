@@ -265,7 +265,7 @@ wcalParRangeSizeInPerCent		:= 1.0
 wcalNpointsPerPar				:= 3000
 wcalmaxorderofpolynomial		:= 4
 wcalinitialAcceptableMismatch	:= 1.5
-wcalnsigclip					:= 2.25
+wcalnsigclip					:= 2.00
 wcal_generate3DPlot				:= 0
 wcal_subtractCentralWavelength	:= 1
 
@@ -275,8 +275,8 @@ wcal_LocalMaxFilterWidth_pol    := 6.0
 wcal_uncalibrated_linewidth_pol := 1.8
 wcal_maxNIter_pol               := 40
 wcal_minNumberOfLines_pol		:= 40
-wcal_dampingFactor_pol			:= 0.9
-wcal_DetectionThreshold_pol		:= 0.05
+wcal_dampingFactor_pol			:= 0.85
+wcal_DetectionThreshold_pol		:= 0.1
 wcal_MinPeakDepth_pol			:= 1.00
 
 wcal_normalizeUncalibratedSpectrum_sp1 := 0
@@ -285,8 +285,8 @@ wcal_LocalMaxFilterWidth_sp1    := 6.0
 wcal_uncalibrated_linewidth_sp1 := 1.8
 wcal_maxNIter_sp1				:= 40
 wcal_minNumberOfLines_sp1		:= 40
-wcal_dampingFactor_sp1			:= 0.9
-wcal_DetectionThreshold_sp1		:= 0.05
+wcal_dampingFactor_sp1			:= 0.85
+wcal_DetectionThreshold_sp1		:= 0.1
 wcal_MinPeakDepth_sp1			:= 1.00
 
 wcal_normalizeUncalibratedSpectrum_sp2 := 0
@@ -296,8 +296,8 @@ wcal_uncalibrated_linewidth_sp2 := 1.6
 wcal_maxNIter_sp2				:= 40
 wcal_minNumberOfLines_sp2		:= 40
 wcal_dampingFactor_sp2			:= 0.85
-wcal_DetectionThreshold_sp2		:= 0.05
-wcal_MinPeakDepth_sp2			:= 1.00
+wcal_DetectionThreshold_sp2		:= 0.1
+wcal_MinPeakDepth_sp2			:= 1.5
 
 wcal_normalizeUncalibratedSpectrum := $(wcal_normalizeUncalibratedSpectrum_$(MODE))
 wcal_normalizationBinSize       := $(wcal_normalizationBinSize_$(MODE))
@@ -320,11 +320,12 @@ telluric_spectralResolution_sp1	:= 65000
 telluric_spectralResolution_sp2	:= 80000
 telluric_spectralResolution_pol	:= 65000
 telluric_spectralResolution		:= $(telluric_spectralResolution_$(MODE))
-telluric_radialVelocityRange	:= 5.0
-telluric_radialVelocityStep		:= 0.15
+telluric_radialVelocityRange	:= 3.0
+telluric_radialVelocityStep		:= 0.10
 telluric_XCorrelationThreshold	:= 0.1
 telluric_normalizationbinsize	:= 110
 telluric_useFitToFindMaximum	:= 1
+telluric_correction_method	    := 1
 
 #########################################################################################
 # radial velocity parameters
@@ -337,9 +338,9 @@ rv_searchStep					:= 0.5
 #########################################################################################
 # Stitch Orders
 #########################################################################################
-stitch_orderOfReference         := 36
-stitch_DWavelengthRange         := 0.2
-stitch_DWavelengthStep          := 0.00005
+stitch_orderOfReference         := 51
+stitch_RVRange                  := 10
+stitch_RVStep                   := 0.01
 stitch_XCorrelationThreshold    := 0.1
 stitch_sigmaThreshold           := 2.5
 
@@ -451,11 +452,15 @@ pol_backgroundAperture	:= 1.0
 sp1_gapBetweenBeams		:= 0
 sp2_gapBetweenBeams		:= 0
 pol_gapBetweenBeams		:= 0
+sp1_constanttiltflag	:= 0 #1
+sp2_constanttiltflag	:= 0
+pol_constanttiltflag	:= 0
 apernumberOfBeams		:= $($(MODE)_numberOfBeams)
 apernapertureWidth		:= $($(MODE)_apertureWidth)
 aperapertureHeight		:= $($(MODE)_apertureHeight)
 aperbackgroundAperture	:= $($(MODE)_backgroundAperture)
 apergapBetweenBeams		:= $($(MODE)_gapBetweenBeams)
+constanttiltflag		:= $($(MODE)_constanttiltflag)
 aperpickImageRow		:= 0
 apernRowSamples			:= 10
 aperxbin				:= 10
@@ -519,7 +524,8 @@ createflatresponsenumberOfPointsInUniformRefSample   := 70
 # Master Flux Calibration
 #########################################################################################
 
-mastercomparison_combinemethod  :=  1
+# same parameter name than MasterComparison module (LMa, Sep2)
+#mastercomparison_combinemethod  :=  1
 
 #########################################################################################
 # Flux Calibration
@@ -568,6 +574,7 @@ DefaultCalibratedSpectrumType		:= $($(DefaultCalibratedSpectrumTypeName))
 extraction_minorder		:= 22
 extraction_maxorder		:= 60
 
+
 #########################################################################################
 # this is used throughout calibration, extraction and polarimetry so that
 # we get a consistent single order. Specify an order or set this to -999 for all orders.
@@ -584,6 +591,8 @@ starplusskymode_sp1			:= 1
 starplusskymode_sp2			:= 0
 starplusskymode_pol			:= 0
 starplusskymode				:= $(starplusskymode_$(MODE))
+
+ssfiberarearatio			:= 1.890625 #(2.2*2.2)/(1.6*1.6)
 
 extractor_normalizationBinsize			:= 750
 extractor_numberOfPointsInUniformSample	:= 150

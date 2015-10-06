@@ -104,21 +104,21 @@ public:
 	
 	void setGlobalInstrumentProfileDimensions(unsigned nDataPoints, unsigned IPxsize, unsigned IPxsampling, unsigned IPysize, unsigned IPysampling);
 	
-	unsigned getNXPoints(void);
+	unsigned getNXPoints(void) const;
 	
 	void setNXPoints(unsigned npx);
 	
-	unsigned getNYPoints(void);
+	unsigned getNYPoints(void) const;
 	
 	void setNYPoints(unsigned npy);
 	
-	unsigned getNTotalPoints(void);
+	unsigned getNTotalPoints(void) const;
 	
 	void setNTotalPoints(unsigned np);
 	
-	unsigned getYsampling(void);		// (fraction of pixel to sample PSF in dispersion direction)
+	unsigned getYsampling(void) const;		// (fraction of pixel to sample PSF in dispersion direction)
 	
-	unsigned getXsampling(void);		// (fraction of pixel to sample PSF in spatial direction)
+	unsigned getXsampling(void) const;		// (fraction of pixel to sample PSF in spatial direction)
 	
 	void setYsampling(unsigned ysamp);		// (fraction of pixel to sample PSF in dispersion direction)
 	
@@ -126,9 +126,9 @@ public:
 	
 	void setsampling(unsigned xsamp, unsigned ysamp);		// (fraction of pixel to sample PSF in spatial direction)
 	
-	unsigned getxsize(void);			// (size along the spatial direction in pix units) 
+	unsigned getxsize(void) const;			// (size along the spatial direction in pix units) 
 	
-	unsigned getysize(void);			// (size along the dispersion direction in pix units)
+	unsigned getysize(void) const;			// (size along the dispersion direction in pix units)
 	
 	void setxsize(unsigned xs);   // (size along the spatial direction in pix units) 
 	
@@ -148,17 +148,17 @@ public:
     
 	void setGeometricCenter(void); // set x,y coordinates of the geometric center (requires x,y size and x,y sampling)
 	
-	float getGeometricCenterX(void);
+	float getGeometricCenterX(void) const;
 	
-	float getGeometricCenterY(void);	
+	float getGeometricCenterY(void) const;
 	
-	float getIPixXCoordinate(unsigned i);
+	float getIPixXCoordinate(unsigned i) const;
 	
-	float getIPixYCoordinate(unsigned j);	
+	float getIPixYCoordinate(unsigned j) const;
 	
-	unsigned getIPixiIndex(float xcoord);
+	unsigned getIPixiIndex(float xcoord) const;
 	
-	unsigned getIPixjIndex(float ycoord);
+	unsigned getIPixjIndex(float ycoord) const;
 	
 	void printData(unsigned index, ostream *pout);
 	
@@ -168,25 +168,25 @@ public:
     
 	void setnDataPoints(unsigned NDataPoints);
 	
-	unsigned getnDataPoints(void);
+	unsigned getnDataPoints(void) const;
 	
 	CCube getdataCube(void);
 	
-	CMatrix getdataCube(unsigned index);	
+	CMatrix getdataCube(unsigned index);
 	
-    void setdataCubeValues(operaFITSImage &image, operaFITSImage &badpix, float xcenter, float ycenter, unsigned index);    
+    void setdataCubeValues(operaFITSImage &image, operaFITSImage &badpix, float xcenter, float ycenter, unsigned index);
     
     void setdataCubeValues(operaFITSImage &image, operaFITSImage &badpix, PixelSet *aperturePixels, float xcenter, float ycenter, unsigned index);
     
 	void setdataCubeValues(CMatrix DataMatrix, unsigned index);
     
-    void setdataCubeValues(PixelSet *aperturePixels, CMatrix DataMatrix, unsigned index);   
+    void setdataCubeValues(PixelSet *aperturePixels, CMatrix DataMatrix, unsigned index);
 	
 	void setdataCubeValues(float DataValue, unsigned i, unsigned j, unsigned index);
 	
-	float getdataCubeValues(unsigned i, unsigned j, unsigned index);
+	float getdataCubeValues(unsigned i, unsigned j, unsigned index) const;
 	
-	float getdataGivenCoords(float xcoord, float ycoord, unsigned index);
+	float getdataGivenCoords(float xcoord, float ycoord, unsigned index) const;
 
 	CCube geterrorsCube(void);
 	
@@ -198,11 +198,11 @@ public:
 	
 	void seterrorsCubeValues(float ErrorValue, unsigned i, unsigned j, unsigned index);
 	
-	float geterrorsCubeValues(unsigned i, unsigned j, unsigned index);
+	float geterrorsCubeValues(unsigned i, unsigned j, unsigned index) const;
 	
 	float *getdistdVector(void);
 	
-	float getdistd(unsigned index);
+	float getdistd(unsigned index) const;
 	
 	void setdistdVector(float *Distd);
 	
@@ -212,23 +212,25 @@ public:
 	
 	void setipPolyModel(PolynomialMatrix IPPolyModel);
 	
-	PolynomialMatrix getipPolyModel(void);	
+	PolynomialMatrix getipPolyModel(void);
 	
 	PolynomialCoeffs_t* getipPolyModelCoefficients(unsigned i,unsigned j);
+	
+	const PolynomialCoeffs_t* getipPolyModelCoefficients(unsigned i,unsigned j) const;
 
-	void setipPolyModelCoefficients(PolynomialCoeffs_t* PolyModelCoeffs,unsigned i,unsigned j);
+	void setipPolyModelCoefficients(PolynomialCoeffs_t PolyModelCoeffs,unsigned i,unsigned j);
 
-	CMatrix getipDataFromPolyModel(float d, CMatrix output);	
+	CMatrix getipDataFromPolyModel(float d, CMatrix output);
 
-    CMatrix getipDataFromPolyModel(PixelSet *aperturePixels, float d, CMatrix output);     
+    CMatrix getipDataFromPolyModel(PixelSet *aperturePixels, float d, CMatrix output);
 
 	CMatrix getipDataFromPolyModel(unsigned index, CMatrix output);
     
-    CMatrix getipDataFromPolyModel(PixelSet *aperturePixels, unsigned index, CMatrix output);  
+    CMatrix getipDataFromPolyModel(PixelSet *aperturePixels, unsigned index, CMatrix output);
 
-	float getipDataFromPolyModel(float d, unsigned i, unsigned j);
+	float getipDataFromPolyModel(float d, unsigned i, unsigned j) const;
 	
-	float getipDataFromPolyModel(unsigned i, unsigned j, unsigned index);
+	float getipDataFromPolyModel(unsigned i, unsigned j, unsigned index) const;
 
 	void setipDataFromPolyModel(unsigned index);	
     
@@ -254,7 +256,7 @@ public:
 	
 	void setchisqrMatrix(CMatrix ChisqrMatrix);
 	
-	float getchisqrMatrixValue(unsigned i, unsigned j);
+	float getchisqrMatrixValue(unsigned i, unsigned j) const;
 	
 	void setchisqrMatrixValue(float Value, unsigned i, unsigned j);
 
@@ -264,13 +266,13 @@ public:
     
 	void deleteDataCubes(void);  
     
-    float getIPphotoCenterX(float d);    
+    float getIPphotoCenterX(float d) const;
     
-    float getIPphotoCenterY(float d);
+    float getIPphotoCenterY(float d) const;
     
-    float getIPphotoCenterX(PixelSet *aperturePixels, float d);
+    float getIPphotoCenterX(PixelSet *aperturePixels, float d) const;
     
-    float getIPphotoCenterY(PixelSet *aperturePixels, float d);
+    float getIPphotoCenterY(PixelSet *aperturePixels, float d) const;
     
     CMatrix getdataCubeValues(PixelSet *aperturePixels, unsigned index, CMatrix dataSlice);
     

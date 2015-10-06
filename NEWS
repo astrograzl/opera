@@ -1,26 +1,53 @@
-Jun 12 2015
-  - Added a Python harness for GRACES
-  - Added 'flatresp' command to the Makefile harness to create flat response images from standard stars
-  - Fixed Makefile harness putting duplicate calibration entries into opera.log during reductions (modules now output to operacal.log)
-  - Refactored, made fixes to, cleaned up, and improved consistency of code across many modules
-  - Updated many modules to use operaArgumentHandler library
-  - Fixed potential memory leaks in several places
-  - Made code more compliant with C++ standards, allowing OPERA to be built with stricter compilers or settings
-  - Updated calibratedextendedbeamspectrum format (.spc files) to add two addtional columns: <normalizedFlux variance> <fcalFlux variance>
-  - Updated extendedpolarimetry format (.pol files) to add two addtional columns: <normalized StokesI flux variance> <calibrated StokesI flux variance>
-  - Fixed issue where flux errors would not correctly propagate to each Libre-Esprit intensity format
-  - Fixed bug where intensity fits files had wrong number of columns in polar mode
-  - Updated Makefile harness to use Heliocentric instead of Barycentric wavelength correction for polarimetry
-  - Added a tilt plot for operaExtractionApertureCalibration and fixed related bugs (implemented in Python harness)
-  - Fixed x-label of output plot in operaOrderSpacingCalibration
-  - Updated the x-range of the SNR plot in Makefile.analysis
-  - Fixed Python harness to match change made to parameters for operaTelluricCorrection
-  - Updated Makefile harness to change instument profile calibration method
-  - Added new argument to operaWavelengthCalibration --inputLineSetFilename, which allows to input a set of lines identified by hand instead of an initial solution (--wlcal_initialguess)
-  - Added new argument to operaExtractionApertureCalibration --constantTilt to allow using a constant tilt angle for all orders
-  - Added new argument to operaExtendedSpectrumCreation --SkyOverStarFiberAreaRatio to compensate for different apertures
-  - Propagated changes for SkyOverStarFiberAreaRatio to the python harness (Makefile harness hasn't been updated for this)
-  - Fixed a bug in operaWavelengthCalibration that would occur when using --parseSolution (not used by Espadons)
-  - Modifications made to arguments for operaPolar and operaPolarimetryCorrection
-  - Updated Makefile harness parameter values for operaWavelengthCalibration, operaGeometryCalibration, and operaExtractionApertureCalibration
-  - Updated Python harness parameter values for operaOrderSpacingCalibration, operaGeometryCalibration, operaInstrumentProfileCalibration, operaExtractionApertureCalibration, and operaWavelengthCalibration
+Oct 7 2015
+ Libraries:
+  - Rewrote library function operaArrayIndexSort, fixing a bug which caused data to be incorrectly sorted.
+  - Fixed a bug in operaSpectralTools library function calculateUniformSample where the last point was sometimes left uninitialized.
+  - Modified operaSpectralOrder function calculateStarAndSkyElements to actually perform sky subtraction.
+  - Rewrote much of the operaFluxVector class to work in a more understandable way and fix issues with several calculations.
+  - Added Resize methods to operaFluxVector, operaSpectralElements, operaStokesVector and operaPolarimetry. Used these in place of previous resizing functionality which had unpredictable behavior.
+  - Added several core pieces of functionality, refactored code, and fixed many issues involving extended flux vectors, especially for individual beams.
+  - Updated many methods in various classes, along with some other library functions, to improve const correctness.
+  - Split normalizeAndApplyFlatResponseINTOExtendendSpectra into two independent methods. Rewrote and refactored both, and many of the methods they call, allowing them to work on each beam.
+  - Refactored, reorganized, cleaned up, and fixed bugs in file reading/writing functions in operaSpectralOrderVector and moved them into new operaIOFormats library, which should be more consistent and easier to maintain.
+  - Refactored functionality for reading in wavelength ranges, and trimming orders by wavelength ranges into operaSpectralOrder and operaSpectralOrderVector, and fixed several issues with data being scrambled.
+  - Increased MAXORDERS from 100 to 200 (was preventing data reduction for a different spectograph).
+ Modules:
+  - Rewrote operaStitchOrders to use radial velocity shifts instead of wavelength shifts. Changed arguments accordingly, and added a diagnostic plot.
+  - Rewrote operaTelluricWavelengthCorrection to improve clarity and fix issues. Implemented new correction method using telluric line matching, giving improved results. Implemented addtional plots.
+  - Rewrote operaCreateProduct to only convert from LE or spc/pol files. Added ability to trim orders. Determines mode from spectrumtype argument instead of checking fits keyword. Removed work-in-progress info from headers.
+  - Modified operaWavelengthCalibration to skip the last solution refinement step. Added missing output statements. Changed non-error messages to write to stdout instead of stderr. Added more information to data/plot files.
+  - Updated operaExtendedSpectrumCreation to add ability to read in wavelength ranges and trim orders, allowing the removal of noisy regions before normalization.
+  - Refactored and cleaned up operaCentricWavelengthCorrection. Updated to use the time halfway through the exposure rather than at the end. Fixed an issue where negative signs were lost if the hours/degrees equaled zero.
+  - Fixed several bugs and cleaned up code in operaGain. Updated to perform more stringent checks on its arguments.
+  - Updated operaInstrumentProfile to handle errors more gracefully when they should be non-fatal.
+  - Updated operaPixelSensitivityMap to use operaArgumentHandler.
+  - Cleaned up code in operaPolar, operaSNR, operaCalculateSpectralResolution, and operaPixelSensitivityMap.
+  - Made more arguments required in several modules.
+  - Commented out section of currently unused operaStatistics tool that required deprecated functions.
+ Formats:
+  - Corrected naming convention for Libre-Esprit files so that "w" (e.g. inw and iuw) means "without telluric wavelength correction."
+  - Replaced SNR format with a new format that includes both SNR per spectral bin and SNR per CCD pixel.
+  - Replaced old m.fits product with new format containing the same columns as the spc file.
+  - Changed decimal precision of distance in .p file to match precision in .e file.
+  - Added fcal/normalized flux/variance for each beam to spc format, and reorganized and relabeled columns for consistency.
+ Config:
+  - Modifed wavelength ranges in LE_order_wavelength.dat, and changed format to allow file to be read in by operaIOFormats.
+  - Updated wavelengthMaskForTelluricAbsorption.txt to remove very red region.
+  - Added GRACES flat response (obtained from commissioning data of Feige66 observed on Jun 03/04 2015).
+ Harness:
+  - Updated harness to trim orders to LE order wl ranges only during spc and pol creation.
+  - Skipping operaStitchOrders for now, since results seem better without it.
+  - Updated the way harness calculates exposure time for operaHeliocentricWavelengthCorrection for polarimetry.
+  - Fixed call to operaCreateProduct to use p.rvel and p.tell instead of i.rvel and i.tell when creating p.fits.
+  - Added arguments or fixed argument issues with operaStarPlusSky, operaExtractionApertureCalibration, operaTelluricWavelengthCorrection, and operaGain.
+  - Removed plot arguments from operaExtraction.
+  - Added error checks for missing rvel/tell files when they are expected.
+  - Reduced telluric radial velocity range and step size.
+  - Changed wavelength calibration damping factor for polar and S+S observing mode to have more Th-Ar lines.
+  - Updated operagetmode to take optional argument specifying the mode header keyword, and updated harness to use MODE_HEADERKEY parameter for determining the instrument mode.
+  - Updated Makefile.calibration for GRACES modifications for masterflat, masterbias, mastercomparison, images.
+  - Fixed a few bugs in GRACES Python harness and tuned parameters to make reduction more robust. Added simple command line tool to add object keyword to FITS file.
+  - Added harness directory for Narval.
+ Other:
+  - Fixed issue with linker options which would cause build to fail on some platforms.
+  - Moved unused modules and parts of the harness to extras directory.

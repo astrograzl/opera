@@ -961,7 +961,7 @@ void operaFitSpline(unsigned nin, float *xin, float *yin, unsigned nout, float *
 	free(y2); 
 }
 
-void operaFitSplineDouble(unsigned nin, double *xin, double *yin, unsigned nout, double *xout, double *yout)
+void operaFitSplineDouble(const unsigned nin, const double *xin, const double *yin, const unsigned nout, const double *xout, double *yout)
 {
 	double yp1 = (yin[1] - yin[0])/(xin[1] - xin[0]);
 	double ypn = (yin[nin-1] - yin[nin-2])/(xin[nin-1] - xin[nin-2]);

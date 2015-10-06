@@ -183,7 +183,7 @@ status:
 modes:
 	@files=`ls $(DATADIR)/$(OBJECTFILEPATTERN) 2>/dev/null` ; \
 	for file in $${files} ; do \
-		echo "`basename $${file}` `$(bindir)operagetdetector $${file}` `$(bindir)operagetamplifier $${file}` `$(bindir)operagetmode $${file}` `$(bindir)operagetspeed $${file}`" ; \
+		echo "`basename $${file}` `$(bindir)operagetdetector $${file}` `$(bindir)operagetamplifier $${file}` `$(bindir)$(OPERAGETMODE) $${file}` `$(bindir)operagetspeed $${file}`" ; \
 	done 
 
 config configuration:
@@ -435,7 +435,7 @@ standardstars:
 								object=`$(bindir)operagetheader --keyword=OBJECT $${file} | sed -e 's: ::g'` ; \
 								detector=`$(bindir)operagetdetector $${file}` ; \
 								amplifier=`$(bindir)operagetamplifier $${file}` ; \
-								mode=`$(bindir)operagetmode $${file}` ; \
+								mode=`$(bindir)$(OPERAGETMODE) $${file}` ; \
 								crunid=`$(bindir)operagetheader --keyword=CRUNID $${file}` ; \
 								standardstars=`ls $(configdir)standardstars/*_operaFluxCal.dat | xargs -n1 basename | sed -e 's:\(.*\)_operaFluxCal.dat:\\1:'` ; \
 								((found=0)) ; \
@@ -468,7 +468,7 @@ standardstars:
 					object=`$(bindir)operagetheader --keyword=OBJECT $${file} | sed -e 's: ::g'` ; \
 					detector=`$(bindir)operagetdetector $${file}` ; \
 					amplifier=`$(bindir)operagetamplifier $${file}` ; \
-					mode=`$(bindir)operagetmode $${file}` ; \
+					mode=`$(bindir)$(OPERAGETMODE) $${file}` ; \
 					crunid=`$(bindir)operagetheader --keyword=CRUNID $${file}` ; \
 					standardstars=`ls $(configdir)standardstars/*_operaFluxCal.dat | xargs -n1 basename | sed -e 's:\(.*\)_operaFluxCal.dat:\\1:'` ; \
 					((found=0)) ; \

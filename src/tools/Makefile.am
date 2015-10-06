@@ -1,9 +1,9 @@
 # what flags you want to pass to the C compiler & linker
 AM_CFLAGS = --pedantic -Wall -std=c99 -g -O1 -L$(PREFIX)/src/libraries/ -L../../lib -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/ -I../../include/ -I/usr/local/include/
 AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ -L../../lib -I../../include/ -I/usr/include/ -I/usr/local/include/ -L/usr/lib/ -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib/
-AM_LDFLAGS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope  -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaFluxVector -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaPolarimetry -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaException -lGainBiasNoise -loperaMuellerMatrix -loperaStokesVector -loperaFFT -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm
+AM_LDFLAGS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaIOFormats -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaFluxVector -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -loperaFITSSubImage -loperaEspadonsSubImage -loperaPolarimetry -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaException -lGainBiasNoise -loperaMuellerMatrix -loperaStokesVector -loperaFFT -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm
 # This is for Linux...
-LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaFluxVector -loperaImageVector -loperaFITSSubImage -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm
+LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions -loperaObjectInTheSky -loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation -loperaIOFormats -loperaSpectralOrderVector -loperaSpectralOrder -loperaSpectralElements -loperaSpectralLines -loperaSpectralFeature -loperaExtractionAperture -loperaSpectralTools -loperaFluxVector -lGaussian -loperaInstrumentProfile -loperaGeometry -loperaWavelength -loperaEspadonsSubImage -loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage -loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage -loperaFITSCube -loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT -loperaMuellerMatrix -loperaStokesVector -loperaFluxVector -loperaImageVector -loperaFITSSubImage -loperaImageVector -loperaGeometricShapes -loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath -loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit -loperaConfigurationAccess -loperaParameterAccess -lPixelSet -loperaSpectralEnergyDistribution -loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm
 
 # this lists the binaries to produce
 bin_PROGRAMS =  operaConfigurationAccess operaParameterAccess \
@@ -12,7 +12,7 @@ bin_PROGRAMS =  operaConfigurationAccess operaParameterAccess \
 				operaimarith operaQueryImageInfo operasetheader operacompress \
 				operabiasinjector operaPlotInstrumentProfile \
 				operaStatistics espqlh catz operaFITSDisplayImage operaimagestats \
-				operaExtractProducts operads9thumbs operaRotate operaApplyTransform \
+				operads9thumbs operaRotate \
 				operaEspadonsETC operaExtractImage operaPlotOut \
 				operaRotateMirrorCrop operaMedianCombine
 #
@@ -49,13 +49,9 @@ operaExtractImage_SOURCES = operaExtractImage.cpp
 
 operaEspadonsETC_SOURCES = operaEspadonsETC.cpp operaEspadonsETC.h
 
-operaApplyTransform_SOURCES = operaApplyTransform.cpp
-
 operaRotate_SOURCES = operaRotate.cpp
 
 operads9thumbs_SOURCES = operads9thumbs.cpp
-
-operaExtractProducts_SOURCES = operaExtractProducts.cpp
 
 operaimagestats_SOURCES = operaimagestats.cpp
 
@@ -98,7 +94,3 @@ operaFITS2txt_SOURCES = operaFITS2txt.cpp operaFITS2txt.h
 operaConvert2ampTo1amp_SOURCES = operaConvert2ampTo1amp.cpp operaConvert2ampTo1amp.h
 
 operaQueryImageInfo_SOURCES = operaQueryImageInfo.cpp operaQueryImageInfo.h
-
-
-
-

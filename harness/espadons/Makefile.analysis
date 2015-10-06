@@ -335,7 +335,7 @@ endef
 					$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +12 | awk '{printf("%g %g\n", $$2, $$3);}' >$(spectradir)$${spectrum} ; \
 					upenaspectrum="`basename $${spectrum} e.sn`.sn" ; \
 				else \
-					$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +3 | awk '{printf("%g %g\n", $$1, $$2);}' >$(spectradir)$${spectrum} ; \
+					$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +10 | awk '{printf("%g %g\n", $$2, $$3);}' >$(spectradir)$${spectrum} ; \
 					upenaspectrum="`basename $${spectrum}`" ; \
 				fi ; \
 			fi ; \

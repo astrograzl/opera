@@ -118,7 +118,7 @@ Polynomial::~Polynomial() {
  * \param index is a const unsigned index of the coefficient to get
  * \return void
  */
-double Polynomial::Get(const unsigned index) {
+double Polynomial::Get(const unsigned index) const {
 	if (index > MAXPOLYNOMIAL) {
 		throw operaException("Polynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -154,7 +154,7 @@ void Polynomial::Set(const double x, const unsigned index) {
  * \param x is a double input value for which the given polynomial is evaluated
  * \return double value of evaluation of the polynomial
  */
-double Polynomial::Evaluate(const double x) {
+double Polynomial::Evaluate(const double x) const {
 	double fpoly = polynomialVector[0];
 	for (unsigned i=1; i<orderOfPolynomial; i++) {
 		fpoly += polynomialVector[i]*pow(x, i);
@@ -172,6 +172,9 @@ double Polynomial::Evaluate(const double x) {
 double* Polynomial::getVector() {
 	return polynomialVector;
 }
+const double* Polynomial::getVector() const {
+	return polynomialVector;
+}
 
 /*
  * double double* getErrorVector();
@@ -182,6 +185,9 @@ double* Polynomial::getVector() {
 double* Polynomial::getErrorVector() {
 	return polynomialErrors;
 }
+const double* Polynomial::getErrorVector() const {
+	return polynomialErrors;
+}
 
 /*
  * unsigned getOrderOfPolynomial();
@@ -190,7 +196,7 @@ double* Polynomial::getErrorVector() {
  * \brief usage: unsigned npar = getOrderOfPolynomial();
  * \return double * - the vector of polynomial order coefficients
  */
-unsigned Polynomial::getOrderOfPolynomial() {
+unsigned Polynomial::getOrderOfPolynomial() const {
 	return orderOfPolynomial;
 }
 
@@ -210,7 +216,7 @@ void Polynomial::setOrderOfPolynomial(unsigned Order) {
  * \brief usage: float coeff3 = getCoefficient(3);
  * \return void
  */
-double Polynomial::getCoefficient(unsigned index) {
+double Polynomial::getCoefficient(unsigned index) const {
 	if (index > MAXPOLYNOMIAL) {
 		throw operaException("Polynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -242,7 +248,7 @@ void Polynomial::setCoefficient(unsigned index, double value) {
  * \brief usage: double err = getCoefficientError(3);
  * \return double
  */
-double Polynomial::getCoefficientError(unsigned index) {
+double Polynomial::getCoefficientError(unsigned index) const {
 	if (index > MAXPOLYNOMIAL) {
 		throw operaException("Polynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -292,7 +298,7 @@ PolynomialCoeffs_t* Polynomial::getPolynomialCoeffs() {
  * \brief usage: setPolynomialCoeffs<float>();
  * \return void
  */
-void  Polynomial::setPolynomialCoeffs(PolynomialCoeffs_t* pcoefficients) {
+void Polynomial::setPolynomialCoeffs(const PolynomialCoeffs_t* pcoefficients) {
 	orderOfPolynomial = pcoefficients->orderofPolynomial;
 	polychisqr = pcoefficients->polychisqr;
 	for (unsigned i=0; i<orderOfPolynomial; i++) {
@@ -318,7 +324,7 @@ void Polynomial::setChisqr(double Chisqr) {
  * \brief usage: double c = getChisqr();
  * \return double
  */
-double Polynomial::getChisqr(void) {
+double Polynomial::getChisqr(void) const {
 	return polychisqr;
 }
 

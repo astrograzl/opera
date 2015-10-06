@@ -35,7 +35,7 @@
 // $Locker$
 // $Log$
 
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaArgumentHandler.h"
 
 /*! \file operaSNR.cpp */
@@ -61,12 +61,13 @@ int main(int argc, char *argv[])
 {
 	operaArgumentHandler args;
 	
-	string inputfilename; 
-	string outputfilename; 
+	string inputfilename;
+	string outputfilename;
 	string wcalfilename; 
 	string object;
 	unsigned spectralOrderType_val = SNR;
 	bool centralsnr = false;
+	double spectralbinsize;
 	
 	args.AddRequiredArgument("input", inputfilename, "Input spectrum file");
 	args.AddRequiredArgument("output", outputfilename, "Output SNR file");
@@ -74,6 +75,7 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("object", object, "Object name, needed for Libre-Esprit output");
 	args.AddRequiredArgument("spectrumtype", spectralOrderType_val, "Spectrum type");
 	args.AddRequiredArgument("centralsnr", centralsnr, "Use central SNR");
+	args.AddRequiredArgument("spectralbinsize", spectralbinsize, "Spectral bin size in pixels");
 	
 	try {
 		args.Parse(argc, argv);
@@ -81,50 +83,45 @@ int main(int argc, char *argv[])
 		operaSpectralOrder_t spectralOrderType = operaSpectralOrder_t(spectralOrderType_val);
 		
 		if (inputfilename.empty()) {
-			throw operaException("operaSNR: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
+			throw operaException("operaSNR: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
 		if (outputfilename.empty()) {
-			throw operaException("operaSNR: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);	
+			throw operaException("operaSNR: ", operaErrorNoOutput, __FILE__, __FUNCTION__, __LINE__);
 		}
 		if (wcalfilename.empty()) {
-			throw operaException("operaSNR: wcal: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
+			throw operaException("operaSNR: wcal: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
 		
 		if (args.verbose) {
-			cout << "operaSNR: input = " << inputfilename << endl; 
-			cout << "operaSNR: object = " << object << endl; 
+			cout << "operaSNR: input = " << inputfilename << endl;
+			cout << "operaSNR: object = " << object << endl;
 			cout << "operaSNR: output = " << outputfilename << endl;
-			cout << "operaSNR: spectrum type = " << spectralOrderType << endl;							
-			cout << "operaSNR: centralsnr = " << centralsnr << endl;							
+			cout << "operaSNR: spectrum type = " << spectralOrderType << endl;
+			cout << "operaSNR: centralsnr = " << centralsnr << endl;
 			cout << "operaSNR: wavelength calibration file = " << wcalfilename << endl;
+			cout << "operaSNR: spectralbinsize = " << spectralbinsize << endl;
 		}
 		
-		operaSpectralOrderVector spectralOrderVector(inputfilename);
-        spectralOrderVector.ReadSpectralOrders(wcalfilename);
-		spectralOrderVector.setObject(object);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputfilename);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wcalfilename);
+		spectralOrders.setObject(object);
 		
-		unsigned minorder = spectralOrderVector.getMinorder();
-		unsigned maxorder = spectralOrderVector.getMaxorder();
+		unsigned minorder = spectralOrders.getMinorder();
+		unsigned maxorder = spectralOrders.getMaxorder();
 		for (unsigned order=minorder; order <= maxorder; order++) {
-			operaSpectralOrder *spectralOrder = spectralOrderVector.GetSpectralOrder(order);
+			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 			if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
-				operaSpectralElements *spectralElements = spectralOrder->getSpectralElements(); 
+				operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
 				if (spectralElements->getnSpectralElements() > 0) {
-					operaWavelength *wavelength = spectralOrder->getWavelength();  
-					Polynomial *wavelengthPolynomial = wavelength->getWavelengthPolynomial();
-					unsigned elements = spectralElements->getnSpectralElements();
-					while (elements--) {
-						spectralElements->setwavelength(wavelengthPolynomial->Evaluate(spectralElements->getdistd(elements)), elements);
-					}
-					spectralOrder->sethasWavelength(true);   
-					spectralElements->setHasWavelength(true);   
-					spectralElements->setHasDistance(false);
+					spectralElements->setwavelengthsFromCalibration(spectralOrder->getWavelength());
 					spectralOrder->sethasCenterSNROnly(centralsnr);
-					spectralOrder->calculateSNR();	// has side effect of retaining center SNR					
+					spectralOrder->calculateSNR();	// has side effect of retaining center SNR
+					spectralOrder->setsnrSpectralBinSize(spectralbinsize);
 				}
 			}
 		}
-		spectralOrderVector.WriteSpectralOrders(outputfilename, spectralOrderType);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputfilename, spectralOrderType);
 	}
 	catch (operaException e) {
 		cerr << "operaSNR: " << e.getFormattedMessage() << endl;
@@ -135,4 +132,4 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
-} 
+}

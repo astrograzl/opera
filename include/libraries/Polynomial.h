@@ -68,7 +68,7 @@ public:
 	 * \param index is a const unsigned index of the coefficient to get
 	 * \return void
 	 */
-	double Get(const unsigned index);	
+	double Get(const unsigned index) const;
 	/*!
 	 * void Set(const double x, const unsigned index)
 	 * \brief This function sets the polynomial value at index.
@@ -84,14 +84,15 @@ public:
 	 * \param x is a double input value for which the given polynomial is evaluated
 	 * \return double value of evaluation of the polynomial
 	 */
-	double Evaluate(const double x);	
+	double Evaluate(const double x) const;
 	/*!
 	 * double double* getVector();
 	 * \brief This function returns the double *polynomialVector.
 	 * \note usage: double *vec = getvector();
 	 * \return double * - the vector of polynomial order coefficients
 	 */
-	double* getVector();	
+	double* getVector();
+	const double* getVector() const;
 	/*!
 	 * double double* getErrorVector();
 	 * \brief This function returns the double *polynomialErrorVector.
@@ -99,6 +100,7 @@ public:
 	 * \return double * - the vector of polynomial coefficient errors
 	 */
 	double* getErrorVector();	
+	const double* getErrorVector() const;	
 	/*!
 	 * unsigned getOrderOfPolynomial();
 	 * \brief This function returns the unisgned polynomial Order.
@@ -106,7 +108,7 @@ public:
 	 * \note usage: unsigned npar = getOrderOfPolynomial();
 	 * \return double * - the vector of polynomial order coefficients
 	 */
-	unsigned getOrderOfPolynomial();	
+	unsigned getOrderOfPolynomial() const;
 	/*!
 	 * void setOrderOfPolynomial(unsigned Order);
 	 * \brief This function sets the unsigned polynomial Order.
@@ -114,7 +116,13 @@ public:
 	 * \return void
 	 */
 	void setOrderOfPolynomial(unsigned Order);	
-	double getCoefficient(unsigned index);	
+	/*!
+	 * void double getCoefficient(unsigned index);
+	 * \brief This function gets a coefficent at the index.
+	 * \note usage: double coeff = getCoefficient(3);
+	 * \return double
+	 */
+	double getCoefficient(unsigned index) const;
 	/*!
 	 * void setCoefficient(unsigned index, double value);
 	 * \brief This function sets a coefficent at the index.
@@ -128,7 +136,7 @@ public:
 	 * \note usage: double err = getCoefficientError(3);
 	 * \return double
 	 */
-	double getCoefficientError(unsigned index);	
+	double getCoefficientError(unsigned index) const;
 	/*!
 	 * void setCoefficientError(unsigned index, double value);
 	 * \brief This function sets a coefficent error at the index.
@@ -143,13 +151,13 @@ public:
 	 * \note allocates storage that must be freed
 	 * \return PolynomialCoeffs_t  * - the PolynomialCoeffs_t struct *
 	 */
-	PolynomialCoeffs_t* getPolynomialCoeffs();	
+	PolynomialCoeffs_t* getPolynomialCoeffs();
 	/*!
 	 * void setPolynomialCoeffs(PolynomialCoeffs_t* coeffs);
 	 * \brief This function sets a PolynomialCoeffs_t struct.
 	 * \return void
 	 */
-	 void setPolynomialCoeffs(PolynomialCoeffs_t* coeffs);	
+	 void setPolynomialCoeffs(const PolynomialCoeffs_t* coeffs);	
 	/*!
 	 * void setChisqr(double Chisqr)
 	 * \brief This function sets chisqr.
@@ -163,7 +171,7 @@ public:
 	 * \note usage: double c = getChisqr();
 	 * \return double
 	 */
-	double getChisqr(void);
+	double getChisqr(void) const;
 	/*!
 	 * void printEquation(ostream *pout)
 	 * \brief This function prints the polynomial equation in Gnuplot format.

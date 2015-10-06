@@ -591,7 +591,7 @@ void operaExtractionAperture::setShape(apertureShape Shape) {
     shape = Shape;
 }
 
-apertureShape operaExtractionAperture::getShape(void) {
+apertureShape operaExtractionAperture::getShape(void) const {
     return shape;
 }
 
@@ -1511,11 +1511,19 @@ PixelSet* operaExtractionAperture::getSubpixels(void) {
     return subpixels;
 }
 
+const PixelSet* operaExtractionAperture::getSubpixels(void) const {
+    return subpixels;
+}
+
 void operaExtractionAperture::setCircleAperture(Circle *CircleAperture) {
     circleAperture.setCircle(*CircleAperture);
 } 
 
 Circle* operaExtractionAperture::getCircleAperture(void) {
+    return &circleAperture;
+}     
+
+const Circle* operaExtractionAperture::getCircleAperture(void) const {
     return &circleAperture;
 }     
 
@@ -1527,11 +1535,19 @@ Rectangle* operaExtractionAperture::getRectangleAperture(void) {
     return &rectangleAperture;
 } 
 
+const Rectangle* operaExtractionAperture::getRectangleAperture(void) const {
+    return &rectangleAperture;
+} 
+
 void operaExtractionAperture::setPolygonAperture(Polygon *PolygonAperture) {
     polygonAperture.setPolygon(*PolygonAperture);
 }  
 
 Polygon* operaExtractionAperture::getPolygonAperture(void) {
+    return &polygonAperture;
+} 
+
+const Polygon* operaExtractionAperture::getPolygonAperture(void) const {
     return &polygonAperture;
 } 
 
@@ -1543,6 +1559,10 @@ Line* operaExtractionAperture::getLineAperture(void) {
     return &lineAperture;
 }
 
+const Line* operaExtractionAperture::getLineAperture(void) const {
+    return &lineAperture;
+}
+
 void operaExtractionAperture::setBoundingBox(Rectangle *BoundingBox) {
     boundingBox.setRectangle(*BoundingBox);
 }  
@@ -1551,20 +1571,24 @@ Rectangle *operaExtractionAperture::getBoundingBox(void) {
     return &boundingBox;
 }
 
+const Rectangle *operaExtractionAperture::getBoundingBox(void) const {
+    return &boundingBox;
+}
+
 void operaExtractionAperture::setSampling(unsigned Xsampling, unsigned Ysampling) {
     xsampling = Xsampling;
     ysampling = Ysampling;    
 }
 
-unsigned operaExtractionAperture::getXsampling(void) {
+unsigned operaExtractionAperture::getXsampling(void) const {
     return xsampling;
 }
 
-unsigned operaExtractionAperture::getYsampling(void) {
+unsigned operaExtractionAperture::getYsampling(void) const {
     return ysampling;
 }
 
-float operaExtractionAperture::getFluxFraction(void) {
+float operaExtractionAperture::getFluxFraction(void) const {
     return fluxFraction;
 }
 

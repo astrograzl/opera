@@ -43,7 +43,6 @@ parser.add_option("-s", action="store_true", dest="simulate", help="simulate",de
 parser.add_option("-p", "--plot", action="store_true", dest="plot", help="plots",default=False)
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", help="verbose",default=False)
 parser.add_option("-t", "--trace", action="store_true", dest="trace", help="trace",default=False)
-parser.add_option("-m", "--moddatadir", action="store_true", dest="moddatadir", help="moddatadir",default=False)
 
 try:
     options,args = parser.parse_args(sys.argv[1:])

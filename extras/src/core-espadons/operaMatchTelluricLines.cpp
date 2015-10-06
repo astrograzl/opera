@@ -376,15 +376,15 @@ int main(int argc, char *argv[])
         
 		operaSpectralOrderVector spectralOrders(geometryfilename);	// get the geometry
 
-		spectralOrders.ReadSpectralOrders(wlcal_initialguess); // read wavelength calibration reference first guess
+		spectralOrders.ReadIntoSpectralOrders(wlcal_initialguess); // read wavelength calibration reference first guess
         
         
 		if (!uncalibrated_lines.empty()) {     
-            spectralOrders.ReadSpectralOrders(uncalibrated_lines); // This merges in the uncalibrated lines information
+            spectralOrders.ReadIntoSpectralOrders(uncalibrated_lines); // This merges in the uncalibrated lines information
         }
 
         if (!uncalibrated_spectrum.empty()) { 
-            spectralOrders.ReadSpectralOrders(uncalibrated_spectrum); // This merges in the uncalibrated spectrum information
+            spectralOrders.ReadIntoSpectralOrders(uncalibrated_spectrum); // This merges in the uncalibrated spectrum information
 		}
         
         if(!minorderprovided) {

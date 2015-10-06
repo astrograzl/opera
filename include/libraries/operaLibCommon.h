@@ -96,7 +96,8 @@ extern "C" {
 		PTell,                      // Polarimetry Autowave Correction
 		EETC,                       // Espadons Exposure Time Calculator file
 		CSV,                        // Comma-Separated Values
-		LastSpectralOrder_t			// the end
+		OrderWavelengthRange,		// table of wavelength ranges for each order
+		count_SpectralOrder_t		// The number of possible values for operaSpectralOrder_t (this value excluded).
 	};
 	
     enum InstrumentEnvironment_t {
@@ -475,14 +476,14 @@ static inline void deleteCCube(CCube cCube) {
  */
 
 typedef struct PolynomialCoeffs {
-	int orderofPolynomial;
+	unsigned orderofPolynomial;
 	float p[MAXPOLYNOMIAL];
 	float e[MAXPOLYNOMIAL];
 	float polychisqr;
 } PolynomialCoeffs_t;
 
 typedef struct doublePolynomialCoeffs {
-	int orderofPolynomial;
+	unsigned orderofPolynomial;
 	double p[MAXPOLYNOMIAL];
 	double e[MAXPOLYNOMIAL];
 	double polychisqr;

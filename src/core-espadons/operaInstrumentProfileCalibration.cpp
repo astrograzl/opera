@@ -37,7 +37,7 @@
 
 #include <pthread.h>
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
 
@@ -170,17 +170,22 @@ void *processOrder(void *argument) {
 			if (args.verbose) cout << "operaInstrumentProfileCalibration: No lines found in order " << order << " of " << methodName << "." << endl;
 			spectralOrder->sethasInstrumentProfile(false);
 		}
-		if (spectralOrder->gethasSpectralLines() && spectralLines && spectralLines->getnLines() > 0) {
-			if(method == 1) {
-				spectralOrder->measureInstrumentProfileUsingWeightedMean(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
-			} else if (method == 2) {
-				spectralOrder->measureInstrumentProfileUsingMedian(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
-			} else if (method == 3) {
-				spectralOrder->measureInstrumentProfile(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
-			} else if (method == 4) {
-				spectralOrder->measureInstrumentProfileWithBinning(*comp, *badpix, binsize, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+		try {
+			if (spectralOrder->gethasSpectralLines() && spectralLines && spectralLines->getnLines() > 0) {
+				if(method == 1) {
+					spectralOrder->measureInstrumentProfileUsingWeightedMean(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				} else if (method == 2) {
+					spectralOrder->measureInstrumentProfileUsingMedian(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				} else if (method == 3) {
+					spectralOrder->measureInstrumentProfile(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				} else if (method == 4) {
+					spectralOrder->measureInstrumentProfileWithBinning(*comp, *badpix, binsize, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+				}
+				spectralOrder->recenterOrderPosition();
 			}
-			spectralOrder->recenterOrderPosition();
+		} catch (operaException e) {
+			cout << "operaInstrumentProfileCalibration: " << "non-fatal error in order " << order << endl;
+			cout << e.getFormattedMessage() << endl;
 		}
     }
     // clean up so we don't run out of memory
@@ -325,10 +330,10 @@ int main(int argc, char *argv[])
             *badpix = 1.0;
         }
         
-		spectralOrders.ReadSpectralOrders(geometryfilename);
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, geometryfilename);
 		UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
 		
-		spectralOrders.readGainNoise(gainfilename);
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, gainfilename);
         unsigned amp = 0;
 		gain = spectralOrders.getGainBiasNoise()->getGain(amp);
 		noise = spectralOrders.getGainBiasNoise()->getNoise(amp);
@@ -373,7 +378,7 @@ int main(int argc, char *argv[])
             }
         }
 		
-		spectralOrders.WriteSpectralOrders(outputprof, Prof);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputprof, Prof);
 
 		bias->operaFITSImageClose();
 		flat->operaFITSImageClose();

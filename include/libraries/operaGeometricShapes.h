@@ -72,19 +72,19 @@ public:
     
     operaPoint(float xp, float yp);    
     
-    operaPoint(Line &inputLine1, Line &inputLine2);
+    operaPoint(const Line &inputLine1, const Line &inputLine2);
     
-	operaPoint(operaPoint &point);
+	operaPoint(const operaPoint &point);
     
     ~operaPoint(void);
     
-	void setPoint(operaPoint &point);
+	void setPoint(const operaPoint &point);
     
     void setPoint(float xp, float yp);
 
-    float getXcoord(void);
+    float getXcoord(void) const;
     
-    float getYcoord(void);
+    float getYcoord(void) const;
     
 };
 
@@ -105,21 +105,21 @@ public:
 	
 	Box(unsigned X1, unsigned X2, unsigned Y1, unsigned Y2, unsigned XDim, unsigned YDim);
 	
-	unsigned getX1(void);
+	unsigned getX1(void) const;
 	
-	unsigned getX2(void);
+	unsigned getX2(void) const;
 	
-	unsigned getY1(void);
+	unsigned getY1(void) const;
 	
-	unsigned getY2(void);
+	unsigned getY2(void) const;
 	
-	unsigned getDX(void);	
+	unsigned getDX(void) const;
 	
-	unsigned getDY(void);
+	unsigned getDY(void) const;
 	
-	unsigned getXDim(void);
+	unsigned getXDim(void) const;
 	
-	unsigned getYDim(void);
+	unsigned getYDim(void) const;
 	
 	void setX1(unsigned X1);
 	
@@ -133,7 +133,7 @@ public:
 	
 	void setYDim(unsigned YDim);
 	
-	unsigned getSize(void);
+	unsigned getSize(void) const;
 	
 };
 
@@ -153,31 +153,35 @@ public:
     
     Rectangle(float Width, float Height, float Angle);
 	
-    Rectangle(float Width, float Height, float Angle, operaPoint &Center);   
+    Rectangle(float Width, float Height, float Angle, const operaPoint &Center);   
     
-    Rectangle(float Width, float Height, float Angle, operaPoint *Center);   
+    Rectangle(float Width, float Height, float Angle, const operaPoint *Center);   
     
-	Rectangle(Rectangle &Rectangle);
+	Rectangle(const Rectangle &Rectangle);
     
     ~Rectangle(void);
     
-	void setRectangle(float Width, float Height, float Angle, operaPoint &Center);
+	void setRectangle(float Width, float Height, float Angle, const operaPoint &Center);
     
-	void setRectangle(Rectangle &Rectangle);
+	void setRectangle(const Rectangle &Rectangle);
     
 	operaPoint* getCorner(unsigned index);
+	
+	const operaPoint* getCorner(unsigned index)  const;
     
-    float getWidth(void);
+    float getWidth(void) const;
     
-    float getHeight(void);
+    float getHeight(void) const;
     
-    float getAngle(void);   
+    float getAngle(void) const;   
 	
     operaPoint *getCenter(void);
     
+    const operaPoint *getCenter(void) const;
+    
     void printCorners(void); 
 	
-    bool pointInRectangle(operaPoint &TestPoint);   
+    bool pointInRectangle(const operaPoint &TestPoint) const;
 };
 
 /*
@@ -193,19 +197,21 @@ public:
 	
     Circle(float Radius);
     
-    Circle(float Radius, operaPoint &Center);
+    Circle(float Radius, const operaPoint &Center);
     
-	Circle(Circle &ACircle);
+	Circle(const Circle &ACircle);
     
     ~Circle(void);
     
-	void setCircle(Circle &ACircle);
+	void setCircle(const Circle &ACircle);
     
-    float getRadius(void);
+    float getRadius(void) const;
     
     operaPoint *getCenter(void);
     
-    bool pointInCircle(operaPoint &TestPoint);
+    const operaPoint *getCenter(void) const;
+    
+    bool pointInCircle(const operaPoint &TestPoint) const;
 };
 
 /*
@@ -219,25 +225,27 @@ private:
 public:
     Polygon(void);
     
-    Polygon(unsigned NSides, operaPoint *Vertices[]);
+    Polygon(unsigned NSides, const operaPoint *Vertices[]);
     
-	Polygon(unsigned NSides, operaPoint Vertices[]);
+	Polygon(unsigned NSides, const operaPoint Vertices[]);
  	
-	Polygon(Polygon &Poly);
+	Polygon(const Polygon &Poly);
 	
     ~Polygon(void);
 	
-	void setPolygon(Polygon &Poly);
+	void setPolygon(const Polygon &Poly);
 	
     void simplePolygonization(void);
     
     void setNSides(unsigned NSides);
     
-    unsigned getNSides(void);
+    unsigned getNSides(void) const;
     
     operaPoint* getVertex(unsigned index);
     
-    bool pointInPolygon(operaPoint &testPoint);
+    const operaPoint* getVertex(unsigned index) const;
+    
+    bool pointInPolygon(const operaPoint &testPoint) const;
     
     void printVertexCoordinates(void);    
     
@@ -263,63 +271,65 @@ public:
     
     Line(float Slope);
     
-    Line(float Slope, operaPoint &SamplePoint);
+    Line(float Slope, const operaPoint &SamplePoint);
     
     Line(float Slope, float Intercept);
     
     Line(float Slope, float Width, float Length);
     
-    Line(float Slope, float Width, float Length, operaPoint &MidPoint);
+    Line(float Slope, float Width, float Length, const operaPoint &MidPoint);
     
-    Line(float Slope, float Width, float Length, operaPoint *MidPoint);
+    Line(float Slope, float Width, float Length, const operaPoint *MidPoint);
     
     Line(float Slope, float Intercept, float Width, float Length);
 	
-	Line(Line &inputLine, LinePosition_t LinePosition);
+	Line(const Line &inputLine, LinePosition_t LinePosition);
 	
-	Line(Line &ALine);
+	Line(const Line &ALine);
     
     ~Line(void);
     
-	void setLine(Line &ALine);
+	void setLine(const Line &ALine);
     
-    float getSlope(void);
+    float getSlope(void) const;
     
-    float getWidth(void);
+    float getWidth(void) const;
     
-    float getLength(void);   
+    float getLength(void) const;
     
     operaPoint *getMidPoint(void);
     
-    void setMidPoint(operaPoint &MidPoint);    
+    const operaPoint *getMidPoint(void) const;
+    
+    void setMidPoint(const operaPoint &MidPoint);    
 	
-    void setMidPoint(operaPoint *MidPoint);    
+    void setMidPoint(const operaPoint *MidPoint);    
 	
-    float getIntercept(void);
+    float getIntercept(void) const;
     
     void printLineEquation(void); 
     
-    float getYcoord(float x); 
+    float getYcoord(float x) const;
     
-    float getXcoord(float y); 
+    float getXcoord(float y) const;
     
-    bool pointOnLine(operaPoint &TestPoint);
+    bool pointOnLine(const operaPoint &TestPoint) const;
     
-    bool pointInLineWidth(operaPoint &TestPoint, Line &inputLine);    
+    bool pointInLineWidth(const operaPoint &TestPoint, const Line &inputLine) const;
     
-    Line *newPerpendicularLine(Line &inputLine);  
+    Line *newPerpendicularLine(const Line &inputLine) const;
     
-	operaPoint *newIntersectionPoint(Line &inputLine);
+	operaPoint *newIntersectionPoint(const Line &inputLine) const;
     
-    Line *newTopLine(Line &inputLine);
+    Line *newTopLine(const Line &inputLine) const;
     
-    Line *newBottomLine(Line &inputLine);
+    Line *newBottomLine(const Line &inputLine) const;
     
-    Line *newLeftLine(Line &inputLine);
+    Line *newLeftLine(const Line &inputLine) const;
     
-    Line *newRightLine(Line &inputLine); 
+    Line *newRightLine(const Line &inputLine) const;
     
-    float getLineYWidth(void);     
+    float getLineYWidth(void) const;
 };
 
 /*

@@ -37,7 +37,7 @@
 
 #include <fstream>
 #include <pthread.h>
-#include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaCCD.h"						// for MAXORDERS
 #include "libraries/operaArgumentHandler.h"
 #include "libraries/operaCommonModuleElements.h"
@@ -149,15 +149,7 @@ void *processOrder(void *argument) {
                 }
                 break;
             case OptimalBeamSpectrum:
-                if(noCrossCorrelation) {
-                    spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, FALSE, NULL);
-                } else {
-                    spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, TRUE, NULL);
-                }
-                
-                break;
-            case OperaOptimalBeamSpectrum:
-                //spectralOrder->extractOPERAOptimal(object, flat, *bias, *badpix, backgroundBinsize, *gainBiasNoise);
+				spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, !noCrossCorrelation, NULL);
                 break;
             default:
                 break;
@@ -289,9 +281,7 @@ int main(int argc, char *argv[])
 			cout << "operaExtraction: usePolynomialFit = " << usePolynomialFit << endl;
 			cout << "operaExtraction: removeBackground = " << removeBackground << endl;
 			cout << "operaExtraction: noCrossCorrelation = " << noCrossCorrelation << endl;
-			cout << "operaExtraction: removeBackground = " << removeBackground << endl;
-            if(ordernumber != NOTPROVIDED) cout << "operaExtraction: ordernumber = " << ordernumber << endl;            
-			cout << "operaExtraction: backgroundBinsize = " << backgroundBinsize << endl;            
+            if(ordernumber != NOTPROVIDED) cout << "operaExtraction: ordernumber = " << ordernumber << endl;
             if(args.plot) {
                 cout << "operaExtraction: plotfilename = " << plotfilename << endl;
                 cout << "operaExtraction: datafilename = " << datafilename << endl;
@@ -327,16 +317,16 @@ int main(int argc, char *argv[])
             *normalizedflat = 1.0;
         }        		
 
-		spectralOrders.ReadSpectralOrders(inputgeom);
-        spectralOrders.ReadSpectralOrders(inputaper);
-        spectralOrders.ReadSpectralOrders(inputprof);
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputgeom);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputaper);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputprof);
 
         UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
 		if (args.verbose) cout << "operaExtraction: minorder ="<< minorder << " maxorder=" << maxorder << endl;
 		/*
 		 * Add the order data to the raw spectrum product
 		 */
-		spectralOrders.readGainNoise(inputgain);
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputgain);
         gainBiasNoise = spectralOrders.getGainBiasNoise();
   
         /* 
@@ -389,7 +379,7 @@ int main(int argc, char *argv[])
             }
         }
 		// output a spectrum...
-		spectralOrders.WriteSpectralOrders(outputSpectraFile, spectralOrderType);
+		operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputSpectraFile, spectralOrderType);
         
 		object->operaFITSImageClose();
 		

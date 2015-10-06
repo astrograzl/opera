@@ -36,7 +36,7 @@
 // $Log$
 
 #include <fstream>
-#include "libraries/operaSpectralOrderVector.h"
+#include "libraries/operaIOFormats.h"
 #include "libraries/operaFit.h"						// for operaLMFitPolynomial
 #include "libraries/operaSpectralTools.h"			// void calculateUniformSample, getFluxAtWavelength
 #include "libraries/operaArgumentHandler.h"
@@ -176,8 +176,9 @@ int main(int argc, char *argv[])
             cout << "operaCreateFlatResponse: binsize = " << binsize << endl;
 		}
         
-		operaSpectralOrderVector spectralOrders(inputUncalibratedSpectrum);
-        spectralOrders.ReadSpectralOrders(inputWaveFile);
+		operaSpectralOrderVector spectralOrders;
+		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputUncalibratedSpectrum);
+        operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWaveFile);
 
         UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
         if (args.verbose) cout << "operaCreateFlatResponse: minorder ="<< minorder << " maxorder=" << maxorder << endl;        
@@ -211,7 +212,8 @@ int main(int argc, char *argv[])
         //---------------------------------
         // Correct flat-field
         if (!inputFlatFluxCalibration.empty()) {
-            spectralOrders.correctFlatField(inputFlatFluxCalibration, minorder, maxorder, false);
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputFlatFluxCalibration);
+            spectralOrders.correctFlatField(minorder, maxorder, false);
         }
         
         //---------------------------------

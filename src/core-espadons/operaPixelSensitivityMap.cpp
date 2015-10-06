@@ -35,27 +35,9 @@
 // $Locker$
 // $Log$
 
-#include <stdio.h>
-#include <getopt.h>
-#include <fstream>
-
-#include "globaldefines.h"
-#include "operaError.h"
-#include "core-espadons/operaPixelSensitivityMap.h"
-
-#include "libraries/operaException.h"
 #include "libraries/operaFITSImage.h"
-#include "libraries/operaFITSSubImage.h"
-#include "libraries/operaEspadonsImage.h"			// for imtype_t
-#include "libraries/operaSpectralOrder.h"			// for operaSpectralOrder
-#include "libraries/operaSpectralOrderVector.h"		// for operaSpectralOrderVector
-#include "libraries/operaInstrumentProfile.h"		// for operaInstrumentProfile
-
-#include "libraries/operaImage.h"
-#include "libraries/operaStats.h"
-#include "libraries/operaCCD.h"					// for MAXORDERS
 #include "libraries/operaFit.h"	
-#include "libraries/operaFFT.h"	
+#include "libraries/operaArgumentHandler.h"
 
 /*! \file operaPixelSensitivityMap.cpp */
 
@@ -78,73 +60,23 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-	int opt;
+	operaArgumentHandler args;
+	
 	string outputfilename;
 	string masterbias; 
 	string masterflat; 
-	string badpixelmask;	
-    eCompression compression = cNone;
-
-	int debug=0, verbose=0, trace=0, plot=0;
-	
-	struct option longopts[] = {
-		{"outputfilename",              1, NULL, 'o'},
-		{"masterbias",                  1, NULL, 'b'},
-		{"masterflat",                  1, NULL, 'f'},
-		{"badpixelmask",                1, NULL, 'm'},
-        {"compressiontype",             1, NULL, 'C'},
-		{"plot",		optional_argument, NULL, 'p'},
-		{"verbose",		optional_argument, NULL, 'v'},
-		{"debug",		optional_argument, NULL, 'd'},
-		{"trace",		optional_argument, NULL, 't'},
-		{"help",              no_argument, NULL, 'h'},
-		{0,0,0,0}};
-	
-	while((opt = getopt_long(argc, argv, "o:b:f:m:C:v::d::t::p::h", longopts, NULL))  != -1)
-    {
-		switch(opt) 
-		{
-			case 'o':
-				outputfilename = optarg;
-				break;   
-			case 'b':		// output
-				masterbias = optarg;
-				break;
-			case 'f':		// masterflat
-				masterflat = optarg;
-				break;
-			case 'm':		// badpixelmask
-				badpixelmask = optarg;
-				break;
-            case 'C':
-                compression = (eCompression)atoi(optarg);
-                break;
-			case 'v':
-				verbose = 1;
-				break;
-			case 'p':
-				plot = 1;
-				break;
-			case 'd':
-				debug = 1;
-				break;
-			case 't':
-				trace = 1;
-				break;         
-			case 'h':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-			case '?':
-				printUsageSyntax(argv[0]);
-				exit(EXIT_SUCCESS);
-				break;
-		}
-	}	
-	
-	/*Start the module here*/
+	string badpixelmask;
+	unsigned compression_val = cNone;
+    
+    args.AddRequiredArgument("outputfilename", outputfilename, "Ouput pixel-by-pixel sensitivity map FITS image");
+    args.AddRequiredArgument("masterbias", masterbias, "Input Master Bias FITS image");
+    args.AddRequiredArgument("masterflat", masterflat, "Input Master Flat-Field FITS image");
+    args.AddRequiredArgument("badpixelmask", badpixelmask, "FITS image with badpixel mask");
+    args.AddOptionalArgument("compressiontype", compression_val, cNone, "Compression type");
 	
 	try {
+		args.Parse(argc, argv);
+		
 		// we need a masterflat...
 		if (masterflat.empty()) {
 			throw operaException("operaPixelSensitivityMap: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
@@ -154,7 +86,9 @@ int main(int argc, char *argv[])
 			throw operaException("operaPixelSensitivityMap: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 		}
 		
-		if (verbose) {
+		eCompression compression = eCompression(compression_val);
+		
+		if (args.verbose) {
 			cout << "operaPixelSensitivityMap: outputfilename = " << outputfilename << endl; 
 			cout << "operaPixelSensitivityMap: masterflat = " << masterflat << endl; 	
 			cout << "operaPixelSensitivityMap: masterbias = " << masterbias << endl; 		
@@ -162,7 +96,7 @@ int main(int argc, char *argv[])
             cout << "operaPixelSensitivityMap: compression = " << compression << endl;
 		}
         
-		operaFITSImage *flat = new operaFITSImage(masterflat, tfloat, READONLY);
+		operaFITSImage flat(masterflat, tfloat, READONLY);
 		
         operaFITSImage *bias = NULL;
         operaFITSImage *badpix = NULL;
@@ -170,22 +104,22 @@ int main(int argc, char *argv[])
 		if (!masterbias.empty()){
 			bias = new operaFITSImage(masterbias, tfloat, READONLY);
 		} else {
-            bias = new operaFITSImage(flat->getnaxis1(),flat->getnaxis2(),tfloat);
+            bias = new operaFITSImage(flat.getnaxis1(),flat.getnaxis2(),tfloat);
             *bias = 0.0;
         }
         
 		if (!badpixelmask.empty()){
 			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
 		} else {
-            badpix = new operaFITSImage(flat->getnaxis1(),flat->getnaxis2(),tfloat);
+            badpix = new operaFITSImage(flat.getnaxis1(),flat.getnaxis2(),tfloat);
             *badpix = 1.0;
         }
 
-		*flat -= *bias;			// remove bias from masterflat
+		flat -= *bias;			// remove bias from masterflat
 		
-        long npixels = flat->getnpixels();
+        long npixels = flat.getnpixels();
         
-        float *flatData = (float *)flat->getpixels();
+        float *flatData = (float *)flat.getpixels();
         float *badpixData = (float *)badpix->getpixels();
         
         float maxvalue = -BIG;
@@ -196,26 +130,22 @@ int main(int argc, char *argv[])
             }
         }
         
-        operaFITSImage outputImage(outputfilename, flat->getnaxis1(), flat->getnaxis2(), tfloat, compression);
-		outputImage.operaFITSImageCopyHeader(flat);
+        operaFITSImage outputImage(outputfilename, flat.getnaxis1(), flat.getnaxis2(), tfloat, compression);
+		outputImage.operaFITSImageCopyHeader(&flat);
         
-		for (unsigned y=0; y<flat->getnaxis2(); y++) {
-			for (unsigned x=0; x<flat->getnaxis1(); x++) {
-				outputImage[y][x] = ( (*flat)[y][x] + (*bias)[y][x] ) / maxvalue;
+		for (unsigned y=0; y<flat.getnaxis2(); y++) {
+			for (unsigned x=0; x<flat.getnaxis1(); x++) {
+				outputImage[y][x] = (flat[y][x] + (*bias)[y][x]) / maxvalue;
 			}
 		}
         
         outputImage.operaFITSImageSave();
 		outputImage.operaFITSImageClose();
 
-        flat->operaFITSImageClose();
+        flat.operaFITSImageClose();
 		        
-        if(bias)
-            delete bias;
-        if(badpix)
-            delete badpix;
-        if(flat)
-            delete flat;
+        if(bias) delete bias;
+        if(badpix) delete badpix;
 	}
 	catch (operaException e) {
 		cerr << "operaPixelSensitivityMap: " << e.getFormattedMessage() << endl;
@@ -227,31 +157,3 @@ int main(int argc, char *argv[])
 	}
 	return EXIT_SUCCESS;
 }
-
-/* Print out the proper program usage syntax */
-static void printUsageSyntax(char * modulename) {
-	cout <<
-	"\n"
-	" Usage: "+string(modulename)+"  [-vdth]" + 
-	" --inputGeometryFile=<GEOM_FILE>"
-	" --outputNormFlat=<FITS_IMAGE>"
-	" --inputMasterBias=<FITS_IMAGE>"	
-	" --inputMasterFlat=<FITS_IMAGE>"	
-	" --badpixelmask=<FITS_IMAGE>"
-	" --aperture=<FLT_VALUE>"	
-	" --binsize=<UNS_VALUE>  \n\n"
-	
-	" Example: "+string(modulename)+" -g OLAPAa_sp2_Normal.geom -A 30 -B 20 -f masterflat_OLAPAa_sp2_Normal.fits -b masterbias_OLAPAa_sp2_Normal.fits -o normflat_OLAPAa_sp2_Normal.fits -v \n\n"
-	"  -h, --help  display help message\n"
-	"  -v, --verbose,  Turn on message sending\n"
-	"  -d, --debug,  Turn on debug messages\n"
-	"  -t, --trace,  Turn on trace messages\n"
-	" -g, --inputGeometryFile=<GEOM_FILE>, Input geometry file\n"
-	" -o, --outputNormFlat=<FITS_IMAGE>, Ouput pixel-by-pixel sensitivity map FITS image\n"
-	" -b, --inputMasterBias=<FITS_IMAGE>, Input Master Bias FITS image\n"	
-	" -f, --inputMasterFlat=<FITS_IMAGE>, Input Master Flat-Field FITS image\n"		
-	" -m, --badpixelmask=<FITS_IMAGE>, FITS image with badpixel mask\n"
-	" -A, --aperture=<FLT_VALUE>, Aperture for extraction in X-direction\n"	
-	" -B, --binsize=<UNS_VALUE>, Bin size in Y-direction \n\n";
-}
-

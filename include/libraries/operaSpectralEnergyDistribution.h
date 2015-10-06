@@ -110,11 +110,11 @@ public:
     
     void setnDataPoints(unsigned NDataPoints);
     
-    unsigned getnDataPoints(void);
+    unsigned getnDataPoints(void) const;
     
     void setwavelengthForNormalization(double WavelengthForNormalization);
     
-    double getwavelengthForNormalization(void);
+    double getwavelengthForNormalization(void) const;
         
 	void createDataVectors(unsigned NDataPoints);
 
@@ -128,19 +128,19 @@ public:
     
     void setspectralEnergyData(double SpectralEnergy, unsigned index);    
    
-    double getdistanceData(unsigned index);
+    double getdistanceData(unsigned index) const;
     
-    double getwavelengthData(unsigned index);
+    double getwavelengthData(unsigned index) const;
     
-    double getfluxData(unsigned index); 
+    double getfluxData(unsigned index) const;
     
-    double getspectralEnergyData(unsigned index);      
+    double getspectralEnergyData(unsigned index) const;
     
-	bool getHasFluxData(void) { return hasFluxData; };
+	bool getHasFluxData(void) const { return hasFluxData; };
     
 	void setHasFluxData(bool HasFluxData) { hasFluxData = HasFluxData; };
     
-	bool getHasSpectralEnergyData(void) { return hasSpectralEnergyData; };
+	bool getHasSpectralEnergyData(void) const { return hasSpectralEnergyData; };
     
 	void setHasSpectralEnergyData(bool HasSpectralEnergyData) { hasSpectralEnergyData = HasSpectralEnergyData; };
     
@@ -168,31 +168,39 @@ public:
 
     void setCalibratedFluxElements(operaSpectralElements *CalibratedFluxElements);    
     
-    operaSpectralElements* getUncalibratedFluxElements(void){ return uncalibratedFluxElements; };
+    operaSpectralElements* getUncalibratedFluxElements(void){ return uncalibratedFluxElements; }
     
-    operaSpectralElements* getCalibratedFluxElements(void){ return calibratedFluxElements; };
+    const operaSpectralElements* getUncalibratedFluxElements(void) const { return uncalibratedFluxElements; }
+    
+    operaSpectralElements* getCalibratedFluxElements(void){ return calibratedFluxElements; }
+    
+    const operaSpectralElements* getCalibratedFluxElements(void) const { return calibratedFluxElements; }
     
     void setFluxCalibrationElements(operaSpectralElements *FluxCalibrationElements);
     
     void setThroughputElements(operaSpectralElements *ThroughputElements);
     
-    operaSpectralElements* getFluxCalibrationElements(void){ return fluxCalibration; };
+    operaSpectralElements* getFluxCalibrationElements(void){ return fluxCalibration; }
     
-    operaSpectralElements* getThroughputElements(void){ return instrumentThroughput; };    
+    const operaSpectralElements* getFluxCalibrationElements(void) const { return fluxCalibration; }
+    
+    operaSpectralElements* getThroughputElements(void){ return instrumentThroughput; }
+    
+    const operaSpectralElements* getThroughputElements(void) const { return instrumentThroughput; }
         
-	bool getHasUncalibratedFlux(void) { return hasUncalibratedFlux; };
+	bool getHasUncalibratedFlux(void) const { return hasUncalibratedFlux; };
 
 	void setHasUncalibratedFlux(bool HasUncalibratedFlux) { hasUncalibratedFlux = HasUncalibratedFlux; };
 
-	bool getHasCalibratedFlux(void) { return hasCalibratedFlux; };
+	bool getHasCalibratedFlux(void) const { return hasCalibratedFlux; };
 
 	void setHasCalibratedFlux(bool HasCalibratedFlux) { hasCalibratedFlux = HasCalibratedFlux; };
 
-	bool getHasFluxCalibration(void) { return hasFluxCalibration; };
+	bool getHasFluxCalibration(void) const { return hasFluxCalibration; };
 
 	void setHasFluxCalibration(bool HasFluxCalibration) { hasFluxCalibration = HasFluxCalibration; };
     
-	bool getHasInstrumentThroughput(void) { return hasInstrumentThroughput; };
+	bool getHasInstrumentThroughput(void) const { return hasInstrumentThroughput; };
 
 	void setHasInstrumentThroughput(bool HasInstrumentThroughput) { hasInstrumentThroughput = HasInstrumentThroughput; };
     
@@ -202,13 +210,13 @@ public:
     
     void setnumberOfMaskedRegions(unsigned nMaskedRegions);
     
-    unsigned getnumberOfMaskedRegions(void);
+    unsigned getnumberOfMaskedRegions(void) const;
     
     void setMaskRegion(unsigned index, double Wavelength1, double Wavelength2);
     
-    double getMaskRegionWavelength1(unsigned index);
+    double getMaskRegionWavelength1(unsigned index) const;
     
-    double getMaskRegionWavelength2(unsigned index);
+    double getMaskRegionWavelength2(unsigned index) const;
  
     void readMaskedRegionsFromFile(string MaskedRegionsFileName);
 

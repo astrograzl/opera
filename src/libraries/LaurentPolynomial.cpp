@@ -176,7 +176,7 @@ void LaurentPolynomial::setnDataPoints(unsigned NDataPoints) {
  * \note usage:  n = getnDataPoints();
  * \return unsigned
  */
-unsigned LaurentPolynomial::getnDataPoints(void) {
+unsigned LaurentPolynomial::getnDataPoints(void) const {
     return nDataPoints;
 }
 
@@ -253,21 +253,21 @@ void LaurentPolynomial::setDataVectors(unsigned NDataPoints, double *Xvector, do
     }
 }
 
-double LaurentPolynomial::getXdataValue(unsigned index) {
+double LaurentPolynomial::getXdataValue(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
     return xdataVector[index];
 }
 
-double LaurentPolynomial::getYdataValue(unsigned index) {
+double LaurentPolynomial::getYdataValue(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
     return ydataVector[index];
 }
 
-double LaurentPolynomial::getYerrorValue(unsigned index) {
+double LaurentPolynomial::getYerrorValue(unsigned index) const {
 	if (index >= maxNDataPoints) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
@@ -282,7 +282,7 @@ double LaurentPolynomial::getYerrorValue(unsigned index) {
  * \param index is a const unsigned index of the coefficient to get
  * \return void
  */
-double LaurentPolynomial::Get(const unsigned index) {
+double LaurentPolynomial::Get(const unsigned index) const {
 	if (index >= MAXPOLYNOMIAL) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -312,7 +312,7 @@ void LaurentPolynomial::Set(const double x, const unsigned index) {
  * \param x is a double input value for which the given LaurentPolynomial is evaluated
  * \return double value of evaluation of the LaurentPolynomial
  */
-double LaurentPolynomial::Evaluate(const double x) {
+double LaurentPolynomial::Evaluate(const double x) const {
 	double fpoly = 0;
 	for (int i=minorderOfLaurentPolynomial; i<=maxorderOfLaurentPolynomial; i++) {
 		fpoly += LaurentPolynomialVector[(unsigned)(i-minorderOfLaurentPolynomial)]*pow(x, i);
@@ -365,7 +365,7 @@ void LaurentPolynomial::setMinMaxOrderOfLaurentPolynomial(int MinOrder,int MaxOr
  * \note usage: int npar = getMinorderOfLaurentPolynomial<float>();
  * \note usage: int npar = getMinorderOfLaurentPolynomial();
  */
-int LaurentPolynomial::getMinorderOfLaurentPolynomial(void) {
+int LaurentPolynomial::getMinorderOfLaurentPolynomial(void) const {
     return minorderOfLaurentPolynomial;
 }
 
@@ -375,7 +375,7 @@ int LaurentPolynomial::getMinorderOfLaurentPolynomial(void) {
  * \note usage: int npar = getMaxorderOfLaurentPolynomial<float>();
  * \note usage: int npar = getMaxorderOfLaurentPolynomial();
  */
-int LaurentPolynomial::getMaxorderOfLaurentPolynomial(void) {
+int LaurentPolynomial::getMaxorderOfLaurentPolynomial(void) const {
     return maxorderOfLaurentPolynomial;
 }
 
@@ -385,7 +385,7 @@ int LaurentPolynomial::getMaxorderOfLaurentPolynomial(void) {
  * \note usage: getNumberOfCoefficients(3);
  * \return void
  */
-unsigned LaurentPolynomial::getNumberOfCoefficients(void) {
+unsigned LaurentPolynomial::getNumberOfCoefficients(void) const {
     return numberOfCoefficients;
 }
 
@@ -395,7 +395,7 @@ unsigned LaurentPolynomial::getNumberOfCoefficients(void) {
  * \brief usage: float coeff3 = getCoefficient(3);
  * \return void
  */
-double LaurentPolynomial::getCoefficient(unsigned index) {
+double LaurentPolynomial::getCoefficient(unsigned index) const {
 	if (index >= MAXPOLYNOMIAL) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -421,7 +421,7 @@ void LaurentPolynomial::setCoefficient(unsigned index, double value) {
  * \brief usage: double err = getCoefficientError(3);
  * \return double
  */
-double LaurentPolynomial::getCoefficientError(unsigned index) {
+double LaurentPolynomial::getCoefficientError(unsigned index) const {
 	if (index >= MAXPOLYNOMIAL) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -492,7 +492,7 @@ void LaurentPolynomial::setChisqr(double Chisqr) {
  * \brief usage: double c = getChisqr();
  * \return double
  */
-double LaurentPolynomial::getChisqr(void) {
+double LaurentPolynomial::getChisqr(void) const {
 	return polychisqr;
 }
 
@@ -502,7 +502,7 @@ double LaurentPolynomial::getChisqr(void) {
  * \brief usage: double rms = calculateRMSofResiduals();
  * \return double
  */
-double LaurentPolynomial::calculateRMSofResiduals(void) {
+double LaurentPolynomial::calculateRMSofResiduals(void) const {
 
 	double WSSR = 0;
 	
