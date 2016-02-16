@@ -211,27 +211,9 @@ int main(int argc, char *argv[])
             }
         }
         
-        float *referenceWavelength = new float[MAXSPECTRALELEMENTSPERORDER];
-        float *inputWavelength = new float[MAXSPECTRALELEMENTSPERORDER];
-        
-        float *inputFluxCal = new float[MAXSPECTRALELEMENTSPERORDER];
-        float *inputThroughput = new float[MAXSPECTRALELEMENTSPERORDER];
-        float *referenceInputFluxCal = new float[MAXSPECTRALELEMENTSPERORDER];
-        float *referenceInputThroughput = new float[MAXSPECTRALELEMENTSPERORDER];
-        
-        float *inputBeamFluxCal[MAXNUMBEROFBEAMS],*referenceBeamInputFluxCal[MAXNUMBEROFBEAMS];
-        float *inputBeamThroughput[MAXNUMBEROFBEAMS],*referenceBeamInputThroughput[MAXNUMBEROFBEAMS];
-        
         operaSpectralEnergyDistribution *BeamSED[MAXNUMBEROFBEAMS];
 		operaSpectralElements *beamFluxcalibration[MAXNUMBEROFBEAMS];
         operaSpectralElements *beamThroughput[MAXNUMBEROFBEAMS];
-        
-        for(unsigned beam = 0; beam < NumberofBeams; beam++) {
-            inputBeamFluxCal[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
-            inputBeamThroughput[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
-            referenceBeamInputFluxCal[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
-            referenceBeamInputThroughput[beam] = new float[MAXSPECTRALELEMENTSPERORDER];
-        }
         
         for(unsigned index=0; index<inputFcalIndex; index++) {
             // read input flux calibration
@@ -255,6 +237,17 @@ int main(int argc, char *argv[])
             bool interpolate = FALSE;
             
             for (int order=minorder; order<=maxorder; order++) {
+                operaVector referenceWavelength;
+                operaVector inputWavelength;
+                operaVector inputFluxCal;
+                operaVector inputThroughput;
+                operaVector inputBeamFluxCal[MAXNUMBEROFBEAMS];
+                operaVector inputBeamThroughput[MAXNUMBEROFBEAMS];
+                operaVector referenceInputFluxCal;
+                operaVector referenceInputThroughput;
+                operaVector referenceBeamInputFluxCal[MAXNUMBEROFBEAMS];
+                operaVector referenceBeamInputThroughput[MAXNUMBEROFBEAMS];
+        
                 
                 operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
                 
@@ -276,7 +269,7 @@ int main(int argc, char *argv[])
                     }
                     
                     for(unsigned indexElem=0; indexElem<nElements; indexElem++) {
-                        referenceWavelength[indexElem] = (float)SpectralElements->getwavelength(indexElem);
+                        referenceWavelength.insert(SpectralElements->getwavelength(indexElem));
                     }
                     
                     // grab order of input fcal
@@ -303,7 +296,7 @@ int main(int argc, char *argv[])
 
                         // loop below collects data from input fcal
                         for(unsigned indexElem=0; indexElem<inputnElements; indexElem++) {
-                            inputWavelength[indexElem] = (float)FluxCalibration->getwavelength(indexElem);
+                            inputWavelength.insert(FluxCalibration->getwavelength(indexElem));
 
                             if(!interpolate) {
                                 if(fabs(inputWavelength[indexElem] - referenceWavelength[indexElem]) > WAVELENGTH_PRECISION) {
@@ -313,12 +306,12 @@ int main(int argc, char *argv[])
                                 }
                             }
 
-                            inputFluxCal[indexElem] = (float)FluxCalibration->getFlux(indexElem);
-                            inputThroughput[indexElem] = (float)InstrumentThroughput->getFlux(indexElem);
+                            inputFluxCal.insert(FluxCalibration->getFlux(indexElem));
+                            inputThroughput.insert(InstrumentThroughput->getFlux(indexElem));
 
                             for(unsigned beam = 0; beam < inputSpectralOrder->getnumberOfBeams(); beam++) {
-                                inputBeamFluxCal[beam][indexElem] = (float)(beamFluxcalibration[beam]->getFlux(indexElem));
-                                inputBeamThroughput[beam][indexElem] = (float)(beamThroughput[beam]->getFlux(indexElem));
+                                inputBeamFluxCal[beam].insert(beamFluxcalibration[beam]->getFlux(indexElem));
+                                inputBeamThroughput[beam].insert(beamThroughput[beam]->getFlux(indexElem));
                             }
 
                             // below is for plotting
@@ -342,25 +335,22 @@ int main(int argc, char *argv[])
                         
                         // below is for plotting
                         if(fspecdata.is_open()) fspecdata << endl;
-                                                
+                        
                         if(interpolate) {
                             if(args.verbose) cout << "operaMasterFluxCalibration: Starting interpolations" << endl;
-                            
-                            operaFitSpline(inputnElements,inputWavelength,inputFluxCal,nElements,referenceWavelength,referenceInputFluxCal);
-                            operaFitSpline(inputnElements,inputWavelength,inputThroughput,nElements,referenceWavelength,referenceInputThroughput);
-                            
+                            referenceInputFluxCal = fitSpectrum(inputWavelength, inputFluxCal, referenceWavelength);
+                            referenceInputThroughput = fitSpectrum(inputWavelength, inputThroughput, referenceWavelength);
                             for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
-                                operaFitSpline(inputnElements,inputWavelength,inputBeamFluxCal[beam],nElements,referenceWavelength,referenceBeamInputFluxCal[beam]);
-                                operaFitSpline(inputnElements,inputWavelength,inputBeamThroughput[beam],nElements,referenceWavelength,referenceBeamInputThroughput[beam]);
+                                referenceBeamInputFluxCal[beam] = fitSpectrum(inputWavelength, inputBeamFluxCal[beam], referenceWavelength);
+                                referenceBeamInputThroughput[beam] = fitSpectrum(inputWavelength, inputBeamThroughput[beam], referenceWavelength);
                             }
                         } else {
                             for(unsigned indexElem=0; indexElem<inputnElements; indexElem++) {
-                                referenceInputFluxCal[indexElem] = inputFluxCal[indexElem];
-                                referenceInputThroughput[indexElem] = inputThroughput[indexElem];
-                                
+                                referenceInputFluxCal = inputFluxCal;
+                                referenceInputThroughput = inputThroughput[indexElem];
                                 for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
-                                    referenceBeamInputFluxCal[beam][indexElem] = inputBeamFluxCal[beam][indexElem];
-                                    referenceBeamInputThroughput[beam][indexElem] = inputBeamThroughput[beam][indexElem];
+                                    referenceBeamInputFluxCal[beam] = inputBeamFluxCal[beam];
+                                    referenceBeamInputThroughput[beam] = inputBeamThroughput[beam];
                                 }
                             }
                         }
@@ -416,20 +406,6 @@ int main(int argc, char *argv[])
          * and write output
          */
         operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputfcal, Fcal);
-        
-        delete[] referenceWavelength;
-        delete[] inputWavelength;
-        delete[] inputFluxCal;
-        delete[] inputThroughput;
-        delete[] referenceInputFluxCal;
-        delete[] referenceInputThroughput;
-        
-        for(unsigned beam = 0; beam < NumberofBeams; beam++) {
-            delete[] inputBeamFluxCal[beam];
-            delete[] inputBeamThroughput[beam];
-            delete[] referenceBeamInputFluxCal[beam];
-            delete[] referenceBeamInputThroughput[beam];
-        }
         
         if (fspecdata.is_open() && foutdata.is_open()) {
             fspecdata.close();

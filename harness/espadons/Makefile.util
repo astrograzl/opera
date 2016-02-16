@@ -695,6 +695,7 @@ cleanproducts: cleanintensity cleansnr cleanpol
 	@if [ -d $(spectradir) ] ; then \
 		echo "$(pref) cleaning FITS products in $(spectradir)..." ; \
 		rm -f $(spectradir)*m.$(FITS) ; \
+		rm -f $(spectradir)*q.$(FITS) ; \
 		rm -f $(spectradir)*p.$(FITS)$(extension) ; \
 		rm -f $(spectradir)*i.$(FITS)$(extension) ; \
 	fi
@@ -986,18 +987,15 @@ parall: parintensity parpolarimetry ;
 
 parintensity parallelintensity:
 	@start=$$SECONDS; \
-	((j=1)); ((index=1)); makelist=""; filelist=""; \
-	((pulls=0)) ; \
-	((lcount=1)) ; \
+	((lcount=0)) ; \
 	for l in $(LOADAVERAGES) ; do \
-		theload[$$lcount]=$$l ; \
-		((pulls+=l)) ; \
 		((lcount++)) ; \
+		theload[$$lcount]=$$l ; \
 	done ; \
-	((mcount=1)) ; \
+	((mcount=0)) ; \
 	for machine in $(MACHINES) ; do \
-		themachine[$$mcount]=$$machine ; \
 		((mcount++)) ; \
+		themachine[$$mcount]=$$machine ; \
 	done ; \
 	if (( mcount != lcount )) ; then \
 		echo "$(epref) Configuration problem - the $$mcount machines don't match the $$lcount load averages... aborting!" 2>&1 | tee -a $(errfile) ; \
@@ -1006,53 +1004,43 @@ parintensity parallelintensity:
 	exec 4< $(byproductsdir)master.rlst ; \
 	while read line <&4 ; \
 	do \
-		detector=`$(bindir)operagetword 1 $${line}`; \
-		mode=`$(bindir)operagetword 2 $${line}`; \
-		speed=`$(bindir)operagetword 3 $${line}`; \
-		amplifier=`$(bindir)operagetword 4 $${line} | sed -e 's:_::'`; \
-		oset=`$(bindir)operagetword 5 $${line}`; \
-		linecount=`cat <$(byproductsdir)master.rlst | wc -l`; \
-		if [ -s $(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst ] ; then \
-			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)'`; \
-			if [[ "$${filelist}" != "" ]] ; then \
-				filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)' | xargs -n1 basename`; \
-				amp=1 ; \
-				objects="`$(bindir)operaslice $$index $$pulls \"$$filelist\"`" ; \
-				count=`$(bindir)operacount "$$objects"`; \
-				while [[ $$objects ]] ; do \
-					while (( j <= $(words $(MACHINES)) && count > 0 )) ; do \
-						machine=$${themachine[$$j]}; \
-						stride=$${theload[$$j]} ; \
-						shortlist=`$(bindir)operagetwords 1 $$stride $$objects` ; \
-						count=`$(bindir)operacount "$${shortlist}"`; \
-						if (( count > 0 )) ; then \
-							spectra=`echo "$${shortlist}" | sed -e 's/$(OBJECTROOTPATTERN)/$(TARGET)/g' -e 's/$(OBJECTROOTPATTERNB)/$(TARGET)/g' -e 's/^ //' -e s'/ /_/'g`; \
-							makelist="$$makelist $$machine.cpu MACHINE=$${machine} $${machine}SPECTRA=$${spectra} $${machine}MODE=$${mode} $${machine}SPEED=$${speed} OSET=$${oset} $${machine}DETECTOR=$${detector} $${machine}AMPLIFIER=$${amplifier} $${machine}QUALIFIERS=$${detector}$${amplifier}_$${mode}$${oset}_$${speed} "; \
+		detector=`$(bindir)operagetword 1 $$line`; \
+		mode=`$(bindir)operagetword 2 $$line`; \
+		speed=`$(bindir)operagetword 3 $$line`; \
+		amplifier=`$(bindir)operagetword 4 $$line | sed -e 's:_::'`; \
+		oset=`$(bindir)operagetword 5 $$line`; \
+		qualifiers=$${detector}$${amplifier}_$${mode}$${oset}_$${speed} ; \
+		if [[ -s $(byproductsdir)$${qualifiers}.rlst ]] ; then \
+			filelist=`cat <$(byproductsdir)$${qualifiers}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)' | tr '\n' ' '`; \
+			if [[ $$filelist != "" ]] ; then \
+				((mindex=1)); \
+				((loadnum=1)); \
+				makelist=""; \
+				while [[ $$filelist != "" ]] ; do \
+					objectpath=`$(bindir)operagetword 1 $$filelist`; \
+					if [[ objectpath != "" ]] ; then \
+						spectra=`echo "$$objectpath" | xargs -n1 basename | sed -e 's:$(OBJECTROOTPATTERN):$(TARGET):g' -e 's:$(OBJECTROOTPATTERNB):$(TARGET):g'` ; \
+						machine=$${themachine[$$mindex]}; \
+						cpuid="$${machine}.$${loadnum}" ; \
+						makelist="$$makelist $${cpuid}.cpu $${cpuid}MACHINE=$${machine} $${cpuid}SPECTRA=$${spectra} $${cpuid}OFITS=$${objectpath} $${cpuid}MODE=$${mode} $${cpuid}OSET=$${oset} $${cpuid}SPEED=$${speed} $${cpuid}DETECTOR=$${detector} $${cpuid}AMPLIFIER=$${amplifier} $${cpuid}QUALIFIERS=$${qualifiers} "; \
+						((loadnum++)) ; \
+						if (( loadnum > theload[mindex] )) ; then \
+							((mindex++)) ; \
+							((loadnum=1)); \
 						fi ; \
-						((j++)); \
-						objects=`$(bindir)operasublist "$${shortlist}" "$$objects"`; \
-						shortlist="" ; \
-					done ; \
-					if (( j > $(words $(MACHINES)) )) ; then \
-						$(RECHO) $(MAKE) -f $(makedir)Makefile $$makelist ; \
-						((j=1)); makelist="";\
+						if (( mindex > mcount )) ; then \
+							((mindex=1)) ; \
+							$(RECHO) $(MAKE) -f $(makedir)Makefile $$makelist ; \
+							makelist="" ; \
+						fi ; \
 					fi ; \
-					if [[ linecount == 1 && "$$makelist" != "" ]] ; then \
-						$(RECHO) $(MAKE) -f $(makedir)Makefile $$makelist ; \
-						((j=1)); makelist="";\
-					fi ; \
-					if [ "$$filelist" != "" ] ; then \
-						((index+=pulls)) ; \
-						objects="`$(bindir)operaslice $$index $$pulls \"$$filelist\"`" ; \
-					fi ; \
+					filelist=`$(bindir)operasublist "$$objectpath" "$$filelist"`; \
 				done ; \
-			fi ; \
-			if [ "$$makelist" != "" ] ; then \
-				$(RECHO) $(MAKE) -f $(makedir)Makefile $$makelist ; \
-				((j=1)); makelist="";\
+				if [[ $$makelist != "" ]] ; then \
+					$(RECHO) $(MAKE) -f $(makedir)Makefile $$makelist ; \
+				fi ; \
 			fi ; \
 		fi ; \
-		((j=1)); ((index=1)); makelist=""; filelist=""; \
 	done ; \
 	exec 4>&-
 
@@ -1061,88 +1049,76 @@ parintensity parallelintensity:
 # Parallel Polarimetry
 #
 #########################################################################################
+
 parpolarimetry parallelpolarimetry:
 	@start=$$SECONDS; \
-	((j=1)); ((index=1)); makelist=""; filelist=""; \
-	((pulls=0)) ; \
-	((lcount=1)) ; \
+	((lcount=0)) ; \
 	for l in $(LOADAVERAGES) ; do \
-		theload[$$lcount]=$$l ; \
-		((pulls+=l)) ; \
 		((lcount++)) ; \
+		theload[$$lcount]=$$l ; \
 	done ; \
-	((mcount=1)) ; \
+	((mcount=0)) ; \
 	for machine in $(MACHINES) ; do \
-		themachine[$$mcount]=$$machine ; \
 		((mcount++)) ; \
+		themachine[$$mcount]=$$machine ; \
 	done ; \
 	if (( mcount != lcount )) ; then \
 		echo "$(epref) Configuration problem - the $$mcount machines don't match the $$lcount load averages... aborting!" 2>&1 | tee -a $(errfile) ; \
 		exit 1 ; \
 	fi ; \
-	linecount=`cat <$(byproductsdir)master.rlst | wc -l`; \
 	exec 4< $(byproductsdir)master.rlst ; \
 	while read line <&4 ; \
 	do \
-		detector=`$(bindir)operagetword 1 $${line}`; \
-		mode=`$(bindir)operagetword 2 $${line}`; \
-		speed=`$(bindir)operagetword 3 $${line}`; \
-		amplifier=`$(bindir)operagetword 4 $${line} | sed -e 's:_::'`; \
-		oset=`$(bindir)operagetword 5 $${line}`; \
-		if [[ "$${mode}" == "pol" && -s $(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst ]] ; then \
-			filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst  | grep -e '$(OBJECTROOTPATTERN)' -e '$(OBJECTROOTPATTERNB)' | tr '\n' ' '`; \
-			if [[ "$${filelist}" != "" ]] ; then \
-				filelist=`cat <$(byproductsdir)$${detector}$${amplifier}_$${mode}$${oset}_$${speed}.rlst  | grep -e '$(OBJECTROOTPATTERN)' -e '$(OBJECTROOTPATTERNB)' | tr '\n' ' '`; \
-				count=`$(bindir)operacount "$$filelist"`; \
-				while (( count > 0 )) ; do \
-					quadpath=`$(bindir)operagetpolarquad $$filelist | tr '\n' ' '`; \
-					quad=`echo "$$quadpath" | xargs -n1 basename | tr '\n' ' '`; \
-					obj1=`$(bindir)operagetword 2 $$quad` ; \
-					obj1path=`$(bindir)operagetword 2 $$quadpath` ; \
-					if [[ `$(bindir)operagetword 1 $$quad` == 4 || `$(bindir)operagetword 1 $$quad` == 2 ]] ; then \
-						machine=$${themachine[$$j]}; \
-						stride=$${theload[$$j]} ; \
-						objects="`$(bindir)operagetword 2 $$quad` `$(bindir)operagetword 3 $$quad` `$(bindir)operagetword 4 $$quad` `$(bindir)operagetword 5 $$quad`"; \
-						spectra=`echo "$$obj1" | sed -e 's:$(OBJECTROOTPATTERN):$(POLARIMETRYROOTPATTERN):' -e 's:$(OBJECTROOTPATTERNB):$(POLARIMETRYROOTPATTERN):'`; \
-						p1=`$(bindir)operagetword 2 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
-						p2=`$(bindir)operagetword 3 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
-						p3=`$(bindir)operagetword 4 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
-						p4=`$(bindir)operagetword 5 $$quad | sed -e 's:$(OBJECTROOTPATTERN)::' -e 's:$(OBJECTROOTPATTERNB)::'` ; \
-						makelist="$$makelist $$machine.cpu MACHINE=$${machine} $${machine}P1=$${p1} $${machine}P2=$${p2} $${machine}P3=$${p3} $${machine}P4=$${p4} $${machine}SPECTRA=$$spectra $${machine}MODE=$${mode} $${machine}OSET=$${oset} $${machine}SPEED=$$speed $${machine}DETECTOR=$$detector $${machine}AMPLIFIER=$${amplifier} $${machine}QUALIFIERS=$${detector}$${amplifier}_$${mode}$${oset}_$${speed} "; \
-						((j--)); \
-						if (( j == 0 )) ; then \
-							if [[ `$(bindir)operagetword 1 $$quad` == 2 ]] ; then \
-								$(RECHO) $(MAKE) -f $(makedir)Makefile POL=2 START=$(START) --no-print-directory $$makelist ; \
-							else \
-								$(RECHO) $(MAKE) -f $(makedir)Makefile POL=4 START=$(START) --no-print-directory $$makelist ; \
-							fi  ; \
+		detector=`$(bindir)operagetword 1 $$line`; \
+		mode=`$(bindir)operagetword 2 $$line`; \
+		speed=`$(bindir)operagetword 3 $$line`; \
+		amplifier=`$(bindir)operagetword 4 $$line | sed -e 's:_::'`; \
+		oset=`$(bindir)operagetword 5 $$line`; \
+		qualifiers=$${detector}$${amplifier}_$${mode}$${oset}_$${speed} ; \
+		if [[ $$mode == "pol" && -s $(byproductsdir)$${qualifiers}.rlst ]] ; then \
+			filelist=`cat <$(byproductsdir)$${qualifiers}.rlst | grep -e '$(OBJECTFILEPATTERN)' -e '$(OBJECTFILEPATTERNB)' | tr '\n' ' '`; \
+			if [[ $$filelist != "" ]] ; then \
+				((mindex=1)); \
+				((loadnum=1)); \
+				makelist=""; \
+				while [[ $$filelist != "" ]] ; do \
+					polarquad=`$(bindir)operagetpolarquad $$filelist`; \
+					seqlength=`$(bindir)operagetword 1 $$polarquad`; \
+					seqpath=`$(bindir)operagetwords 2 $$seqlength $$polarquad`; \
+					objectpath=`$(bindir)operagetword 1 $$seqpath` ; \
+					if [[ objectpath != "" && $$seqlength == 4 ]] ; then \
+						o2=`$(bindir)operagetword 2 $$seqpath` ; \
+						o3=`$(bindir)operagetword 3 $$seqpath` ; \
+						o4=`$(bindir)operagetword 4 $$seqpath` ; \
+						spectra=`echo "$$objectpath" | xargs -n1 basename | sed -e 's:$(OBJECTROOTPATTERN):$(TARGET):g' -e 's:$(OBJECTROOTPATTERNB):$(TARGET):g'` ; \
+						seqnums=`echo "$$seqpath" | xargs -n1 basename | tr '\n' ' ' | sed -e 's:$(OBJECTROOTPATTERN)::g' -e 's:$(OBJECTROOTPATTERNB)::g'` ; \
+						p1=`$(bindir)operagetword 1 $$seqnums` ; \
+						p2=`$(bindir)operagetword 2 $$seqnums` ; \
+						p3=`$(bindir)operagetword 3 $$seqnums` ; \
+						p4=`$(bindir)operagetword 4 $$seqnums` ; \
+						machine=$${themachine[$$mindex]}; \
+						cpuid="$${machine}.$${loadnum}" ; \
+						makelist="$$makelist $${cpuid}.cpu $${cpuid}MACHINE=$${machine} $${cpuid}SPECTRA=$${spectra} $${cpuid}P1=$${p1} $${cpuid}P2=$${p2} $${cpuid}P3=$${p3} $${cpuid}P4=$${p4} $${cpuid}OFITS=$${objectpath} $${cpuid}O2=$${o2} $${cpuid}O3=$${o3} $${cpuid}O4=$${o4} $${cpuid}MODE=$${mode} $${cpuid}OSET=$${oset} $${cpuid}SPEED=$${speed} $${cpuid}DETECTOR=$${detector} $${cpuid}AMPLIFIER=$${amplifier} $${cpuid}QUALIFIERS=$${qualifiers} "; \
+						((loadnum++)) ; \
+						if (( loadnum > theload[mindex] )) ; then \
+							((mindex++)) ; \
+							((loadnum=1)); \
+						fi ; \
+						if (( mindex > mcount )) ; then \
+							((mindex=1)) ; \
+							$(RECHO) $(MAKE) -f $(makedir)Makefile POL=4 START=$(START) --no-print-directory $${makelist} ; \
 							makelist="" ; \
 						fi ; \
-						if [[ linecount == 1 && "$$makelist" != "" ]] ; then \
-							$(RECHO) $(MAKE) -f $(makedir)Makefile $$makelist ; \
-							makelist="" ; \
-						fi ; \
-						if (( j < 1 )) ; then ((j=$(words $(MACHINES)))); fi ;\
-						((polplusone=$(POL)+1)) ; \
-						filelist=`echo "$$filelist" | cut -d ' ' -f $${polplusone}-`; \
 					else \
-						echo "$(wpref) *** WARNING $$obj1 skipped as out of sequence."; \
-						filelist=`$(bindir)operasublist "$$obj1path" "$$filelist"`; \
-						filelist=`echo "$$filelist" | cut -d ' ' -f 2-`; \
+						echo "$(wpref) *** WARNING files $${seqpath} skipped as out of sequence."; \
 					fi ; \
-					count=`$(bindir)operacount "$$filelist"`; \
+					filelist=`$(bindir)operasublist "$$seqpath" "$$filelist"`; \
 				done ; \
+				if [[ $$makelist != "" ]] ; then \
+					$(RECHO) $(MAKE) -f $(makedir)Makefile POL=4 START=$(START) --no-print-directory $$makelist ; \
+				fi ; \
 			fi ; \
 		fi ; \
-		if [[ "$$makelist" != "" ]] ; then \
-			if [[ `$(bindir)operagetword 1 $$quad` == 2 ]] ; then \
-				$(RECHO) $(MAKE) -f $(makedir)Makefile POL=2 START=$(START) --no-print-directory $$makelist ; \
-			else \
-				$(RECHO) $(MAKE) -f $(makedir)Makefile POL=4 START=$(START) --no-print-directory $$makelist ; \
-			fi  ; \
-			makelist="" ; \
-		fi ; \
-		((j=1)); ((index=1)); makelist=""; filelist=""; \
 	done ; \
 	exec 4>&-
 
@@ -1155,6 +1131,7 @@ parpolarimetry parallelpolarimetry:
 #	theload[$$lcount]=1 ;
 #
 #########################################################################################
+
 parcal parallelcalibration:
 	@start=$$SECONDS; \
 	((j=1)); makelist=""; \
@@ -1216,10 +1193,10 @@ parcal parallelcalibration:
 #########################################################################################
 
 %.cpu:
-	@if [ "$*" == "$${HOSTNAME}" ] ; then \
-		$(RRECHO) $(MAKE) -f $(makedir)Makefile prefix=$(prefix) --no-print-directory MACHINE=$* P1=$($*P1) P2=$($*P2) P3=$($*P3) P4=$($*P4) POL=$(POL) START=$(START) DETECTOR=$($*DETECTOR) MODE=$($*MODE) SPEED=$($*SPEED) AMPLIFIER=$($*AMPLIFIER) OSET=$($*OSET) QUALIFIERS=$($*QUALIFIERS) DIR=$(DIR) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TYPE=$(TYPE) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) OUT=$(OUT) TEMPLATE=$(TEMPLATE) OBJECT="$(OBJECT)" optargs="$(optargs)" RECHO=$(RECHO) --no-print-directory `echo $($*SPECTRA)` ; \
+	@if [ "$($*MACHINE)" == "$${HOSTNAME}" ] ; then \
+		$(RRECHO) $(MAKE) -f $(makedir)Makefile prefix=$(prefix) --no-print-directory MACHINE=$($*MACHINE) P1=$($*P1) P2=$($*P2) P3=$($*P3) P4=$($*P4) OFITS=$($*OFITS) O2=$($*O2) O3=$($*O3) O4=$($*O4) POL=$(POL) START=$(START) DETECTOR=$($*DETECTOR) MODE=$($*MODE) SPEED=$($*SPEED) AMPLIFIER=$($*AMPLIFIER) OSET=$($*OSET) QUALIFIERS=$($*QUALIFIERS) DIR=$(DIR) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TYPE=$(TYPE) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) OUT=$(OUT) TEMPLATE=$(TEMPLATE) OBJECT="$(OBJECT)" optargs="$(optargs)" RECHO=$(RECHO) --no-print-directory `echo $($*SPECTRA)` ; \
 	else  \
-		$(RRECHO) $(remoteshell) $* "export opera=$(opera) ; export PATH=$$PATH ; $(MAKE) -f $(makedir)Makefile prefix=$(prefix) --no-print-directory MACHINE=$* P1=$($*P1) P2=$($*P2) P3=$($*P3) P4=$($*P4) POL=$(POL) START=$(START) DETECTOR=$($*DETECTOR) MODE=$($*MODE) SPEED=$($*SPEED) AMPLIFIER=$($*AMPLIFIER) OSET=$($*OSET) QUALIFIERS=$($*QUALIFIERS) DIR=$(DIR) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TYPE=$(TYPE) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) OUT=$(OUT) TEMPLATE=$(TEMPLATE) OBJECT=$(OBJECT) optargs=\"$(optargs)\" RECHO=$(RECHO) --jobs --no-print-directory `echo \"$($*SPECTRA)\"`" ; \
+		$(RRECHO) $(remoteshell) $($*MACHINE) "export opera=$(opera) ; export PATH=$$PATH ; $(MAKE) -f $(makedir)Makefile prefix=$(prefix) --no-print-directory MACHINE=$($*MACHINE) P1=$($*P1) P2=$($*P2) P3=$($*P3) P4=$($*P4) OFITS=$($*OFITS) O2=$($*O2) O3=$($*O3) O4=$($*O4) POL=$(POL) START=$(START) DETECTOR=$($*DETECTOR) MODE=$($*MODE) SPEED=$($*SPEED) AMPLIFIER=$($*AMPLIFIER) OSET=$($*OSET) QUALIFIERS=$($*QUALIFIERS) DIR=$(DIR) DATADIR=$(DATADIR) NIGHT=$(NIGHT) TYPE=$(TYPE) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) OUT=$(OUT) TEMPLATE=$(TEMPLATE) OBJECT=$(OBJECT) optargs=\"$(optargs)\" RECHO=$(RECHO) --jobs --no-print-directory `echo \"$($*SPECTRA)\"`" ; \
 	fi
 
 %.cal:

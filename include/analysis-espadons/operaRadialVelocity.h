@@ -1,15 +1,16 @@
 #ifndef OPERARADIALVELOCITY_H
 #define OPERARADIALVELOCITY_H
 /*******************************************************************
- ****                  MODULE FOR OPERA v1.0                    ****
+ ****                  MODULE FOR OPERA v1.0                     ***
  *******************************************************************
  Module name: operaRadialVelocity
  Version: 1.0
- Description: Measure radial velocity of source spectrum
+ Description: Measure radial velocity shift from source
+ to start up with an OPERA module.
  Author(s): CFHT OPERA team
- Affiliation: Canada France Hawaii Telescope
+ Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
- Date: Jan/2015
+ Date: SEP/2012
  Contact: opera@cfht.hawaii.edu
  
  Copyright (C) 2011  Opera Pipeline team, Canada France Hawaii Telescope
@@ -37,35 +38,22 @@
 // $Locker$
 // $Log$
 
-/*! \brief This module measures the radial velocity of the source spectrum. */
+/*! \brief Apply wavelength correction based on telluric lines. */
 /*! \file operaRadialVelocity.h */
 /*! \ingroup core */
 
-#define MAXNUMBEROFPOINTSINSTELLARSPECTRUM 2400000
+#define MAXNUMBEROFPOINTSINTELLURICSPECTRUM 2400000
 #define MAXNUMBEROFLINESINTELLURICDATABASE 100000
 #define MAXLENGTHOFLINEINTELLURICDATABASE 160
 #define TYPICAL_PRESSURE_AT_MAUNAKEA 61000  // Pa
 #define TYPICAL_TEMPERATURE_AT_MAUNAKEA 273 // K
 #define k_BOLTZMANN_CONSTANT 1.3806503e23 // m2 kg s-2 K-1
-
 #define TYPICAL_ATMOSPHERE_PATH_LENGTH  843500 // cm
 
-unsigned readTelluricLines(string telluric_database_file, int *telluricMoleculeNumber, double *telluricLinesWavelength, double *telluricLinesIntensity);
+enum ProfileMethod { GAUSSIAN, LORENTZ, VOIGT };
 
-unsigned getTelluricLinesRange(double wl0, double wlf, double **wl, double **intensity);
+operaSpectrum readTelluricLines(string telluric_database_file);
 
-void generateSyntheticTelluricSpectrumUsingGaussianProfile(unsigned np, double *wavelengthVector, double *ouputSpectrum, double resolution);
-
-unsigned readStellarSpectrum(string inputStellarSpectrum, double *stellarSpectrumWavelength, double *stellarSpectrumIntensity);
-
-unsigned getStellarSpectrumRange(double wl0, double wlf, double **wl, double **intensity);
-
-unsigned matchTelluricReferencewithObjectLines(double acceptableMismatch,double lineSigma, operaSpectralLines *telluricLines, operaSpectralLines *objectLines, Polynomial *wlcorrection, unsigned order, double wl_central, ofstream *flinesdata);
-
-bool calculateSourceRVShiftByXCorr(unsigned nelem, double *wavelength, double *objectSpectrum, double radialVelocityRange, double radialVelocityStep, double threshold, double *maxRV, double *sigRV, double *maxcorr, ostream *fxcorrdata, ostream *fxcorrfitdata, double spectralResolution, bool useFitToFindMaximum, double *chisqr, double centralRV);
-
-void GenerateTelluricXCorrelationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, string cleanDataFileName);
-
-void GenerateTelluricSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string specdatafilename);
+operaSpectrum readInputListOfLines(string inputListOfLines);
 
 #endif

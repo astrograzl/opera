@@ -313,19 +313,23 @@ wcal_MinPeakDepth				:= $(wcal_MinPeakDepth_$(MODE))
 # telluric wavelength correction parameters
 #########################################################################################
 
-telluric_atlas_lines			:= opera_HITRAN08-extracted.par.gz
+telluric_atlas_lines			:= upena_tel #opera_HITRAN08-extracted.par.gz (beforeFeb17)
 telluric_reference_spectrum		:= KPNO_atmtrans.dat.gz
-telluric_absorptionMask			:= wavelengthMaskForTelluricAbsorption.txt
+telluric_absorptionMask			:= wavelengthMaskForTelluricAbsorption.txt #wavelengthMaskForTelluricAbsorption_beforeFeb17.txt
 telluric_spectralResolution_sp1	:= 65000
 telluric_spectralResolution_sp2	:= 80000
 telluric_spectralResolution_pol	:= 65000
 telluric_spectralResolution		:= $(telluric_spectralResolution_$(MODE))
-telluric_radialVelocityRange	:= 3.0
-telluric_radialVelocityStep		:= 0.10
+telluric_radialVelocityRange	:= 0.8 #1.0 #3.0
+telluric_radialVelocityStep		:= 0.05 #0.05
 telluric_XCorrelationThreshold	:= 0.1
 telluric_normalizationbinsize	:= 110
 telluric_useFitToFindMaximum	:= 1
 telluric_correction_method	    := 1
+telluric_LocalMaxFilterWidth	:= 3.0 #4.0
+telluric_MinPeakDepth			:= 3.0
+telluric_DetectionThreshold		:= 0.05
+telluric_nsigclip				:= 3.0
 
 #########################################################################################
 # radial velocity parameters
@@ -396,7 +400,7 @@ MinPeakDepth_Slow		:= 2.0
 MinPeakDepth_Normal		:= 1.5
 MinPeakDepth_Fast		:= 1.5
 MinPeakDepth			:=$(MinPeakDepth_$(SPEED))
-IPtilt_pol				:= -2.0
+IPtilt_pol				:= -0.5 #-2.0 (LMa)
 IPtilt_sp2				:= -2.0
 IPtilt_sp1				:= -1.0
 IPtilt					:= $(IPtilt_$(MODE))
@@ -509,7 +513,7 @@ createfluxcalibrationWavelengthForNormalization	:= 548
 createfluxcalibrationnumberOfPointsInUniformSample      := 150
 createfluxcalibrationnumberOfPointsInUniformRefSample   := 70
 
-createfluxcalibration_WavelengthMaskForUncalContinuum   := wavelengthMaskForUncalContinuumDetection.txt
+createfluxcalibration_WavelengthMaskForUncalContinuum   := wavelengthMaskForUncalContinuumDetection.txt #wavelengthMaskForUncalContinuumDetection_beforeFeb17.txt
 createfluxcalibration_WavelengthMaskForRefContinuum   := wavelengthMaskForRefContinuumDetection.txt
 
 #########################################################################################
@@ -593,14 +597,15 @@ starplusskymode_pol			:= 0
 starplusskymode				:= $(starplusskymode_$(MODE))
 
 ssfiberarearatio			:= 1.890625 #(2.2*2.2)/(1.6*1.6)
+starplusskyInvertSkyFiber	:= 0
 
-extractor_normalizationBinsize			:= 750
+extractor_normalizationBinsize			:= 1200 #750(before Feb17)
 extractor_numberOfPointsInUniformSample	:= 150
 extractor_AbsoluteCalibration_pol		:= 0
 extractor_AbsoluteCalibration_sp1		:= 0
 extractor_AbsoluteCalibration_sp2		:= 0
 extractor_AbsoluteCalibration			:= $(extractor_AbsoluteCalibration_$(MODE))
-extractor_WavelengthMaskForUncalContinuum := wavelengthMaskForUncalContinuumDetection.txt
+extractor_WavelengthMaskForUncalContinuum := wavelengthMaskForUncalContinuumDetection.txt #wavelengthMaskForUncalContinuumDetection_beforeFeb17.txt
 
 extractor_FlatResponse_EEV1				:= flat_resp_eev1.s
 extractor_FlatResponse_OLAPA			:= flat_resp_olapa.fits.gz

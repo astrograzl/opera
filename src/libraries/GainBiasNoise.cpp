@@ -83,7 +83,7 @@ GainBiasNoise::~GainBiasNoise() {
  * \brief returns the datasec ot amp
  */
 void GainBiasNoise::getDatasec(unsigned amp, DATASEC_t &datasec) const {
-	if (amp > namps) {
+	if (amp >= namps) {
 		throw operaException("GainBiasNoise ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	memcpy((void *)&datasec, (void *)&ampsDataSec[amp], sizeof(DATASEC_t));
@@ -93,7 +93,7 @@ void GainBiasNoise::getDatasec(unsigned amp, DATASEC_t &datasec) const {
  * \brief sets the datsec of amp
  */
 void GainBiasNoise::setDatasec(unsigned amp, DATASEC_t &datasec) {
-	if (amp > namps) {
+	if (amp >= namps) {
 		throw operaException("GainBiasNoise ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	memcpy((void *)&ampsDataSec[amp], (void *)&datasec, sizeof(DATASEC_t));

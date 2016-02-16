@@ -64,7 +64,6 @@ bin_PROGRAMS = operaSNR$(EXEEXT) operaWavelengthCalibration$(EXEEXT) \
 	operaPolarIntensity$(EXEEXT) \
 	operaCreateFluxCalibration$(EXEEXT) \
 	operaTelluricWavelengthCorrection$(EXEEXT) \
-	operaBarycentricWavelengthCorrection$(EXEEXT) \
 	operaOrderSpacingCalibration$(EXEEXT) \
 	operaPolarimetryCorrection$(EXEEXT) \
 	operaCalculateSpectralResolution$(EXEEXT) \
@@ -93,12 +92,6 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_operaBarycentricWavelengthCorrection_OBJECTS =  \
-	operaBarycentricWavelengthCorrection.$(OBJEXT) \
-	operaCentricWavelengthCorrection.$(OBJEXT)
-operaBarycentricWavelengthCorrection_OBJECTS =  \
-	$(am_operaBarycentricWavelengthCorrection_OBJECTS)
-operaBarycentricWavelengthCorrection_LDADD = $(LDADD)
 am_operaBias_OBJECTS = operaBias.$(OBJEXT)
 operaBias_OBJECTS = $(am_operaBias_OBJECTS)
 operaBias_LDADD = $(LDADD)
@@ -145,8 +138,7 @@ operaGeometryCalibration_OBJECTS =  \
 	$(am_operaGeometryCalibration_OBJECTS)
 operaGeometryCalibration_LDADD = $(LDADD)
 am_operaHeliocentricWavelengthCorrection_OBJECTS =  \
-	operaHeliocentricWavelengthCorrection.$(OBJEXT) \
-	operaCentricWavelengthCorrection.$(OBJEXT)
+	operaHeliocentricWavelengthCorrection.$(OBJEXT)
 operaHeliocentricWavelengthCorrection_OBJECTS =  \
 	$(am_operaHeliocentricWavelengthCorrection_OBJECTS)
 operaHeliocentricWavelengthCorrection_LDADD = $(LDADD)
@@ -238,8 +230,7 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
-	$(operaBias_SOURCES) \
+SOURCES = $(operaBias_SOURCES) \
 	$(operaCalculateSpectralResolution_SOURCES) \
 	$(operaCreateFlatFieldFluxCalibration_SOURCES) \
 	$(operaCreateFlatResponse_SOURCES) \
@@ -262,8 +253,7 @@ SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
 	$(operaStitchOrders_SOURCES) \
 	$(operaTelluricWavelengthCorrection_SOURCES) \
 	$(operaWavelengthCalibration_SOURCES)
-DIST_SOURCES = $(operaBarycentricWavelengthCorrection_SOURCES) \
-	$(operaBias_SOURCES) \
+DIST_SOURCES = $(operaBias_SOURCES) \
 	$(operaCalculateSpectralResolution_SOURCES) \
 	$(operaCreateFlatFieldFluxCalibration_SOURCES) \
 	$(operaCreateFlatResponse_SOURCES) \
@@ -337,10 +327,11 @@ LIBOBJS = @LIBOBJS@
 LIBS = -loperaCommonModuleElements -loperaIOFormats \
 	-loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
-	-loperaSpectralOrderVector -loperaSpectralOrder \
-	-loperaSpectralElements -loperaSpectralLines \
-	-loperaSpectralFeature -loperaExtractionAperture \
-	-loperaSpectralTools -loperaFluxVector -lGaussian \
+	-loperaDateTime -loperaSpectralOrderVector \
+	-loperaSpectralOrder -loperaSpectralElements \
+	-loperaSpectralLines -loperaSpectralFeature \
+	-loperaExtractionAperture -loperaSpectralTools \
+	-loperaFluxVector -loperaVector -lGaussian \
 	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
 	-loperaEspadonsSubImage -loperaFITSProduct \
 	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
@@ -350,12 +341,11 @@ LIBS = -loperaCommonModuleElements -loperaIOFormats \
 	-loperaStokesVector -loperaFluxVector -loperaImageVector \
 	-loperaFITSSubImage -loperaImageVector -loperaGeometricShapes \
 	-loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath \
-	-loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage \
-	-loperaLMFit -loperaConfigurationAccess -loperaParameterAccess \
-	-lPixelSet -loperaSpectralEnergyDistribution \
-	-loperaSpectrumSimulation -loperaStats -loperaLib \
+	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-loperaConfigurationAccess -loperaParameterAccess -lPixelSet \
+	-loperaSpectralEnergyDistribution -loperaStats -loperaLib \
 	-loperaArgumentHandler -lArgumentHandler -lfftw3 -lgzstream \
-	-lcfitsio -lsofa_c -lz -lpthread -lm $(am__append_2)
+	-lcfitsio -lz -lpthread -lm $(am__append_2)
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -446,13 +436,14 @@ AM_CXXFLAGS = --pedantic -Wall -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib
 AM_LDFLAGS = -loperaCommonModuleElements -loperaIOFormats \
 	-loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
-	-loperaSpectralOrderVector -loperaSpectralOrder \
-	-loperaSpectralElements -loperaSpectralLines \
-	-loperaSpectralFeature -loperaExtractionAperture \
-	-loperaSpectralTools -loperaFluxVector -lGaussian \
+	-loperaDateTime -loperaSpectralOrderVector \
+	-loperaSpectralOrder -loperaSpectralElements \
+	-loperaSpectralLines -loperaSpectralFeature \
+	-loperaExtractionAperture -loperaSpectralTools \
+	-loperaFluxVector -loperaVector -lGaussian \
 	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
-	-lPolynomial -lLaurentPolynomial -loperaMath -loperaJD \
-	-loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-lPolynomial -lLaurentPolynomial -loperaMath -loperaCCD \
+	-loperaFit -loperaImage -loperaLMFit \
 	-loperaConfigurationAccess -loperaParameterAccess \
 	-loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct \
 	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
@@ -460,10 +451,10 @@ AM_LDFLAGS = -loperaCommonModuleElements -loperaIOFormats \
 	-loperaFITSCube -loperaPolarimetry -loperaException \
 	-lGainBiasNoise -loperaFFT -loperaMuellerMatrix \
 	-loperaStokesVector -loperaImageVector -loperaGeometricShapes \
-	-loperaMatrix -loperaSpectralEnergyDistribution \
-	-loperaSpectrumSimulation -lPixelSet -loperaStats -loperaLib \
-	-loperaArgumentHandler -lArgumentHandler -lfftw3 -lgzstream \
-	-lcfitsio -lz -lsofa_c -lpthread -lm $(am__append_1)
+	-loperaMatrix -loperaSpectralEnergyDistribution -lPixelSet \
+	-loperaStats -loperaLib -loperaArgumentHandler \
+	-lArgumentHandler -lfftw3 -lgzstream -lcfitsio -lz -lpthread \
+	-lm $(am__append_1)
 operaCreateFlatResponse_SOURCES = operaCreateFlatResponse.cpp
 operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp
 operaStitchOrders_SOURCES = operaStitchOrders.cpp
@@ -493,8 +484,7 @@ operaInstrumentProfileCalibration_SOURCES = operaInstrumentProfileCalibration.cp
 operaExtractionApertureCalibration_SOURCES = operaExtractionApertureCalibration.cpp
 operaPixelSensitivityMap_SOURCES = operaPixelSensitivityMap.cpp
 operaTelluricWavelengthCorrection_SOURCES = operaTelluricWavelengthCorrection.cpp
-operaBarycentricWavelengthCorrection_SOURCES = operaBarycentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp
-operaHeliocentricWavelengthCorrection_SOURCES = operaHeliocentricWavelengthCorrection.cpp operaCentricWavelengthCorrection.cpp
+operaHeliocentricWavelengthCorrection_SOURCES = operaHeliocentricWavelengthCorrection.cpp
 all: all-am
 
 .SUFFIXES:
@@ -575,9 +565,6 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-operaBarycentricWavelengthCorrection$(EXEEXT): $(operaBarycentricWavelengthCorrection_OBJECTS) $(operaBarycentricWavelengthCorrection_DEPENDENCIES) $(EXTRA_operaBarycentricWavelengthCorrection_DEPENDENCIES) 
-	@rm -f operaBarycentricWavelengthCorrection$(EXEEXT)
-	$(CXXLINK) $(operaBarycentricWavelengthCorrection_OBJECTS) $(operaBarycentricWavelengthCorrection_LDADD) $(LIBS)
 operaBias$(EXEEXT): $(operaBias_OBJECTS) $(operaBias_DEPENDENCIES) $(EXTRA_operaBias_DEPENDENCIES) 
 	@rm -f operaBias$(EXEEXT)
 	$(CXXLINK) $(operaBias_OBJECTS) $(operaBias_LDADD) $(LIBS)
@@ -675,10 +662,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaBarycentricWavelengthCorrection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaBias.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCalculateSpectralResolution.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCentricWavelengthCorrection.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCreateFlatFieldFluxCalibration.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCreateFlatResponse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCreateFluxCalibration.Po@am__quote@

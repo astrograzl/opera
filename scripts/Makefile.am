@@ -4,4 +4,4 @@
 bin_SCRIPTS = operafindheader operadiff domacmake operalinecount operagnuplot \
 	operafind operafindword operaPristine operatrace operacount operagetword \
 	operasublist operaslice operafitsverify operatrim operasplit \
-	operagetwords operainstallweb ds9v4
+	operagetwords operagetmode operainstallweb ds9v4

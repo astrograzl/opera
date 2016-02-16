@@ -298,11 +298,7 @@ int main(int argc, char *argv[])
                                 
 				operaPolarimetry *polarimetry = spectralOrder->getPolarimetry();
                 operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-                operaStokesVector *StokesVector = polarimetry->getStokesVector();
-                operaStokesVector *DegreeOfPolarization = polarimetry->getDegreeOfPolarization();
-                operaStokesVector *FirstNullPolarization = polarimetry->getFirstNullPolarization();
-                operaStokesVector *SecondNullPolarization = polarimetry->getSecondNullPolarization();
-				unsigned length = polarimetry->getLength();
+                unsigned length = polarimetry->getLength();
                                 
                 SpectralElements->setwavelengthsFromCalibration(spectralOrder->getWavelength());
                 
@@ -313,29 +309,29 @@ int main(int argc, char *argv[])
 						*fspecdata << order << '\t'
                         << SpectralElements->getdistd(index) << '\t'
                         << SpectralElements->getwavelength(index) << '\t'
-                        << StokesVector->getStokesParameterFlux(StokesI, index) << '\t';
+                        << polarimetry->getStokesParameterFlux(StokesI, index) << '\t';
                         
                         if (polarimetry->getHasStokesQ() && StokesParameter == StokesQ) {
-                            *fspecdata << StokesVector->getStokesParameterFlux(StokesQ, index) << '\t'
-                                       << DegreeOfPolarization->getStokesParameterFlux(StokesQ,index) << '\t';
+                            *fspecdata << polarimetry->getStokesParameterFlux(StokesQ, index) << '\t'
+                                       << polarimetry->getDegreeOfPolarizationFlux(StokesQ,index) << '\t';
                             if (polarimetry->getHasFirstNullPolarization())
-                                *fspecdata << FirstNullPolarization->getStokesParameterFlux(StokesQ,index) << '\t';
+                                *fspecdata << polarimetry->getFirstNullPolarizationFlux(StokesQ,index) << '\t';
                             if (polarimetry->getHasSecondNullPolarization())
-                                *fspecdata << SecondNullPolarization->getStokesParameterFlux(StokesQ,index) << '\t';
+                                *fspecdata << polarimetry->getSecondNullPolarizationFlux(StokesQ,index) << '\t';
                         } else if (polarimetry->getHasStokesU() && StokesParameter == StokesU) {
-                            *fspecdata << StokesVector->getStokesParameterFlux(StokesU, index) << '\t'
-                            << DegreeOfPolarization->getStokesParameterFlux(StokesU,index) << '\t';
+                            *fspecdata << polarimetry->getStokesParameterFlux(StokesU, index) << '\t'
+                            << polarimetry->getDegreeOfPolarizationFlux(StokesU,index) << '\t';
                             if (polarimetry->getHasFirstNullPolarization())
-                                *fspecdata << FirstNullPolarization->getStokesParameterFlux(StokesU,index) << '\t';
+                                *fspecdata << polarimetry->getFirstNullPolarizationFlux(StokesU,index) << '\t';
                             if (polarimetry->getHasSecondNullPolarization())
-                                *fspecdata << SecondNullPolarization->getStokesParameterFlux(StokesU,index) << '\t';
+                                *fspecdata << polarimetry->getSecondNullPolarizationFlux(StokesU,index) << '\t';
                         } else if (polarimetry->getHasStokesV() && StokesParameter == StokesV) {
-                            *fspecdata << StokesVector->getStokesParameterFlux(StokesV, index) << '\t'
-                            << DegreeOfPolarization->getStokesParameterFlux(StokesV,index) << '\t';
+                            *fspecdata << polarimetry->getStokesParameterFlux(StokesV, index) << '\t'
+                            << polarimetry->getDegreeOfPolarizationFlux(StokesV,index) << '\t';
                             if (polarimetry->getHasFirstNullPolarization())
-                                *fspecdata << FirstNullPolarization->getStokesParameterFlux(StokesV,index) << '\t';
+                                *fspecdata << polarimetry->getFirstNullPolarizationFlux(StokesV,index) << '\t';
                             if (polarimetry->getHasSecondNullPolarization())
-                                *fspecdata << SecondNullPolarization->getStokesParameterFlux(StokesV,index) << '\t';
+                                *fspecdata << polarimetry->getSecondNullPolarizationFlux(StokesV,index) << '\t';
                         }
                         *fspecdata << endl;
 					}
@@ -360,29 +356,29 @@ int main(int argc, char *argv[])
 					{
                         wavelength_tmp[np] = (float)SpectralElements->getwavelength(i);
                         distd_tmp[np] = (float)SpectralElements->getdistd(i);
-                        fluxStokesI_tmp[np] = (float)StokesVector->getStokesParameterFlux(StokesI, i);
+                        fluxStokesI_tmp[np] = (float)polarimetry->getStokesParameterFlux(StokesI, i);
 
                         if (polarimetry->getHasStokesQ() && StokesParameter == StokesQ) {
-                            fluxStokesQUV_tmp[np] = (float)StokesVector->getStokesParameterFlux(StokesQ,i);
-                            degreeOfPolarization_tmp[np] = (float)DegreeOfPolarization->getStokesParameterFlux(StokesQ,i);
+                            fluxStokesQUV_tmp[np] = (float)polarimetry->getStokesParameterFlux(StokesQ,i);
+                            degreeOfPolarization_tmp[np] = (float)polarimetry->getDegreeOfPolarizationFlux(StokesQ,i);
                             if (polarimetry->getHasFirstNullPolarization())
-                                nulldiff_tmp[np] = (float)FirstNullPolarization->getStokesParameterFlux(StokesQ,i);
+                                nulldiff_tmp[np] = (float)polarimetry->getFirstNullPolarizationFlux(StokesQ,i);
                             if (polarimetry->getHasSecondNullPolarization())
-                                nullratio_tmp[np] = (float)SecondNullPolarization->getStokesParameterFlux(StokesQ,i);
+                                nullratio_tmp[np] = (float)polarimetry->getSecondNullPolarizationFlux(StokesQ,i);
                         } else if (polarimetry->getHasStokesU() && StokesParameter == StokesU) {
-                            fluxStokesQUV_tmp[np] = (float)StokesVector->getStokesParameterFlux(StokesU,i);
-                            degreeOfPolarization_tmp[np] = (float)DegreeOfPolarization->getStokesParameterFlux(StokesU,i);
+                            fluxStokesQUV_tmp[np] = (float)polarimetry->getStokesParameterFlux(StokesU,i);
+                            degreeOfPolarization_tmp[np] = (float)polarimetry->getDegreeOfPolarizationFlux(StokesU,i);
                             if (polarimetry->getHasFirstNullPolarization())
-                                nulldiff_tmp[np] = (float)FirstNullPolarization->getStokesParameterFlux(StokesU,i);
+                                nulldiff_tmp[np] = (float)polarimetry->getFirstNullPolarizationFlux(StokesU,i);
                             if (polarimetry->getHasSecondNullPolarization())
-                                nullratio_tmp[np] = (float)SecondNullPolarization->getStokesParameterFlux(StokesU,i);
+                                nullratio_tmp[np] = (float)polarimetry->getSecondNullPolarizationFlux(StokesU,i);
                         } else if (polarimetry->getHasStokesV() && StokesParameter == StokesV) {
-                            fluxStokesQUV_tmp[np] = (float)StokesVector->getStokesParameterFlux(StokesV,i);
-                            degreeOfPolarization_tmp[np] = (float)DegreeOfPolarization->getStokesParameterFlux(StokesV,i);
+                            fluxStokesQUV_tmp[np] = (float)polarimetry->getStokesParameterFlux(StokesV,i);
+                            degreeOfPolarization_tmp[np] = (float)polarimetry->getDegreeOfPolarizationFlux(StokesV,i);
                             if (polarimetry->getHasFirstNullPolarization())
-                                nulldiff_tmp[np] = (float)FirstNullPolarization->getStokesParameterFlux(StokesV,i);
+                                nulldiff_tmp[np] = (float)polarimetry->getFirstNullPolarizationFlux(StokesV,i);
                             if (polarimetry->getHasSecondNullPolarization())
-                                nullratio_tmp[np] = (float)SecondNullPolarization->getStokesParameterFlux(StokesV,i);
+                                nullratio_tmp[np] = (float)polarimetry->getSecondNullPolarizationFlux(StokesV,i);
                         } else {
                             cout << "operaBinPolarData: WARNING: Stokes parameter not found. StokesParameter="<< StokesParameter << endl;
                         }

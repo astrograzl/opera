@@ -271,7 +271,7 @@ struct vars_struct {
  * \param chi2 is a double pointer that returns the reduced chi-square of the fit
  * \return void
  */
-int operaMPFitPolynomial(unsigned m_dat, double *x, double *y, double *ey, int n_par, double *par, double *epar, double *chi2) 
+int operaMPFitPolynomial(unsigned m_dat, const double *x, const double *y, const double *ey, int n_par, double *par, double *epar, double *chi2) 
 {
   struct vars_struct v;
   int status;
@@ -291,7 +291,7 @@ int operaMPFitPolynomial(unsigned m_dat, double *x, double *y, double *ey, int n
   /* Call fitting function for 10 data points and 2 parameters */
   status = mpfit(MPPolyFunc, m_dat, n_par, par, pars, 0, (void *) &v, &result);
 	
-	*chi2 = result.bestnorm/(double)(m_dat-n_par);
+	if(chi2) *chi2 = result.bestnorm/(double)(m_dat-n_par);
 	
 	return status;
 }
@@ -945,36 +945,36 @@ void operaLMFit2DGaussian(unsigned m_dat, double *x, double *y, double *fxy, dou
  * \return void
  */
 
-void operaFitSpline(unsigned nin, float *xin, float *yin, unsigned nout, float *xout, float *yout)
+void operaFitSpline(unsigned nin, const float *xin, const float *yin, unsigned nout, const float *xout, float *yout)
 {
 	float yp1 = (yin[1] - yin[0])/(xin[1] - xin[0]);
 	float ypn = (yin[nin-1] - yin[nin-2])/(xin[nin-1] - xin[nin-2]);
 	float *y2 = (float *)malloc(nin*sizeof(float));
 	
-	// Call cubicspline to get second derivatives 
+	// Call cubicspline to get second derivatives
 	cubicspline(xin, yin, nin, yp1, ypn, y2);
 	
-	// Call splineinterpolate for interpolations 
+	// Call splineinterpolate for interpolations
 	for (unsigned i=0; i<nout; i++) {
 		splineinterpolate(xin, yin, y2, nin, xout[i] , &yout[i]);
-	}   
-	free(y2); 
+	}
+	free(y2);
 }
 
-void operaFitSplineDouble(const unsigned nin, const double *xin, const double *yin, const unsigned nout, const double *xout, double *yout)
+void operaFitSplineDouble(unsigned nin, const double *xin, const double *yin, unsigned nout, const double *xout, double *yout)
 {
 	double yp1 = (yin[1] - yin[0])/(xin[1] - xin[0]);
 	double ypn = (yin[nin-1] - yin[nin-2])/(xin[nin-1] - xin[nin-2]);
 	double *y2 = (double *)malloc(nin*sizeof(double));
 	
-	// Call cubicspline to get second derivatives 
+	// Call cubicspline to get second derivatives
 	cubicsplineDouble(xin, yin, nin, yp1, ypn, y2);
 	
-	// Call splineinterpolate for interpolations 
+	// Call splineinterpolate for interpolations
 	for (unsigned i=0; i<nout; i++) {
 		splineinterpolateDouble(xin, yin, y2, nin, xout[i] , &yout[i]);
-	}   
-	free(y2); 
+	}
+	free(y2);
 }
 
 /* 
@@ -1030,9 +1030,8 @@ void operaFit2DSpline(unsigned nxin, float *xin, unsigned nyin, float *yin, floa
 /*
  cubicspline constructs a cubic spline given a set of x and y values, through
  these values.
- 
  */
-int cubicspline(float *x, float *y, unsigned n, float yp1, float ypn, float *y2)
+int cubicspline(const float *x, const float *y, unsigned n, float yp1, float ypn, float *y2)
 {
 	float p, qn, sigma, un;
 	
@@ -1066,7 +1065,7 @@ int cubicspline(float *x, float *y, unsigned n, float yp1, float ypn, float *y2)
 	return operaErrorCodeOK;
 }
 
-int cubicsplineDouble(double *x, double *y, unsigned n, double yp1, double ypn, double *y2)
+int cubicsplineDouble(const double *x, const double *y, unsigned n, double yp1, double ypn, double *y2)
 {
 	double p, qn, sigma, un;
 	
@@ -1103,14 +1102,12 @@ int cubicsplineDouble(double *x, double *y, unsigned n, double yp1, double ypn, 
 
 /*
  splineinterpolate uses the cubic spline generated with spline to interpolate values
- in the XY  table.
- 
+ in the XY table.
  */
-int splineinterpolate(float *xa, float *ya, float *y2a, int n, float x, float *y)
+int splineinterpolate(const float *xa, const float *ya, const float *y2a, int n, float x, float *y)
 {
 	int low = -1;
 	int high = -1;
-	int returncode = operaErrorCodeOK;
 	int k;
 	float h, b, a;
 	
@@ -1132,20 +1129,19 @@ int splineinterpolate(float *xa, float *ya, float *y2a, int n, float x, float *y
 	}
 	h = xa[high]-xa[low];
 	if (h == 0.0) {
-		returncode = operaSplineInterpolationAxesEqual;
+		return operaSplineInterpolationAxesEqual;
 	} else {
 		a = (xa[high]-x)/h;
 		b = (x-xa[low])/h;
 		*y = a*ya[low]+b*ya[high]+((a*a*a-a)*y2a[low]+(b*b*b-b)*y2a[high]) * (h*h) / 6.0;
+		return operaErrorCodeOK;
 	}
-	return returncode;
 }
 
-int splineinterpolateDouble(double *xa, double *ya, double *y2a, int n, double x, double *y)
+int splineinterpolateDouble(const double *xa, const double *ya, const double *y2a, int n, double x, double *y)
 {
 	int low = -1;
 	int high = -1;
-	int returncode = operaErrorCodeOK;
 	int k;
 	double h, b, a;
 	
@@ -1167,13 +1163,13 @@ int splineinterpolateDouble(double *xa, double *ya, double *y2a, int n, double x
 	}
 	h = xa[high]-xa[low];
 	if (h == 0.0) {
-		returncode = operaSplineInterpolationAxesEqual;
+		return operaSplineInterpolationAxesEqual;
 	} else {
 		a = (xa[high]-x)/h;
 		b = (x-xa[low])/h;
 		*y = a*ya[low]+b*ya[high]+((a*a*a-a)*y2a[low]+(b*b*b-b)*y2a[high]) * (h*h) / 6.0;
+		return operaErrorCodeOK;
 	}
-	return returncode;
 }
 
 void splineinterpolate2D(float *x1a, float *x2a, CMatrix ya, CMatrix y2a, int nx, int ny, float x1, float x2, float *y)

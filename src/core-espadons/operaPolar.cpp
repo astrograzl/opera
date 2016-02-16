@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
             if (spectralElementsTest == NumberOfExposures) {
                 
                 /* Get length of base spectrum */
-                unsigned length = spectralOrder[0]->getBeamElements(0)->getFluxVector()->getlength();
+                unsigned length = spectralOrder[0]->getBeamElements(0)->getnSpectralElements();
                 
                 operaSpectralOrder *outputspectralOrder = outputorderVector.GetSpectralOrder(order);
                 operaSpectralElements *outputspectralElements = outputspectralOrder->getSpectralElements();
@@ -392,29 +392,29 @@ int main(int argc, char *argv[])
                 for(unsigned i=0;i<NumberOfExposures;i++) {
 					// May 28 2013 DT moved the swap to the harness...
 #if 0                    
-					iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(0)->getFluxVector()->getvariances(), length);
-					iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(1)->getFluxVector()->getvariances(), length);
+					iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector());
+					iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector());
 #else
                     // To swap images in the second pair of images --  E. Martioli May 28 2013
                     if(i==0 || i==1) {
-                        iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(0)->getFluxVector()->getvariances(), length);
-                        iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(1)->getFluxVector()->getvariances(), length);
+                        iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector());
+                        iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector());
                     } else if (i==2) {
-                        iE[3] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(0)->getFluxVector()->getvariances(), length);
-                        iA[3] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(1)->getFluxVector()->getvariances(), length);
+                        iE[3] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector());
+                        iA[3] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector());
                     } else if (i==3) {
-                        iE[2] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(0)->getFluxVector()->getvariances(), length);
-                        iA[2] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(1)->getFluxVector()->getvariances(), length);
+                        iE[2] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector());
+                        iA[2] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector());
                     }
 #endif
 #if 0
                     // To swap beams in the second pair of images --  E. Martioli May 28 2013
                     if(i==0 || i==1) {
-                        iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(0)->getFluxVector()->getvariances(), length);
-                        iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(1)->getFluxVector()->getvariances(), length);
+                        iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector());
+                        iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector());
                     } else if (i==2 || i==3) {
-                       iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(0)->getFluxVector()->getvariances(), length);
-                       iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector()->getfluxes(), spectralOrder[i]->getBeamElements(1)->getFluxVector()->getvariances(), length);
+                       iA[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(0)->getFluxVector());
+                       iE[i] = new operaFluxVector(spectralOrder[i]->getBeamElements(1)->getFluxVector());
                     }
 #endif
                 }
@@ -437,11 +437,11 @@ int main(int argc, char *argv[])
                         fdata << 0 << '\t' << order << '\t'
                         << outputspectralElements->getdistd(index) << '\t'
                         << outputspectralElements->getwavelength(index) << '\t'
-                        << Polarimetry->getStokesParameter(StokesI)->getflux(index) << '\t'
-                        << Polarimetry->getStokesParameter(StokesParameter)->getflux(index) << '\t'
-                        << Polarimetry->getDegreeOfPolarization(StokesParameter)->getflux(index) << '\t'
-                        << Polarimetry->getFirstNullPolarization(StokesParameter)->getflux(index) << '\t'
-                        << Polarimetry->getSecondNullPolarization(StokesParameter)->getflux(index) << '\t';
+                        << Polarimetry->getStokesParameterFlux(StokesI, index) << '\t'
+                        << Polarimetry->getStokesParameterFlux(StokesParameter, index) << '\t'
+                        << Polarimetry->getDegreeOfPolarizationFlux(StokesParameter, index) << '\t'
+                        << Polarimetry->getFirstNullPolarizationFlux(StokesParameter, index) << '\t'
+                        << Polarimetry->getSecondNullPolarizationFlux(StokesParameter, index) << '\t';
                         for(unsigned i=0;i<NumberOfExposures;i++) {
                             fdata << iE[i]->getflux(index) << '\t'
                             << iA[i]->getflux(index) << '\t';
@@ -454,11 +454,11 @@ int main(int argc, char *argv[])
                             fdata << 1 << '\t' << order << '\t'
                             << outputspectralElements->getdistd(index) << '\t'
                             << outputspectralElements->getwavelength(index) << '\t'
-                            << Polarimetry->getStokesParameter(StokesI)->getflux(index) << '\t'
-                            << Polarimetry->getStokesParameter(StokesParameter)->getflux(index) << '\t'
-                            << Polarimetry->getDegreeOfPolarization(StokesParameter)->getflux(index) << '\t'
-                            << Polarimetry->getFirstNullPolarization(StokesParameter)->getflux(index) << '\t'
-                            << Polarimetry->getSecondNullPolarization(StokesParameter)->getflux(index) << '\t';
+                            << Polarimetry->getStokesParameterFlux(StokesI, index) << '\t'
+                            << Polarimetry->getStokesParameterFlux(StokesParameter, index) << '\t'
+                            << Polarimetry->getDegreeOfPolarizationFlux(StokesParameter, index) << '\t'
+                            << Polarimetry->getFirstNullPolarizationFlux(StokesParameter, index) << '\t'
+                            << Polarimetry->getSecondNullPolarizationFlux(StokesParameter, index) << '\t';
                             for(unsigned i=0;i<NumberOfExposures;i++) {
                                 fdata << iE[i]->getflux(index) << '\t'
                                 << iA[i]->getflux(index) << '\t';

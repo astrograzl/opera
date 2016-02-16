@@ -226,10 +226,7 @@ snr:
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Basic Intensity product creation in $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		inputfits="$(OFITS)" ; \
 		if [ -s $(calibrationdir)$*i.rvel$(gzip) ] ; then \
 			rvel="$(calibrationdir)$*i.rvel$(extension)" ; \
 		fi ; \
@@ -243,6 +240,7 @@ snr:
 --nwfile=$(spectradir)$*inw.s$(extension) \
 --spectrumtype=$(LibreEspritSpectrum_$(MODE)) \
 --snr=$(spectradir)$*i.sn$(extension) \
+--sres=$(calibrationdir)$(QUALIFIERS).sres$(gzip) \
 --rvel=$${rvel} \
 --tell=$${tell} \
 --version=\"$(versionstr)\" \
@@ -267,10 +265,7 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting Polarimetry product creation in $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		inputfits="$(OFITS)" ; \
 		if [ -s $(calibrationdir)$*p.rvel$(gzip) ] ; then \
 			rvel="$(calibrationdir)$*p.rvel$(extension)" ; \
 		fi ; \
@@ -283,6 +278,7 @@ endif
 --uwfile=$(spectradir)$*puw.s$(extension) \
 --nwfile=$(spectradir)$*pnw.s$(extension) \
 --spectrumtype=$(LibreEspritpolarimetry) \
+--sres=$(calibrationdir)$(QUALIFIERS).sres$(gzip) \
 --rvel=$${rvel} \
 --tell=$${tell} \
 --version=\"$(versionstr)\" \
@@ -305,10 +301,7 @@ endif
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting SNR table creation for $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaSNR \
 --input=$(spectradir)$*.e$(extension) \
@@ -325,7 +318,7 @@ endif
 	fi
 
 #########################################################################################
-# Libre-Esprit-compatible Un-Normalized telluric wavelength corrected intensity
+# Libre-Esprit-compatible un-normalized telluric wavelength corrected intensity
 # with flux calibration, if available
 # with heliocentric wavelength calibration
 #########################################################################################
@@ -333,16 +326,9 @@ endif
 %iu.s$(gzip): %.spc$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting un-normalized spectrum creation for $* $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		echo "$(pref) Starting un-normalized telluric wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
-		mode=`$(bindir)$(OPERAGETMODE) $${inputfits}`; \
-		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
-		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
@@ -353,11 +339,11 @@ endif
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*iu.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
-		echo "$(pref) un-normalized spectrum $@ created in $(deltat)" ; \
+		echo "$(pref) Un-normalized wavelength corrected spectrum $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
-# Libre-Esprit-compatible Normalized telluric wavelength corrected intensity
+# Libre-Esprit-compatible normalized telluric wavelength corrected intensity
 # with flux calibration, if available
 # with heliocentric wavelength calibration
 #########################################################################################
@@ -365,16 +351,9 @@ endif
 %in.s$(gzip): %.spc$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting normalization of $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		echo "$(pref) Starting normalized telluric wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
-		mode=`$(bindir)$(OPERAGETMODE) $${inputfits}`; \
-		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
-		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
@@ -385,11 +364,11 @@ endif
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*in.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
-		echo "$(pref) Normalization $@ completed in $(deltat)" ; \
+		echo "$(pref) Normalized wavelength corrected spectrum $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
-# Libre-Esprit-compatible Un-Normalized intensity
+# Libre-Esprit-compatible un-normalized intensity
 # with flux calibration, if available
 # with heliocentric wavelength calibration
 #########################################################################################
@@ -397,16 +376,9 @@ endif
 %iuw.s$(gzip): %.spc$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting un-normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		echo "$(pref) Starting un-normalized spectrum for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
-		mode=`$(bindir)$(OPERAGETMODE) $${inputfits}`; \
-		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
-		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
@@ -417,11 +389,11 @@ endif
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*iuw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
-		echo "$(pref) un-normalized wavelength corrected spectrum $@ $(QUALIFIERS) complete in $(deltat)" ; \
+		echo "$(pref) Un-normalized spectrum $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
-# Libre-Esprit-compatible Normalized intensity
+# Libre-Esprit-compatible normalized intensity
 # with flux calibration, if available
 # with heliocentric wavelength calibration
 #########################################################################################
@@ -429,16 +401,9 @@ endif
 %inw.s$(gzip): %.spc$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting normalized wavelength corrected spectrum for $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		echo "$(pref) Starting normalized spectrum for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
-		mode=`$(bindir)$(OPERAGETMODE) $${inputfits}`; \
-		if [[ "$${mode}" == "pol" ]] ; then \
-			sequence=`$(bindir)operagetpolarsequence $${inputfits}`; \
-		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.spc$(extension) \
 --LibreEspritSpectrumType=$(LibreEspritSpectrum_$(MODE)) \
@@ -449,23 +414,20 @@ endif
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*inw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
-		echo "$(pref)normalized wavelength corrected spectrum $@ $(QUALIFIERS) complete in $(deltat)" ; \
+		echo "$(pref) Normalized spectrum $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
-# Libre-Esprit-compatible Un-normalized polarimetry.
+# Libre-Esprit-compatible un-normalized telluric wavelength corrected polarimetry
 # with flux calibration, if available
-# no heliocentric wavelength calibration
+# with heliocentric wavelength calibration
 #########################################################################################
 
 %pu.s$(gzip): %.pol$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting Un-normalized polarimetry for $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		echo "$(pref) Starting un-normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
@@ -477,52 +439,20 @@ endif
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pu.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
-		echo "$(pref) Un-normalized polarimetry $@ created in $(deltat)" ; \
+		echo "$(pref) Un-normalized wavelength corrected polarimetry $@ created in $(deltat)" ; \
 	fi
-	
+
 #########################################################################################
-# Libre-Esprit-compatible Un-normalized telluric wavelength corrected polarimetry.
+# Libre-Esprit-compatible normalized telluric wavelength corrected polarimetry
 # with flux calibration, if available
 # with heliocentric wavelength calibration
-#########################################################################################
- 
-%puw.s$(gzip): %.pol$(gzip)
-	@start=$$SECONDS; \
-	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting Un-normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
-		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
-		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
---inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
---LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
---object=\"$${object}\" \
---fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
---wavelengthType=$(RVCorrectedWavelengthInNM) \
---outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
-		if [[ "$(PLOT)" != "0" ]] ; then \
-			$(MAKE) -f $(makedir)Makefile $*puw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
-		fi ; \
-		echo "$(pref) Un-normalized telluric wavelength $@ created in $(deltat)" ; \
-	fi
- 
-	
-#########################################################################################
-# Libre-Esprit-compatible Normalized polarimetry.
-# with flux calibration, if available
-# no heliocentric wavelength calibration
 #########################################################################################
 
 %pn.s$(gzip): %.pol$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting Normalized polarimetry for $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		echo "$(pref) Starting normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
@@ -534,11 +464,36 @@ endif
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pn.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
-		echo "$(pref) Normalized polarimetry $@ created in $(deltat)" ; \
+		echo "$(pref) Normalized wavelength corrected polarimetry $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
-# Libre-Esprit-compatible Normalized telluric wavelength corrected polarimetry.
+# Libre-Esprit-compatible un-normalized polarimetry
+# with flux calibration, if available
+# with heliocentric wavelength calibration
+#########################################################################################
+
+%puw.s$(gzip): %.pol$(gzip)
+	@start=$$SECONDS; \
+	if [ ! -e $(spectradir)$@ ] ; then \
+		echo "$(pref) Starting un-normalized polarimetry for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
+		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
+		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
+--inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
+--LibreEspritSpectrumType=$(LibreEspritpolarimetry) \
+--object=\"$${object}\" \
+--fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
+--wavelengthType=$(RVCorrectedWavelengthInNM) \
+--outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
+		if [[ "$(PLOT)" != "0" ]] ; then \
+			$(MAKE) -f $(makedir)Makefile $*puw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
+		fi ; \
+		echo "$(pref) Un-normalized polarimetry $@ created in $(deltat)" ; \
+	fi
+
+#########################################################################################
+# Libre-Esprit-compatible normalized polarimetry
 # with flux calibration, if available
 # with heliocentric wavelength calibration
 #########################################################################################
@@ -546,11 +501,8 @@ endif
 %pnw.s$(gzip): %.pol$(gzip)
 	@start=$$SECONDS; \
 	if [ ! -e $(spectradir)$@ ] ; then \
-		echo "$(pref) Starting Normalized telluric wavelength corrected polarimetry for $@ $(QUALIFIERS)" ; \
-		inputfits="$(DATADIR)/$*o.$(FITS)" ; \
-		if [ -e $(DATADIR)/$*o.$(FITS)$(inextension) ] ; then \
-			inputfits="$(DATADIR)/$*o.$(FITS)$(inextension)" ; \
-		fi ; \
+		echo "$(pref) Starting normalized polarimetry for $@ $(QUALIFIERS)" ; \
+		inputfits="$(OFITS)" ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaGenerateLEFormats \
 --inputOperaSpectrum=$(spectradir)$*.pol$(extension) \
@@ -562,7 +514,7 @@ endif
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pnw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
 		fi ; \
-		echo "$(pref) Normalized telluric wavelength corrected polarimetry $@ created in $(deltat)" ; \
+		echo "$(pref) Normalized polarimetry $@ created in $(deltat)" ; \
 	fi
 
 #########################################################################################
@@ -587,8 +539,33 @@ reportlog:
 #########################################################################################
 
 distribute: directoriescreated
-	@$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory distributelog | tee -a $(logdir)/distribute.log
+	@$(MAKE) -f $(makedir)Makefile DATADIR=$(DATADIR) NIGHT=$(NIGHT) TIME=$(TIME) ARCHIVE=$(ARCHIVE) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory distributelog | tee -a $(logdir)/distribute.log
 
+ifdef ARCHIVE
+distributelog:
+	@start=$$SECONDS; \
+	if [ -e $(tmpdir)Lock_$(NIGHT) ] ; then \
+	 	cat <$(tmpdir)Lock_$(NIGHT) ; \
+	else \
+		files=`$(archivebindir)ardrangeESP $(ARCHIVE) | tr ' ' '\n' | grep 'o.fits'` ; \
+		for f in $$files;  do \
+			fullpath=`$(archivebindir)arlocate $$f` ; \
+			runid=`$(bindir)operagetheader $$fullpath --keyword=RUNID | sed -e 's: ::g'` ; \
+			outfile=`echo "$$f" | sed -e s/o.$(FITS)/i.$(FITS)/`$(extension); \
+			outputdir="/data/uhane5/upena/upena_proc/" ; \
+			if [ ! -d $$outputdir$$runid/opera ] ; then \
+				mkdir $$outputdir$$runid/opera ; \
+			fi ; \
+			rm -f $$outputdir$$runid/opera/$$outfile ; \
+			if [ -e $(spectradir)/$$outfile ] ; then \
+				echo  "$(pref)$(spectradir)/$$outfile --> $$outputdir$$runid/opera" ; \
+				cp $(spectradir)/$$outfile $$outputdir$$runid/opera ; \
+			else \
+				echo "error: file $(spectradir)/$$outfile doesn't exist!" ; \
+			fi ; \
+		done ; \
+	fi
+else
 distributelog:
 	@start=$$SECONDS; \
 	if [ -e $(tmpdir)Lock_$(NIGHT) ] ; then \
@@ -597,129 +574,36 @@ distributelog:
 		if [ ! -d $(DATADIR) ] ; then \
 			echo "$(pref) $(DATADIR) does not exist." ; \
 		else \
+			outputdir="/data/uhane5/upena/upena_proc/" ; \
 			echo "$(pref) Distribution for $(NIGHT)" ; \
 			runids="" ; \
-			objectlist="`ls $(DATADIR)/[0-9]*[o].$(FITS)$(inextension) 2>/dev/null | xargs -n1 basename 2>/dev/null`"; \
+			objectlist="`ls $(DATADIR)/[0-9]*[o].$(FITS)$(inextension) $(DATADIR)/[0-9]*[o].$(FITS) 2>/dev/null | xargs -n1 basename 2>/dev/null`"; \
 			runids="" ; \
-			echo "$(pref) Step 1 -- distributing the object files." ; \
+			echo "$(pref) Step 1 -- examining the object files." ; \
 			for object in $$objectlist; do \
 				runid=`$(bindir)operagetheader $(DATADIR)/$$object --keyword=RUNID | sed -e 's: ::g'` ; \
-				piname=`$(bindir)operagetheader $(DATADIR)/$$object --keyword=PI_NAME` ; \
-				mkdir -p $(processeddir)$$runid ; \
-				rm -f $(processeddir)$$runid/$$object; \
 				arfile=`$(archivebindir)arlocate $$object` ; \
 				if [[ "$$arfile" == "not.on.disk" ]] ; then \
-						echo "$(epref) File $$object is not currently in the archive." 2>&1 | tee -a $(errfile) ; \
+					echo "$(epref) File $$object is not currently in the archive." 2>&1 | tee -a $(errfile) ; \
 				else \
-					if [ -s $$arfile ] ; then \
-						ln -s $$arfile $(processeddir)$$runid/$$object ; \
-					else \
-						echo "$(epref) File $$object was found by archive tools, but does not exist." 2>&1 | tee -a $(errfile) ; \
-					fi ; \
+					echo "the object file is in the archive at $$arfile" ; \
 				fi ; \
-				echo  "$(pref)$$runid $$piname $$object --> $(processeddir)$$runid/$$object" ; \
-				found=`$(bindir)operafindword $$runid $$runids` ; \
-				if [[ "$$found" == "" ]] ; then \
-					runids="$$runids $$runid" ; \
+				outfile=`basename "$$arfile" | sed -e s/o.$(FITS)/i.$(FITS)/`$(extension); \
+				if [ ! -d $$outputdir$$runid/opera ] ; then \
+					mkdir $$outputdir$$runid/opera ; \
+				fi ; \
+				rm -f $$outputdir$$runid/opera/$$outfile ; \
+				if [ -e $(spectradir)/$$outfile ] ; then \
+					echo  "$(pref)$(spectradir)/$$outfile --> $$outputdir$$runid" ; \
+					cp $(spectradir)/$$outfile $$outputdir$$runid/opera ; \
+				else \
+					cp "error: file $(spectradir)/$$outfile doesn't exist!" ; \
 				fi ; \
 			done ; \
-			if [[ $$objectlist != "" ]] ; then \
-				therest="`ls $(DATADIR)/[0-9]*[abfc].$(FITS)$(inextension) 2>/dev/null | xargs -n1 basename 2>/dev/null`"; \
-				for r in $$runids; do \
-					echo "$(pref) Step 2 -- distributing the calibration source files for $$r." ; \
-					for f in $$therest; do \
-						rm -f $(processeddir)$$r/$$f; \
-						arfile=`$(archivebindir)arlocate $$f` ; \
-						if [[ "$$arfile" == "not.on.disk" ]] ; then \
-								echo "$(epref) File $$f is not currently in the archive." 2>&1 | tee -a $(errfile) ; \
-						else \
-							if [ -s $$arfile ] ; then \
-								ln -s $$arfile $(processeddir)$$r/$$f ; \
-							else \
-								echo "$(epref) File $$f was found by archive tools, but does not exist." 2>&1 | tee -a $(errfile) ; \
-							fi ; \
-						fi ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					echo "$(pref) Step 3 -- distributing the processed spectra for $$r." ; \
-					for object in $$objectlist ; do \
-						runid=`$(bindir)operagetheader $(DATADIR)/$$object --keyword=RUNID | sed -e 's: ::g'` ; \
-						if [[ "$$r" == "$$runid" ]] ; then \
-							odometer=`basename $$object o.$(FITS)$(inextension)` ; \
-							list=`ls $(spectradir)$${odometer}* $(spectradir)$${odometer}*m.$(FITS) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-							for f in $$list; do \
-								rm -f $(processeddir)$$r/$$f; \
-								ln -s $(spectradir)$$f $(processeddir)$$r/$$f ; \
-								echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-							done ; \
-							list=`ls $(calibrationdir)$${odometer}*  2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-							for f in $$list; do \
-								rm -f $(processeddir)$$r/$$f; \
-								ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-								echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-							done ; \
-						fi ; \
-					done ; \
-					echo "$(pref) Step 4 -- distributing the processed calibration data for $$r." ; \
-					list=`ls $(calibrationdir)*.gain$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)*.tell$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)*.rvel$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)*.aper$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)*.geom$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)*.prof$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)*.disp$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)*.wcal$(extension) 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-					list=`ls $(calibrationdir)master* 2>/dev/null | xargs -n1 basename 2>/dev/null` ; \
-					for f in $$list; do \
-						rm -f $(processeddir)$$r/$$f; \
-						ln -s $(calibrationdir)$$f $(processeddir)$$r/$$f ; \
-						echo "$(pref)$$r $$f --> $(processeddir)$$r/$$f" ; \
-					done ; \
-				done ; \
-			fi ; \
 			echo "$(pref) Distribution time for $(NIGHT) $$runids $(deltat)." ; \
 		fi ; \
 	fi
+endif
 
 ifdef RUNID
 cleandist:

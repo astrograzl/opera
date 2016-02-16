@@ -27,47 +27,16 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-#include <iostream>
-#include <string>
-#include <string.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <utility>	// for pair
-
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaFluxVector.h"
-#include "libraries/operaStokesVector.h"
 #include "libraries/operaPolarimetry.h"
-
-#include "libraries/operaFit.h"
-#include "libraries/operaMath.h"
 
 /*!
  * \file operaPolarimetry.cpp
  */
 
-/*
- * \author Andre Venne
- * \brief This class encapsulates the polarimetry results.
- * \sa class operaStokesVector
- * 
- * This class holds in operaStokesVector classes the 4 Stokes parameters, the 4 associated degrees of polarization
- * and the 2 null polarization spectra for each Stokes parameter.
- */
-
-/*
- * Constructors / Destructors
- */
-
-/*
- * \brief Basic operaPolarimetry constructor.
- * \return void
- */
-operaPolarimetry::operaPolarimetry():
+operaPolarimetry::operaPolarimetry() :
 length(0),
 hasStokesI(false),
 hasStokesQ(false),
@@ -77,23 +46,20 @@ hasDegreeOfStokesI(false),
 hasDegreeOfStokesQ(false),
 hasDegreeOfStokesU(false),
 hasDegreeOfStokesV(false),
+hasContinuumRemoved(false),
 hasFirstNullPolarization(false),
 hasSecondNullPolarization(false),
 hasWavelength(false)
-{
-    stokesVector = NULL;
-    degreeOfPolarization = NULL;
-    firstNullPolarization = NULL;
-    secondNullPolarization = NULL;  
-	wavelength = NULL;	   
-}
+{ }
 
-/*
- * \brief Basic operaPolarimetry constructor.
- * \param Length An unsigned number of elements in each operaStokesVector
- * \return void
- */
-operaPolarimetry::operaPolarimetry(unsigned Length):
+operaPolarimetry::operaPolarimetry(unsigned Length) :
+length(Length),
+stokesParameter(Length),
+degreeOfPolarization(Length),
+continuumRemoved(Length),
+firstNullPolarization(Length),
+secondNullPolarization(Length),
+wavelength(Length),
 hasStokesI(false),
 hasStokesQ(false),
 hasStokesU(false),
@@ -102,621 +68,233 @@ hasDegreeOfStokesI(false),
 hasDegreeOfStokesQ(false),
 hasDegreeOfStokesU(false),
 hasDegreeOfStokesV(false),
+hasContinuumRemoved(false),
 hasFirstNullPolarization(false),
 hasSecondNullPolarization(false),
 hasWavelength(false)
 {
-	if (Length == 0) {
-		throw operaException("operaPolarimetry: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    length = Length;
-    stokesVector = new operaStokesVector(length);
-    degreeOfPolarization = new operaStokesVector(length);
-    firstNullPolarization = new operaStokesVector(length);
-    secondNullPolarization = new operaStokesVector(length); 
-	wavelength = (double *)malloc(length*sizeof(double));	   
-}
-
-
-/*
- * \brief Basic operaPolarimetry destructor.
- * \return void
- */
-operaPolarimetry::~operaPolarimetry()
-{
-    if (stokesVector)
-	   delete stokesVector;
-    stokesVector = NULL;
-    if (degreeOfPolarization)
-        delete degreeOfPolarization;
-    degreeOfPolarization = NULL;
-    if (firstNullPolarization)
-        delete firstNullPolarization;
-    firstNullPolarization = NULL;
-    if (secondNullPolarization)
-        delete secondNullPolarization;
-    secondNullPolarization = NULL;
-	if (wavelength && hasWavelength)
-		free(wavelength);
-	wavelength = NULL;
-}
-
-/*
- * Getters/Setters
- */
-
-
-void operaPolarimetry::resize(unsigned Length)
-{
-	if (Length == 0) {
-		throw operaException("operaPolarimetry: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
 	if (length == 0) {
 		throw operaException("operaPolarimetry: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
 	}
-	if(Length == length) return;
-	stokesVector->resize(Length);
-    degreeOfPolarization->resize(Length);
-    firstNullPolarization->resize(Length);
-    secondNullPolarization->resize(Length);
-    resizeVector(wavelength, length, Length);
+}
+
+void operaPolarimetry::resize(unsigned Length)
+{
+	stokesParameter.resize(Length);
+    degreeOfPolarization.resize(Length);
+    continuumRemoved.resize(Length);
+    firstNullPolarization.resize(Length);
+    secondNullPolarization.resize(Length);
+    wavelength.resize(Length);
 	length = Length;
 }
 
-/*
- * \brief Sets the length of the Stokes vectors.
- * \details A function that sets the value of the variable holding the number of elements in the operaStokesVector.
- * \param Length An unsigned number of elements
- * \return void
- */
-void operaPolarimetry::setLength(unsigned Length)
+void operaPolarimetry::trim(operaIndexRange range)
 {
-	if (Length > length) {
-		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    length = Length;
+	stokesParameter.trim(range);
+    degreeOfPolarization.trim(range);
+    continuumRemoved.trim(range);
+    firstNullPolarization.trim(range);
+    secondNullPolarization.trim(range);
+    wavelength.trim(range);
+	length = range.size();
 }
 
-/*
- * \brief Gets the length of the Stokes vectors.
- * \details A function that gets the value of the variable holding the number of elements in the operaStokesVector.
- * \return An unsigned value
- */
 unsigned operaPolarimetry::getLength(void) const
 {
     return length;
 }
 
-/*
- * \brief Gets a wavelength value at indexElem.
- * \param indexEleme the index
- * \return Wavelength a wavelength value
- */
-double operaPolarimetry::getwavelength(unsigned indexElem) const {
-#ifdef RANGE_CHECK
-    if (indexElem >= length) {
-		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
+double operaPolarimetry::getwavelength(unsigned indexElem) const
+{
 	return wavelength[indexElem];
 }
-/*
- * \brief Gets a wavelength vector address.
- * \return Wavelength a wavelength vector address
- */
-double *operaPolarimetry::getwavelength(void) {
-	return wavelength;
-}
-/*
- * \brief Sets a wavelength value at indexElem.
- * \param Wavelength a wavelength value
- * \param indexEleme the index
- * \return void
- */
-void operaPolarimetry::setwavelength(double Wavelength, unsigned indexElem) {
-#ifdef RANGE_CHECK
-    if (indexElem >= length) {
-		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
+
+void operaPolarimetry::setwavelength(double Wavelength, unsigned indexElem)
+{
 	wavelength[indexElem] = Wavelength;
 }
 
-/*
- * \brief Copies wavelength values.
- * \param double *Wavelength a wavelength vector
- * \param length the number of elements
- * \return void
- */
-void operaPolarimetry::setwavelength(double *Wavelength, unsigned Length) {
+const operaFluxVector &operaPolarimetry::getStokesParameter(stokes_parameter_t StokesIndex) const
+{
+    return stokesParameter.getStokesParameter(StokesIndex);
+}
+
+void operaPolarimetry::setStokesParameter(stokes_parameter_t StokesIndex, const operaFluxVector& FluxVector)
+{
 #ifdef RANGE_CHECK
-    if (Length >= length) {
+    if (FluxVector.size() != length) {
 		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 #endif
-	length = Length;
-	unsigned i = length;
-	while (i--) {
-		wavelength[i] = Wavelength[i];
-	}
-	setHasWavelength(true);
-}
-
-/*
- * \brief Sets a Stokes parameter.
- * \details A function that sets the operaFluxVector of a Stokes parameter.
- * \param StokesIndex A stokes_parameter_t value
- * \param FluxVector An operaFluxVector pointer
- * \return void
- */
-void operaPolarimetry::setStokesParameter(stokes_parameter_t StokesIndex, operaFluxVector *FluxVector)
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    stokesVector->setStokesParameter(StokesIndex, FluxVector);
-    
+    stokesParameter.setStokesParameter(StokesIndex, FluxVector);
     setHasStokes(StokesIndex,true);
 }
 
-/*
- * \brief Sets a Stokes parameter element.
- * \details A function that sets the value and the variance of a Stokes parameter element.
- * \param StokesIndex A stokes_parameter_t value
- * \param StokesValue A double value
- * \param Variance A double value
- * \param index An unsigned index to the element
- * \return void
- */
+double operaPolarimetry::getStokesParameterFlux(stokes_parameter_t StokesIndex, unsigned index) const {
+	return stokesParameter.getStokesParameterFlux(StokesIndex, index);
+}
+
+double operaPolarimetry::getStokesParameterVariance(stokes_parameter_t StokesIndex, unsigned index) const {
+	return stokesParameter.getStokesParameterVariance(StokesIndex, index);
+}
+
 void operaPolarimetry::setStokesParameter(stokes_parameter_t StokesIndex, double StokesValue, double Variance, unsigned index)
 {
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    stokesVector->getStokesParameter(StokesIndex)->setflux(StokesValue, index);
-    stokesVector->getStokesParameter(StokesIndex)->setvariance(Variance, index);
-    
-    switch (StokesIndex) {
-        case StokesI:
-            hasStokesI = true;
-            break;
-        case StokesQ:
-            hasStokesQ = true;
-            break;
-        case StokesU:
-            hasStokesU = true;
-            break;
-        case StokesV:
-            hasStokesV = true;
-            break;
-    }
+    stokesParameter.setStokesParameter(StokesIndex, StokesValue, Variance, index);
+    setHasStokes(StokesIndex,true);
 }
 
-/*
- * \brief Gets the Stokes vector.
- * \details A function that gets the operaStokesVector of the Stokes vector.
- * \return An operaStokesVector pointer
- */
-operaStokesVector* operaPolarimetry::getStokesVector(void)
+const operaFluxVector &operaPolarimetry::getDegreeOfPolarization(stokes_parameter_t StokesIndex) const
 {
-    return stokesVector;
-}
-const operaStokesVector* operaPolarimetry::getStokesVector(void) const
-{
-    return stokesVector;
+    return degreeOfPolarization.getStokesParameter(StokesIndex);
 }
 
-/*
- * \brief Gets a Stokes parameter.
- * \details A function that gets the operaFluxVector of a Stokes parameter.
- * \param StokesIndex A stokes_parameter_t value
- * \return An operaFluxVector pointer
- */
-operaFluxVector* operaPolarimetry::getStokesParameter(stokes_parameter_t StokesIndex)
+void operaPolarimetry::setDegreeOfPolarization(stokes_parameter_t StokesIndex, const operaFluxVector &FluxVector)
 {
 #ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
+    if (FluxVector.size() != length) {
+		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+	}
 #endif
-    return stokesVector->getStokesParameter(StokesIndex);
-}
-const operaFluxVector* operaPolarimetry::getStokesParameter(stokes_parameter_t StokesIndex) const
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    return stokesVector->getStokesParameter(StokesIndex);
-}
-
-/*
- * \brief Sets a Stokes parameter of the degree of polarization vector.
- * \details A function that sets the operaFluxVector of a Stokes parameter of the degree of polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \param FluxVector An operaFluxVector pointer
- * \return void
- */
-void operaPolarimetry::setDegreeOfPolarization(stokes_parameter_t StokesIndex, operaFluxVector *FluxVector)
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    degreeOfPolarization->setStokesParameter(StokesIndex, FluxVector);
+    degreeOfPolarization.setStokesParameter(StokesIndex, FluxVector);
     setHasDegreeOfStokes(StokesIndex,true);
 }
 
-/*
- * \brief Sets a Stokes parameter element of the degree of polarization vector.
- * \details A function that sets the value and the variance of a Stokes parameter element of the degree of polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \param DegreeOfPolarizationValue A double value
- * \param Variance A double value
- * \param index An unsigned index to the element
- * \return void
- */
+double operaPolarimetry::getDegreeOfPolarizationFlux(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return degreeOfPolarization.getStokesParameterFlux(StokesIndex, index);
+}
+
+double operaPolarimetry::getDegreeOfPolarizationVariance(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return degreeOfPolarization.getStokesParameterVariance(StokesIndex, index);
+}
+
 void operaPolarimetry::setDegreeOfPolarization(stokes_parameter_t StokesIndex, double DegreeOfPolarizationValue, double Variance, unsigned index)
 {
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    degreeOfPolarization->getStokesParameter(StokesIndex)->setflux(DegreeOfPolarizationValue, index);
-    degreeOfPolarization->getStokesParameter(StokesIndex)->setvariance(Variance, index);
-    
-    switch (StokesIndex) {
-        case StokesI:
-            hasDegreeOfStokesI = true;
-            break;
-        case StokesQ:
-            hasDegreeOfStokesQ = true;
-            break;
-        case StokesU:
-            hasDegreeOfStokesU = true;
-            break;
-        case StokesV:
-            hasDegreeOfStokesV = true;
-            break;
-    }
+    degreeOfPolarization.setStokesParameter(StokesIndex, DegreeOfPolarizationValue, Variance, index);
+    setHasDegreeOfStokes(StokesIndex,true);
 }
 
-/*
- * \brief Gets the degree of polarization vector.
- * \details A function that gets the operaStokesVector of the degree of polarization vector.
- * \return An operaStokesVector pointer
- */
-operaStokesVector* operaPolarimetry::getDegreeOfPolarization(void)
+const operaFluxVector &operaPolarimetry::getContinuumRemoved(stokes_parameter_t StokesIndex) const
 {
-    return degreeOfPolarization;
-}
-const operaStokesVector* operaPolarimetry::getDegreeOfPolarization(void) const
-{
-    return degreeOfPolarization;
+    return continuumRemoved.getStokesParameter(StokesIndex);
 }
 
-/*
- * \brief Gets a Stokes parameter of the degree of polarization vector.
- * \details A function that gets the operaFluxVector of a Stokes parameter of the degree of polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \return An operaFluxVector pointer
- */
-operaFluxVector* operaPolarimetry::getDegreeOfPolarization(stokes_parameter_t StokesIndex)
+void operaPolarimetry::setContinuumRemoved(stokes_parameter_t StokesIndex, const operaFluxVector &FluxVector)
 {
 #ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
+    if (FluxVector.size() != length) {
+		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+	}
 #endif
-    return degreeOfPolarization->getStokesParameter(StokesIndex);
-}
-const operaFluxVector* operaPolarimetry::getDegreeOfPolarization(stokes_parameter_t StokesIndex) const
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    return degreeOfPolarization->getStokesParameter(StokesIndex);
+    continuumRemoved.setStokesParameter(StokesIndex, FluxVector);
+    hasContinuumRemoved = true;
 }
 
-/*
- * \brief Sets a Stokes parameter of the first null polarization vector.
- * \details A function that sets the operaFluxVector of a Stokes parameter of the first null polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \param FluxVector An operaFluxVector pointer
- * \return void
- */
-void operaPolarimetry::setFirstNullPolarization(stokes_parameter_t StokesIndex, operaFluxVector *FluxVector)
+double operaPolarimetry::getContinuumRemovedFlux(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return continuumRemoved.getStokesParameterFlux(StokesIndex, index);
+}
+
+double operaPolarimetry::getContinuumRemovedVariance(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return continuumRemoved.getStokesParameterVariance(StokesIndex, index);
+}
+
+void operaPolarimetry::setContinuumRemoved(stokes_parameter_t StokesIndex, double ContinuumRemovedValue, double Variance, unsigned index)
+{
+    continuumRemoved.setStokesParameter(StokesIndex, ContinuumRemovedValue, Variance, index);
+    hasContinuumRemoved = true;
+}
+
+const operaFluxVector &operaPolarimetry::getFirstNullPolarization(stokes_parameter_t StokesIndex) const
+{
+    return firstNullPolarization.getStokesParameter(StokesIndex);
+}
+
+void operaPolarimetry::setFirstNullPolarization(stokes_parameter_t StokesIndex, const operaFluxVector &FluxVector)
 {
 #ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
+    if (FluxVector.size() != length) {
+		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+	}
 #endif
-    firstNullPolarization->setStokesParameter(StokesIndex, FluxVector);
-    
+    firstNullPolarization.setStokesParameter(StokesIndex, FluxVector);
     hasFirstNullPolarization = true;
 }
 
-/*
- * \brief Sets a Stokes parameter element of the first null polarization vector.
- * \details A function that sets the value and the variance of a Stokes parameter element of the first null polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \param FirstNullPolarizationValue A double value
- * \param Variance A double value
- * \param index An unsigned index to the element
- * \return void
- */
+double operaPolarimetry::getFirstNullPolarizationFlux(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return firstNullPolarization.getStokesParameterFlux(StokesIndex, index);
+}
+
+double operaPolarimetry::getFirstNullPolarizationVariance(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return firstNullPolarization.getStokesParameterVariance(StokesIndex, index);
+}
+
 void operaPolarimetry::setFirstNullPolarization(stokes_parameter_t StokesIndex, double FirstNullPolarizationValue, double Variance, unsigned index)
 {
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    firstNullPolarization->getStokesParameter(StokesIndex)->setflux(FirstNullPolarizationValue, index);
-    firstNullPolarization->getStokesParameter(StokesIndex)->setvariance(Variance, index);
-    
+    firstNullPolarization.setStokesParameter(StokesIndex, FirstNullPolarizationValue, Variance, index);
     hasFirstNullPolarization = true;
 }
 
-/*
- * \brief Gets the first null polarization vector.
- * \details A function that gets the operaStokesVector of the first null polarization vector.
- * \return An operaStokesVector pointer
- */
-operaStokesVector* operaPolarimetry::getFirstNullPolarization(void)
+const operaFluxVector &operaPolarimetry::getSecondNullPolarization(stokes_parameter_t StokesIndex) const
 {
-    return firstNullPolarization;
-}
-const operaStokesVector* operaPolarimetry::getFirstNullPolarization(void) const
-{
-    return firstNullPolarization;
+    return secondNullPolarization.getStokesParameter(StokesIndex);
 }
 
-/*
- * \brief Gets a Stokes parameter of the first null polarization vector.
- * \details A function that gets the operaFluxVector of a Stokes parameter of the first null polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \return An operaFluxVector pointer
- */
-operaFluxVector* operaPolarimetry::getFirstNullPolarization(stokes_parameter_t StokesIndex)
+void operaPolarimetry::setSecondNullPolarization(stokes_parameter_t StokesIndex, const operaFluxVector &FluxVector)
 {
 #ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
+    if (FluxVector.size() != length) {
+		throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+	}
 #endif
-    return firstNullPolarization->getStokesParameter(StokesIndex);
-}
-const operaFluxVector* operaPolarimetry::getFirstNullPolarization(stokes_parameter_t StokesIndex) const
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    return firstNullPolarization->getStokesParameter(StokesIndex);
-}
-
-/*
- * \brief Sets a Stokes parameter of the second null polarization vector.
- * \details A function that sets the operaFluxVector of a Stokes parameter of the second null polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \param FluxVector An operaFluxVector pointer
- * \return void
- */
-void operaPolarimetry::setSecondNullPolarization(stokes_parameter_t StokesIndex, operaFluxVector *FluxVector)
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    secondNullPolarization->setStokesParameter(StokesIndex, FluxVector);
-    
+    secondNullPolarization.setStokesParameter(StokesIndex, FluxVector);
     hasSecondNullPolarization = true;
 }
 
-/*
- * \brief Sets a Stokes parameter element of the second null polarization vector.
- * \details A function that sets the value and the variance of a Stokes parameter element of the second null polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \param SecondNullPolarizationValue A double value
- * \param Variance A double value
- * \param index An unsigned index to the element
- * \return void
- */
+double operaPolarimetry::getSecondNullPolarizationFlux(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return secondNullPolarization.getStokesParameterFlux(StokesIndex, index);
+}
+
+double operaPolarimetry::getSecondNullPolarizationVariance(stokes_parameter_t StokesIndex, unsigned index) const
+{
+	return secondNullPolarization.getStokesParameterVariance(StokesIndex, index);
+}
+
 void operaPolarimetry::setSecondNullPolarization(stokes_parameter_t StokesIndex, double SecondNullPolarizationValue, double Variance, unsigned index)
 {
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    secondNullPolarization->getStokesParameter(StokesIndex)->setflux(SecondNullPolarizationValue, index);
-    secondNullPolarization->getStokesParameter(StokesIndex)->setvariance(Variance, index);
-    
+    secondNullPolarization.setStokesParameter(StokesIndex, SecondNullPolarizationValue, Variance, index);    
     hasSecondNullPolarization = true;
 }
 
-/*
- * \brief Gets the second null polarization vector.
- * \details A function that gets the operaStokesVector of the second null polarization vector.
- * \return An operaStokesVector pointer
- */
-operaStokesVector* operaPolarimetry::getSecondNullPolarization(void)
-{
-    return secondNullPolarization;
-}
-const operaStokesVector* operaPolarimetry::getSecondNullPolarization(void) const
-{
-    return secondNullPolarization;
-}
 
-/*
- * \brief Gets a Stokes parameter of the second null polarization vector.
- * \details A function that gets the operaFluxVector of a Stokes parameter of the second null polarization vector.
- * \param StokesIndex A stokes_parameter_t value
- * \return An operaFluxVector pointer
- */
-operaFluxVector* operaPolarimetry::getSecondNullPolarization(stokes_parameter_t StokesIndex)
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    return secondNullPolarization->getStokesParameter(StokesIndex);
-}
-const operaFluxVector* operaPolarimetry::getSecondNullPolarization(stokes_parameter_t StokesIndex) const
-{
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);    
-    }
-#endif
-    return secondNullPolarization->getStokesParameter(StokesIndex);
-}
-
-/*
- * \brief Gets the boolean value of Stokes I.
- * \details A function that gets the boolean value giving the state of the Stokes I parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasStokesI(void) const
-{
-    return hasStokesI;
-}
-
-/*
- * \brief Gets the boolean value of Stokes Q.
- * \details A function that gets the boolean value giving the state of the Stokes Q parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasStokesQ(void) const
-{
-    return hasStokesQ;
-}
-
-/*
- * \brief Gets the boolean value of Stokes U.
- * \details A function that gets the boolean value giving the state of the Stokes U parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasStokesU(void) const
-{
-    return hasStokesU;
-}
-
-/*
- * \brief Gets the boolean value of Stokes V.
- * \details A function that gets the boolean value giving the state of the Stokes V parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasStokesV(void) const
-{
-    return hasStokesV;
-}
-
-/*!
- * \brief Get the boolean value of a given Stokes.
- * \details A function that gets the boolean value giving the state of a given Stokes parameter in the Stokes vector.
- * \param StokesIndex choice of Stokes parameter
- * \return A boolean value
- */
 bool operaPolarimetry::getHasStokes(stokes_parameter_t StokesIndex) const
 {
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
-#endif
-    
     switch (StokesIndex) {
         case StokesI:
             return hasStokesI;
-            break;
         case StokesQ:
             return hasStokesQ;
-            break;
         case StokesU:
             return hasStokesU;
-            break;
         case StokesV:
             return hasStokesV;
-            break;
-    }
-	return false;
-}
-
-
-/*
- * \brief Sets the boolean value of Stokes I.
- * \details A function that sets the boolean value giving the state of the Stokes I parameter in the Stokes vector.
- * \param HasStokesI A boolean value
- * \return void
- */
-void operaPolarimetry::setHasStokesI(bool HasStokesI)
-{
-    hasStokesI = HasStokesI;
-}
-
-/*
- * \brief Sets the boolean value of Stokes Q.
- * \details A function that sets the boolean value giving the state of the Stokes Q parameter in the Stokes vector.
- * \param HasStokesQ A boolean value
- * \return void
- */
-void operaPolarimetry::setHasStokesQ(bool HasStokesQ)
-{
-    hasStokesQ = HasStokesQ;
-}
-
-/*
- * \brief Sets the boolean value of Stokes U.
- * \details A function that sets the boolean value giving the state of the Stokes U parameter in the Stokes vector.
- * \param HasStokesU A boolean value
- * \return void
- */
-void operaPolarimetry::setHasStokesU(bool HasStokesU)
-{
-    hasStokesU = HasStokesU;
-}
-
-/*
- * \brief Sets the boolean value of Stokes V.
- * \details A function that sets the boolean value giving the state of the Stokes V parameter in the Stokes vector.
- * \param HasStokesV A boolean value
- * \return void
- */
-void operaPolarimetry::setHasStokesV(bool HasStokesV)
-{
-    hasStokesV = HasStokesV;
-}
-
-/*!
- * \brief Set the boolean value of a given Stokes.
- * \details A function that sets the boolean value giving the state of a given Stokes parameter in the Stokes vector.
- * \param HasStokes A boolean value
- * \param StokesIndex choice of Stokes parameter
- * \return void
- */
-void operaPolarimetry::setHasStokes(stokes_parameter_t StokesIndex, bool HasStokes) {
+        default:
 #ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
+            throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorIndexOutOfRange, __FILE__, __FUNCTION__, __LINE__);
 #endif
-    
+            return false;
+    }
+}
+
+void operaPolarimetry::setHasStokes(stokes_parameter_t StokesIndex, bool HasStokes)
+{
     switch (StokesIndex) {
         case StokesI:
             hasStokesI = HasStokes;
@@ -730,138 +308,34 @@ void operaPolarimetry::setHasStokes(stokes_parameter_t StokesIndex, bool HasStok
         case StokesV:
             hasStokesV = HasStokes;
             break;
+        default:
+#ifdef RANGE_CHECK
+            throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorIndexOutOfRange, __FILE__, __FUNCTION__, __LINE__);
+#endif
+			break;
     }
 }
 
-/*
- * \brief Gets the boolean value of the degree of polarization of Stokes I.
- * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes I parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasDegreeOfStokesI(void) const
-{
-    return hasDegreeOfStokesI;
-}
-
-/*
- * \brief Gets the boolean value of the degree of polarization of Stokes Q.
- * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes Q parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasDegreeOfStokesQ(void) const
-{
-    return hasDegreeOfStokesQ;
-}
-
-/*
- * \brief Gets the boolean value of the degree of polarization of Stokes U.
- * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes U parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasDegreeOfStokesU(void) const
-{
-    return hasDegreeOfStokesU;
-}
-
-/*
- * \brief Gets the boolean value of the degree of polarization of Stokes V.
- * \details A function that gets the boolean value giving the state of the degree of polarization of the Stokes V parameter in the Stokes vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasDegreeOfStokesV(void) const
-{
-    return hasDegreeOfStokesV;
-}
-
-/*!
- * \brief Get the boolean value of the degree of polarization of a given Stokes.
- * \details A function that gets the boolean value giving the state of the degree of polarization of a given Stokes parameter in the Stokes vector.
- * \param StokesIndex choice of Stokes parameter
- * \return A boolean value
- */
 bool operaPolarimetry::getHasDegreeOfStokes(stokes_parameter_t StokesIndex) const
 {
-#ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
-#endif
-    
     switch (StokesIndex) {
         case StokesI:
             return hasDegreeOfStokesI;
-            break;
         case StokesQ:
             return hasDegreeOfStokesQ;
-            break;
         case StokesU:
             return hasDegreeOfStokesU;
-            break;
         case StokesV:
             return hasDegreeOfStokesV;
-            break;
-    }
-	return false;
-}
-
-/*
- * \brief Sets the boolean value of the degree of polarization of Stokes I.
- * \details A function that sets the boolean value giving the state of the degree of polarization of the Stokes I parameter in the Stokes vector.
- * \param HasDegreeOfStokesI A boolean value
- * \return void
- */
-void operaPolarimetry::setHasDegreeOfStokesI(bool HasDegreeOfStokesI)
-{
-    hasDegreeOfStokesI = HasDegreeOfStokesI;
-}
-
-/*
- * \brief Sets the boolean value of the degree of polarization of Stokes Q.
- * \details A function that sets the boolean value giving the state of the degree of polarization of the Stokes Q parameter in the Stokes vector.
- * \param HasDegreeOfStokesQ A boolean value
- * \return void
- */
-void operaPolarimetry::setHasDegreeOfStokesQ(bool HasDegreeOfStokesQ)
-{
-    hasDegreeOfStokesQ = HasDegreeOfStokesQ;
-}
-
-/*
- * \brief Sets the boolean value of the degree of polarization of Stokes U.
- * \details A function that sets the boolean value giving the state of the degree of polarization of the Stokes U parameter in the Stokes vector.
- * \param HasDegreeOfStokesU A boolean value
- * \return void
- */
-void operaPolarimetry::setHasDegreeOfStokesU(bool HasDegreeOfStokesU)
-{
-    hasDegreeOfStokesU = HasDegreeOfStokesU;
-}
-
-/*
- * \brief Sets the boolean value of the degree of polarization of Stokes V.
- * \details A function that sets the boolean value giving the state of the degree of polarization of the Stokes V parameter in the Stokes vector.
- * \param HasDegreeOfStokesV A boolean value
- * \return void
- */
-void operaPolarimetry::setHasDegreeOfStokesV(bool HasDegreeOfStokesV)
-{
-    hasDegreeOfStokesV = HasDegreeOfStokesV;
-}
-
-/*!
- * \brief Set the boolean value of the degree of polarization of a given Stokes.
- * \details A function that sets the boolean value giving the state of the degree of polarization of a given Stokes parameter in the Stokes vector.
- * \param HasDegreeOfStokes A boolean value
- * \param StokesIndex choice of Stokes parameter
- * \return void
- */
-void operaPolarimetry::setHasDegreeOfStokes(stokes_parameter_t StokesIndex, bool HasDegreeOfStokes) {
+        default:
 #ifdef RANGE_CHECK
-    if (StokesIndex >= 4) {
-        throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
+            throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorIndexOutOfRange, __FILE__, __FUNCTION__, __LINE__);
 #endif
-    
+            return false;
+    }
+}
+
+void operaPolarimetry::setHasDegreeOfStokes(stokes_parameter_t StokesIndex, bool HasDegreeOfStokes) {
     switch (StokesIndex) {
         case StokesI:
             hasDegreeOfStokesI = HasDegreeOfStokes;
@@ -875,78 +349,30 @@ void operaPolarimetry::setHasDegreeOfStokes(stokes_parameter_t StokesIndex, bool
         case StokesV:
             hasDegreeOfStokesV = HasDegreeOfStokes;
             break;
+        default:
+#ifdef RANGE_CHECK
+            throw operaException("operaPolarimetry: unrecognized Stokes parameter. ", operaErrorIndexOutOfRange, __FILE__, __FUNCTION__, __LINE__);
+#endif
+            break;
     }
 }
 
-/*
- * \brief Gets the boolean value of the first null polarization vector.
- * \details A function that gets the boolean value of the first null polarization vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasFirstNullPolarization(void) const
-{
-    return hasFirstNullPolarization;
-}
-
-/*
- * \brief Gets the boolean value of the second null polarization vector.
- * \details A function that gets the boolean value of the second null polarization vector.
- * \return A boolean value
- */
-bool operaPolarimetry::getHasSecondNullPolarization(void) const
-{
-    return hasSecondNullPolarization;
-}
-
-/*
- * \brief Sets the boolean value of the first null polarization vector.
- * \details A function that sets the boolean value of the first null polarization vector.
- * \param HasFirstNullPolarization A boolean value
- * \return void
- */
-void operaPolarimetry::setHasFirstNullPolarization(bool HasFirstNullPolarization)
-{
-    hasFirstNullPolarization = HasFirstNullPolarization;
-}
-
-/*
- * \brief Sets the boolean value of the second null polarization vector.
- * \details A function that sets the boolean value of the second null polarization vector.
- * \param HasSecondNullPolarization A boolean value
- * \return void
- */
-void operaPolarimetry::setHasSecondNullPolarization(bool HasSecondNullPolarization)
-{
-    hasSecondNullPolarization = HasSecondNullPolarization;
-}
-
-/*
- * Methods
- */
-
-/*
- * \brief Calculates the polarization.
- * \details A function that calculates the polarization from the degree of polarization and stores it in the Stokes vector.
- * \return void
- */
 void operaPolarimetry::calculatePolarization(void)
 {
     if (hasStokesI) {
         if (hasDegreeOfStokesQ) {
-			operaFluxVector fluxdiv = *degreeOfPolarization->getStokesParameter(StokesQ) * *stokesVector->getStokesParameter(StokesI);
-            stokesVector->setStokesParameter(StokesQ, &fluxdiv);
+			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesQ) * stokesParameter.getStokesParameter(StokesI);
+            stokesParameter.setStokesParameter(StokesQ, fluxdiv);
             hasStokesQ = true;
         }
-        
         if (hasDegreeOfStokesU) {
-			operaFluxVector fluxdiv = *degreeOfPolarization->getStokesParameter(StokesU) * *stokesVector->getStokesParameter(StokesI);
-            stokesVector->setStokesParameter(StokesU, &fluxdiv);
+			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesU) * stokesParameter.getStokesParameter(StokesI);
+            stokesParameter.setStokesParameter(StokesU, fluxdiv);
             hasStokesU = true;
         }
-        
         if (hasDegreeOfStokesV) {
-			operaFluxVector fluxdiv = *(degreeOfPolarization->getStokesParameter(StokesV)) * *(stokesVector->getStokesParameter(StokesI));
-            stokesVector->setStokesParameter(StokesV, &fluxdiv);
+			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesV) * stokesParameter.getStokesParameter(StokesI);
+            stokesParameter.setStokesParameter(StokesV, fluxdiv);
             hasStokesV = true;
         }
     } else {
@@ -954,17 +380,12 @@ void operaPolarimetry::calculatePolarization(void)
     }
 }
 
-/*
- * \brief Calculates the polarization.
- * \details A function that calculates the polarization from the degree of polarization and stores it in the Stokes vector.
- * \return void
- */
 void operaPolarimetry::calculatePolarization(stokes_parameter_t StokesIndex)
 {
     if (hasStokesI) {
-        if (getHasDegreeOfStokes(StokesIndex)) {	// StokesI will not be done...
-			operaFluxVector fluxdiv = *(degreeOfPolarization->getStokesParameter(StokesIndex)) / *(stokesVector->getStokesParameter(StokesI));
-            stokesVector->setStokesParameter(StokesIndex, &fluxdiv);
+        if (getHasDegreeOfStokes(StokesIndex)) { // StokesI will not be done...
+			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesIndex) / stokesParameter.getStokesParameter(StokesI);
+            stokesParameter.setStokesParameter(StokesIndex, fluxdiv);
             setHasStokes(StokesIndex,true);
 		}
     } else {
@@ -972,33 +393,24 @@ void operaPolarimetry::calculatePolarization(stokes_parameter_t StokesIndex)
     }
 }
 
-
-/*
- * \brief Calculates the degree of polarization.
- * \details A function that calculates the degree of polarization from the polarization and stores it in the degree of polarization vector.
- * \return void
- */
 void operaPolarimetry::calculateDegreeOfPolarization(void) {
     if (hasStokesI) {
-		operaFluxVector fluxdiv = *stokesVector->getStokesParameter(StokesI) / *stokesVector->getStokesParameter(StokesI);
-        degreeOfPolarization->setStokesParameter(StokesI, &fluxdiv);
+		operaFluxVector fluxdiv = stokesParameter.getStokesParameter(StokesI) / stokesParameter.getStokesParameter(StokesI);
+        degreeOfPolarization.setStokesParameter(StokesI, fluxdiv);
         hasDegreeOfStokesI = true;
-        
         if (hasStokesQ) {
-			fluxdiv = *stokesVector->getStokesParameter(StokesQ) / *stokesVector->getStokesParameter(StokesI);
-            degreeOfPolarization->setStokesParameter(StokesQ, &fluxdiv);
+			fluxdiv = stokesParameter.getStokesParameter(StokesQ) / stokesParameter.getStokesParameter(StokesI);
+            degreeOfPolarization.setStokesParameter(StokesQ, fluxdiv);
             hasDegreeOfStokesQ = true;
         }
-        
         if (hasStokesU) {
-			fluxdiv = *stokesVector->getStokesParameter(StokesU) / *stokesVector->getStokesParameter(StokesI);
-            degreeOfPolarization->setStokesParameter(StokesU, &fluxdiv);
+			fluxdiv = stokesParameter.getStokesParameter(StokesU) / stokesParameter.getStokesParameter(StokesI);
+            degreeOfPolarization.setStokesParameter(StokesU, fluxdiv);
             hasDegreeOfStokesU = true;
         }
-        
         if (hasStokesV) {
-			fluxdiv = *stokesVector->getStokesParameter(StokesV) / *stokesVector->getStokesParameter(StokesI);
-            degreeOfPolarization->setStokesParameter(StokesV, &fluxdiv);
+			fluxdiv = stokesParameter.getStokesParameter(StokesV) / stokesParameter.getStokesParameter(StokesI);
+            degreeOfPolarization.setStokesParameter(StokesV, fluxdiv);
             hasDegreeOfStokesV = true;
         }
     } else {
@@ -1006,16 +418,6 @@ void operaPolarimetry::calculateDegreeOfPolarization(void) {
     }
 }
 
-/*
- * \brief Calculates the degree of polarization.
- * \details A function that calculates the degree of polarization from the observed ordinary and extraordinary beam fluxes.
- * \details This function accepts 2 or 4 input pairs of fluxes (polarimetric exposures).
- * \param StokesIndex is the selected Stokes parameter
- * \param *iE[4] is a set of flux vectors for the input beams with a given state of polarization (ordinary beams)
- * \param *iA[4] is a set of flux vectors for the input beams with a given orthogonal state of polarization (extra-ordinary beams)
- * \param NumberOfExposures is the number of input exposures (accepts only 2 or 4)
- * \return void
- */
 void operaPolarimetry::calculateDegreeOfPolarization(stokes_parameter_t StokesIndex, operaFluxVector *iE[4], operaFluxVector *iA[4], unsigned NumberOfExposures) {
 #ifdef DOUG
     if(NumberOfExposures != 2 && NumberOfExposures != 4) {
@@ -1248,25 +650,14 @@ void operaPolarimetry::calculateDegreeOfPolarization(stokes_parameter_t StokesIn
         PoverI -= (PoverI * 2.0);
     }
     
-    setDegreeOfPolarization(StokesIndex, &PoverI);
+    setDegreeOfPolarization(StokesIndex, PoverI);
     
     if (NumberOfExposures==4) {
-        setFirstNullPolarization(StokesIndex, &N1);
-        setSecondNullPolarization(StokesIndex, &N2);
+        setFirstNullPolarization(StokesIndex, N1);
+        setSecondNullPolarization(StokesIndex, N2);
     }
 }
 
-/*
- * \brief Calculates Stokes I and another given Stokes parameter.
- * \details A function that calculates the polarized flux for a given Stokes and the
- * \details total flux for Stokes I given the observed ordinary and extra-ordinary beam fluxes.
- * \details This function accepts either 2 or 4 input pairs of fluxes (polarimetric exposures).
- * \param StokesIndex is the selected Stokes parameter
- * \param *iE[4] is a set of flux vectors for the input beams with a given state of polarization (ordinary beams)
- * \param *iA[4] is a set of flux vectors for the input beams with a given orthogonal state of polarization (extra-ordinary beams)
- * \param NumberOfExposures is the number of input exposures (accepts only 2 or 4)
- * \return void
- */
 void operaPolarimetry::calculateStokesParameter(stokes_parameter_t StokesIndex, operaFluxVector *iE[4], operaFluxVector *iA[4], unsigned NumberOfExposures) {
     
     if(NumberOfExposures != 2 && NumberOfExposures != 4) {
@@ -1277,9 +668,9 @@ void operaPolarimetry::calculateStokesParameter(stokes_parameter_t StokesIndex, 
     
     Intensity = 0.0;
     for(unsigned i=0;i<NumberOfExposures;i++) {
-        Intensity += (*(iE[i]) + *(iA[i])) / ((double)NumberOfExposures*2.0); // DT Apr 26 2013 added *2.0
+        Intensity += (*(iE[i]) + *(iA[i])) / ((double)NumberOfExposures); // DT Apr 26 2013 added *2.0 Deleted by LMa Feb 12 2016
     }
-    setStokesParameter(StokesI, &Intensity);
+    setStokesParameter(StokesI, Intensity);
     
     if (StokesIndex == StokesQ || StokesIndex == StokesU || StokesIndex == StokesV) {
         if(!getHasDegreeOfStokes(StokesIndex)) {
@@ -1288,4 +679,3 @@ void operaPolarimetry::calculateStokesParameter(stokes_parameter_t StokesIndex, 
     }
     calculatePolarization(StokesIndex);
 }
-

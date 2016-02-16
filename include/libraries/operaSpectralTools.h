@@ -40,7 +40,7 @@ Date: Aug/2011
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
-#include "libraries/operaSpectralElements.h"    // for operaSpectralElements
+#include "libraries/operaSpectralOrder.h"    // for operaSpectralElements
 #include "libraries/ladfit.h"						// for ladfit
 
 #define MAXNUMBEROFWLRANGES 1000
@@ -54,6 +54,60 @@ Date: Aug/2011
  */
 
 using namespace std;
+
+class operaSpectrum {
+private:
+	operaVector wavelength;
+	operaFluxVector intensity;
+public:
+	operaSpectrum() { }
+	operaSpectrum(unsigned presize) : wavelength(presize), intensity(presize) { }
+	unsigned int size() const { return wavelength.size(); }
+	bool empty() const { return wavelength.empty(); }
+	void insert(double wl, double flux) { wavelength.insert(wl); intensity.insert(flux, 0); }
+	void insert(double wl, double flux, double variance) { wavelength.insert(wl); intensity.insert(flux, variance); }
+	void reverse() { wavelength.reverse(); intensity.reverse(); }
+	void resize(unsigned newsize) { wavelength.resize(newsize); intensity.resize(newsize); }
+	double* wavelength_ptr(unsigned offset = 0) { return wavelength.datapointer()+offset; }
+	double* flux_ptr(unsigned offset = 0) { return intensity.getfluxpointer()+offset; }
+	double* variance_ptr(unsigned offset = 0) { return intensity.getvariancepointer()+offset; }
+	const double* wavelength_ptr(unsigned offset = 0) const { return wavelength.datapointer()+offset; }
+	const double* flux_ptr(unsigned offset = 0) const { return intensity.getfluxpointer()+offset; }
+	const double* variance_ptr(unsigned offset = 0) const { return intensity.getvariancepointer()+offset; }
+	double firstwl() const { return wavelength.first(); }
+	double midwl() const { return wavelength[wavelength.size()/2]; }
+	double lastwl() const { return wavelength.last(); }
+	double getwavelength(unsigned i) const { return wavelength[i]; }
+	double getflux(unsigned i) const { return intensity.getflux(i); }
+	double getvariance(unsigned i) const { return intensity.getvariance(i); }
+	void Sort() { operaIndexMap indexmap = wavelength.indexsort(); wavelength.reorder(indexmap); intensity.reorder(indexmap); }
+    const operaVector& wavelengthvector() const { return wavelength; }
+    const operaFluxVector& getintensity() const { return intensity; }
+};
+
+class operaWavelengthRange {
+private:
+	double wl0;
+	double wlf;
+public:
+	operaWavelengthRange(double start, double end) : wl0(start), wlf(end) { }
+    bool contains(double wavelength) { return wl0 <= wavelength && wavelength <= wlf; }
+    double getwl0() const { return wl0; }
+    double getwlf() const { return wlf; }
+};
+
+class operaWavelengthRanges {
+private:
+	vector <operaWavelengthRange> ranges;
+public:
+    void addWavelengthRange(double start, double end) { ranges.push_back(operaWavelengthRange(start, end)); }
+    double wl0(unsigned i) const { return ranges[i].getwl0(); }
+    double wlf(unsigned i) const { return ranges[i].getwlf(); }
+    bool contains(double wavelength) { for(unsigned i = 0; i < ranges.size(); i++) if(ranges[i].contains(wavelength)) return true; return false; }
+    bool contains(double wavelength, unsigned i) { if(ranges[i].contains(wavelength)) return true; return false; }
+    operaWavelengthRange getrange(unsigned i) { return ranges[i];}
+    unsigned int size() const { return ranges.size(); }
+};
 
 /* 
  * calculateXCorrWithGaussian(unsigned np, double *wavelength, double *flux, double *outputXcorr, double sigma)
@@ -154,6 +208,9 @@ void calculateUniformSample(unsigned np,float *wl,float *flux, unsigned npout, f
 float getFluxAtWavelength(unsigned np,float *wl,float *flux,float wavelengthForNormalization);
 
 unsigned readContinuumWavelengthMask(string wavelength_mask, double *wl0, double *wlf);
+operaWavelengthRanges readContinuumWavelengthMask(string wavelength_mask);
+operaWavelengthRanges readIndexedWavelengthMask(string wavelength_mask);
+
 
 unsigned getSpectrumWithinWLRange(operaSpectralElements *inputSpectrum, double wl0, double wlf, double *outputFlux, double *outputWavelength);
 
@@ -161,6 +218,57 @@ bool getOverlappingWLRange(operaSpectralElements *refElements, operaSpectralElem
 
 unsigned detectSpectralLinesInSpectralOrder(operaSpectralOrder *spectralOrder, double *linecenter, double *linecenterError, double *lineflux, double *linesigma, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, double nsigclip, double spectralResolution,bool emissionSpectrum);
 
-double calculateDeltaRadialVelocityInKPS(double telluricWL, double observedWL, double spectralResolution);
+operaWavelengthRanges getWavelengthMaskAroundLines(const operaSpectrum sourceLines, double spectralResolution, double nsig);
+
+double calculateDeltaRadialVelocityInKPS(double telluricWL, double observedWL);
+
+/*!
+ * \brief Resamples a spectrum to a new set of wavelengths.
+ * \param inputWavelength The wavelengths of the input spectrum
+ * \param inputFlux The flux of the input spectrum
+ * \param outputWavelength The wavelengths to resample to
+ * \return The flux of the fit spectrum at each point along outputWavelength
+ */
+operaVector fitSpectrum(const operaVector& inputWavelength, const operaVector& inputFlux, const operaVector& outputWavelength);
+
+/*!
+ * \brief Resamples a spectrum to a new set of wavelengths.
+ * \param inputSpectrum Input operaSpectrum
+ * \param outputWavelength The wavelengths to resample to
+ * \return The fit spectrum at each point along outputWavelength
+ */
+operaSpectrum fitSpectrum(operaSpectrum inputSpectrum, const operaVector& outputWavelength);
+
+/*!
+ * \brief Returns the subset of an input spectrum, which lies within the mask ranges
+ * \param string The wavelength ranges to return output spectrum
+ * \param inputSpectrum Input operaSpectrum
+ * \return Output operaSpectrum
+ */
+operaSpectrum getSpectrumWithinMask(string wavelength_mask, operaSpectrum inputSpectrum);
+
+/*!
+ * \brief Returns the subset of an input spectrum, which lies within a given opera wavelength range
+ * \param operaWavelengthRange The wavelength range to return output spectrum
+ * \param inputSpectrum Input operaSpectrum
+ * \return Output operaSpectrum
+ */
+operaSpectrum getSpectrumWithinRange(operaWavelengthRange wlrange, operaSpectrum inputSpectrum);
+
+/*!
+ * \brief Returns a masked spectrum, where it removes points at +/- nsig x resolution element away from line centers, from list of lines provided
+ * \param operaSpectrum The input spectrum
+ * \param operaSpectrum telluricLines
+ * \param double spectral resolution
+ * \param double nsig -- define size of mask around each line in units of resolution element.
+ * \return Output operaSpectrum
+ */
+operaSpectrum maskSpectrumAroundLines(const operaSpectrum inputSpectrum, const operaSpectrum telluricLines, double spectralResolution, double nsig);
+
+operaVector convolveSpectrum(operaSpectrum inputSpectrum, double spectralResolution);
+
+operaFluxVector fitSpectrumToPolynomial(const operaVector& inputWavelength, const operaFluxVector& inputFlux, unsigned order, double portionToUseForFit);
+
+unsigned findClosestInSortedRange(const operaVector& vector, double target, unsigned startindex, unsigned endindex);
 
 #endif

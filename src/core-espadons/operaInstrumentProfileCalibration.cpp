@@ -173,7 +173,7 @@ void *processOrder(void *argument) {
 		try {
 			if (spectralOrder->gethasSpectralLines() && spectralLines && spectralLines->getnLines() > 0) {
 				if(method == 1) {
-					spectralOrder->measureInstrumentProfileUsingWeightedMean(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
+					spectralOrder->measureInstrumentProfileUsingWeightedMean(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL);
 				} else if (method == 2) {
 					spectralOrder->measureInstrumentProfileUsingMedian(*comp, *badpix, MaxContamination, amplitudeCutOff, nSigCut, sampleElementForPlot, NULL,minimumLinesForIPMeasurements);
 				} else if (method == 3) {

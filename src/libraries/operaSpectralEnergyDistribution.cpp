@@ -356,22 +356,22 @@ void operaSpectralEnergyDistribution::deleteCalibratedFluxElements(void) {
 
 void operaSpectralEnergyDistribution::setUncalibratedFluxElements(operaSpectralElements *UncalibratedFluxElements) {
     createUncalibratedFluxElements(UncalibratedFluxElements->getnSpectralElements());
-	uncalibratedFluxElements->setSpectralElements(*UncalibratedFluxElements);    
+	*uncalibratedFluxElements = *UncalibratedFluxElements;
 }
 
 void operaSpectralEnergyDistribution::setCalibratedFluxElements(operaSpectralElements *CalibratedFluxElements) {
     createCalibratedFluxElements(CalibratedFluxElements->getnSpectralElements());
-	calibratedFluxElements->setSpectralElements(*CalibratedFluxElements);    
+	*calibratedFluxElements = *CalibratedFluxElements;
 }
 
 void operaSpectralEnergyDistribution::setFluxCalibrationElements(operaSpectralElements *FluxCalibrationElements) {
     createFluxCalibrationElements(FluxCalibrationElements->getnSpectralElements());
-	fluxCalibration->setSpectralElements(*FluxCalibrationElements);
+	*fluxCalibration = *FluxCalibrationElements;
 }
 
 void operaSpectralEnergyDistribution::setThroughputElements(operaSpectralElements *ThroughputElements) {
     createThroughputElements(ThroughputElements->getnSpectralElements());
-	instrumentThroughput->setSpectralElements(*ThroughputElements);
+	*instrumentThroughput = *ThroughputElements;
 }
 
 /*
@@ -460,8 +460,7 @@ bool operaSpectralEnergyDistribution::isItMasked(double Wavelength) {
 
 void operaSpectralEnergyDistribution::measureUncalibratedContinuum(operaSpectralElements &uncalibratedFluxElements, unsigned binsize, unsigned nsigcut) {
 
-    operaFluxVector *uncalibratedFlux = uncalibratedFluxElements.getFluxVector();
-    unsigned NumberofPoints = uncalibratedFlux->getlength();
+    unsigned NumberofPoints = uncalibratedFluxElements.getnSpectralElements();
     
 	unsigned NumberOfSamples = (unsigned)ceil((float)NumberofPoints/(float)binsize); 
     
@@ -499,7 +498,7 @@ void operaSpectralEnergyDistribution::measureUncalibratedContinuum(operaSpectral
         unsigned np=0;
         for(unsigned i=firstPoint;i<lastPoint;i++)
         {
-            uncalflux_tmp[np] = (float)uncalibratedFlux->getflux(i);
+            uncalflux_tmp[np] = (float)uncalibratedFluxElements.getFlux(i);
             elemindex_tmp[np] = (float)i;
             np++;
         }	
@@ -513,8 +512,8 @@ void operaSpectralEnergyDistribution::measureUncalibratedContinuum(operaSpectral
         {
             float fitMedianSlope = (bm*(float)i + am);
             
-            if(fabs((float)uncalibratedFlux->getflux(i) - fitMedianSlope) < abdevm) {
-                uncalflux_tmp[np] = (float)uncalibratedFlux->getflux(i);
+            if(fabs((float)uncalibratedFluxElements.getFlux(i) - fitMedianSlope) < abdevm) {
+                uncalflux_tmp[np] = (float)uncalibratedFluxElements.getFlux(i);
                 elemindex_tmp[np] = (float)i;
                 np++;
             }
@@ -536,7 +535,7 @@ void operaSpectralEnergyDistribution::measureUncalibratedContinuum(operaSpectral
         np = 0;
         for(unsigned i=firstPoint;i<lastPoint;i++) {
             float fitMedianSlope = (bm*(float)i + am);
-            residuals_tmp[np] = (float)uncalibratedFlux->getflux(i) - fitMedianSlope;
+            residuals_tmp[np] = (float)uncalibratedFluxElements.getFlux(i) - fitMedianSlope;
             iindex[np] = (float)i;
             np++;
         }

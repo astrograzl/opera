@@ -1125,6 +1125,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 --DetectionThreshold=$(wcal_DetectionThreshold) \
 --MinPeakDepth=$(wcal_MinPeakDepth) \
 $${pargs} \
+--outputResolutionFile=$(calibrationdir)$(QUALIFIERS).sres$(gzip) \
 --outputWaveFile=$(calibrationdir)$@ \
 $(optargs)" 2>&1 | tee -a $(logfile) ; \
 		echo "$(pref) wavelength calibration for $(QUALIFIERS) complete in $(deltat)" ; \

@@ -29,8 +29,9 @@
 
 #include "globaldefines.h"
 #include "operaError.h"
-#include <libraries/operaException.h>
-#include <libraries/operaFluxVector.h>
+#include "libraries/operaException.h"
+#include "libraries/operaFluxVector.h"
+#include <cmath>
 
 /*!
  * \brief This file holds the implementation of the class operaFluxVector.
@@ -38,269 +39,218 @@
  * \ingroup libraries
  */
 
-/*
- * \author Doug Teeple
- * \author Andre Venne
- * \brief This class encapsulates the flux vector.
- * \details
- * 
- * The flux vector stores fluxes and variances. The operators are defined to
- * operate on operaFluxVectors and propagate the variances.
- * 
- * The variances are calculated as followed :
- * 
- * F = F(a,b)
- * DF = Pow(dF/da,2) * Da + Pow(dF/db,2) *Db
- * 
- * where DF is the resulting variance, Da and Db are the variance of the fluxes a and b, dF/da and dF/db are the partial derivatives of F.
- * The fluxes are supposed uncorrelated.
- *
- * The flux vector also has an optional "tends towards" field which allows control of INF / INF situations,
- * where the results can tend towards INF, NaN, 0.0, 1.0 or default result.
- */
+operaFluxVector::operaFluxVector(TendsTowards_t towards) : towards(towards) { }
 
-/*
- * Constructors / Destructors
- */
-
-operaFluxVector::operaFluxVector(unsigned Length, TendsTowards_t Towards) :
-length(Length), towards(Towards)
-{
-	if (length == 0) {
-		throw operaException("operaFluxVector: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	fluxes = new double[length]; 
-	variances = new double[length];
+operaFluxVector::operaFluxVector(unsigned length, TendsTowards_t towards) : towards(towards) {
+	flux.resize(length);
+	variance.resize(length);
 }
 
-operaFluxVector::operaFluxVector(double *Fluxes, double *Variances, unsigned Length, TendsTowards_t Towards) :
-length(Length), towards(Towards)
-{
-	if (length == 0) {
-		throw operaException("operaFluxVector: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	fluxes = new double[length]; 
-	variances = new double[length];
-	setVectors(Fluxes, Variances);
+operaFluxVector::operaFluxVector(double *fluxes, double *variances, unsigned length, TendsTowards_t towards) : towards(towards), flux(fluxes, length), variance(variances, length) { }
+
+operaFluxVector::operaFluxVector(const operaFluxVector &b, TendsTowards_t towards) : towards(towards), flux(b.flux), variance(b.variance) { }
+
+operaFluxVector::operaFluxVector(const operaVector &b, TendsTowards_t towards) : towards(towards), flux(b), variance(b.size()) { }
+
+void operaFluxVector::setFluxVector(double *fluxes) {
+	flux.copyfrom(fluxes);
 }
 
-operaFluxVector::operaFluxVector(const operaFluxVector &b, TendsTowards_t Towards) :
-length(b.length), towards(Towards)
-{
-	if (length == 0) {
-		throw operaException("operaFluxVector: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	fluxes = new double[length]; 
-	variances = new double[length];
-	setVectors(b.fluxes, b.variances);
+void operaFluxVector::setVarianceVector(double *variances) {
+	variance.copyfrom(variances);
 }
 
-operaFluxVector::~operaFluxVector(void)
-{
-	if (fluxes) delete[] fluxes;
-	if (variances) delete[] variances;
-	fluxes = NULL;
-	variances = NULL;
-	length = 0;
+void operaFluxVector::setVectors(double *fluxes, double *variances) {
+	setFluxVector(fluxes);
+	setVarianceVector(variances);
 }
 
-/*
- * Getters/Setters
- */
-
-void operaFluxVector::setFluxVector(double *Fluxes)
-{
-	copy(Fluxes, Fluxes+length, fluxes);
-}
-
-void operaFluxVector::setVarianceVector(double *Variances)
-{
-	copy(Variances, Variances+length, variances);
-}
-
-void operaFluxVector::setVectors(double *Fluxes, double *Variances)
-{
-	setFluxVector(Fluxes);
-	setVarianceVector(Variances);
-}
-
-void operaFluxVector::setVector(const operaFluxVector &Fluxvector) {
-	if (length != Fluxvector.length) {
-		throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	setVectors(Fluxvector.fluxes, Fluxvector.variances);
+void operaFluxVector::trim(operaIndexRange range) {
+	flux.trim(range);
+	variance.trim(range);
 }
 
 void operaFluxVector::resize(unsigned newlength) {
-	if (newlength == length) return;
-	double* oldflux = fluxes;
-	double* oldvar = variances;
-	fluxes = new double[newlength];
-	variances = new double[newlength];
-	if (newlength > length) {
-		setVectors(oldflux, oldvar);
-		length = newlength;
-	} else {
-		length = newlength;
-		setVectors(oldflux, oldvar);
-	}
-	if(oldflux) delete[] oldflux;
-	if(oldvar) delete[] oldvar;
+	flux.resize(newlength);
+	variance.resize(newlength);
 }
 
-/*
- * Operators
- */
+void operaFluxVector::insert(double newflux, double newvariance) {
+	flux.insert(newflux);
+	variance.insert(newvariance);
+}
 
-operaFluxVector& operaFluxVector::operator=(const operaFluxVector& b) {
-	if (b.length == 0) {
-		throw operaException("operaFluxVector: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	if (length != b.length) {
-		if (fluxes) delete[] fluxes;
-		if (variances) delete[] variances;
-		length = b.length;
-		fluxes = new double[length]; 
-		variances = new double[length];
-	}
-	towards = b.towards;
-	setVector(b);
-	return *this;
+void operaFluxVector::reverse() {
+	flux.reverse();
+	variance.reverse();
+}
+
+void operaFluxVector::reorder(const operaIndexMap& indexmap) {
+	flux.reorder(indexmap);
+	variance.reorder(indexmap);
+}
+
+const operaVector &operaFluxVector::getflux() const {
+	return flux;
+}
+
+const operaVector &operaFluxVector::getvariance() const {
+	return variance;
+}
+
+double* operaFluxVector::getfluxpointer() {
+	return flux.datapointer();
+}
+
+const double* operaFluxVector::getfluxpointer() const {
+	return flux.datapointer();
+}
+
+double* operaFluxVector::getvariancepointer() {
+	return variance.datapointer();
+}
+
+const double* operaFluxVector::getvariancepointer() const {
+	return variance.datapointer();
+}
+
+double operaFluxVector::getflux(unsigned index) const {
+	return flux[index];
+}
+
+double operaFluxVector::getvariance(unsigned index) const {
+	return variance[index];
+}
+
+void operaFluxVector::setflux(double newflux, unsigned index) {
+	flux[index] = newflux;
+}
+
+void operaFluxVector::setvariance(double newvariance, unsigned index) {
+	variance[index] = newvariance;
+}
+
+unsigned operaFluxVector::getlength() const {
+	return flux.size();
+}
+
+TendsTowards_t operaFluxVector::gettowards(void) const {
+	return towards;
+}
+
+double operaFluxVector::geterror(unsigned index) const {
+	return sqrt(variance[index]);
+}
+
+std::pair<double,double> operaFluxVector::operator[](unsigned index) const {
+	return std::pair<double,double>(flux[index], variance[index]);
 }
 
 operaFluxVector& operaFluxVector::operator+=(const operaFluxVector& b) {
-	if (length != b.length) {
+	if (flux.size() != b.flux.size()) {
 		throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
-	for(unsigned i = 0; i < length; i++) {
-		fluxes[i] += b.fluxes[i];
-		variances[i] += b.variances[i];
-	}
+	variance += b.variance;
+	flux += b.flux;
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator-=(const operaFluxVector& b) {
-	if (length != b.length) {
+	if (flux.size() != b.flux.size()) {
 		throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
-	for(unsigned i = 0; i < length; i++) {
-		fluxes[i] -= b.fluxes[i];
-		variances[i] += b.variances[i];
-	}
+	variance += b.variance;
+	flux -= b.flux;
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator*=(const operaFluxVector& b) {
-	if (length != b.length) {
+	if (flux.size() != b.flux.size()) {
 		throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
-	for(unsigned i = 0; i < length; i++) {
-		variances[i] = fluxes[i]*fluxes[i]*b.variances[i] + b.fluxes[i]*b.fluxes[i]*variances[i];
-		fluxes[i] *= b.fluxes[i];
-	}
+	variance = flux * flux * b.variance + b.flux * b.flux * variance;
+	flux *= b.flux;
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator/=(const operaFluxVector& b) {
-	if (length != b.length) {
+	if (flux.size() != b.flux.size()) {
 		throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 	}
-	for(unsigned i = 0; i < length; i++) {
-		if (towards == ToDefault || !isinf(fluxes[i]) || !isinf(b.fluxes[i])) {
-			const double b2 = b.fluxes[i]*b.fluxes[i]; //small optimization
-			const double aoverb2 = fluxes[i]/b2; //small optimization
-			variances[i] = variances[i]/b2 + aoverb2 * aoverb2 * b.variances[i]; // = (v(a)*b^2 + v(b)*a^2)/b^4
-			fluxes[i] /= b.fluxes[i];
+	for(unsigned i = 0; i < flux.size(); i++) {
+		if (towards == ToDefault || !isinf(flux[i]) || !isinf(b.flux[i])) {
+			const double b2 = b.flux[i]*b.flux[i]; //small optimization
+			const double aoverb2 = flux[i]/b2; //small optimization
+			variance[i] = variance[i]/b2 + aoverb2 * aoverb2 * b.variance[i]; // = (v(a)*b^2 + v(b)*a^2)/b^4
+			flux[i] /= b.flux[i];
 		} else if (towards == ToINF) {
-			fluxes[i] = FP_INFINITE;
-			variances[i] = 0.0;
+			flux[i] = FP_INFINITE;
+			variance[i] = 0.0;
 		} else if (towards == ToNAN) {
-			fluxes[i] = FP_NAN;
-			variances[i] = FP_NAN;
+			flux[i] = FP_NAN;
+			variance[i] = FP_NAN;
 		} else if (towards == ToZero) {
-			fluxes[i] = 0.0;
-			variances[i] = 0.0;
+			flux[i] = 0.0;
+			variance[i] = 0.0;
 		} else if (towards == ToOne) {
-			fluxes[i] = 1.0;
-			variances[i] = 0.0;
+			flux[i] = 1.0;
+			variance[i] = 0.0;
 		}
 	}
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator=(double d) {
-	fill_n(fluxes, length, d);
-	fill_n(variances, length, d);
+	flux.fill(d);
+	variance.fill(0.0);
+	return *this;
+}
+
+operaFluxVector& operaFluxVector::operator=(const operaVector& b) {
+	flux = b;
+	variance.resize(b.size());
+	variance.fill(0.0);
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator+=(double d) {
-	for(unsigned i = 0; i < length; i++) fluxes[i] += d;
+	flux += d;
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator-=(double d) {
-	for(unsigned i = 0; i < length; i++) fluxes[i] -= d;
+	flux -= d;
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator*=(double d) {
-	for(unsigned i = 0; i < length; i++) {
-		fluxes[i] *= d;
-		variances[i] *= d*d;
-	}
+	flux *= d;
+	variance *= d*d;
 	return *this;
 }
 
 operaFluxVector& operaFluxVector::operator/=(double d) {
-	for(unsigned i = 0; i < length; i++) {
-		fluxes[i] /= d;
-		variances[i] /= d*d;
-	}
+	flux /= d;
+	variance /= d*d;
 	return *this;
 }
 
 operaFluxVector Sqrt(operaFluxVector b) {
-	for(unsigned i = 0; i < b.getlength(); i++) {
-		b.setvariance(b.getvariance(i) / (b.getflux(i)*4.0), i);
-		b.setflux(sqrt(b.getflux(i)), i);
-	}
+	b.variance /= (b.flux * 4.0);
+	b.flux = Sqrt(b.flux);
 	return b;
 }
 
 operaFluxVector Pow(operaFluxVector b, double d) {
-	for(unsigned i = 0; i < b.getlength(); i++) {
-		b.setvariance(pow(pow(b.getflux(i), d-1.0)*d, 2) * b.getvariance(i), i);
-		b.setflux(pow(b.getflux(i), d), i);
-	}
+	b.variance *= Pow(Pow(b.flux, d-1.0)*d, 2.0);
+	b.flux = Pow(b.flux, d);
 	return b;
 }
 
-pair<double,double> Sum(const operaFluxVector& b) {
-	double sum = 0.0, var = 0.0;
-	for(unsigned i = 0; i < b.getlength(); i++) {
-		sum += b.getflux(i);
-		var += b.getvariance(i);
-	}
-	return pair<double,double>(sum, var);
+std::pair<double,double> Sum(const operaFluxVector& b) {
+	return std::pair<double,double>(Sum(b.flux), Sum(b.variance));
 }
 
-pair<double,double> Mean(const operaFluxVector& b) {
-	double sum = 0.0, var = 0.0;
-	for(unsigned i = 0; i < b.getlength(); i++) {
-		sum += b.getflux(i);
-		var += b.getvariance(i);
-	}
-	sum /= b.getlength();
-	var /= b.getlength();
-	return pair<double,double>(sum, var);
-}
-
-void resizeVector(double *&vector, unsigned oldlength, unsigned newlength) {
-	if (newlength == oldlength) return;
-	double *newvector = new double[newlength];
-	if(newlength < oldlength) copy(vector, vector+newlength, newvector);
-	else copy(vector, vector+oldlength, newvector);
-	if(vector) delete[] vector;
-	vector = newvector;
+std::pair<double,double> Mean(const operaFluxVector& b) {
+	return std::pair<double,double>(Mean(b.flux), Mean(b.variance));
 }

@@ -51,8 +51,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = operaBinPolarData$(EXEEXT) operaRadialVelocity$(EXEEXT) \
-	operaBinFluxData$(EXEEXT)
+bin_PROGRAMS = operaBinPolarData$(EXEEXT) operaBinFluxData$(EXEEXT) \
+	operaRadialVelocity$(EXEEXT) operaStackObjectSpectra$(EXEEXT) \
+	operaRadialVelocityFromSelectedLines$(EXEEXT)
 subdir = src/analysis-espadons
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -76,6 +77,16 @@ operaBinPolarData_LDADD = $(LDADD)
 am_operaRadialVelocity_OBJECTS = operaRadialVelocity.$(OBJEXT)
 operaRadialVelocity_OBJECTS = $(am_operaRadialVelocity_OBJECTS)
 operaRadialVelocity_LDADD = $(LDADD)
+am_operaRadialVelocityFromSelectedLines_OBJECTS =  \
+	operaRadialVelocityFromSelectedLines.$(OBJEXT)
+operaRadialVelocityFromSelectedLines_OBJECTS =  \
+	$(am_operaRadialVelocityFromSelectedLines_OBJECTS)
+operaRadialVelocityFromSelectedLines_LDADD = $(LDADD)
+am_operaStackObjectSpectra_OBJECTS =  \
+	operaStackObjectSpectra.$(OBJEXT)
+operaStackObjectSpectra_OBJECTS =  \
+	$(am_operaStackObjectSpectra_OBJECTS)
+operaStackObjectSpectra_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -99,9 +110,13 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(operaBinFluxData_SOURCES) $(operaBinPolarData_SOURCES) \
-	$(operaRadialVelocity_SOURCES)
+	$(operaRadialVelocity_SOURCES) \
+	$(operaRadialVelocityFromSelectedLines_SOURCES) \
+	$(operaStackObjectSpectra_SOURCES)
 DIST_SOURCES = $(operaBinFluxData_SOURCES) \
-	$(operaBinPolarData_SOURCES) $(operaRadialVelocity_SOURCES)
+	$(operaBinPolarData_SOURCES) $(operaRadialVelocity_SOURCES) \
+	$(operaRadialVelocityFromSelectedLines_SOURCES) \
+	$(operaStackObjectSpectra_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -150,27 +165,28 @@ LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 # This is for Linux...
-LIBS = -loperaIOFormats -loperaObservingConditions \
+LIBS = -loperaCommonModuleElements -loperaIOFormats \
+	-loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
-	-loperaInstrumentEnvironmentSetup -loperaSpectralOrderVector \
+	-loperaDateTime -loperaSpectralOrderVector \
 	-loperaSpectralOrder -loperaSpectralElements \
 	-loperaSpectralLines -loperaSpectralFeature \
 	-loperaExtractionAperture -loperaSpectralTools \
-	-loperaFluxVector -lGaussian -loperaInstrumentProfile \
-	-loperaGeometry -loperaWavelength -loperaEspadonsSubImage \
-	-loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage \
-	-loperaEspadonsImage -loperaMultiExtensionFITSCube \
-	-loperaMultiExtensionFITSImage -loperaFITSCube \
-	-loperaPolarimetry -loperaException -lGainBiasNoise -loperaFFT \
-	-loperaMuellerMatrix -loperaStokesVector -loperaFluxVector \
-	-loperaImageVector -loperaFITSSubImage -loperaImageVector \
-	-loperaGeometricShapes -loperaMatrix -lPolynomial \
-	-lLaurentPolynomial -loperaMath -loperaJD -loperaHelio \
+	-loperaFluxVector -loperaVector -lGaussian \
+	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
+	-loperaEspadonsSubImage -loperaFITSProduct \
+	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
+	-loperaMultiExtensionFITSCube -loperaMultiExtensionFITSImage \
+	-loperaFITSCube -loperaPolarimetry -loperaException \
+	-lGainBiasNoise -loperaFFT -loperaMuellerMatrix \
+	-loperaStokesVector -loperaFluxVector -loperaImageVector \
+	-loperaFITSSubImage -loperaImageVector -loperaGeometricShapes \
+	-loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath \
 	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
 	-loperaConfigurationAccess -loperaParameterAccess -lPixelSet \
-	-loperaSpectralEnergyDistribution -loperaSpectrumSimulation \
-	-loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c \
-	-lz -lpthread -lm
+	-loperaSpectralEnergyDistribution -loperaStats -loperaLib \
+	-loperaArgumentHandler -lArgumentHandler -lfftw3 -lgzstream \
+	-lcfitsio -lz -lpthread -lm
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -258,16 +274,17 @@ top_srcdir = @top_srcdir@
 # what flags you want to pass to the C compiler & linker
 AM_CFLAGS = --pedantic -Wall -std=c99 -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -L/usr/local/lib/ -L/usr/lib/ -I../../include/ -I/usr/local/include/
 AM_CXXFLAGS = --pedantic -Wall -ggdb3 -O1 -L$(PREFIX)/src/libraries/ -L../../lib -I../../include/ -I/usr/local/include/ -L/usr/local/lib/ -L/usr/lib/
-AM_LDFLAGS = -loperaIOFormats -loperaObservingConditions \
+AM_LDFLAGS = -loperaCommonModuleElements -loperaIOFormats \
+	-loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
-	-loperaInstrumentEnvironmentSetup -loperaSpectralOrderVector \
+	-loperaDateTime -loperaSpectralOrderVector \
 	-loperaSpectralOrder -loperaSpectralElements \
 	-loperaSpectralLines -loperaSpectralFeature \
 	-loperaExtractionAperture -loperaSpectralTools \
-	-loperaFluxVector -lGaussian -loperaInstrumentProfile \
-	-loperaGeometry -loperaWavelength -lPolynomial \
-	-lLaurentPolynomial -loperaMath -loperaJD -loperaHelio \
-	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-loperaFluxVector -loperaVector -lGaussian \
+	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
+	-lPolynomial -lLaurentPolynomial -loperaMath -loperaCCD \
+	-loperaFit -loperaImage -loperaLMFit \
 	-loperaConfigurationAccess -loperaParameterAccess \
 	-loperaFITSSubImage -loperaEspadonsSubImage -loperaFITSProduct \
 	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
@@ -275,12 +292,15 @@ AM_LDFLAGS = -loperaIOFormats -loperaObservingConditions \
 	-loperaFITSCube -loperaPolarimetry -loperaException \
 	-lGainBiasNoise -loperaFFT -loperaMuellerMatrix \
 	-loperaStokesVector -loperaImageVector -loperaGeometricShapes \
-	-loperaMatrix -loperaSpectralEnergyDistribution \
-	-loperaSpectrumSimulation -lPixelSet -loperaStats -loperaLib \
-	-lfftw3 -lgzstream -lcfitsio -lz -lsofa_c -lpthread -lm
+	-loperaMatrix -loperaSpectralEnergyDistribution -lPixelSet \
+	-loperaStats -loperaLib -loperaArgumentHandler \
+	-lArgumentHandler -lfftw3 -lgzstream -lcfitsio -lz -lpthread \
+	-lm
 operaBinPolarData_SOURCES = operaBinPolarData.cpp
-operaRadialVelocity_SOURCES = operaRadialVelocity.cpp operaRadialVelocity.h
 operaBinFluxData_SOURCES = operaBinFluxData.cpp operaBinFluxData.h
+operaRadialVelocity_SOURCES = operaRadialVelocity.cpp operaRadialVelocity.h
+operaRadialVelocityFromSelectedLines_SOURCES = operaRadialVelocityFromSelectedLines.cpp operaRadialVelocity.h
+operaStackObjectSpectra_SOURCES = operaStackObjectSpectra.cpp
 all: all-am
 
 .SUFFIXES:
@@ -370,6 +390,12 @@ operaBinPolarData$(EXEEXT): $(operaBinPolarData_OBJECTS) $(operaBinPolarData_DEP
 operaRadialVelocity$(EXEEXT): $(operaRadialVelocity_OBJECTS) $(operaRadialVelocity_DEPENDENCIES) $(EXTRA_operaRadialVelocity_DEPENDENCIES) 
 	@rm -f operaRadialVelocity$(EXEEXT)
 	$(CXXLINK) $(operaRadialVelocity_OBJECTS) $(operaRadialVelocity_LDADD) $(LIBS)
+operaRadialVelocityFromSelectedLines$(EXEEXT): $(operaRadialVelocityFromSelectedLines_OBJECTS) $(operaRadialVelocityFromSelectedLines_DEPENDENCIES) $(EXTRA_operaRadialVelocityFromSelectedLines_DEPENDENCIES) 
+	@rm -f operaRadialVelocityFromSelectedLines$(EXEEXT)
+	$(CXXLINK) $(operaRadialVelocityFromSelectedLines_OBJECTS) $(operaRadialVelocityFromSelectedLines_LDADD) $(LIBS)
+operaStackObjectSpectra$(EXEEXT): $(operaStackObjectSpectra_OBJECTS) $(operaStackObjectSpectra_DEPENDENCIES) $(EXTRA_operaStackObjectSpectra_DEPENDENCIES) 
+	@rm -f operaStackObjectSpectra$(EXEEXT)
+	$(CXXLINK) $(operaStackObjectSpectra_OBJECTS) $(operaStackObjectSpectra_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -380,6 +406,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaBinFluxData.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaBinPolarData.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaRadialVelocity.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaRadialVelocityFromSelectedLines.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStackObjectSpectra.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

@@ -10,15 +10,15 @@ LIBS = -lm
 
 lib_LIBRARIES = liboperaFFT.a 
 
-lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaFluxVector.la liboperaMath.la libGaussian.la liboperaWavelength.la \
+lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaVector.la liboperaFluxVector.la liboperaMath.la libGaussian.la liboperaWavelength.la \
 	liboperaSpectralOrderVector.la liboperaSpectralElements.la liboperaSpectralOrder.la liboperaInstrumentProfile.la \
 	liboperaGeometry.la liboperaCCD.la liboperaFITSSubImage.la liboperaEspadonsSubImage.la liboperaImage.la liboperaStats.la \
 	liboperaLMFit.la liboperaFit.la liboperaConfigurationAccess.la liboperaParameterAccess.la liboperaFITSImage.la liboperaPolarimetry.la \
-	liboperaEspadonsImage.la liboperaFITSProduct.la liboperaMEFFITSProduct.la liboperaJD.la liboperaHelio.la liboperaMatrix.la liboperaSpectralLines.la \
+	liboperaEspadonsImage.la liboperaFITSProduct.la liboperaMEFFITSProduct.la liboperaMatrix.la liboperaSpectralLines.la \
 	liboperaLib.la liboperaSpectralFeature.la liboperaGeometricShapes.la liboperaExtractionAperture.la libGainBiasNoise.la \
 	liboperaMultiExtensionFITSImage.la liboperaMultiExtensionFITSCube.la liboperaFITSCube.la liboperaMuellerMatrix.la \
-	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectrumSimulation.la liboperaSpectralEnergyDistribution.la \
-	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la \
+	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectralEnergyDistribution.la \
+	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la liboperaDateTime.la\
 	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la \
 	libArgumentHandler.la liboperaArgumentHandler.la liboperaCommonModuleElements.la liboperaIOFormats.la
 
@@ -37,6 +37,9 @@ liboperaObjectInTheSky_la_LDFLAGS = -version-info 1:0:0
 liboperaObservingConditions_la_SOURCES = operaObservingConditions.cpp operaObservingConditions.h
 liboperaObservingConditions_la_LDFLAGS = -version-info 1:0:0
 
+liboperaDateTime_la_SOURCES = operaDateTime.cpp operaDateTime.h
+liboperaDateTime_la_LDFLAGS = -version-info 1:0:0
+
 liboperaSpectralTools_la_SOURCES = operaSpectralTools.cpp operaSpectralTools.h
 liboperaSpectralTools_la_LDFLAGS = -version-info 1:0:0
 liboperaSpectralTools_la_LIBADD = liboperaSpectralElements.la
@@ -49,9 +52,6 @@ libgzstream_la_LDFLAGS = -version-info 1:0:0
 
 liboperaSpectralEnergyDistribution_la_SOURCES = operaSpectralEnergyDistribution.cpp operaSpectralEnergyDistribution.h
 liboperaSpectralEnergyDistribution_la_LDFLAGS = -version-info 1:0:0
-
-liboperaSpectrumSimulation_la_SOURCES = operaSpectrumSimulation.cpp operaSpectrumSimulation.h
-liboperaSpectrumSimulation_la_LDFLAGS = -version-info 1:0:0
 
 libPixelSet_la_SOURCES = PixelSet.cpp PixelSet.h
 libPixelSet_la_LDFLAGS = -version-info 1:0:0
@@ -87,6 +87,9 @@ libGainBiasNoise_la_LDFLAGS = -version-info 1:0:0
 liboperaFluxVector_la_SOURCES = operaFluxVector.cpp operaFluxVector.h
 liboperaFluxVector_la_LDFLAGS = -version-info 1:0:0
 
+liboperaVector_la_SOURCES = operaVector.cpp operaVectorOperations.cpp operaVector.h operaVectorOperations.h
+liboperaVector_la_LDFLAGS = -version-info 1:0:0
+
 liboperaGeometricShapes_la_SOURCES = operaGeometricShapes.cpp operaGeometricShapes.h
 liboperaGeometricShapes_la_LDFLAGS = -version-info 1:0:0
 
@@ -119,12 +122,6 @@ liboperaCCD_la_LDFLAGS = -version-info 1:0:0
 
 liboperaMath_la_SOURCES = operaMath.c operaMath.h operaLibCommon.h
 liboperaMath_la_LDFLAGS = -version-info 1:0:0
-
-liboperaJD_la_SOURCES = operaJD.c operaJD.h operaLibCommon.h
-liboperaJD_la_LDFLAGS = -version-info 1:0:0
-
-liboperaHelio_la_SOURCES = operaHelio.c operaHelio.h operaLibCommon.h
-liboperaHelio_la_LDFLAGS = -version-info 1:0:0
 
 liboperaStats_la_SOURCES = operaStats.c operaStats.h operaLibCommon.h
 liboperaStats_la_LDFLAGS = -version-info 1:0:0

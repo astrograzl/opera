@@ -191,6 +191,12 @@ liboperaConfigurationAccess_la_LINK = $(LIBTOOL) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_CFLAGS) $(CFLAGS) \
 	$(liboperaConfigurationAccess_la_LDFLAGS) $(LDFLAGS) -o $@
+liboperaDateTime_la_LIBADD =
+am_liboperaDateTime_la_OBJECTS = operaDateTime.lo
+liboperaDateTime_la_OBJECTS = $(am_liboperaDateTime_la_OBJECTS)
+liboperaDateTime_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(liboperaDateTime_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaEspadonsImage_la_LIBADD =
 am_liboperaEspadonsImage_la_OBJECTS = operaEspadonsImage.lo
 liboperaEspadonsImage_la_OBJECTS =  \
@@ -273,12 +279,6 @@ liboperaGeometry_la_OBJECTS = $(am_liboperaGeometry_la_OBJECTS)
 liboperaGeometry_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(liboperaGeometry_la_LDFLAGS) $(LDFLAGS) -o $@
-liboperaHelio_la_LIBADD =
-am_liboperaHelio_la_OBJECTS = operaHelio.lo
-liboperaHelio_la_OBJECTS = $(am_liboperaHelio_la_OBJECTS)
-liboperaHelio_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(liboperaHelio_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaIOFormats_la_LIBADD =
 am_liboperaIOFormats_la_OBJECTS = operaIOFormats.lo
 liboperaIOFormats_la_OBJECTS = $(am_liboperaIOFormats_la_OBJECTS)
@@ -315,12 +315,6 @@ liboperaInstrumentProfile_la_LINK = $(LIBTOOL) --tag=CXX \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
 	$(AM_CXXFLAGS) $(CXXFLAGS) \
 	$(liboperaInstrumentProfile_la_LDFLAGS) $(LDFLAGS) -o $@
-liboperaJD_la_LIBADD =
-am_liboperaJD_la_OBJECTS = operaJD.lo
-liboperaJD_la_OBJECTS = $(am_liboperaJD_la_OBJECTS)
-liboperaJD_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(liboperaJD_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaLMFit_la_LIBADD =
 am_liboperaLMFit_la_OBJECTS = operaLMFit.lo
 liboperaLMFit_la_OBJECTS = $(am_liboperaLMFit_la_OBJECTS)
@@ -478,14 +472,6 @@ liboperaSpectrograph_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(liboperaSpectrograph_la_LDFLAGS) $(LDFLAGS) -o \
 	$@
-liboperaSpectrumSimulation_la_LIBADD =
-am_liboperaSpectrumSimulation_la_OBJECTS = operaSpectrumSimulation.lo
-liboperaSpectrumSimulation_la_OBJECTS =  \
-	$(am_liboperaSpectrumSimulation_la_OBJECTS)
-liboperaSpectrumSimulation_la_LINK = $(LIBTOOL) --tag=CXX \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
-	$(AM_CXXFLAGS) $(CXXFLAGS) \
-	$(liboperaSpectrumSimulation_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaStats_la_LIBADD =
 am_liboperaStats_la_OBJECTS = operaStats.lo
 liboperaStats_la_OBJECTS = $(am_liboperaStats_la_OBJECTS)
@@ -506,6 +492,12 @@ liboperaTelescope_la_OBJECTS = $(am_liboperaTelescope_la_OBJECTS)
 liboperaTelescope_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(liboperaTelescope_la_LDFLAGS) $(LDFLAGS) -o $@
+liboperaVector_la_LIBADD =
+am_liboperaVector_la_OBJECTS = operaVector.lo operaVectorOperations.lo
+liboperaVector_la_OBJECTS = $(am_liboperaVector_la_OBJECTS)
+liboperaVector_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(liboperaVector_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaWavelength_la_DEPENDENCIES = libPolynomial.la libGaussian.la \
 	liboperaMath.la
 am_liboperaWavelength_la_OBJECTS = operaWavelength.lo
@@ -544,6 +536,7 @@ SOURCES = $(liboperaFFT_a_SOURCES) $(liboperaPNG_a_SOURCES) \
 	$(liboperaCCD_la_SOURCES) \
 	$(liboperaCommonModuleElements_la_SOURCES) \
 	$(liboperaConfigurationAccess_la_SOURCES) \
+	$(liboperaDateTime_la_SOURCES) \
 	$(liboperaEspadonsImage_la_SOURCES) \
 	$(liboperaEspadonsSubImage_la_SOURCES) \
 	$(liboperaException_la_SOURCES) \
@@ -553,13 +546,12 @@ SOURCES = $(liboperaFFT_a_SOURCES) $(liboperaPNG_a_SOURCES) \
 	$(liboperaFITSSubImage_la_SOURCES) $(liboperaFit_la_SOURCES) \
 	$(liboperaFluxVector_la_SOURCES) \
 	$(liboperaGeometricShapes_la_SOURCES) \
-	$(liboperaGeometry_la_SOURCES) $(liboperaHelio_la_SOURCES) \
-	$(liboperaIOFormats_la_SOURCES) $(liboperaImage_la_SOURCES) \
-	$(liboperaImageVector_la_SOURCES) \
+	$(liboperaGeometry_la_SOURCES) $(liboperaIOFormats_la_SOURCES) \
+	$(liboperaImage_la_SOURCES) $(liboperaImageVector_la_SOURCES) \
 	$(liboperaInstrumentEnvironmentSetup_la_SOURCES) \
 	$(liboperaInstrumentProfile_la_SOURCES) \
-	$(liboperaJD_la_SOURCES) $(liboperaLMFit_la_SOURCES) \
-	$(liboperaLib_la_SOURCES) $(liboperaMEFFITSProduct_la_SOURCES) \
+	$(liboperaLMFit_la_SOURCES) $(liboperaLib_la_SOURCES) \
+	$(liboperaMEFFITSProduct_la_SOURCES) \
 	$(liboperaMath_la_SOURCES) $(liboperaMatrix_la_SOURCES) \
 	$(liboperaMuellerMatrix_la_SOURCES) \
 	$(liboperaMultiExtensionFITSCube_la_SOURCES) \
@@ -575,10 +567,9 @@ SOURCES = $(liboperaFFT_a_SOURCES) $(liboperaPNG_a_SOURCES) \
 	$(liboperaSpectralOrder_la_SOURCES) \
 	$(liboperaSpectralOrderVector_la_SOURCES) \
 	$(liboperaSpectralTools_la_SOURCES) \
-	$(liboperaSpectrograph_la_SOURCES) \
-	$(liboperaSpectrumSimulation_la_SOURCES) \
-	$(liboperaStats_la_SOURCES) $(liboperaStokesVector_la_SOURCES) \
-	$(liboperaTelescope_la_SOURCES) \
+	$(liboperaSpectrograph_la_SOURCES) $(liboperaStats_la_SOURCES) \
+	$(liboperaStokesVector_la_SOURCES) \
+	$(liboperaTelescope_la_SOURCES) $(liboperaVector_la_SOURCES) \
 	$(liboperaWavelength_la_SOURCES)
 DIST_SOURCES = $(liboperaFFT_a_SOURCES) \
 	$(am__liboperaPNG_a_SOURCES_DIST) $(libwcs_a_SOURCES) \
@@ -590,6 +581,7 @@ DIST_SOURCES = $(liboperaFFT_a_SOURCES) \
 	$(liboperaCCD_la_SOURCES) \
 	$(liboperaCommonModuleElements_la_SOURCES) \
 	$(liboperaConfigurationAccess_la_SOURCES) \
+	$(liboperaDateTime_la_SOURCES) \
 	$(liboperaEspadonsImage_la_SOURCES) \
 	$(liboperaEspadonsSubImage_la_SOURCES) \
 	$(liboperaException_la_SOURCES) \
@@ -599,13 +591,12 @@ DIST_SOURCES = $(liboperaFFT_a_SOURCES) \
 	$(liboperaFITSSubImage_la_SOURCES) $(liboperaFit_la_SOURCES) \
 	$(liboperaFluxVector_la_SOURCES) \
 	$(liboperaGeometricShapes_la_SOURCES) \
-	$(liboperaGeometry_la_SOURCES) $(liboperaHelio_la_SOURCES) \
-	$(liboperaIOFormats_la_SOURCES) $(liboperaImage_la_SOURCES) \
-	$(liboperaImageVector_la_SOURCES) \
+	$(liboperaGeometry_la_SOURCES) $(liboperaIOFormats_la_SOURCES) \
+	$(liboperaImage_la_SOURCES) $(liboperaImageVector_la_SOURCES) \
 	$(liboperaInstrumentEnvironmentSetup_la_SOURCES) \
 	$(liboperaInstrumentProfile_la_SOURCES) \
-	$(liboperaJD_la_SOURCES) $(liboperaLMFit_la_SOURCES) \
-	$(liboperaLib_la_SOURCES) $(liboperaMEFFITSProduct_la_SOURCES) \
+	$(liboperaLMFit_la_SOURCES) $(liboperaLib_la_SOURCES) \
+	$(liboperaMEFFITSProduct_la_SOURCES) \
 	$(liboperaMath_la_SOURCES) $(liboperaMatrix_la_SOURCES) \
 	$(liboperaMuellerMatrix_la_SOURCES) \
 	$(liboperaMultiExtensionFITSCube_la_SOURCES) \
@@ -621,10 +612,9 @@ DIST_SOURCES = $(liboperaFFT_a_SOURCES) \
 	$(liboperaSpectralOrder_la_SOURCES) \
 	$(liboperaSpectralOrderVector_la_SOURCES) \
 	$(liboperaSpectralTools_la_SOURCES) \
-	$(liboperaSpectrograph_la_SOURCES) \
-	$(liboperaSpectrumSimulation_la_SOURCES) \
-	$(liboperaStats_la_SOURCES) $(liboperaStokesVector_la_SOURCES) \
-	$(liboperaTelescope_la_SOURCES) \
+	$(liboperaSpectrograph_la_SOURCES) $(liboperaStats_la_SOURCES) \
+	$(liboperaStokesVector_la_SOURCES) \
+	$(liboperaTelescope_la_SOURCES) $(liboperaVector_la_SOURCES) \
 	$(liboperaWavelength_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -767,15 +757,15 @@ AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ \
 
 # this lists the libraries to produce, static and dynamic
 lib_LIBRARIES = liboperaFFT.a $(am__append_2) $(am__append_3)
-lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaFluxVector.la liboperaMath.la libGaussian.la liboperaWavelength.la \
+lib_LTLIBRARIES = liboperaException.la libPolynomial.la liboperaVector.la liboperaFluxVector.la liboperaMath.la libGaussian.la liboperaWavelength.la \
 	liboperaSpectralOrderVector.la liboperaSpectralElements.la liboperaSpectralOrder.la liboperaInstrumentProfile.la \
 	liboperaGeometry.la liboperaCCD.la liboperaFITSSubImage.la liboperaEspadonsSubImage.la liboperaImage.la liboperaStats.la \
 	liboperaLMFit.la liboperaFit.la liboperaConfigurationAccess.la liboperaParameterAccess.la liboperaFITSImage.la liboperaPolarimetry.la \
-	liboperaEspadonsImage.la liboperaFITSProduct.la liboperaMEFFITSProduct.la liboperaJD.la liboperaHelio.la liboperaMatrix.la liboperaSpectralLines.la \
+	liboperaEspadonsImage.la liboperaFITSProduct.la liboperaMEFFITSProduct.la liboperaMatrix.la liboperaSpectralLines.la \
 	liboperaLib.la liboperaSpectralFeature.la liboperaGeometricShapes.la liboperaExtractionAperture.la libGainBiasNoise.la \
 	liboperaMultiExtensionFITSImage.la liboperaMultiExtensionFITSCube.la liboperaFITSCube.la liboperaMuellerMatrix.la \
-	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectrumSimulation.la liboperaSpectralEnergyDistribution.la \
-	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la \
+	liboperaImageVector.la liboperaStokesVector.la libPixelSet.la liboperaSpectralEnergyDistribution.la \
+	libgzstream.la libLaurentPolynomial.la liboperaSpectralTools.la liboperaDateTime.la\
 	liboperaObservingConditions.la liboperaObjectInTheSky.la liboperaSpectrograph.la liboperaTelescope.la liboperaInstrumentEnvironmentSetup.la \
 	libArgumentHandler.la liboperaArgumentHandler.la liboperaCommonModuleElements.la liboperaIOFormats.la
 
@@ -789,6 +779,8 @@ liboperaObjectInTheSky_la_SOURCES = operaObjectInTheSky.cpp operaObjectInTheSky.
 liboperaObjectInTheSky_la_LDFLAGS = -version-info 1:0:0
 liboperaObservingConditions_la_SOURCES = operaObservingConditions.cpp operaObservingConditions.h
 liboperaObservingConditions_la_LDFLAGS = -version-info 1:0:0
+liboperaDateTime_la_SOURCES = operaDateTime.cpp operaDateTime.h
+liboperaDateTime_la_LDFLAGS = -version-info 1:0:0
 liboperaSpectralTools_la_SOURCES = operaSpectralTools.cpp operaSpectralTools.h
 liboperaSpectralTools_la_LDFLAGS = -version-info 1:0:0
 liboperaSpectralTools_la_LIBADD = liboperaSpectralElements.la
@@ -798,8 +790,6 @@ libgzstream_la_SOURCES = gzstream.cpp gzstream.h
 libgzstream_la_LDFLAGS = -version-info 1:0:0
 liboperaSpectralEnergyDistribution_la_SOURCES = operaSpectralEnergyDistribution.cpp operaSpectralEnergyDistribution.h
 liboperaSpectralEnergyDistribution_la_LDFLAGS = -version-info 1:0:0
-liboperaSpectrumSimulation_la_SOURCES = operaSpectrumSimulation.cpp operaSpectrumSimulation.h
-liboperaSpectrumSimulation_la_LDFLAGS = -version-info 1:0:0
 libPixelSet_la_SOURCES = PixelSet.cpp PixelSet.h
 libPixelSet_la_LDFLAGS = -version-info 1:0:0
 liboperaImageVector_la_SOURCES = operaImageVector.cpp operaImageVector.h
@@ -823,6 +813,8 @@ libGainBiasNoise_la_SOURCES = GainBiasNoise.cpp GainBiasNoise.h
 libGainBiasNoise_la_LDFLAGS = -version-info 1:0:0
 liboperaFluxVector_la_SOURCES = operaFluxVector.cpp operaFluxVector.h
 liboperaFluxVector_la_LDFLAGS = -version-info 1:0:0
+liboperaVector_la_SOURCES = operaVector.cpp operaVectorOperations.cpp operaVector.h operaVectorOperations.h
+liboperaVector_la_LDFLAGS = -version-info 1:0:0
 liboperaGeometricShapes_la_SOURCES = operaGeometricShapes.cpp operaGeometricShapes.h
 liboperaGeometricShapes_la_LDFLAGS = -version-info 1:0:0
 libGaussian_la_SOURCES = Gaussian.cpp Gaussian.h
@@ -845,10 +837,6 @@ liboperaCCD_la_SOURCES = operaCCD.cpp operaCCD.h operaLibCommon.h
 liboperaCCD_la_LDFLAGS = -version-info 1:0:0
 liboperaMath_la_SOURCES = operaMath.c operaMath.h operaLibCommon.h
 liboperaMath_la_LDFLAGS = -version-info 1:0:0
-liboperaJD_la_SOURCES = operaJD.c operaJD.h operaLibCommon.h
-liboperaJD_la_LDFLAGS = -version-info 1:0:0
-liboperaHelio_la_SOURCES = operaHelio.c operaHelio.h operaLibCommon.h
-liboperaHelio_la_LDFLAGS = -version-info 1:0:0
 liboperaStats_la_SOURCES = operaStats.c operaStats.h operaLibCommon.h
 liboperaStats_la_LDFLAGS = -version-info 1:0:0
 liboperaLMFit_la_SOURCES = operaLMFit.c operaLMFit.h operaLibCommon.h
@@ -1034,6 +1022,8 @@ liboperaCommonModuleElements.la: $(liboperaCommonModuleElements_la_OBJECTS) $(li
 	$(liboperaCommonModuleElements_la_LINK) -rpath $(libdir) $(liboperaCommonModuleElements_la_OBJECTS) $(liboperaCommonModuleElements_la_LIBADD) $(LIBS)
 liboperaConfigurationAccess.la: $(liboperaConfigurationAccess_la_OBJECTS) $(liboperaConfigurationAccess_la_DEPENDENCIES) $(EXTRA_liboperaConfigurationAccess_la_DEPENDENCIES) 
 	$(liboperaConfigurationAccess_la_LINK) -rpath $(libdir) $(liboperaConfigurationAccess_la_OBJECTS) $(liboperaConfigurationAccess_la_LIBADD) $(LIBS)
+liboperaDateTime.la: $(liboperaDateTime_la_OBJECTS) $(liboperaDateTime_la_DEPENDENCIES) $(EXTRA_liboperaDateTime_la_DEPENDENCIES) 
+	$(liboperaDateTime_la_LINK) -rpath $(libdir) $(liboperaDateTime_la_OBJECTS) $(liboperaDateTime_la_LIBADD) $(LIBS)
 liboperaEspadonsImage.la: $(liboperaEspadonsImage_la_OBJECTS) $(liboperaEspadonsImage_la_DEPENDENCIES) $(EXTRA_liboperaEspadonsImage_la_DEPENDENCIES) 
 	$(liboperaEspadonsImage_la_LINK) -rpath $(libdir) $(liboperaEspadonsImage_la_OBJECTS) $(liboperaEspadonsImage_la_LIBADD) $(LIBS)
 liboperaEspadonsSubImage.la: $(liboperaEspadonsSubImage_la_OBJECTS) $(liboperaEspadonsSubImage_la_DEPENDENCIES) $(EXTRA_liboperaEspadonsSubImage_la_DEPENDENCIES) 
@@ -1058,8 +1048,6 @@ liboperaGeometricShapes.la: $(liboperaGeometricShapes_la_OBJECTS) $(liboperaGeom
 	$(liboperaGeometricShapes_la_LINK) -rpath $(libdir) $(liboperaGeometricShapes_la_OBJECTS) $(liboperaGeometricShapes_la_LIBADD) $(LIBS)
 liboperaGeometry.la: $(liboperaGeometry_la_OBJECTS) $(liboperaGeometry_la_DEPENDENCIES) $(EXTRA_liboperaGeometry_la_DEPENDENCIES) 
 	$(liboperaGeometry_la_LINK) -rpath $(libdir) $(liboperaGeometry_la_OBJECTS) $(liboperaGeometry_la_LIBADD) $(LIBS)
-liboperaHelio.la: $(liboperaHelio_la_OBJECTS) $(liboperaHelio_la_DEPENDENCIES) $(EXTRA_liboperaHelio_la_DEPENDENCIES) 
-	$(liboperaHelio_la_LINK) -rpath $(libdir) $(liboperaHelio_la_OBJECTS) $(liboperaHelio_la_LIBADD) $(LIBS)
 liboperaIOFormats.la: $(liboperaIOFormats_la_OBJECTS) $(liboperaIOFormats_la_DEPENDENCIES) $(EXTRA_liboperaIOFormats_la_DEPENDENCIES) 
 	$(liboperaIOFormats_la_LINK) -rpath $(libdir) $(liboperaIOFormats_la_OBJECTS) $(liboperaIOFormats_la_LIBADD) $(LIBS)
 liboperaImage.la: $(liboperaImage_la_OBJECTS) $(liboperaImage_la_DEPENDENCIES) $(EXTRA_liboperaImage_la_DEPENDENCIES) 
@@ -1070,8 +1058,6 @@ liboperaInstrumentEnvironmentSetup.la: $(liboperaInstrumentEnvironmentSetup_la_O
 	$(liboperaInstrumentEnvironmentSetup_la_LINK) -rpath $(libdir) $(liboperaInstrumentEnvironmentSetup_la_OBJECTS) $(liboperaInstrumentEnvironmentSetup_la_LIBADD) $(LIBS)
 liboperaInstrumentProfile.la: $(liboperaInstrumentProfile_la_OBJECTS) $(liboperaInstrumentProfile_la_DEPENDENCIES) $(EXTRA_liboperaInstrumentProfile_la_DEPENDENCIES) 
 	$(liboperaInstrumentProfile_la_LINK) -rpath $(libdir) $(liboperaInstrumentProfile_la_OBJECTS) $(liboperaInstrumentProfile_la_LIBADD) $(LIBS)
-liboperaJD.la: $(liboperaJD_la_OBJECTS) $(liboperaJD_la_DEPENDENCIES) $(EXTRA_liboperaJD_la_DEPENDENCIES) 
-	$(liboperaJD_la_LINK) -rpath $(libdir) $(liboperaJD_la_OBJECTS) $(liboperaJD_la_LIBADD) $(LIBS)
 liboperaLMFit.la: $(liboperaLMFit_la_OBJECTS) $(liboperaLMFit_la_DEPENDENCIES) $(EXTRA_liboperaLMFit_la_DEPENDENCIES) 
 	$(liboperaLMFit_la_LINK) -rpath $(libdir) $(liboperaLMFit_la_OBJECTS) $(liboperaLMFit_la_LIBADD) $(LIBS)
 liboperaLib.la: $(liboperaLib_la_OBJECTS) $(liboperaLib_la_DEPENDENCIES) $(EXTRA_liboperaLib_la_DEPENDENCIES) 
@@ -1112,14 +1098,14 @@ liboperaSpectralTools.la: $(liboperaSpectralTools_la_OBJECTS) $(liboperaSpectral
 	$(liboperaSpectralTools_la_LINK) -rpath $(libdir) $(liboperaSpectralTools_la_OBJECTS) $(liboperaSpectralTools_la_LIBADD) $(LIBS)
 liboperaSpectrograph.la: $(liboperaSpectrograph_la_OBJECTS) $(liboperaSpectrograph_la_DEPENDENCIES) $(EXTRA_liboperaSpectrograph_la_DEPENDENCIES) 
 	$(liboperaSpectrograph_la_LINK) -rpath $(libdir) $(liboperaSpectrograph_la_OBJECTS) $(liboperaSpectrograph_la_LIBADD) $(LIBS)
-liboperaSpectrumSimulation.la: $(liboperaSpectrumSimulation_la_OBJECTS) $(liboperaSpectrumSimulation_la_DEPENDENCIES) $(EXTRA_liboperaSpectrumSimulation_la_DEPENDENCIES) 
-	$(liboperaSpectrumSimulation_la_LINK) -rpath $(libdir) $(liboperaSpectrumSimulation_la_OBJECTS) $(liboperaSpectrumSimulation_la_LIBADD) $(LIBS)
 liboperaStats.la: $(liboperaStats_la_OBJECTS) $(liboperaStats_la_DEPENDENCIES) $(EXTRA_liboperaStats_la_DEPENDENCIES) 
 	$(liboperaStats_la_LINK) -rpath $(libdir) $(liboperaStats_la_OBJECTS) $(liboperaStats_la_LIBADD) $(LIBS)
 liboperaStokesVector.la: $(liboperaStokesVector_la_OBJECTS) $(liboperaStokesVector_la_DEPENDENCIES) $(EXTRA_liboperaStokesVector_la_DEPENDENCIES) 
 	$(liboperaStokesVector_la_LINK) -rpath $(libdir) $(liboperaStokesVector_la_OBJECTS) $(liboperaStokesVector_la_LIBADD) $(LIBS)
 liboperaTelescope.la: $(liboperaTelescope_la_OBJECTS) $(liboperaTelescope_la_DEPENDENCIES) $(EXTRA_liboperaTelescope_la_DEPENDENCIES) 
 	$(liboperaTelescope_la_LINK) -rpath $(libdir) $(liboperaTelescope_la_OBJECTS) $(liboperaTelescope_la_LIBADD) $(LIBS)
+liboperaVector.la: $(liboperaVector_la_OBJECTS) $(liboperaVector_la_DEPENDENCIES) $(EXTRA_liboperaVector_la_DEPENDENCIES) 
+	$(liboperaVector_la_LINK) -rpath $(libdir) $(liboperaVector_la_OBJECTS) $(liboperaVector_la_LIBADD) $(LIBS)
 liboperaWavelength.la: $(liboperaWavelength_la_OBJECTS) $(liboperaWavelength_la_DEPENDENCIES) $(EXTRA_liboperaWavelength_la_DEPENDENCIES) 
 	$(liboperaWavelength_la_LINK) -rpath $(libdir) $(liboperaWavelength_la_OBJECTS) $(liboperaWavelength_la_LIBADD) $(LIBS)
 
@@ -1142,6 +1128,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCCD.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaCommonModuleElements.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaConfigurationAccess.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaDateTime.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaEspadonsImage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaEspadonsSubImage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaException.Plo@am__quote@
@@ -1155,13 +1142,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFluxVector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGeometricShapes.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaGeometry.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaHelio.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaIOFormats.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaImage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaImageVector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaInstrumentEnvironmentSetup.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaInstrumentProfile.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaJD.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaLMFit.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaLib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMEFFITSProduct.Plo@am__quote@
@@ -1183,10 +1168,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaSpectralOrderVector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaSpectralTools.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaSpectrograph.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaSpectrumSimulation.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStats.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStokesVector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaTelescope.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaVector.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaVectorOperations.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaWavelength.Plo@am__quote@
 
 .c.o:

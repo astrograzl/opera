@@ -37,49 +37,43 @@
 #########################################################################################
 bindir=$opera/bin/
 
-((i=1))
+((i=0))
 oks=""
 while [[ $1 ]] 
 do
+	((i++))
 	if (( i == 1 )) 
 	then
 		object=`${bindir}/operagetheader $1 --keyword=OBJECT `
 		mode=`${bindir}/operagetmode $1`
 		speed=`${bindir}/operagetspeed $1`
 		stokes=`${bindir}/operagetstokes $1`
-		exp=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $3}' | sed -e s/,//`
+		exp=`${bindir}/operagetpolarsequence $1`
 		seq=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
-		seqs=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
-		oks="$oks $1"
-		shift
-		((i++))
-	else	
-		if [[ $1 ]]
+		oks="$1"
+		if [[ $exp != $i ]]
 		then
-			fobject=`${bindir}/operagetheader $1 --keyword=OBJECT `
-			fmode=`${bindir}/operagetmode $1`
-			fspeed=`${bindir}/operagetspeed $1`
-			fstokes=`${bindir}/operagetstokes $1`
-			fexp=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $3}' | sed -e s/,//`
-			fseq=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
-			fseqs=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
-			if [[ $object == $fobject && $mode == $fmode && $seq == $fseq && $stokes == $fstokes && $seqs == $fseqs && $fexp == $i ]]
+			break
+		fi
+	else	
+		fobject=`${bindir}/operagetheader $1 --keyword=OBJECT `
+		fmode=`${bindir}/operagetmode $1`
+		fspeed=`${bindir}/operagetspeed $1`
+		fstokes=`${bindir}/operagetstokes $1`
+		fexp=`${bindir}/operagetpolarsequence $1`
+		fseq=`${bindir}/operagetheader $1 --keyword=CMMTSEQ | awk '{print $5}'`
+		if [[ $object == $fobject && $mode == $fmode && $speed == $fspeed && $stokes == $fstokes && $seq == $fseq && $fexp == $i ]]
+		then
+			oks="$oks $1"
+			if (( i == 4 ))
 			then
-				oks="$oks $1"
-		   	((i++))
-		   	if (( i > 4 ))
-		   	then
-			  		break
-		   	fi
-		   	shift
-			else
-				oks=""
-				((i=1))
+				break
 			fi
 		else
 			break
 		fi
 	fi
+	shift
 done
-echo "`expr $i - 1` $oks"
+echo "$i $oks"
 exit

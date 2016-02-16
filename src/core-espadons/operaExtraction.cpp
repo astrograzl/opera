@@ -3,7 +3,7 @@
  *******************************************************************
  Module name: operaExtraction
  Version: 1.0
- Description: Extract spectrum usng various alogorithms.
+ Description: Extract spectrum using various alogorithms.
  Author(s): CFHT OPERA team
  Affiliation: Canada France Hawaii Telescope 
  Location: Hawaii USA
@@ -49,7 +49,7 @@ using namespace std;
 /*! 
  * operaExtraction
  * \author Eder Martioli
- * \brief Module to extract spectra usng various alogorithms.
+ * \brief Module to extract spectra using various alogorithms.
  * \arg argc
  * \arg argv
  * \note --output=...
@@ -78,6 +78,7 @@ string badpixelmask;
 int ordernumber = NOTPROVIDED;
 int minorder = NOTPROVIDED;
 int maxorder = NOTPROVIDED;
+double biasConstantToAdd = 0;
 double effectiveApertureFraction = 0.99;
 unsigned backgroundBinsize = 1;
 unsigned sigmaclip = 50;
@@ -209,11 +210,12 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("inputInstrumentProfileFile", inputprof, "Input instrument profile file");
 	args.AddRequiredArgument("inputApertureFile", inputaper, "Input extraction aperture file");
 	args.AddRequiredArgument("masterbias", masterbias, "FITS image with masterbias");
-	args.AddRequiredArgument("masterflat", masterflat, "FITS image with masterflat");
+    args.AddRequiredArgument("masterflat", masterflat, "FITS image with masterflat");
 	args.AddOptionalArgument("normalizedflat", normalizedflatfile, "", "FITS image with normalized flat-field");
 	args.AddRequiredArgument("badpixelmask", badpixelmask, "FITS image with badpixel mask");
     args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
     args.AddOptionalArgument("effectiveApertureFraction", effectiveApertureFraction, 0.99, "Fraction of aperture width to set spectral element size");
+    args.AddOptionalArgument("biasConstantToAdd", biasConstantToAdd, 0.0, "Bias constant to add -- to avoid negative numbers in extracted spectrum");
     args.AddOptionalArgument("backgroundBinsize", backgroundBinsize, 1, "Number of points to bin for IP measurements");
     args.AddOptionalArgument("sigmaclip", sigmaclip, 50, "Variance threshold for optimal extraction");
     args.AddOptionalArgument("iterations", iterations, 3, "Number iterations for optimal extraction");
@@ -254,9 +256,9 @@ int main(int argc, char *argv[])
 			throw operaException("operaExtraction: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
 		}	
 		// we need a master flat...
-		if (masterflat.empty()) {
-			throw operaException("operaExtraction: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);	
-		}			
+		//if (masterflat.empty()) {
+		//	throw operaException("operaExtraction: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
+		//}
 		
 		if (args.verbose) {
 			cout << "operaExtraction: inputImage = " << inputImage << endl; 
@@ -271,6 +273,7 @@ int main(int argc, char *argv[])
 			cout << "operaExtraction: badpixelmask = " << badpixelmask << endl;
 			cout << "operaExtraction: spectrumtype = " << spectralOrderType << endl;
 			cout << "operaExtraction: spectrumtypename = " << spectrumtypename << endl;
+            cout << "operaExtraction: biasConstantToAdd = " << biasConstantToAdd << endl;
             cout << "operaExtraction: effectiveApertureFraction = " << effectiveApertureFraction << endl;
             cout << "operaExtraction: backgroundBinsize = " << backgroundBinsize << endl;
             cout << "operaExtraction: starplusskymode = " << starplusskymode << endl;
@@ -293,16 +296,23 @@ int main(int argc, char *argv[])
         ofstream fdata;
         if (!datafilename.empty()) fdata.open(datafilename.c_str());
         
-		flat = new operaFITSImage(masterflat, tfloat, READONLY);
-        object = new operaFITSImage(inputImage, tfloat, READONLY);		
+        object = new operaFITSImage(inputImage, tfloat, READONLY);
 		
+        if (!masterflat.empty()){
+            flat = new operaFITSImage(masterflat, tfloat, READONLY);
+        } else {
+            flat = new operaFITSImage(object->getnaxis1(),object->getnaxis2(),tfloat);
+            *flat = 1.0;
+        }
+        
 		if (!masterbias.empty()){              
 			bias = new operaFITSImage(masterbias, tfloat, READONLY);
+            *bias = *bias - (float)biasConstantToAdd;
 		} else {
             bias = new operaFITSImage(object->getnaxis1(),object->getnaxis2(),tfloat);
             *bias = 0.0;
         }	        
-                
+        
 		if (!badpixelmask.empty()){              
 			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
 		} else {

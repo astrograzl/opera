@@ -36,19 +36,7 @@
 // $Locker$
 // $Log$
 
-class operaMEFFITSProduct;
-
-#include <string>
-#include <fitsio.h>
 #include "libraries/operaFITSImage.h"
-#include "libraries/operaEspadonsImage.h"
-#include "libraries/operaSpectralOrder.h"
-#include "libraries/operaSpectralOrderVector.h"
-
-#define MODE_STAR_ONLY_COLS 12
-#define MODE_POLAR_COLS 24
-#define MODE_STAR_PLUS_SKY_COLS 28
-#define MAXPRODUCTCOLS 28
 
 /*! 
  * operaFITSProduct
@@ -59,184 +47,64 @@ class operaMEFFITSProduct;
  */
 
 class operaFITSProduct : public operaFITSImage {
-	
 private:
-	typedef operaFITSImage& super;	// a way of referring to the super class
-	instrumentmode_t instrumentmode;
-	string colnames[MAXPRODUCTCOLS];
-	unsigned columns, datapoints, next_row;
-	
+	unsigned headercolumns;
 public:
 	/*! 
-	 * \sa class operaFITSProduct()
-	 * \brief Basic operaFITSProduct constructor.
+	 * \brief Creates a FITS product in memory.
 	 * \note extends operaFITSImage
-	 * \return none
 	 */
 	operaFITSProduct(void);
 	
 	/*! 
-	 * \sa class operaFITSProduct(string Filename, operaSpectralOrderVector *spectralOrerVector)
-	 * \brief operaFITSProduct constructconsturcted from a spectral order vector.
-	 * \note extends operaFITSImage
-	 * \param Filename
-	 * \param spectralOrerVector
-	 * \return none
-	 */
-	operaFITSProduct(string Filename, operaSpectralOrderVector *spectralOrerVector);
-	
-	/* 
-	 * \sa class operaFITSProduct(operaMEFFITSProduct &mefproduct)
-	 * \brief operaFITSProduct constructconsturcted from a spectral order vector.
-	 * \note extends operaFITSImage
-	 * \param Filename
-	 * \param spectralOrerVector
-	 * \return none
-	 */
-	operaFITSProduct(operaMEFFITSProduct &mefproduct);
-	
-	/*! 
-	 * \sa class operaFITSProduct(unsigned Columns, unsigned Rows)
-	 * \brief Basic unnames operaFITSProduct constructor with a size.
+	 * \brief Creates a FITS product in memory with the specified dimensions.
 	 * \note extends operaFITSImage
 	 * \param Columns
 	 * \param Rows
-	 * \return none
 	 */
 	operaFITSProduct(unsigned Columns, unsigned Rows);
 	
 	/*! 
-	 * \sa class operaFITSProduct(string Filename, int mode=READWRITE|READONLY)
-	 * \brief Constructor for readng a FITS file and creating the corresponding object.
+	 * \brief Creates a FITS product file with the specified dimensions.
+	 * \note extends operaFITSImage
 	 * \param Filename
-	 * \param mode
+	 * \param Columns
+	 * \param Rows
+	 * \param Compression
 	 * \throws operaException operaErrorHeaderProblem
-	 * \return none
 	 */
-	operaFITSProduct(string Filename, int mode=READWRITE/*READONLY*/, unsigned Compression = 0);
+	operaFITSProduct(string Filename, unsigned Columns, unsigned Rows, unsigned Compression = 0);
+	
 	/*! 
-	 * \sa class operaFITSProduct(string Filename, instrumentmode_t, Instrumentmode, int mode=READWRITE|READONLY);
-	 * \brief Constructor for creating a FITS product file with the correct column width.
+	 * \brief Creates a FITS product from an existing file.
 	 * \param Filename
-	 * \param mode
-	 * \param Instrumentmode
+	 * \param mode READONLY or READWRITE
+	 * \param Compression
 	 * \throws operaException operaErrorHeaderProblem
-	 * \return none
 	 */
-	operaFITSProduct(string Filename, instrumentmode_t Instrumentmode, unsigned Compression = 0);
+	operaFITSProduct(string Filename, int mode=READWRITE, unsigned Compression = 0);
+	
 	/*! 
-	 * \sa class operaFITSProduct(string Filename, string baseOnFilename, unsigned Columns, unsigned Rows, unsigned Compression = 0)
-	 * \brief Constructor for readng a FITS object file and creating the corresponding product.
-	 * \param Filename the product file to create
-	 * \param baseOnFilename the object file from which to get the headers
+	 * \brief Copies the FITS header into the FITS product from an existing file.
+	 * \param filename The existing FITS images
 	 * \throws operaException operaErrorHeaderProblem
-	 * \return none
 	 */
-	operaFITSProduct(string Filename, string baseOnFilename, instrumentmode_t Instrumentmode, unsigned Columns, unsigned Rows, unsigned Compression = 0);
+	void CopyHeader(string filename);
+	
 	/*! 
-	 * \sa class operaFITSProduct(string Filename, int mode=READWRITE|READONLY)
-	 * \brief Constructor for readng a FITS object file and creating the corresponding product.
-	 * \param Filename the product file to create
+	 * \brief Adds a header keyword describing a column of data.
+	 * \details The keyword name will be COLn where n is the number of columns that have been added, including the current one.
+	 * \param name Name of the column, inserted as the value of the header keyword.
+	 * \param desc Description of the column, inserted as the comment of the header keyword.
 	 * \throws operaException operaErrorHeaderProblem
-	 * \return none
 	 */
-	operaFITSProduct(string Filename, instrumentmode_t Instrumentmode, unsigned Columns, unsigned Rows, unsigned Compression = 0);
-	/*! 
-	 * \sa class operaFITSProduct()
-	 * \brief destructor
-	 * \return void
-	 */
-	~operaFITSProduct(void);
-	
-	/*
-	 * Helper functions
-	 */
-	/*
-	 * Set the default column names
-	 */
-	void updateColumnNames(void);
-	/*
-	 * Set the column names into the fits header
-	 */
-	void setHeaderColumnNames(void);
-	
-	/*
-	 * Interface to spectra in text files compatible with Libre-Esprit
-	 */
+	void AddColumnToHeader(string name, string desc);
 	
 	/*! 
-	 * \sa class operaFITSProduct()
-	 * \brief addRow - add a row of data to a FITS product
-	 * \param rowdata - float *
-	 * \return void
+	 * \brief Gets the number of column keywords that have been added the header.
+	 * \return The number of times AddColumnToHeader has been called.
 	 */
-	void addRow(float *rowdata, unsigned Columns, unsigned startColumn);
-	/*! 
-	 * \sa class operaFITSProduct()
-	 * \brief getNextRow - get the current row
-	 * \return void
-	 */
-	unsigned getNextRow(void);	
-	/*! 
-	 * \sa class operaFITSProduct()
-	 * \brief setNextRow - set the current row
-	 * \param Row - unsigned
-	 * \return void
-	 */
-	void setNextRow(unsigned Row);
-	/*! 
-	 * \sa class operaFITSProduct()
-	 * \brief readText - read a .s spectrum
-	 * \param Filename - string
-	 * \return void
-	 */
-	
-	void readText(string Filename);
-	
-	/*! 
-	 * \sa class operaFITSProduct()
-	 * \brief writeText - write a .s spectrum
-	 * \param Filename - string
-	 * \return void
-	 */
-	void writeText(string Filename);
-	
-	/*
-	 * getters / setters
-	 */
-	
-	/*! 
-	 * string getcolname(unsigned col) 
-	 * \brief returns the string column name of col.
-	 * \param col
-	 * \return string
-	 */
-	string getcolname(unsigned col);
-	
-	/*! 
-	 * unsigned getcols() 
-	 * \brief returns number of columns.
-	 * \return string
-	 */
-	unsigned getcols();
-	
-	/*! 
-	 * unsigned getrows() 
-	 * \brief returns number of rows.
-	 * \return string
-	 */
-	unsigned getrows();
-	/*! 
-	 * unsigned getNeextRow() 
-	 * \brief returns current row.
-	 * \return string
-	 */
-	instrumentmode_t getmode();
-	/*!
-	 * instrumentmode_t getmode() 
-	 * \brief returns intrument mode.
-	 * \return string
-	 */
-	void setmode(instrumentmode_t Mode);
+	unsigned HeaderColumnCount();
 };
+
 #endif

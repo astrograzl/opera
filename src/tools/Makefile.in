@@ -65,7 +65,7 @@ bin_PROGRAMS = operaConfigurationAccess$(EXEEXT) \
 	operaRotate$(EXEEXT) operaEspadonsETC$(EXEEXT) \
 	operaExtractImage$(EXEEXT) operaPlotOut$(EXEEXT) \
 	operaRotateMirrorCrop$(EXEEXT) operaMedianCombine$(EXEEXT) \
-	$(am__EXEEXT_1)
+	operaMJD$(EXEEXT) $(am__EXEEXT_1)
 @LIBPNG_TRUE@am__append_1 = $(FT_ARG) 
 @LIBPNG_TRUE@am__append_2 = $(FT_ARG) 
 @LIBPNG_TRUE@am__append_3 = operaFITStoPNG operaPlotGeom operaPlotWave operaPlot
@@ -136,6 +136,9 @@ operaFITStoPNG_LDADD = $(LDADD)
 am_operaImage_OBJECTS = operaImage.$(OBJEXT)
 operaImage_OBJECTS = $(am_operaImage_OBJECTS)
 operaImage_LDADD = $(LDADD)
+am_operaMJD_OBJECTS = operaMJD.$(OBJEXT)
+operaMJD_OBJECTS = $(am_operaMJD_OBJECTS)
+operaMJD_LDADD = $(LDADD)
 am_operaMedianCombine_OBJECTS = operaMedianCombine.$(OBJEXT)
 operaMedianCombine_OBJECTS = $(am_operaMedianCombine_OBJECTS)
 operaMedianCombine_LDADD = $(LDADD)
@@ -227,16 +230,16 @@ SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operaExtractImage_SOURCES) $(operaExtractRawSum_SOURCES) \
 	$(operaFITS2txt_SOURCES) $(operaFITSDisplayImage_SOURCES) \
 	$(operaFITStoPNG_SOURCES) $(operaImage_SOURCES) \
-	$(operaMedianCombine_SOURCES) $(operaParameterAccess_SOURCES) \
-	$(operaPlot_SOURCES) $(operaPlotGeom_SOURCES) \
-	$(operaPlotInstrumentProfile_SOURCES) $(operaPlotOut_SOURCES) \
-	$(operaPlotWave_SOURCES) $(operaQueryImageInfo_SOURCES) \
-	$(operaRotate_SOURCES) $(operaRotateMirrorCrop_SOURCES) \
-	$(operaStatistics_SOURCES) $(operabiasinjector_SOURCES) \
-	$(operacompress_SOURCES) $(operads9thumbs_SOURCES) \
-	$(operagetheader_SOURCES) $(operaimagestats_SOURCES) \
-	$(operaimarith_SOURCES) $(operasaturated_SOURCES) \
-	$(operasetheader_SOURCES)
+	$(operaMJD_SOURCES) $(operaMedianCombine_SOURCES) \
+	$(operaParameterAccess_SOURCES) $(operaPlot_SOURCES) \
+	$(operaPlotGeom_SOURCES) $(operaPlotInstrumentProfile_SOURCES) \
+	$(operaPlotOut_SOURCES) $(operaPlotWave_SOURCES) \
+	$(operaQueryImageInfo_SOURCES) $(operaRotate_SOURCES) \
+	$(operaRotateMirrorCrop_SOURCES) $(operaStatistics_SOURCES) \
+	$(operabiasinjector_SOURCES) $(operacompress_SOURCES) \
+	$(operads9thumbs_SOURCES) $(operagetheader_SOURCES) \
+	$(operaimagestats_SOURCES) $(operaimarith_SOURCES) \
+	$(operasaturated_SOURCES) $(operasetheader_SOURCES)
 DIST_SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operaConfigurationAccess_SOURCES) \
 	$(operaConvert2ampTo1amp_SOURCES) \
@@ -244,8 +247,8 @@ DIST_SOURCES = $(catz_SOURCES) $(espqlh_SOURCES) $(opera_SOURCES) \
 	$(operaExtractImage_SOURCES) $(operaExtractRawSum_SOURCES) \
 	$(operaFITS2txt_SOURCES) $(operaFITSDisplayImage_SOURCES) \
 	$(am__operaFITStoPNG_SOURCES_DIST) $(operaImage_SOURCES) \
-	$(operaMedianCombine_SOURCES) $(operaParameterAccess_SOURCES) \
-	$(am__operaPlot_SOURCES_DIST) \
+	$(operaMJD_SOURCES) $(operaMedianCombine_SOURCES) \
+	$(operaParameterAccess_SOURCES) $(am__operaPlot_SOURCES_DIST) \
 	$(am__operaPlotGeom_SOURCES_DIST) \
 	$(operaPlotInstrumentProfile_SOURCES) $(operaPlotOut_SOURCES) \
 	$(am__operaPlotWave_SOURCES_DIST) \
@@ -305,11 +308,11 @@ LIBOBJS = @LIBOBJS@
 # This is for Linux...
 LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaObjectInTheSky -loperaSpectrograph -loperaTelescope \
-	-loperaSpectrumSimulation -loperaIOFormats \
-	-loperaSpectralOrderVector -loperaSpectralOrder \
-	-loperaSpectralElements -loperaSpectralLines \
-	-loperaSpectralFeature -loperaExtractionAperture \
-	-loperaSpectralTools -loperaFluxVector -lGaussian \
+	-loperaDateTime -loperaIOFormats -loperaSpectralOrderVector \
+	-loperaSpectralOrder -loperaSpectralElements \
+	-loperaSpectralLines -loperaSpectralFeature \
+	-loperaExtractionAperture -loperaSpectralTools \
+	-loperaFluxVector -loperaVector -lGaussian \
 	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
 	-loperaEspadonsSubImage -loperaFITSProduct \
 	-loperaMEFFITSProduct -loperaFITSImage -loperaEspadonsImage \
@@ -319,12 +322,11 @@ LIBS = -loperaInstrumentEnvironmentSetup -loperaObservingConditions \
 	-loperaStokesVector -loperaFluxVector -loperaImageVector \
 	-loperaFITSSubImage -loperaImageVector -loperaGeometricShapes \
 	-loperaMatrix -lPolynomial -lLaurentPolynomial -loperaMath \
-	-loperaJD -loperaHelio -loperaCCD -loperaFit -loperaImage \
-	-loperaLMFit -loperaConfigurationAccess -loperaParameterAccess \
-	-lPixelSet -loperaSpectralEnergyDistribution \
-	-loperaSpectrumSimulation -loperaStats -loperaLib -lfftw3 \
-	-lgzstream -lcfitsio -lsofa_c -lz -lpthread -lm \
-	$(am__append_5) $(am__append_7)
+	-loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-loperaConfigurationAccess -loperaParameterAccess -lPixelSet \
+	-loperaSpectralEnergyDistribution -loperaStats -loperaLib \
+	-loperaArgumentHandler -lArgumentHandler -lfftw3 -lgzstream \
+	-lcfitsio -lz -lpthread -lm $(am__append_5) $(am__append_7)
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
@@ -417,25 +419,26 @@ AM_CXXFLAGS = --pedantic -Wall -g -O1 -L$(PREFIX)/src/libraries/ \
 	-L/usr/local/lib/ $(am__append_1)
 AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 	-loperaObservingConditions -loperaObjectInTheSky \
-	-loperaSpectrograph -loperaTelescope -loperaSpectrumSimulation \
+	-loperaSpectrograph -loperaTelescope -loperaDateTime \
 	-loperaIOFormats -loperaSpectralOrderVector \
 	-loperaSpectralOrder -loperaSpectralElements -loperaFluxVector \
 	-loperaSpectralLines -loperaSpectralFeature \
 	-loperaExtractionAperture -loperaSpectralTools -lGaussian \
 	-loperaInstrumentProfile -loperaGeometry -loperaWavelength \
-	-lPolynomial -lLaurentPolynomial -loperaMath -loperaJD \
-	-loperaHelio -loperaCCD -loperaFit -loperaImage -loperaLMFit \
+	-lPolynomial -lLaurentPolynomial -loperaMath -loperaCCD \
+	-loperaFit -loperaImage -loperaLMFit \
 	-loperaConfigurationAccess -loperaParameterAccess \
 	-loperaFITSSubImage -loperaEspadonsSubImage -loperaPolarimetry \
 	-loperaFITSProduct -loperaMEFFITSProduct -loperaFITSImage \
 	-loperaEspadonsImage -loperaMultiExtensionFITSCube \
 	-loperaMultiExtensionFITSImage -loperaFITSCube \
 	-loperaException -lGainBiasNoise -loperaMuellerMatrix \
-	-loperaStokesVector -loperaFFT -loperaImageVector \
-	-loperaGeometricShapes -loperaMatrix -lPixelSet \
-	-loperaSpectralEnergyDistribution -loperaSpectrumSimulation \
-	-loperaStats -loperaLib -lfftw3 -lgzstream -lcfitsio -lsofa_c \
-	-lz -lpthread -lm $(am__append_4) $(am__append_6)
+	-loperaStokesVector -loperaVector -loperaFFT \
+	-loperaImageVector -loperaGeometricShapes -loperaMatrix \
+	-lPixelSet -loperaSpectralEnergyDistribution -loperaStats \
+	-loperaLib -loperaArgumentHandler -lArgumentHandler -lfftw3 \
+	-lgzstream -lcfitsio -lz -lpthread -lm $(am__append_4) \
+	$(am__append_6)
 #
 # if we want png plotting support, bring in the png libs and freetype
 #				
@@ -444,6 +447,7 @@ AM_LDFLAGS = -loperaInstrumentEnvironmentSetup \
 @LIBPNG_TRUE@operaPlotGeom_SOURCES = operaPlotGeom.cpp operaPlotGeom.h
 @LIBPNG_TRUE@operaPlotWave_SOURCES = operaPlotWave.cpp operaPlotWave.h
 @LIBPNG_TRUE@operaPlot_SOURCES = operaPlot.cpp operaPlot.h
+operaMJD_SOURCES = operaMJD.cpp
 operaRotateMirrorCrop_SOURCES = operaRotateMirrorCrop.cpp
 operaMedianCombine_SOURCES = operaMedianCombine.cpp
 operaPlotOut_SOURCES = operaPlotOut.cpp
@@ -591,6 +595,9 @@ operaFITStoPNG$(EXEEXT): $(operaFITStoPNG_OBJECTS) $(operaFITStoPNG_DEPENDENCIES
 operaImage$(EXEEXT): $(operaImage_OBJECTS) $(operaImage_DEPENDENCIES) $(EXTRA_operaImage_DEPENDENCIES) 
 	@rm -f operaImage$(EXEEXT)
 	$(CXXLINK) $(operaImage_OBJECTS) $(operaImage_LDADD) $(LIBS)
+operaMJD$(EXEEXT): $(operaMJD_OBJECTS) $(operaMJD_DEPENDENCIES) $(EXTRA_operaMJD_DEPENDENCIES) 
+	@rm -f operaMJD$(EXEEXT)
+	$(CXXLINK) $(operaMJD_OBJECTS) $(operaMJD_LDADD) $(LIBS)
 operaMedianCombine$(EXEEXT): $(operaMedianCombine_OBJECTS) $(operaMedianCombine_DEPENDENCIES) $(EXTRA_operaMedianCombine_DEPENDENCIES) 
 	@rm -f operaMedianCombine$(EXEEXT)
 	$(CXXLINK) $(operaMedianCombine_OBJECTS) $(operaMedianCombine_LDADD) $(LIBS)
@@ -668,6 +675,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFITSDisplayImage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaFITStoPNG.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaImage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMJD.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaMedianCombine.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaParameterAccess.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaPlot.Po@am__quote@

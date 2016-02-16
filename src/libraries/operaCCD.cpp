@@ -819,7 +819,7 @@ unsigned matchMeasuredOrdersWithMap(unsigned np,float *fx,float *fy,float slit, 
             ordYValue[o] = ymean[0];
             ordIndex[o] = o;
             NumberOfOrdersInRow++;
-        } else if ((int)o-nhops > 0 && (int)o-nhops < (int)nords) {
+        } else if (o > nhops && o-nhops < nords) {
             
             unsigned jj = (unsigned)(o-nhops);
             // The condition below tests if next point is a valid order
@@ -2258,7 +2258,7 @@ void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *my
         npts = 0;
 		for(unsigned i=imin;i<imax;i++) {
             double ymodel = a*exp(-((double)mx[i]-x0)*((double)mx[i]-x0)/(2*sig*sig));
-            printf("%u\t%lf\t%lf\t%lf\t%lf\n",i,(double)mx[i],(double)my[i],ymodel,(double)myerr[i]);
+            printf("%u\t%f\t%f\t%f\t%f\n",i,(double)mx[i],(double)my[i],ymodel,(double)myerr[i]);
             if(npts == slit) {
                 break;
             }
@@ -2267,6 +2267,3 @@ void operaMedianWidthFromSetOfLines(unsigned np, float *mx, float *my, float *my
 	}    
 	
 }
-
-
-

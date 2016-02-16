@@ -982,7 +982,7 @@ float operaInstrumentProfile::getipDataFromPolyModel(float d, unsigned i, unsign
 	return modelValue;*/
 	
 	//Switched to inline polynomial evaluation to optimize for operaExtraction
-	int polyOrder = pp->orderofPolynomial;
+	unsigned polyOrder = pp->orderofPolynomial;
 	const float* polyCoeffs = pp->p;
 	
 	double eval = polyCoeffs[0];

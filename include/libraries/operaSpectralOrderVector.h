@@ -32,6 +32,7 @@
 #include <vector>
 #include "operaError.h"
 #include "libraries/operaSpectralElements.h"		// for operaSpectralElements
+#include "libraries/operaSpectralTools.h"			// for operaSpectrum
 #include "libraries/operaInstrumentProfile.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/GainBiasNoise.h"
@@ -297,11 +298,16 @@ public:
     void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, double SkyOverStarFiberAreaRatio, bool StarPlusSky);
     void normalizeINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams);
     void applyFlatResponseINTOExtendendSpectra(string flatResponse, bool FITSformat, int Minorder, int Maxorder);
-    //void normalizeAndApplyFlatResponseINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, string flatResponse, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, bool StarPlusSky);
+    void removeContinuumPolarization(int Minorder, int Maxorder);
     unsigned getMaxNumberOfElementsInOrder(int Minorder, int Maxorder);
     unsigned getNumberofBeams(int Minorder, int Maxorder) const;
     
-    unsigned getSpectrumWithinTelluricMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double *wavelength, double *spectrum, double *variance);
+    operaSpectrum getSpectrumWithinTelluricMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize);
+    operaSpectrum detectSpectralLinesWithinWavelengthMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double spectralResolution, bool emissionSpectrum,double LocalMaxFilterWidth,double MinPeakDepth,double DetectionThreshold,double nsigclip);
+
+    operaSpectrum getSpectrumAroundLines(operaSpectrum sourceLines, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double spectralResolution,double nsig, double snrClip, unsigned numberOfPointsToCutInOrderEnds);
+    operaSpectrum getSpectrumWithinWavelengthRange(operaWavelengthRange range, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double snrClip, unsigned numberOfPointsToCutInOrderEnds);
+
     void calculateRawFluxQuantities(int Minorder, int Maxorder, double *integratedFlux, double *meanFlux, double *maxSNR, double *meanSNR);
 
     void readFlatResponseIntoSED(string filename,int Minorder, int Maxorder, bool FITSformat);
@@ -310,8 +316,7 @@ public:
 
     void normalizeOrderbyOrderAndSaveFluxINTOExtendendSpectra(unsigned normalizationBinsize, int Minorder, int Maxorder, bool normalizeBeams);
     
-    unsigned detectSpectralLinesWithinWavelengthMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double *wavelength, double *intensity, double *error,double spectralResolution, bool emissionSpectrum,double LocalMaxFilterWidth,double MinPeakDepth,double DetectionThreshold,double nsigclip);
-    
+    operaSpectrum getExtendedSpectrum(int Minorder, int Maxorder, unsigned RawNormalizedOrCalibrated, bool wavelengthTelluricCorrected, bool wavelengthHelioCorrected, double snrClip, unsigned numberOfPointsToCutInOrderEnds, double sourceRV_KMS);
 };
 
 /*

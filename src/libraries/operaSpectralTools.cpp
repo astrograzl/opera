@@ -57,6 +57,8 @@ Date: Aug/2011
 #include "libraries/operaLibCommon.h"           // for SPEED_OF_LIGHT_M
 #include "libraries/operaStats.h"               // for operaCrossCorrelation
 #include "libraries/operaFFT.h"                 // for operaXCorrelation
+#include "libraries/operaException.h"
+#include "libraries/operaFit.h"
 
 using namespace std;
 
@@ -540,6 +542,54 @@ float getFluxAtWavelength(unsigned np,float *wl,float *flux,float wavelengthForN
 /*
  * Read mask
  */
+operaWavelengthRanges readContinuumWavelengthMask(string wavelength_mask) {
+	operaWavelengthRanges wlranges;
+	ifstream astream(wavelength_mask.c_str());
+	if (astream.is_open()) {
+		string dataline;
+		while (getline(astream, dataline)) {
+			if (!dataline.empty() && dataline[0] != '#') { // skip comments
+				double tmpwl0, tmpwlf;
+				istringstream ss(dataline);
+				if(ss >> tmpwl0 >> tmpwlf) wlranges.addWavelengthRange(tmpwl0, tmpwlf);
+			}
+		}
+		astream.close();
+	}
+	return wlranges;
+}
+
+
+operaWavelengthRanges getWavelengthMaskAroundLines(const operaSpectrum sourceLines, double spectralResolution, double nsig) {
+    
+    operaWavelengthRanges wlranges;
+    
+    double wl0_ref  = sourceLines.firstwl()*(1.0 - nsig/spectralResolution);
+    double wlf_ref  = sourceLines.firstwl()*(1.0 + nsig/spectralResolution);
+    
+    for (unsigned l=0; l<sourceLines.size(); l++) {
+        double lineWidth = sourceLines.getwavelength(l)/spectralResolution;
+        
+        double tmpwl0 = sourceLines.getwavelength(l) - nsig*lineWidth;
+        double tmpwlf = sourceLines.getwavelength(l) + nsig*lineWidth;
+        
+        if (tmpwl0 < wlf_ref && tmpwlf > wlf_ref) {
+            wlf_ref = tmpwlf;
+        } else if (tmpwl0 > wlf_ref) {
+            wlranges.addWavelengthRange(wl0_ref, wlf_ref);
+            wl0_ref = tmpwl0;
+            wlf_ref = tmpwlf;
+        }
+    
+        if(l==sourceLines.size()-1) {
+            wlranges.addWavelengthRange(wl0_ref, wlf_ref);
+        }
+    }
+
+    return wlranges;
+}
+
+
 unsigned readContinuumWavelengthMask(string wavelength_mask, double *wl0, double *wlf) {
 	ifstream astream;
 	string dataline;
@@ -670,11 +720,9 @@ unsigned detectSpectralLinesInSpectralOrder(operaSpectralOrder *spectralOrder, d
     
     operaSpectralLines compLines(compSpectrum,linewidth,wavelength_disp);
     
-    operaFluxVector *compfluxvector = compSpectrum->getFluxVector();
-    
 #ifdef PRINT_DEBUG
     for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-        cout << compSpectrum->getdistd(i) << " " << compSpectrum->getwavelength(i) << " " << compfluxvector->getflux(i) << " " << compSpectrum->getXCorrelation(i) << endl;
+        cout << compSpectrum->getdistd(i) << " " << compSpectrum->getwavelength(i) << " " << compSpectrum->getFlux(i) << " " << compSpectrum->getXCorrelation(i) << endl;
     }
 #endif
     if(!compSpectrum->getHasXCorrelation()){
@@ -684,7 +732,7 @@ unsigned detectSpectralLinesInSpectralOrder(operaSpectralOrder *spectralOrder, d
         
         for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
             compSpectrumwl[i] = compSpectrum->getwavelength(i);
-            compSpectrumflux[i] = compfluxvector->getflux(i);
+            compSpectrumflux[i] = compSpectrum->getFlux(i);
         }
         
         calculateXCorrWithGaussian(compSpectrum->getnSpectralElements(), compSpectrumwl, compSpectrumflux, compXcorr, linewidth);
@@ -698,8 +746,8 @@ unsigned detectSpectralLinesInSpectralOrder(operaSpectralOrder *spectralOrder, d
     double meanVariance = 0;
     unsigned nvarpoints = 0;
     for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-        if(!isnan(compfluxvector->getvariance(i))) {
-            meanVariance += compfluxvector->getvariance(i);
+        if(!isnan(compSpectrum->getFluxVariance(i))) {
+            meanVariance += compSpectrum->getFluxVariance(i);
             nvarpoints++;
         }
     }
@@ -787,9 +835,176 @@ unsigned detectSpectralLinesInSpectralOrder(operaSpectralOrder *spectralOrder, d
     return nlinesinorder;
 }
 
-double calculateDeltaRadialVelocityInKPS(double telluricWL, double observedWL, double spectralResolution) {
-    double linewidth = telluricWL/spectralResolution;
-    double radialVelocity = (telluricWL - observedWL)*SPEED_OF_LIGHT_KMS/telluricWL;
-    return radialVelocity;
+double calculateDeltaRadialVelocityInKPS(double telluricWL, double observedWL) {
+    return (telluricWL - observedWL)*SPEED_OF_LIGHT_KMS/telluricWL;
 }
 
+operaVector fitSpectrum(const operaVector& inputWavelength, const operaVector& inputFlux, const operaVector& outputWavelength) {
+	operaVector outputFlux(outputWavelength.size());
+	operaFitSplineDouble(inputWavelength.size(), inputWavelength.datapointer(), inputFlux.datapointer(), outputWavelength.size(), outputWavelength.datapointer(), outputFlux.datapointer());
+	return outputFlux;
+}
+
+
+operaSpectrum fitSpectrum(operaSpectrum inputSpectrum, const operaVector& outputWavelength) {
+    
+    operaVector outputFlux(outputWavelength.size());
+    operaVector outputVariance(outputWavelength.size());
+
+    operaVector inputWavelength = inputSpectrum.wavelengthvector();
+
+    operaFluxVector inputFluxVector = inputSpectrum.getintensity();
+    operaVector inputFlux = inputFluxVector.getflux();
+    operaVector inputVariance = inputFluxVector.getvariance();
+    
+    operaFitSplineDouble(inputWavelength.size(), inputWavelength.datapointer(), inputFlux.datapointer(), outputWavelength.size(), outputWavelength.datapointer(), outputFlux.datapointer());
+    operaFitSplineDouble(inputWavelength.size(), inputWavelength.datapointer(), inputVariance.datapointer(), outputWavelength.size(), outputWavelength.datapointer(), outputVariance.datapointer());
+    
+    operaSpectrum outputSpectrum(outputWavelength.size());
+    
+    for (unsigned i=0; i<outputWavelength.size(); i++) {
+        double wl = outputWavelength[i];
+        double flux = outputFlux[i];
+        double variance = outputVariance[i];
+        outputSpectrum.insert(wl,flux,variance);
+    }
+    
+    return outputSpectrum;
+}
+
+
+operaSpectrum getSpectrumWithinMask(string wavelength_mask, operaSpectrum inputSpectrum) {
+    
+    operaSpectrum outputSpectrum;
+    
+    operaWavelengthRanges wlranges = readContinuumWavelengthMask(wavelength_mask);
+    
+    for(unsigned i=0;i<inputSpectrum.size();i++){
+        if (wlranges.contains(inputSpectrum.getwavelength(i))) {
+            outputSpectrum.insert(inputSpectrum.getwavelength(i), inputSpectrum.getflux(i), inputSpectrum.getvariance(i));
+        }
+    }
+    return outputSpectrum;
+}
+
+operaSpectrum getSpectrumWithinRange(operaWavelengthRange wlrange, operaSpectrum inputSpectrum) {
+    
+    operaSpectrum outputSpectrum;
+    
+    for(unsigned i=0;i<inputSpectrum.size();i++){
+        if (wlrange.contains(inputSpectrum.getwavelength(i))) {
+            outputSpectrum.insert(inputSpectrum.getwavelength(i), inputSpectrum.getflux(i), inputSpectrum.getvariance(i));
+        }
+    }
+    return outputSpectrum;
+}
+
+
+/*
+ * Remove spectral points around lines -- this is useful for masking telluric lines
+ */
+operaSpectrum maskSpectrumAroundLines(const operaSpectrum inputSpectrum, const operaSpectrum telluricLines, double spectralResolution, double nsig) {
+    
+    operaSpectrum outputSpectrum;
+    
+    operaWavelengthRanges wlranges = getWavelengthMaskAroundLines(telluricLines,spectralResolution,nsig);
+    
+    operaWavelengthRanges invertedRanges;
+
+    for (unsigned r=0; r<wlranges.size(); r++) {
+        if (r==0) {
+            invertedRanges.addWavelengthRange(-BIG,wlranges.wl0(r));
+        } else if (r==wlranges.size()-1) {
+            invertedRanges.addWavelengthRange(wlranges.wlf(r),BIG);
+        } else {
+            invertedRanges.addWavelengthRange(wlranges.wlf(r-1),wlranges.wl0(r));
+        }
+    }
+    
+    unsigned firstr = 0;
+    
+    for (unsigned i=0; i<inputSpectrum.size(); i++) {
+        double wl = inputSpectrum.getwavelength(i);
+        
+        for (unsigned r=firstr; r<wlranges.size(); r++) {
+            if(invertedRanges.contains(wl,r)) {
+                outputSpectrum.insert(wl, inputSpectrum.getflux(i), inputSpectrum.getvariance(i));
+                firstr = r;
+                break;
+            }
+        }
+    }
+
+    return outputSpectrum;
+}
+
+
+operaVector convolveSpectrum(operaSpectrum inputSpectrum, double spectralResolution) {
+    
+    unsigned np = inputSpectrum.size();
+
+    operaVector outputSpectrum(np);
+
+    double wlstep;
+
+    for (unsigned i=0; i<np; i++) {
+        
+        double sigma = inputSpectrum.getwavelength(i) / spectralResolution;
+
+        if(i==0) {
+            wlstep = fabs(inputSpectrum.getwavelength(i+1) - inputSpectrum.getwavelength(0));
+        } else if (i==np-1) {
+            wlstep = fabs(inputSpectrum.getwavelength(np-1) - inputSpectrum.getwavelength(i-1));
+        } else {
+            wlstep = fabs(inputSpectrum.getwavelength(i+1) - inputSpectrum.getwavelength(i-1))/2.0;
+        }
+        
+        unsigned window = (unsigned)ceil(4*sigma/(2*wlstep));
+        if (window > np/2) {
+            window = np/2;
+        }
+        double weighSum = 0;
+        for(unsigned j=0;j<2*window;j++) {
+            if((i-window+j) >= 0 && (i-window+j) < np) {
+                outputSpectrum[i] += inputSpectrum.getflux(i-window+j)*exp(-((inputSpectrum.getwavelength(i-window+j) - inputSpectrum.getwavelength(i))*(inputSpectrum.getwavelength(i-window+j) - inputSpectrum.getwavelength(i))/(2*sigma*sigma)))/(sqrt(2*M_PI)*sigma);
+                weighSum += exp(-((inputSpectrum.getwavelength(i-window+j) - inputSpectrum.getwavelength(i))*(inputSpectrum.getwavelength(i-window+j) - inputSpectrum.getwavelength(i))/(2*sigma*sigma)))/(sqrt(2*M_PI)*sigma);
+            }
+        }
+        if (weighSum) {
+            outputSpectrum[i] /= weighSum;
+        }
+    }
+    
+    return outputSpectrum;
+}
+
+class PolynomialEval {
+private:
+    operaVector coeffs;
+public:
+    PolynomialEval(const operaVector& coeffs) : coeffs(coeffs) { }
+    double operator()(double x) {
+        double total = 0;
+        for(unsigned i = coeffs.size(); i > 0; i--) total = x*total + coeffs[i-1];
+        return total;
+    }
+};
+
+operaFluxVector fitSpectrumToPolynomial(const operaVector& inputWavelength, const operaFluxVector& inputFlux, unsigned order, double portionToUseForFit) {
+    if(portionToUseForFit < 0.0 || portionToUseForFit > 1.0) throw operaException("fitSpectrumToPolynomial: ", operaErrorIndexOutOfRange, __FILE__, __FUNCTION__, __LINE__);
+    unsigned skip = inputWavelength.size()*(1.0-portionToUseForFit)/2;
+    unsigned subsize = inputWavelength.size()*portionToUseForFit;
+    operaFluxVector coeffs(order+1);
+    coeffs = 1.0;
+    operaMPFitPolynomial(subsize, inputWavelength.datapointer()+skip, inputFlux.getfluxpointer()+skip, inputFlux.getvariancepointer()+skip, coeffs.getlength(), coeffs.getfluxpointer(), coeffs.getvariancepointer(), 0);
+    operaFluxVector outputFlux = Operation(PolynomialEval(coeffs.getflux()), inputWavelength);
+    return outputFlux;
+}
+
+unsigned findClosestInSortedRange(const operaVector& vector, double target, unsigned startindex, unsigned endindex) {
+	if(startindex >= endindex || vector.begin()+endindex > vector.end()) return vector.size();
+	std::vector<double>::const_iterator iter = std::lower_bound(vector.begin()+startindex, vector.begin()+endindex, target); //get the first element >= target
+	if(iter == vector.end()) return vector.size() - 1;
+	if(iter > vector.begin()+startindex && fabs(*iter - target) >= fabs(*(iter-1) - target)) return iter - 1 - vector.begin();
+	return iter - vector.begin();
+}

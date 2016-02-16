@@ -50,32 +50,28 @@
 #define k_BOLTZMANN_CONSTANT 1.3806503e23 // m2 kg s-2 K-1
 #define TYPICAL_ATMOSPHERE_PATH_LENGTH  843500 // cm
 
-struct Spectrum;
+enum ProfileMethod { GAUSSIAN, LORENTZ, VOIGT };
 
-void readTelluricSpectrum(string telluric_spectrum, Spectrum& telluricSpectrum);
+operaSpectrum readTelluricLinesHITRAN(string telluric_database_file);
 
-void readTelluricLines(string telluric_database_file, Spectrum& telluricLines);
+operaSpectrum readTelluricLinesRaw(string telluric_database_file);
 
-void generateSyntheticTelluricSpectrumUsingGaussianProfile(const Spectrum& telluricLines, const vector <double>& wavelengthVector, vector <double>& outputSpectrum, double resolution);
+operaVector generateSyntheticTelluricSpectrumUsingLineProfile(const operaSpectrum& telluricLines, const operaVector& wavelengthVector, double resolution, ProfileMethod profile);
 
-void getWavelengthSubrange(const vector<double>& wavelength, double wl0, double wlf, unsigned& startindex, unsigned& endindex);
+void getWavelengthSubrange(const operaVector& wavelength, double wl0, double wlf, unsigned& startindex, unsigned& endindex);
 
-bool calculateRVShiftByXCorr(const Spectrum& telluricLines, const Spectrum& objectSpectrum, double radialVelocityRange, double radialVelocityStep, double threshold, double& maxRV, double& sigRV, double& maxcorr, ofstream& fxcorrdata, ofstream& fxcorrfitdata, double spectralResolution, bool useFitToFindMaximum, double& chisqr);
-
-void telluricSpectrumComparison(const Spectrum& telluricLines, const Spectrum& objectSpectrum, string telluric_spectrum, double radialVelocityRange, double spectralResolution, ofstream& fspecdata);
+bool calculateRVShiftByXCorr(const operaSpectrum& telluricLines, const operaSpectrum& objectSpectrum, double radialVelocityRange, double radialVelocityStep, double threshold, double& maxRV, double& sigRV, double& maxcorr, ofstream& fxcorrdata, ofstream& fxcorrfitdata, double spectralResolution, bool useFitToFindMaximum, double& chisqr);
 
 void GenerateTelluricXCorrelationPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, string cleanDataFileName);
 
 void GenerateTelluricRVCorrPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, string histDataFileName, float rvshift, float rvshifterror);
 
-void GenerateTelluricSpecAndLinesPlot(string gnuScriptFileName, string outputPlotEPSFileName, string specdatafilename, string linesdatafilename);
+void GenerateTelluricLineMatchPlot(string gnuScriptFileName, string outputPlotEPSFileName, string specdatafilename, string matchdatafilename);
 
 void GenerateTelluricSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string specdatafilename);
 
-void generateSyntheticTelluricSpectrumUsingVoigtProfile(const Spectrum& telluricLines, const vector <double>& wavelengthVector, vector <double>& outputSpectrum, double resolution);
+void matchTelluricLines(const operaSpectrum& telluricLinesFromAtlas, const operaSpectrum& telluricLinesFromObject, operaVector& telluricMatchedWavelengths, operaSpectrum& objectMatchedLines, operaVector& radialVelocities, double spectralResolution, double radialVelocityRange);
 
-unsigned matchTelluricLines(const Spectrum& telluricLinesFromAtlas, const Spectrum& telluricLinesFromObject, double *telluricMatchedLines, double *objectMatchedLines, double *objectMatchedLinesIntensities, float *radialVelocities, double spectralResolution);
-
-unsigned generateHistogramData(unsigned nmatchedLines, double *telluricMatchedLines, float *radialVelocities, double radialVelocityRange, double radialVelocityStep, float *rvVector, float *probDensity, float *wavelengthVector);
+void generateHistogramData(const operaVector& telluricMatchedWavelengths, const operaVector& radialVelocities, double radialVelocityRange, double radialVelocityStep, operaVector& rvVector, operaVector& probDensity, operaVector& wavelengthVector);
 
 #endif

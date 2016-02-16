@@ -30,17 +30,13 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-#include <cmath>	// for sqrt
+#include "libraries/operaVector.h"
+#include "libraries/operaVectorOperations.h"
 #include <utility>	// for pair
-
-#include "operaError.h"
-#include "libraries/operaException.h"
 
 /*!
  * \file operaFluxVector.h
  */
-
-using namespace std;
 
 /*!
  * \brief Definition of the value of each "tends towards" optional field.
@@ -60,7 +56,7 @@ typedef enum {ToDefault, ToINF, ToNAN, ToZero, ToOne} TendsTowards_t;
  * The variances are calculated as followed :
  * 
  * F = F(a,b)
- * DF = Pow(dF/da,2) * Da + Pow(dF/db,2) *Db
+ * DF = Pow(dF/da,2) * Da + Pow(dF/db,2) * Db
  * 
  * where DF is the resulting variance, Da and Db are the variance of the fluxes a and b, dF/da and dF/db are the partial derivatives of F.
  * The fluxes are supposed uncorrelated.
@@ -71,75 +67,76 @@ typedef enum {ToDefault, ToINF, ToNAN, ToZero, ToOne} TendsTowards_t;
 class operaFluxVector {
 	
 private:
-	unsigned length;
-    TendsTowards_t towards;
-	double *fluxes;
-	double *variances;
+	TendsTowards_t towards;
+    operaVector flux;
+    operaVector variance;
 	
 public:
 	/*!
      * \brief operaFluxVector constructor.
      * \details This constructor creates an operaFluxVector.
-     * \param Length Number of elements in the operaFluxVector
-     * \param TendsTowards_t An optional TendsTowards_t value defaults to ToDefault
+     * \param tendsTowards_t An optional TendsTowards_t value defaults to ToDefault
      */
-	operaFluxVector(unsigned Length, TendsTowards_t Towards=ToDefault);
+	operaFluxVector(TendsTowards_t towards=ToDefault);
+	
+	/*!
+     * \brief operaFluxVector constructor.
+     * \details This constructor creates an operaFluxVector.
+     * \param length Number of elements in the operaFluxVector
+     * \param tendsTowards_t An optional TendsTowards_t value defaults to ToDefault
+     */
+	operaFluxVector(unsigned length, TendsTowards_t towards=ToDefault);
     
     /*!
      * \brief operaFluxVector constructor from flux and variance arrays.
      * \details This constructor creates an operaFluxVector by copying the contents of two equal sized arrays holding the flux and variance.
-     * \param Fluxes An array with of the given length
-     * \param Variances An array with of the given length
-     * \param Length Number of elements in the operaFluxVector
-     * \param Towards An optional TendsTowards_t value defaults to ToDefault
+     * \param fluxes An array with of the given length
+     * \param variances An array with of the given length
+     * \param length Number of elements in the operaFluxVector
+     * \param towards An optional TendsTowards_t value defaults to ToDefault
      */
-	operaFluxVector(double *Fluxes, double *Variances, unsigned Length, TendsTowards_t Towards=ToDefault);
+	operaFluxVector(double *fluxes, double *variances, unsigned length, TendsTowards_t towards=ToDefault);
     
     /*!
      * \brief operaFluxVector constructor from an operaFluxVector.
      * \details This constructor creates an operaFluxVector by copying the contents of an existing operaFluxVector.
      * \param b An operaFluxVector to be copied
-     * \param Towards An optional TendsTowards_t value defaults to ToDefault
+     * \param towards An optional TendsTowards_t value defaults to ToDefault
      */
-	operaFluxVector(const operaFluxVector &b, TendsTowards_t Towards=ToDefault);
+	operaFluxVector(const operaFluxVector &b, TendsTowards_t towards=ToDefault);
 	
-    /*!
-     * \brief Destructor.
+	/*!
+     * \brief operaFluxVector constructor from an operaFluxVector.
+     * \details This constructor creates an operaFluxVector by copying the flux from of an operaVector, leaving the variance at 0.
+     * \param b An operaVector to be copied
+     * \param towards An optional TendsTowards_t value defaults to ToDefault
      */
-	~operaFluxVector(void);
+	operaFluxVector(const operaVector &b, TendsTowards_t towards=ToDefault);
 	
     /*!
      * \brief Sets the flux vector.
      * \details Copies the contents of an existing flux array to the flux vector.
-     * \param Fluxes An array with the same length as the existing flux vector
+     * \param fluxes An array with the same length as the existing flux vector
      * \return void
      */
-	void setFluxVector(double *Fluxes);
+	void setFluxVector(double *fluxes);
 	
     /*!
      * \brief Sets the variance vector.
      * \details Copies the contents of an existing variance array to the variance vector.
-     * \param Variances An array with the same length as the existing variance vector
+     * \param variances An array with the same length as the existing variance vector
      * \return void
      */
-	void setVarianceVector(double *Variances);
+	void setVarianceVector(double *variances);
 	
     /*!
      * \brief Sets the flux and variance vectors.
      * \details Copies the contents of existing flux and variance arrays to the variance vector.
-     * \param Fluxes An array with the same length as the existing flux vector
-     * \param Variances An array with the same length as the existing variance vector
+     * \param fluxes An array with the same length as the existing flux vector
+     * \param variances An array with the same length as the existing variance vector
      * \return void
      */
-	void setVectors(double *Fluxes, double *Variances);
-	
-    /*!
-     * \brief Sets the flux and variance vectors from an operaFluxVector.
-     * \details Copies the contents of flux and variance vectors from an existing operaFluxVector.
-	 * \param fluxvector An operaFluxVector with the same length as the existing vectors
-     * \return void
-     */
-	void setVector(const operaFluxVector &fluxvector);
+	void setVectors(double *fluxes, double *variances);
 	
 	/*!
      * \brief Resizes the operaFluxVector.
@@ -149,31 +146,76 @@ public:
      */
 	void resize(unsigned newlength);
 	
+	/*!
+     * \brief Removes all elments outside of the specified range from the operaFluxVector.
+     * \param range The index range of elements to keep.
+     * \return void
+     */
+	void trim(operaIndexRange range);
+	
+	/*!
+     * \brief Inserts new values into the operaFluxVector.
+     * \details Inserts new flux and variance values at the end of the operaFluxVector. Length increases by one.
+	 * \param newflux The flux value to insert.
+	 * \param newvariance The variance value to insert.
+     * \return void
+     */
+	void insert(double newflux, double newvariance);
+	
+	/*!
+     * \brief Reverses the operaFluxVector.
+     * \details Reverses the order of the elements of the flux and variance vectors.
+     * \return void
+     */
+	void reverse();
+	
+	/*!
+	 * \brief Re-arranges the order of elements in the operaFluxVector.
+	 * \details Changes the order of elements in the flux and variance vectors so that the element at position indexmap[n] is moved to position n
+	 * \param indexmap A map from the desired new index to the current index
+	 * \return void
+	 */
+	void reorder(const operaIndexMap& indexmap);
+	
     /*!
      * \brief Gets the flux vector.
-     * \return A pointer to the flux vector
+     * \return An immutable reference to the flux vector
      */
-	double* getfluxes() { return fluxes; }
+	const operaVector &getflux() const;
 	
     /*!
      * \brief Gets the variance vector.
+     * \return An immuatable reference to the variance vector.
+     */
+	const operaVector &getvariance() const;
+	
+    /*!
+     * \brief Gets the flux vector as an array.
+     * \return A pointer to the flux vector
+     */
+	double* getfluxpointer();
+	const double* getfluxpointer() const;
+	
+    /*!
+     * \brief Gets the variance vector as an array.
      * \return A pointer to the variance vector
      */
-	double* getvariances() { return variances; }
+	double* getvariancepointer();
+	const double* getvariancepointer() const;
 	
     /*!
      * \brief Gets a flux vector element.
      * \param index The index to get
      * \return The flux at index
      */
-	double getflux(unsigned index) const { return fluxes[index]; }
+	double getflux(unsigned index) const;
 	
     /*!
      * \brief Gets a variance vector element.
      * \param index The index to get
      * \return The variance at index
      */
-	double getvariance(unsigned index) const { return variances[index]; }
+	double getvariance(unsigned index) const;
 	
     /*!
      * \brief Sets a flux vector element.
@@ -181,7 +223,7 @@ public:
      * \param index The index to set
      * \return void
      */
-	void setflux(double Flux, unsigned index) { fluxes[index] = Flux; }
+	void setflux(double newflux, unsigned index);
     
     /*!
      * \brief Sets a variance vector element.
@@ -189,19 +231,19 @@ public:
      * \param index The index to set
      * \return void
      */
-	void setvariance(double Variance, unsigned index) { variances[index] = Variance; }
+	void setvariance(double newvariance, unsigned index);
     
     /*!
      * \brief Gets the number of elements in the operaFluxVector.
      * \return The length
      */
-	unsigned getlength() const { return length; }
+	unsigned getlength() const;
     
     /*!
      * \brief Gets the TendsTowards_t value of operaFluxVector.
      * \return The TendsTowards_t value to which the operaFluxVector will tend to in case of infinity operations.
      */
-    TendsTowards_t gettowards(void) const { return towards; }
+    TendsTowards_t gettowards(void) const;
 	
     /*!
      * \brief Gets the error of a flux element.
@@ -209,7 +251,7 @@ public:
      * \param index The index to get
      * \return The error at index
      */
-	double geterror(unsigned index) const { return sqrt(variances[index]); }
+	double geterror(unsigned index) const;
 	
 	/*! 
 	 * \brief Indexing operator.
@@ -218,20 +260,18 @@ public:
      * \note To print : cout << p.first << p.second;
 	 * \return A pair of doubles containing the flux and variance at the given index
 	 */
-	pair<double,double> operator[](unsigned index) const {return pair<double,double>(fluxes[index], variances[index]); }
+	std::pair<double,double> operator[](unsigned index) const;
+	
+	/*!
+     * \brief Assignment operator.
+     * \details This constructor sets the flux vector to the given operaVector and every element of the variance vector to 0.
+     * \param b The operaVector to be copied
+     */
+	operaFluxVector& operator=(const operaVector& b);
 	
     /*! 
 	 * \brief Assignment operator.
-     * \details The operator copies the fluxes and variances from the right side.
-     * \details If the lengths are not equal, the vectors will be reallocated using the length of the right hand side.
-	 * \param b The rhs operaFluxVector
-	 * \return A reference to the operaFluxVector
-	 */
-	operaFluxVector& operator=(const operaFluxVector& b);
-    
-    /*! 
-	 * \brief Assignment operator.
-     * \details The operator every element of the flux vector to the given double and every element of the variance vector to 0.
+     * \details The operator sets every element of the flux vector to the given double and every element of the variance vector to 0.
      * \param d The flux value
 	 * \return A reference to the operaFluxVector
 	 */
@@ -306,6 +346,39 @@ public:
 	 * \return A reference to the operaFluxVector
 	 */
 	operaFluxVector& operator/=(double d);
+	
+	/*!
+	 * \brief Square root function.
+	 * \details The function applies a square root to every element in the flux vector.
+	 * \param b An operaFluxVector
+	 * \return The resulting square root operaFluxVector
+	 */
+	friend operaFluxVector Sqrt(operaFluxVector b);
+
+	/*!
+	 * \brief Power function.
+	 * \details The function raises every element in the flux vector to the specified power.
+	 * \param b An operaFluxVector
+	 * \param d The power
+	 * \return The resulting power operaFluxVector
+	 */
+	friend operaFluxVector Pow(operaFluxVector b, double d);
+
+	/*!
+	 * \brief Sum function.
+	 * \details Calculuates the sum of a flux vector.
+	 * \param b An operaFluxVector
+	 * \return A pair of doubles containing the sums for the fluxes and variances respspectively
+	 */
+	friend std::pair<double,double> Sum(const operaFluxVector& b);
+
+	/*!
+	 * \brief Mean function.
+	 * \details Calculuates the mean of a flux vector.
+	 * \param b An operaFluxVector
+	 * \return A pair of doubles containing the means of the fluxes and variances respspectively
+	 */
+	friend std::pair<double,double> Mean(const operaFluxVector& b);
 };
 
 /*!
@@ -379,48 +452,5 @@ inline operaFluxVector operator/(operaFluxVector a, const operaFluxVector& b) { 
  * \return The resulting quotient operaFluxVector
  */
 inline operaFluxVector operator/(operaFluxVector a, double d) { return a/=d; }
-
-/*!
- * \brief Square root function.
- * \details The function applies a square root to every element in the flux vector.
- * \param b An operaFluxVector
- * \return The resulting square root operaFluxVector
- */
-operaFluxVector Sqrt(operaFluxVector b);
-
-/*!
- * \brief Power function.
- * \details The function raises every element in the flux vector to the specified power.
- * \param b An operaFluxVector
- * \param d The power
- * \return The resulting power operaFluxVector
- */
-operaFluxVector Pow(operaFluxVector b, double d);
-
-/*!
- * \brief Sum function.
- * \details Calculuates the sum of a flux vector.
- * \param b An operaFluxVector
- * \return A pair of doubles containing the sums for the fluxes and variances respspectively
- */
-pair<double,double> Sum(const operaFluxVector& b);
-
-/*!
- * \brief Mean function.
- * \details Calculuates the mean of a flux vector.
- * \param b An operaFluxVector
- * \return A pair of doubles containing the means of the fluxes and variances respspectively
- */
-pair<double,double> Mean(const operaFluxVector& b);
-
-/*!
- * \brief Resizes a vector.
- * \details Resizes a dynamic array, copying over existing elements that fit in the new range.
- * \param vector The existing vector of doubles to be resized
- * \param oldlength The previous length of the vector
- * \param newlength The new length to resize to
- * \return void
- */
-void resizeVector(double *&vector, unsigned oldlength, unsigned newlength);
 
 #endif

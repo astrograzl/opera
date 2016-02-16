@@ -407,14 +407,14 @@ void operaWavelength::calculateSpectralResolution(doubleValue_t ResolutionElemen
 /*
  * Function to evaluate the wavelength (in nm) correspondent to a given distance value (in pixels)
  */
-double operaWavelength::evaluateWavelength(double distanceValue) {
+double operaWavelength::evaluateWavelength(double distanceValue) const {
     return wavelengthPolynomial->Evaluate(distanceValue);
 }
 
 /*
  * Function to evaluate the wavelength (in nm) correspondent to a given distance value (in pixels)
  */
-double operaWavelength::convertPixelToWavelength(double DeltaDistanceInPixels) {
+double operaWavelength::convertPixelToWavelength(double DeltaDistanceInPixels) const {
 	int npar = wavelengthPolynomial->getOrderOfPolynomial();
 	double *par = (double *)wavelengthPolynomial->getVector();
     double deltawl = DeltaDistanceInPixels * (double)DiffPolynomialFunction(getcentralWavelength(),par,npar);

@@ -48,7 +48,6 @@
  */
 
 class operaFITSSubImage;
-class operaFITSProduct;
 class Box;
 class operaImageVector;
 
@@ -108,8 +107,7 @@ class operaFITSImage {
     
 	friend class operaEspadonsImage;
 	friend class operaFITSSubImage;
-	friend class operaFITSProduct;
-    friend class operaFITSCube;
+	friend class operaFITSCube;
 	friend class operaMultiExtensionFITSCube;
 	friend class operaMultiExtensionFITSImage;
 	friend class operaWIRCamImage;

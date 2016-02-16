@@ -315,16 +315,16 @@ int main(int argc, char *argv[])
                         
                         switch (PolarizationType) {
                             case Polarization:
-                                FluxVector.setVector(*polarimetry->getStokesParameter(StokesParameter));        // should not be used for now
+                                FluxVector = polarimetry->getStokesParameter(StokesParameter);        // should not be used for now
                                 break;
                             case DegreeOfPolarization:
-                                FluxVector.setVector(*polarimetry->getDegreeOfPolarization(StokesParameter));
+                                FluxVector = polarimetry->getDegreeOfPolarization(StokesParameter);
                                 break;
                             case FirstNullPolarization:
-                                FluxVector.setVector(*polarimetry->getFirstNullPolarization(StokesParameter));
+                                FluxVector = polarimetry->getFirstNullPolarization(StokesParameter);
                                 break;
                             case SecondNullPolarization:
-                                FluxVector.setVector(*polarimetry->getSecondNullPolarization(StokesParameter));
+                                FluxVector = polarimetry->getSecondNullPolarization(StokesParameter);
                                 break;
                             default:
                                 break;
@@ -346,8 +346,8 @@ int main(int argc, char *argv[])
                                 indexLength++;
                             }
                             
-                            median = (double)operaArrayMedian(LengthOfSegments, (float*)Segment.getfluxes());     // is that a good idea ?
-                            MedSigma.setflux((double)operaArrayMedianSigma(LengthOfSegments, (float*)Segment.getfluxes(), median), indexSegment);
+                            median = (double)operaArrayMedian(LengthOfSegments, (float*)Segment.getfluxpointer());     // is that a good idea ?
+                            MedSigma.setflux((double)operaArrayMedianSigma(LengthOfSegments, (float*)Segment.getfluxpointer(), median), indexSegment);
                             
                             for (unsigned index = 0 ; index < LengthOfSegments ; index++) {
                                 double LowerValueOfDivision = LowerLimit;
@@ -363,8 +363,8 @@ int main(int argc, char *argv[])
                             }
                             
                             // doesn't work
-                            median = (double)operaArrayMedian(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxes());     // is that a good idea ?
-                            Sigma.setflux((double)operaArrayMedianSigma(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxes(), median), indexSegment);
+                            median = (double)operaArrayMedian(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxpointer());     // is that a good idea ?
+                            Sigma.setflux((double)operaArrayMedianSigma(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxpointer(), median), indexSegment);
                         }
                         
                         for (unsigned indexSegment = 0 ; indexSegment < NumberOfSegments ; indexSegment++) {
@@ -508,8 +508,8 @@ int main(int argc, char *argv[])
                             indexLength++;
                         }
                         
-                        median = (double)operaArrayMedian(LengthOfSegments, (float*)Segment.getfluxes());     // is that a good idea ?
-                        MedSigma.setflux((double)operaArrayMedianSigma(LengthOfSegments, (float*)Segment.getfluxes(), median), indexSegment);
+                        median = (double)operaArrayMedian(LengthOfSegments, (float*)Segment.getfluxpointer());     // is that a good idea ?
+                        MedSigma.setflux((double)operaArrayMedianSigma(LengthOfSegments, (float*)Segment.getfluxpointer(), median), indexSegment);
                         
                         for (unsigned index = 0 ; index < LengthOfSegments ; index++) {
                             double LowerValueOfDivision = LowerLimit;
@@ -525,8 +525,8 @@ int main(int argc, char *argv[])
                         }
                         
                         // doesn't work
-                        median = (double)operaArrayMedian(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxes());     // is that a good idea ?
-                        Sigma.setflux((double)operaArrayMedianSigma(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxes(), median), indexSegment);
+                        median = (double)operaArrayMedian(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxpointer());     // is that a good idea ?
+                        Sigma.setflux((double)operaArrayMedianSigma(LengthOfDivision, (float*)NumberOfPointsInEachDivision[indexSegment]->getfluxpointer(), median), indexSegment);
                     }
                     
                     for (unsigned indexSegment = 0 ; indexSegment < NumberOfSegments ; indexSegment++) {

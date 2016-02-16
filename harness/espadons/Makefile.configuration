@@ -168,7 +168,7 @@ remoteshell			:= ssh -1
 # CALLOADAVERGES (for calibrations) is best set to 1 always, so that the modes, speeds
 # are evenly distributed.
 MACHINES			:= $${HOSTNAME}
-LOADAVERAGES		:= 1
+LOADAVERAGES		:= 4
 CALLOADAVERAGES		:= 1
 
 # this runs just on the local machine, launching 4 simultaneous processes.

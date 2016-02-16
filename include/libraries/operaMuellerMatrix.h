@@ -573,17 +573,17 @@ public:
 	 * \note Usage: operaStokesVector a = operaMuellerMatrix c * operaStokesVector b;
 	 * \return An operaStokesVector address
 	 */
-	operaStokesVector& operator*(operaStokesVector* b) {
-        operaStokesVector *t = new operaStokesVector(b->length, true);
+	operaStokesVector operator*(operaStokesVector* b) {
+        operaStokesVector t(b->length);
 		for (unsigned row = 0 ; row < 4 ; row++) {
-			*(t->stokesVector[row]) = 0.0;	
+			t.stokesVector[row] = 0.0;	
 		}
 		for (unsigned row = 0 ; row < 4 ; row++) {
 			for (unsigned column = 0 ; column < 4 ; column++) {
-                double *tstokes = (double *)((t->stokesVector[row])->getfluxes());
-                double *tvariances = (double *)((t->stokesVector[row])->getvariances());
-                double *stokes = (double *)((b->stokesVector[column])->getfluxes());
-                double *variances = (double *)((b->stokesVector[column])->getvariances());
+                double *tstokes = t.stokesVector[row].getfluxpointer();
+                double *tvariances = t.stokesVector[row].getvariancepointer();
+                double *stokes = b->stokesVector[column].getfluxpointer();
+                double *variances = b->stokesVector[column].getvariancepointer();
                 unsigned n = b->length;
                 while (n--) {
                     *tstokes += this->muellerMatrix[row][column] * *stokes;
@@ -593,9 +593,7 @@ public:
                 }
 			}
 		}
-        if (b->istemp)
-            delete b;
-        return *t;
+        return t;
 	};
     
     /*! 
@@ -605,17 +603,17 @@ public:
 	 * \note Usage: operaStokesVector a = operaMuellerMatrix c * operaStokesVector b;
 	 * \return An operaStokesVector address
 	 */
-	operaStokesVector& operator*(operaStokesVector& b) {
-        operaStokesVector *t = new operaStokesVector(b.length, true);
+	operaStokesVector operator*(operaStokesVector& b) {
+        operaStokesVector t(b.length);
 		for (unsigned row = 0 ; row < 4 ; row++) {
-			*(t->stokesVector[row]) = 0.0;	
+			t.stokesVector[row] = 0.0;	
 		}
 		for (unsigned row = 0 ; row < 4 ; row++) {
 			for (unsigned column = 0 ; column < 4 ; column++) {
-                double *tstokes = (double *)((t->stokesVector[row])->getfluxes());
-                double *tvariances = (double *)((t->stokesVector[row])->getvariances());
-                double *stokes = (double *)((b.stokesVector[column])->getfluxes());
-                double *variances = (double *)((b.stokesVector[column])->getvariances());
+                double *tstokes = t.stokesVector[row].getfluxpointer();
+                double *tvariances = t.stokesVector[row].getvariancepointer();
+                double *stokes = b.stokesVector[column].getfluxpointer();
+                double *variances = b.stokesVector[column].getvariancepointer();
                 unsigned n = b.length;
                 while (n--) {
                     *tstokes += this->muellerMatrix[row][column] * *stokes;
@@ -625,9 +623,7 @@ public:
                 }
 			}
 		}
-        if (b.istemp)
-            delete &b;
-        return *t;
+        return t;
 	};
     
     /*! 

@@ -143,6 +143,7 @@ operaArgumentHandler args;
 int main(int argc, char *argv[])
 {
 	string outputWave;
+	string outputResolution;
 	string atlas_lines;
     string atlas_spectrum;
     string uncalibrated_lines;
@@ -190,6 +191,7 @@ int main(int argc, char *argv[])
     double nsigclip = 3.0;						// Threshold (in units of rms) for clipping lines.
     
     args.AddRequiredArgument("outputWaveFile", outputWave, "Output wavelength calibration file to store final solution");
+    args.AddOptionalArgument("outputResolutionFile", outputResolution, "", "Output spectral resolution file to store additional details");
     args.AddOptionalArgument("atlas_lines", atlas_lines, "", "File containing the atlas of reference lines");
     args.AddOptionalArgument("atlas_spectrum", atlas_spectrum, "", "File containing the spectrum of reference atlas");
     args.AddOptionalArgument("uncalibrated_lines", uncalibrated_lines, "", "File containing the uncalibrated raw lines"); // operaExtractSpactralLines does this for us
@@ -257,7 +259,8 @@ int main(int argc, char *argv[])
             cout << "operaWavelengthCalibration: inputLineSetFilename = " << inputLineSetFilename << endl;
 			cout << "operaWavelengthCalibration: geometryfilename = " << geometryfilename << endl;            
 			cout << "operaWavelengthCalibration: wlcal_initialguess = " << wlcal_initialguess << endl; 
-			cout << "operaWavelengthCalibration: outputWave = " << outputWave << endl;            
+			cout << "operaWavelengthCalibration: outputWave = " << outputWave << endl;
+			cout << "operaWavelengthCalibration: outputResolution = " << outputResolution << endl;
 			cout << "operaWavelengthCalibration: parseSolution = " << parseSolution << endl;
 			cout << "operaWavelengthCalibration: normalizeUncalibratedSpectrum = " << normalizeUncalibratedSpectrum << endl;
 			cout << "operaWavelengthCalibration: normalizationBinSize = " << normalizationBinSize << endl;
@@ -298,6 +301,10 @@ int main(int argc, char *argv[])
         if (!compdatafilename.empty()) fcompdata.open(compdatafilename.c_str());
         if (!linesdatafilename.empty()) flinesdata.open(linesdatafilename.c_str());
         if (!ordersdatafilename.empty()) fordersdata.open(ordersdatafilename.c_str());
+        
+        FormatHeader specresheader("Spectral Resolution Data");
+        specresheader << "number of orders" << newline << "order number" << "mean spectral resolution" << "spectral resolution dispersion" << "rv precision" << "spectral lines used" << newline;
+        FormatData specresdata;
         
 		operaSpectralOrderVector spectralOrders;
 		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, geometryfilename);	// get the geometry
@@ -362,6 +369,15 @@ int main(int argc, char *argv[])
          */           
         double rawlinewidth;
         double rawlinewidth_err;
+        
+        if (!outputResolution.empty()) {
+			unsigned validorders = 0;
+			for (int order=minorder; order<=maxorder; order++) {
+				operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
+				if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasGeometry() && spectralOrder->gethasWavelength()) validorders++;
+			}
+			specresdata << validorders << endl;
+		}
         
         for (int order=minorder; order<=maxorder; order++) {
 
@@ -757,6 +773,9 @@ int main(int argc, char *argv[])
 						<< wavelength->getSpectralResolution().value << " "
 						<< wavelength->getSpectralResolution().error/2 << endl;
 					}
+					if (!outputResolution.empty()) {
+						specresdata << order << wavelength->getSpectralResolution().value << wavelength->getSpectralResolution().error/2 << wavelength->getRadialVelocityPrecision() << wavelength->getnDataPoints() << endl;
+					}
                 }
                
                 double maxflux = -BIG;
@@ -875,6 +894,8 @@ int main(int argc, char *argv[])
                 }
             }
         }
+        if (!outputResolution.empty()) operaIOFormats::WriteCustomFormat("spectralres", specresheader, specresdata, outputResolution);
+		
         operaIOFormats::WriteFromSpectralOrders(spectralOrders, outputWave, Wave);
         
         //delete[] convolvedAtlas;
@@ -1403,10 +1424,9 @@ unsigned getRawLinesFromUncalSpectrum(operaSpectralOrder *spectralOrder, double 
     
     operaSpectralLines compLines(compSpectrum,*rawlinewidth,distance_disp);
     
-    operaFluxVector *compfluxvector = compSpectrum->getFluxVector();
     if(args.debug) {
         for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-            cout << compSpectrum->getdistd(i) << " " << compfluxvector->getflux(i) << " " << compSpectrum->getXCorrelation(i) << endl;
+            cout << compSpectrum->getdistd(i) << " " << compSpectrum->getFlux(i) << " " << compSpectrum->getXCorrelation(i) << endl;
         }
     }
     
@@ -1417,7 +1437,7 @@ unsigned getRawLinesFromUncalSpectrum(operaSpectralOrder *spectralOrder, double 
         
         for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
             compSpectrumdistd[i] = compSpectrum->getdistd(i);
-            compSpectrumflux[i] = compfluxvector->getflux(i);
+            compSpectrumflux[i] = compSpectrum->getFlux(i);
         }
         
         calculateXCorrWithGaussian(compSpectrum->getnSpectralElements(), compSpectrumdistd, compSpectrumflux, compXcorr, *rawlinewidth);
@@ -1431,8 +1451,8 @@ unsigned getRawLinesFromUncalSpectrum(operaSpectralOrder *spectralOrder, double 
     double meanVariance = 0;
     unsigned nvarpoints = 0;
     for (unsigned i=0; i<compSpectrum->getnSpectralElements(); i++) {
-        if(!isnan(compfluxvector->getvariance(i))) {
-            meanVariance += compfluxvector->getvariance(i);
+        if(!isnan(compSpectrum->getFluxVariance(i))) {
+            meanVariance += compSpectrum->getFluxVariance(i);
             nvarpoints++;
         }
     }
@@ -1574,7 +1594,7 @@ unsigned getAtlasLinesFromSpectrum(operaWavelength *wavelength, double rawlinewi
     }
     atlasSpectrum.setHasWavelength(true);
     operaFluxVector atlasfluxvector(convolvedAtlas,thvar,npatlasspecinorder);
-    atlasSpectrum.setFluxVector(&atlasfluxvector);	// copies, does not set local stack address...
+    atlasSpectrum.setFluxVector(atlasfluxvector);
     atlasSpectrum.setHasRawSpectrum(true);
     
     /*

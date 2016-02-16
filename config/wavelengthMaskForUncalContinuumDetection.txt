@@ -2,6 +2,7 @@
 ## ranges containing exposed continuum
 ## By Claire Moutou & Eder Martioli - CFHT Oct 09, 2013
 ## Last update on Nov 24, 2014 by E. Martioli
+## Modified by L. Malo & M. Landquist (helping blue normalization and low-mass red objects) -CFHT Feb17,2016
 372.00	374.55
 375.60  376.50
 378.16  378.70
@@ -22,7 +23,7 @@
 471.24  472.85
 474.17  475.82
 477.06  479.30
-495.50  501.32
+493.50  501.32
 504.11  516.01
 518.92  521.84
 524.25  525.87

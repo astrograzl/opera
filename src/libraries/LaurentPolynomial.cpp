@@ -119,7 +119,7 @@ yerrorVector(NULL),
 polychisqr(0.0)
 {
     setMinMaxOrderOfLaurentPolynomial(MinorderOfLaurentPolynomial,MaxorderOfLaurentPolynomial);
-	if((int)numberOfCoefficients != Coefficients->orderofPolynomial) {
+	if(numberOfCoefficients != Coefficients->orderofPolynomial) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
     }
 	polychisqr = Coefficients->polychisqr;
@@ -138,7 +138,7 @@ yerrorVector(NULL),
 polychisqr(0.0)
 {
     setMinMaxOrderOfLaurentPolynomial(MinorderOfLaurentPolynomial,MaxorderOfLaurentPolynomial);    
-	if((int)numberOfCoefficients != Coefficients->orderofPolynomial) {
+	if(numberOfCoefficients != Coefficients->orderofPolynomial) {
 		throw operaException("LaurentPolynomial: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
     }
 	polychisqr = Coefficients->polychisqr;

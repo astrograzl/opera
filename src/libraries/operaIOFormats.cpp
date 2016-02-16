@@ -4,14 +4,76 @@
 #include <algorithm>
 #include <iomanip>
 
+FormatData::FormatData() : newline(true) { }
+
+void FormatData::skip(unsigned count) {
+	string value;
+	for(unsigned i = 0; i < count; i++) ss >> value;
+}
+
+string FormatData::tostring() const {
+	return ss.str();
+}
+
+FormatData& operator<<(FormatData& data, ostream& (*manip)(ostream&)) {
+	data.insert(manip);
+	return data;
+}
+
+FormatHeader::FormatHeader() { }
+
+FormatHeader::FormatHeader(string fullname) : fullname(fullname) { }
+
+void FormatHeader::note(string note) {
+	notes.push_back(note);
+}
+
+string FormatHeader::tostring() const {
+	if (fullname.empty()) return fullname;
+	ostringstream ss;
+	ss << "######################################################################\n";
+	ss << "# " << fullname << " format is:\n#";
+	for (unsigned i = 0; i < headernames.size(); i++) {
+		if (headernames[i] == "\n") ss << "\n#";
+		else ss << " " << headernames[i];
+	}
+	if (headernames.back() != "\n") ss << "\n#";
+	for (unsigned i = 0; i < notes.size(); i++) {
+		ss << " " << notes[i] << "\n#";
+	}
+	ss << "\n######################################################################\n";
+	return ss.str();
+}
+
+FormatHeader& operator<<(FormatHeader& header, string name) {
+	header.headernames.push_back("<" + name + ">");
+	return header;
+}
+
+FormatHeader& operator<<(FormatHeader& header, HeaderValue value) {
+	if(value == newline) {
+		header.headernames.push_back("<newline>");
+		header.headernames.push_back("\n");
+	} else if(value == dots) {
+		header.headernames.push_back("...");
+	} else {
+		throw operaException("FormatHeader: invalid value inserted ", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
+	}
+	return header;
+}
+
+FormatHeader& operator<<(FormatHeader& header, ostream& (*manip)(ostream&)) {
+	ostringstream ss;
+	ss << manip;
+	if(!ss.str().empty()) header.headernames.push_back(ss.str());
+	return header;
+}
+
 class IOFormatFlags {
 	public:
 		IOFormatFlags(operaSpectralOrder_t format) : libreEsprit(false), singleval(false) {
 			switch (format) {
 				case GainNoise:
-				case PRVel:
-				case RVel:
-				case Tell:
 				case Orderspacing:
 				case Disp:
 					formattype = NONORDER;
@@ -107,39 +169,35 @@ namespace operaIOFormats {
 	void readOrdersFromCSV(operaSpectralOrderVector& orders, istream& fin);
 	
 	//Format selectors
-	string getFormatHeader(operaSpectralOrder_t format);
+	FormatHeader getFormatHeader(operaSpectralOrder_t format);
 	string getLinesFromFormatWithoutOrders(const operaSpectralOrderVector& orders, operaSpectralOrder_t format);
 	string getLineFromFormatWithOrders(const operaSpectralOrder *spectralOrder, operaSpectralOrder_t format, unsigned index);
 	void setFromLineWithoutOrders(operaSpectralOrderVector& orders, string dataline, unsigned linenumber, operaSpectralOrder_t format);
 	void setFromLineWithOrders(operaSpectralOrder *spectralOrder, string dataline, bool neworder, unsigned index, operaSpectralOrder_t format, const std::vector<unsigned> &headervals);
 	
 	//Formats without orders
-	string getGainNoiseHeader();
-	string getOrderSpacingHeader();
-	string getDispHeader();
-	string getRvelHeader();
-	string getTellHeader();
+	FormatHeader getGainNoiseHeader();
+	FormatHeader getOrderSpacingHeader();
+	FormatHeader getDispHeader();
 	//Formats with orders
-	string getApertureHeader();
-	string getFcalHeader();
-	string getGeomHeader();
-	string getWaveHeader();
-	string getProfHeader();
-	string getSNRHeader();
-	string getSpectrumHeader();
-	string getCalibratedSpectrumHeader();
-	string getBeamSpectrumHeader();
-	string getCalibratedBeamSpectrumHeader();
-	string getCalibratedExtendedBeamSpectrumHeader();
-	string getPolarimetryHeader();
-	string getExtendedPolarimetryHeader();
+	FormatHeader getApertureHeader();
+	FormatHeader getFcalHeader();
+	FormatHeader getGeomHeader();
+	FormatHeader getWaveHeader();
+	FormatHeader getProfHeader();
+	FormatHeader getSNRHeader();
+	FormatHeader getSpectrumHeader();
+	FormatHeader getCalibratedSpectrumHeader();
+	FormatHeader getBeamSpectrumHeader();
+	FormatHeader getCalibratedBeamSpectrumHeader();
+	FormatHeader getCalibratedExtendedBeamSpectrumHeader();
+	FormatHeader getPolarimetryHeader();
+	FormatHeader getExtendedPolarimetryHeader();
 	
 	//Get all output lines for formats without individual orders
 	string getLinesFromGainNoise(const operaSpectralOrderVector& orders);
 	string getLinesFromOrderSpacing(const operaSpectralOrderVector& orders);
 	string getLinesFromDisp(const operaSpectralOrderVector& orders);
-	string getLinesFromRvel(const operaSpectralOrderVector& orders);
-	string getLinesFromTell(const operaSpectralOrderVector& orders);
 	//Get a single line from a spectral order format
 	string getLineFromAperture(const operaSpectralOrder *spectralOrder);
 	string getLineFromFcal(const operaSpectralOrder *spectralOrder, unsigned index);
@@ -165,8 +223,6 @@ namespace operaIOFormats {
 	void setGainNoiseFromLine(operaSpectralOrderVector& orders, string dataline, unsigned linenumber);
 	void setOrderSpacingFromLine(operaSpectralOrderVector& orders, string dataline);
 	void setDispFromLine(operaSpectralOrderVector& orders, string dataline, unsigned linenumber);
-	void setRvelFromLine(operaSpectralOrderVector& orders, string dataline);
-	void setTellFromLine(operaSpectralOrderVector& orders, string dataline);
 	//Formats with orders
 	void setApertureFromLine(operaSpectralOrder *spectralOrder, string dataline);
 	void setFcalFromLine(operaSpectralOrder *spectralOrder, string dataline, bool neworder);
@@ -234,11 +290,36 @@ const vector<string> operaIOFormats::GetFormatNames() {
 	temp[GainNoise] = "#!gain";
 	temp[Aperture] = "#!aper";
 	temp[Fcal] = "#!fcal";
-	temp[RVel] = "#!rvel";
-	temp[Tell] = "#!tell";
 	temp[CSV] = "#!csv";
 	temp[OrderWavelengthRange] = "#!orderwlrange";
 	return temp;
+}
+
+void operaIOFormats::WriteCustomFormat(string formatname, const FormatHeader& formatheader, const FormatData& formatdata, string filename) {
+	operaostream fout(filename.c_str());
+	if(fout.is_open()) {
+		fout << "#!" << formatname << endl;
+		fout << formatheader.tostring();
+		fout << formatdata.tostring();
+		fout.close();
+	}
+}
+
+void operaIOFormats::ReadCustomFormat(string formatname, FormatData& formatdata, string filename) {
+	operaistream fin(filename.c_str());
+	if (fin.is_open()) {
+		string dataline;
+		if (getline(fin, dataline) && dataline != string("#!")+formatname) {
+			throw operaException("operaIOFormats: unkown content type in "+filename+' ', operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
+		}
+		while (getline(fin, dataline)) {
+			if (!dataline.empty() && dataline[0] != '#') {
+				formatdata << dataline;
+			}
+		}
+		fin.close();
+	}
+	else throw operaException("operaIOFormats: could not open file "+filename+' ', operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
 }
 
 /* 
@@ -283,8 +364,6 @@ void operaIOFormats::ReadIntoSpectralOrders(operaSpectralOrderVector& orders, st
 			case GainNoise:
 			case Orderspacing:
 			case Disp:
-			case RVel:
-			case Tell:
 				readFormatWithoutOrders(orders, fin, format);
 				break;
 			default:
@@ -299,9 +378,7 @@ void operaIOFormats::ReadIntoSpectralOrders(operaSpectralOrderVector& orders, st
 
 void operaIOFormats::writeFormatWithoutOrders(const operaSpectralOrderVector& orders, ostream &fout, operaSpectralOrder_t format) {
 	fout << formatnames[format] << endl;
-	fout << "######################################################################" << endl;
-	fout << getFormatHeader(format);
-	fout << "#" << endl << "######################################################################" << endl;
+	fout << getFormatHeader(format).tostring();
 	fout << getLinesFromFormatWithoutOrders(orders, format);
 }
 
@@ -322,9 +399,7 @@ void operaIOFormats::readFormatWithoutOrders(operaSpectralOrderVector& orders, i
 
 void operaIOFormats::writeFormatWithOrders(const operaSpectralOrderVector& orders, ostream &fout, operaSpectralOrder_t format) {
 	fout << formatnames[format] << endl;
-	fout << "######################################################################" << endl;
-	fout << getFormatHeader(format);
-	fout << "#" << endl << "######################################################################" << endl;
+	fout << getFormatHeader(format).tostring();
 	fout << orders.getMaxorder() - orders.getMinorder() + 1;
 	const operaSpectralOrder *firstValidOrder = NULL;
 	for(unsigned order = orders.getMinorder(); order <= orders.getMaxorder(); order++) {
@@ -491,8 +566,8 @@ bool operaIOFormats::validLibreEspritElement(const operaSpectralOrder *spectralO
 		case LibreEspritpolarimetry: {
 			const operaPolarimetry *Polarimetry = spectralOrder->getPolarimetry();
 			stokes_parameter_t stokesParameter = getStokesParameter(spectralOrder);
-			return !isnan(Polarimetry->getDegreeOfPolarization(stokesParameter)->getflux(index)) && !isnan(Polarimetry->getDegreeOfPolarization(stokesParameter)->getvariance(index))
-				&& !isnan(Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index)) && !isnan(Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index));
+			return !isnan(Polarimetry->getDegreeOfPolarizationFlux(stokesParameter, index)) && !isnan(Polarimetry->getDegreeOfPolarizationVariance(stokesParameter, index))
+				&& !isnan(Polarimetry->getFirstNullPolarizationFlux(stokesParameter, index)) && !isnan(Polarimetry->getSecondNullPolarizationFlux(stokesParameter, index));
 		}
 		case LibreEspritSNR:
 			return !isnan(spectralOrder->getSpectralElements()->getFluxSNR(index));
@@ -586,10 +661,10 @@ void operaIOFormats::writeCSVFromOrders(const operaSpectralOrderVector& orders, 
 									} else if (Polarimetry->getHasStokesI()) {
 										stokesParameter = StokesI;
 									}
-									Polarization = Polarimetry->getStokesParameter(stokesParameter)->getflux(i);
-									PolarizationVariance = Polarimetry->getStokesParameter(stokesParameter)->getvariance(i);
-									NullSpectrum1 = Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(i);
-									NullSpectrum2 = Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(i);
+									Polarization = Polarimetry->getStokesParameterFlux(stokesParameter, i);
+									PolarizationVariance = Polarimetry->getStokesParameterVariance(stokesParameter, i);
+									NullSpectrum1 = Polarimetry->getFirstNullPolarizationFlux(stokesParameter, i);
+									NullSpectrum2 = Polarimetry->getSecondNullPolarizationFlux(stokesParameter, i);
 									fout << ',' 
 									<< ",,polar" << ','
 									<< spectralelements->getwavelength(i) << ','
@@ -662,13 +737,11 @@ void operaIOFormats::writeCSVFromOrders(const operaSpectralOrderVector& orders, 
 	}
 }
 
-string operaIOFormats::getFormatHeader(operaSpectralOrder_t format) {
+FormatHeader operaIOFormats::getFormatHeader(operaSpectralOrder_t format) {
 	switch (format) {
 		case GainNoise: return getGainNoiseHeader();
 		case Orderspacing: return getOrderSpacingHeader();
 		case Disp: return getDispHeader();
-		case RVel: return getRvelHeader();
-		case Tell: return getTellHeader();
 		case Aperture: return getApertureHeader();
 		case Fcal: return getFcalHeader();
 		case Geom: return getGeomHeader();
@@ -698,7 +771,7 @@ string operaIOFormats::getFormatHeader(operaSpectralOrder_t format) {
 		case CalibratedExtendedBeamSpectrum: return getCalibratedExtendedBeamSpectrumHeader();
 		case Polarimetry: return getPolarimetryHeader();
 		case ExtendedPolarimetry: return getExtendedPolarimetryHeader();
-		default: break;
+		default: return FormatHeader();
 	}
 }
 
@@ -707,8 +780,6 @@ string operaIOFormats::getLinesFromFormatWithoutOrders(const operaSpectralOrderV
 		case GainNoise: return getLinesFromGainNoise(orders);
 		case Orderspacing: return getLinesFromOrderSpacing(orders);
 		case Disp: return getLinesFromDisp(orders);
-		case RVel: return getLinesFromRvel(orders);
-		case Tell: return getLinesFromTell(orders);
 		default: return string();
 	}
 }
@@ -760,11 +831,9 @@ string operaIOFormats::getLineFromFormatWithOrders(const operaSpectralOrder* spe
  */
 void operaIOFormats::setFromLineWithoutOrders(operaSpectralOrderVector& orders, string dataline, unsigned linenumber, operaSpectralOrder_t format) {
 	switch (format) {
-		case GainNoise: return setGainNoiseFromLine(orders, dataline, line);
+		case GainNoise: return setGainNoiseFromLine(orders, dataline, linenumber);
 		case Orderspacing: return setOrderSpacingFromLine(orders, dataline);
-		case Disp: return setDispFromLine(orders, dataline, line);
-		case RVel: return setRvelFromLine(orders, dataline);
-		case Tell: return setTellFromLine(orders, dataline);
+		case Disp: return setDispFromLine(orders, dataline, linenumber);
 		default: return;
 	}
 }
@@ -810,15 +879,24 @@ void operaIOFormats::setFromLineWithOrders(operaSpectralOrder *spectralOrder, st
 	}
 }
 				
-string operaIOFormats::getGainNoiseHeader() {
-	ostringstream ss;
-	ss << "# Gain Noise format is:\n"
-	<< "# <number of amps> <newline>\n"
-	<< "# <amp> <gain> <noise> <gainerror> <bias> <datasec x1> <datasec x2> <datasec y1> <datasec y2> <newline>\n"
-	<< "# ...\n"
-	<< "# Note that <amp> is zero-based.\n"
-	<< "# Note that gain is in units e/ADU, noise in e and bias in ADU.\n";
-	return ss.str();
+FormatHeader operaIOFormats::getGainNoiseHeader() {
+	FormatHeader header("Gain Noise");
+	header << "number of amps";
+	header << newline;
+	header << "amp";
+	header << "gain";
+	header << "noise";
+	header << "gainerror";
+	header << "bias";
+	header << "datasec x1";
+	header << "datasec x2";
+	header << "datasec y1";
+	header << "datasec y2";
+	header << newline;
+	header << dots;
+	header.note("Note that amp is zero-based.");
+	header.note("Note that gain is in units e/ADU, noise in e and bias in ADU.");
+	return header;
 }
 
 string operaIOFormats::getLinesFromGainNoise(const operaSpectralOrderVector& orders) {
@@ -859,11 +937,14 @@ void operaIOFormats::setGainNoiseFromLine(operaSpectralOrderVector& orders, stri
 	}
 }
 
-string operaIOFormats::getOrderSpacingHeader() {
-	ostringstream ss;
-	ss << "# Order Spacing Polynomial, the format is:\n"
-	<< "# <number of coefficients> <polynomial coefficient> <polynomial coefficienterror> ... <newline>\n";
-	return ss.str();
+FormatHeader operaIOFormats::getOrderSpacingHeader() {
+	FormatHeader header("Order Spacing Polynomial");
+	header << "number of coefficients";
+	header << "polynomial coefficient";
+	header << "polynomial coefficienterror";
+	header << dots;
+	header << newline;
+	return header;
 }
 
 string operaIOFormats::getLinesFromOrderSpacing(const operaSpectralOrderVector& orders) {
@@ -900,12 +981,18 @@ void operaIOFormats::setOrderSpacingFromLine(operaSpectralOrderVector& orders, s
 	}
 }
 
-string operaIOFormats::getDispHeader() {
-	ostringstream ss;
-	ss << "# Dispersion Polynomial, the format is:\n"
-	<< "# <numberOfDispersionPolynomials> <newline>\n"
-	<< "# <PolynomialIndex> <MinorderOfPolynomial> <MaxorderOfPolynomial> <polynomial coefficient> <polynomial coefficienterror> ... <newline>\n";
-	return ss.str();
+FormatHeader operaIOFormats::getDispHeader() {
+	FormatHeader header("Dispersion Polynomial");
+    header << "numberOfDispersionPolynomials";
+    header << newline;
+    header << "PolynomialIndex";
+    header << "MinorderOfPolynomial";
+    header << "MaxorderOfPolynomial";
+    header << "polynomial coefficient";
+    header << "polynomial coefficienterror";
+    header << dots;
+    header << newline;
+    return header;
 }
 
 string operaIOFormats::getLinesFromDisp(const operaSpectralOrderVector& orders) {
@@ -953,68 +1040,51 @@ void operaIOFormats::setDispFromLine(operaSpectralOrderVector& orders, string da
 	}
 }
 
-string operaIOFormats::getRvelHeader() {
-	ostringstream ss;
-	ss << "# Radial Velocity Correction (km/s) format is:\n"
-	<< "# <radialvelocity> <newline>\n";
-	return ss.str();
-}
-
-string operaIOFormats::getLinesFromRvel(const operaSpectralOrderVector& orders) {
-	ostringstream ss;
-	ss << orders.getRadialVelocityCorrection() << endl;
-	return ss.str();
-}
-
-/* 
- * void setRadialVelocityCorrectionFromLine(string dataline)
- * \brief Sets the radial velocity correction from a line read in from an rvel file.
- */
-void operaIOFormats::setRvelFromLine(operaSpectralOrderVector& orders, string dataline) {
-	istringstream ss(dataline);
-	double rvel = 0.0;
-	ss >> rvel;
-	orders.setRadialVelocityCorrection(rvel);
-}
-
-string operaIOFormats::getTellHeader() {
-	ostringstream ss;
-	ss << "# Telluric Radial Velocity Correction (km/s) format is:\n"
-	<< "# <radialvelocity> <newline>\n";
-	return ss.str();
-}
-
-string operaIOFormats::getLinesFromTell(const operaSpectralOrderVector& orders) {
-	ostringstream ss;
-	ss << orders.getTelluricRadialVelocityCorrection() << endl;
-	return ss.str();
-}
-
-/* 
- * void setTelluricRVCorrectionFromLine(string dataline)
- * \brief Sets the telluric radial velocity correction from a line read in from a tell file.
- */
-void operaIOFormats::setTellFromLine(operaSpectralOrderVector& orders, string dataline) {
-	istringstream ss(dataline);
-	double tell = 0.0;
-	ss >> tell;
-	orders.setTelluricRadialVelocityCorrection(tell);
-}
-
-string operaIOFormats::getApertureHeader() {
-	ostringstream ss;
-	ss << "# Extraction Aperture format is:\n"
-	<< "#\n"
-	<< "# <number of orders><newline>\n"
-	<< "# <order number> <number of beams> <measured tilt> <tilt error>\n"
-	<< "# <leftBackgroundIndex> <xsampling> <ysampling> <lb height> <lb width> <lb slope> <lb xcenter> <lb ycenter> <lb fluxFraction>\n"
-	<< "# <rightBackgroundIndex> <xsampling> <ysampling>  <rb height> <rb width> <rb slope> <rb xcenter> <rb ycenter> <rb fluxFraction>\n"
-	<< "# <beam> <xsampling> <ysampling>  <beam height> <beam width> <beam slope> <beam xcenter> <beam ycenter>  <beam fluxFraction> <newline>\n"
-	<< "#\n"
-	<< "# Note that leftBackgroundIndex = 0\n"
-	<< "# Note that rightBackgroundIndex = 1\n"
-	<< "# Note that <beam> is zero-based.\n";
-	return ss.str();
+FormatHeader operaIOFormats::getApertureHeader() {	
+	FormatHeader header("Extraction Aperture");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "number of beams";
+	header << "measured tilt";
+	header << "tilt error";
+	header << endl;
+	header << "leftBackgroundIndex";
+	header << "lb xsampling";
+	header << "lb ysampling";
+	header << "lb height";
+	header << "lb width";
+	header << "lb slope";
+	header << "lb xcenter";
+	header << "lb ycenter";
+	header << "lb fluxFraction";
+	header << endl;
+	header << "rightBackgroundIndex";
+	header << "rb xsampling";
+	header << "rb ysampling";
+	header << "rb height";
+	header << "rb width";
+	header << "rb slope";
+	header << "rb xcenter";
+	header << "rb ycenter";
+	header << "rb fluxFraction";
+	header << endl;
+	header << "beam";
+	header << "beam xsampling";
+	header << "beam ysampling";
+	header << "beam height";
+	header << "beam width";
+	header << "beam slope";
+	header << "beam xcenter";
+	header << "beam ycenter";
+	header << "beam fluxFraction";
+	header << dots;
+	header << newline;
+	header << dots;
+	header.note("Note that leftBackgroundIndex = 0.");
+	header.note("Note that rightBackgroundIndex = 1.");
+	header.note("Note that beam is zero-based.");
+	return header;
 }
 
 string operaIOFormats::getLineFromAperture(const operaSpectralOrder *spectralOrder) {
@@ -1061,14 +1131,29 @@ void operaIOFormats::setApertureFromLine(operaSpectralOrder *spectralOrder, stri
 	spectralOrder->sethasExtractionApertures(true);
 }
 
-string operaIOFormats::getFcalHeader() {
-	ostringstream ss;
-	ss << "# Flux Calibration Beam Spectrum format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <nElements> <nBeams> <wavelengthForNormalization> <elementindex> <wavelength> <SpectralElements flux conversion> <flux conversion variance> <SpectralElements throughput> <throughput variance> \n"
-	<< "# <beam> <BeamSED[beam] flux conversion> <flux conversion variance> <BeamSED[beam] throughput> <throughput variance> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getFcalHeader() {
+	FormatHeader header("Flux Calibration Beam Spectrum");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "nElements";
+	header << "nBeams";
+	header << "wavelengthForNormalization";
+	header << "elementindex";
+	header << "wavelength";
+	header << "SpectralElements flux conversion";
+	header << "flux conversion variance";
+	header << "SpectralElements throughput";
+	header << "throughput variance";
+	header << endl;
+	header << "beam";
+	header << "BeamSED[beam] flux conversion";
+	header << "flux conversion variance";
+	header << "BeamSED[beam] throughput";
+	header << "throughput variance";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromFcal(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1144,13 +1229,23 @@ void operaIOFormats::setFcalFromLine(operaSpectralOrder *spectralOrder, string d
 	}
 }
 
-string operaIOFormats::getGeomHeader() {
-	ostringstream ss;
-	ss << "# Geometry Calibration, the format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <number of coefficients> <ndatapoints> <polynomial coefficient> <polynomial coefficienterror>... <chisqr> <YBinning> <miny><maxy> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getGeomHeader() {
+	FormatHeader header("Geometry Calibration");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "number of coefficients";
+	header << "ndatapoints";
+	header << "polynomial coefficient";
+	header << "polynomial coefficienterror";
+	header << dots;
+	header << "chisqr";
+	header << "YBinning";
+	header << "miny";
+	header << "maxy";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromGeom(const operaSpectralOrder *spectralOrder) {
@@ -1194,13 +1289,18 @@ void operaIOFormats::setGeomFromLine(operaSpectralOrder *spectralOrder, string d
 	geometry->CalculateAndSetOrderLength();
 }
 
-string operaIOFormats::getWaveHeader() {
-	ostringstream ss;
-	ss << "# Wavelength Calibration, the format is:\n"
-	<< "# <count of orders> <newline>\n"
-	<< "# <order number> <number of coefficients> <polynomial coefficients> <polynomial coefficient error> ... <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getWaveHeader() {
+	FormatHeader header("Wavelength Calibration");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "number of coefficients";
+	header << "polynomial coefficients";
+	header << "polynomial coefficient error";
+	header << dots;
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromWave(const operaSpectralOrder *spectralOrder) {
@@ -1233,13 +1333,26 @@ void operaIOFormats::setWaveFromLine(operaSpectralOrder *spectralOrder, string d
 	}
 }
 
-string operaIOFormats::getProfHeader() {
-	ostringstream ss;
-	ss << "# Instrument Profile Calibration the format is:\n"
-	<< "# <number of orders> <number of columns i> <number of rows j> <xsize> <xsampling> <ysize> <ysampling> <newline>\n"
-	<< "# <order number> <i> <j> <number of coefficients> <ndatapoints> <polynomial coefficients> <chisqr> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getProfHeader() {
+	FormatHeader header("Instrument Profile Calibration");
+	header << "number of orders";
+	header << "number of columns i";
+	header << "number of rows j";
+	header << "xsize";
+	header << "xsampling";
+	header << "ysize";
+	header << "ysampling";
+	header << newline;
+	header << "order number";
+	header << "i";
+	header << "j";
+	header << "number of coefficients";
+	header << "ndatapoints";
+	header << "polynomial coefficients";
+	header << "chisqr";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromProf(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1287,13 +1400,17 @@ void operaIOFormats::setProfFromLine(operaSpectralOrder *spectralOrder, string d
 	instrumentProfile->setchisqrMatrixValue(chisqr.f, col, row);
 }
 
-string operaIOFormats::getSNRHeader() {
-	ostringstream ss;
-	ss << "# SNR format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <center wavelength> <center SNR per spectral bin> <center SNR per CCD pixel> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getSNRHeader() {
+	FormatHeader header("SNR");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "center wavelength";
+	header << "center SNR per spectral bin";
+	header << "center SNR per CCD pixel";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromSNR(const operaSpectralOrder *spectralOrder) {
@@ -1319,13 +1436,17 @@ void operaIOFormats::setSNRFromLine(operaSpectralOrder *spectralOrder, string da
 	spectralOrder->setsnrSpectralBinSize((centersnr.f*centersnr.f)/(snrperpix.f*snrperpix.f));
 }
 
-string operaIOFormats::getSpectrumHeader() {
-	ostringstream ss;
-	ss << "# Spectrum format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <distance> <flux> <variance> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getSpectrumHeader() {
+	FormatHeader header("Spectrum");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "distance";
+	header << "flux";
+	header << "variance";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromSpectrum(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1345,7 +1466,7 @@ void operaIOFormats::setSpectrumFromLine(operaSpectralOrder *spectralOrder, stri
 	unsigned order;
 	ss >> order;
 	if (neworder) {
-		spectralOrder->createSpectralElements(MAXSPECTRALELEMENTSPERORDER, format);
+		spectralOrder->createSpectralElements(0, format);
 		spectralOrder->sethasSpectralElements(true);
 		operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
 		spectralElements->setHasDistance(true);
@@ -1353,19 +1474,23 @@ void operaIOFormats::setSpectrumFromLine(operaSpectralOrder *spectralOrder, stri
 	Double dist, flux, fluxvariance;
 	ss >> dist >> flux >> fluxvariance;
 	operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
-	spectralElements->setnSpectralElements(index+1);
+	spectralElements->resize(index+1);
 	spectralElements->setdistd(dist.d, index);
 	spectralElements->setFlux(flux.d, index);
 	spectralElements->setFluxVariance(fluxvariance.d, index);
 }
 
-string operaIOFormats::getCalibratedSpectrumHeader() {
-	ostringstream ss;
-	ss << "# Calibrated Spectrum format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <wavelength> <flux> <variance> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getCalibratedSpectrumHeader() {
+	FormatHeader header("Calibrated Spectrum");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "wavelength";
+	header << "flux";
+	header << "variance";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromCalibratedSpectrum(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1385,7 +1510,7 @@ void operaIOFormats::setCalibratedSpectrumFromLine(operaSpectralOrder *spectralO
 	unsigned order;
 	ss >> order;
 	if (neworder) {
-		spectralOrder->createSpectralElements(MAXSPECTRALELEMENTSPERORDER, format);
+		spectralOrder->createSpectralElements(0, format);
 		spectralOrder->sethasSpectralElements(true);
 		spectralOrder->setSpectrumType(format);
 		spectralOrder->sethasWavelength(true);
@@ -1395,20 +1520,35 @@ void operaIOFormats::setCalibratedSpectrumFromLine(operaSpectralOrder *spectralO
 	Double wavelength, flux, fluxvariance;
 	ss >> wavelength >> flux >> fluxvariance;
 	operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
-	spectralElements->setnSpectralElements(index+1);
+	spectralElements->resize(index+1);
 	spectralElements->setwavelength(wavelength.d, index);
 	spectralElements->setFlux(flux.d, index);
 	spectralElements->setFluxVariance(fluxvariance.d, index);
 }
 
-string operaIOFormats::getBeamSpectrumHeader() {
-	ostringstream ss;
-	ss << "# Beam Spectrum format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <nElements> <nBeams> <elementindex> <SpectralElements photoCenterX> <SpectralElements photoCenterY> <SpectralElements dist> <SpectralElements flux> <SpectralElements flux variance> <XCorrelation>\n"
-	<< "# <beam> <BeamElements[beam] photoCenterX> <BeamElements[beam] photoCenterY> <BeamElements[beam] flux> <BeamElements[beam] flux variance> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getBeamSpectrumHeader() {
+	FormatHeader header("Beam Spectrum");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "nElements";
+	header << "nBeams";
+	header << "elementindex";
+	header << "SpectralElements photoCenterX";
+	header << "SpectralElements photoCenterY";
+	header << "SpectralElements dist";
+	header << "SpectralElements flux";
+	header << "SpectralElements flux variance";
+	header << "XCorrelation";
+	header << endl;
+	header << "beam";
+	header << "BeamElements[beam] photoCenterX";
+	header << "BeamElements[beam] photoCenterY";
+	header << "BeamElements[beam] flux";
+	header << "BeamElements[beam] flux variance";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromBeamSpectrum(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1471,14 +1611,26 @@ void operaIOFormats::setBeamSpectrumFromLine(operaSpectralOrder *spectralOrder, 
 	}
 }
 
-string operaIOFormats::getCalibratedBeamSpectrumHeader() {
-	ostringstream ss;
-	ss << "# Calibrated Beam Spectrum format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <nElements> <nBeams> <elementindex> <wavelength> <SpectralElements flux> <SpectralElements flux variance><cross correlation> \n"
-	<< "# <beam> <BeamElements[beam] flux> <BeamElements[beam] flux variance> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getCalibratedBeamSpectrumHeader() {
+	FormatHeader header("Calibrated Beam Spectrum");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "nElements";
+	header << "nBeams";
+	header << "elementindex";
+	header << "wavelength";
+	header << "SpectralElements flux";
+	header << "SpectralElements flux variance";
+	header << "cross correlation";
+	header << endl;
+	header << "beam";
+	header << "BeamElements[beam] flux";
+	header << "BeamElements[beam] flux variance";
+	header << dots;
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromCalibratedBeamSpectrum(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1534,15 +1686,37 @@ void operaIOFormats::setCalibratedBeamSpectrumFromLine(operaSpectralOrder *spect
 	}
 }
 
-string operaIOFormats::getCalibratedExtendedBeamSpectrumHeader() {
-	ostringstream ss;
-	ss << "# Calibrated Extended Beam Spectrum (as output from operaExtraction) format is:\n"
-	<< "# <number of orders> <newline>\n"
-	<< "# <order number> <nElements> <nBeams> <elementindex> <wavelength> <wavelength telluric corrected> <heliocentric wavelength correction> <crosscorrelation>\n"
-	<< "# <rawFlux> <rawFlux variance> <normalizedFlux> <normalizedFlux variance> <fcalFlux> <fcalFlux variance>\n"
-	<< "# <beamindex> <beam rawFlux> <beam rawFlux variance> <beam normalizedFlux> <beam normalizedFlux variance> <beam fcalFlux> <beam fcalFlux variance> ... <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getCalibratedExtendedBeamSpectrumHeader() {
+	FormatHeader header("Calibrated Extended Beam Spectrum");
+	header << "number of orders";
+	header << newline;
+	header << "order number";
+	header << "nElements";
+	header << "nBeams";
+	header << "elementindex";
+	header << "wavelength";
+	header << "wavelength telluric corrected";
+	header << "heliocentric wavelength correction";
+	header << "crosscorrelation";
+	header << endl;
+	header << "rawFlux";
+	header << "rawFlux variance";
+	header << "normalizedFlux";
+	header << "normalizedFlux variance";
+	header << "fcalFlux";
+	header << "fcalFlux variance";
+	header << endl;
+	header << "beamindex";
+	header << "beam rawFlux";
+	header << "beam rawFlux variance";
+	header << "beam normalizedFlux";
+	header << "beam normalizedFlux variance";
+	header << "beam fcalFlux";
+	header << "beam fcalFlux variance";
+	header << dots;
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromCalibratedExtendedBeamSpectrum(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1622,13 +1796,31 @@ void operaIOFormats::setCalibratedExtendedBeamSpectrumFromLine(operaSpectralOrde
 	}
 }
 
-string operaIOFormats::getPolarimetryHeader() {
-	ostringstream ss;
-	ss << "# Polarimetry format is:\n"
-	<< "# <number of orders> <cols> <method> <newline>\n"
-	<< "# <order number> <StokesParameter_t> <length> <distance> <wavelength> <crosscorrelation> <Stokes(Q,U,V) flux> <Stokes(Q,U,V) variance> <StokesI flux> <StokesI variance> <degree of polarization flux> <degree of polarization variance> <first null polarization> <first null polarization variance> <second null polarization> <second null polarization variance> <newline>\n"
-	<< "# ...\n";
-	return ss.str();
+FormatHeader operaIOFormats::getPolarimetryHeader() {
+	FormatHeader header("Polarimetry");
+	header << "number of orders";
+	header << "cols";
+	header << "method";
+	header << newline;
+	header << "order number";
+	header << "StokesParameter_t";
+	header << "length";
+	header << "distance";
+	header << "wavelength";
+	header << "crosscorrelation";
+	header << "Stokes(Q,U,V) flux";
+	header << "Stokes(Q,U,V) variance";
+	header << "StokesI flux";
+	header << "StokesI variance";
+	header << "degree of polarization flux";
+	header << "degree of polarization variance";
+	header << "first null polarization";
+	header << "first null polarization variance";
+	header << "second null polarization";
+	header << "second null polarization variance";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromPolarimetry(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1636,23 +1828,19 @@ string operaIOFormats::getLineFromPolarimetry(const operaSpectralOrder *spectral
 	stokes_parameter_t StokesParameter = getStokesParameter(spectralOrder); //would be faster to only call this once per order, difference probably negligable vs I/O though?
 	const operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
 	const operaPolarimetry *Polarimetry = spectralOrder->getPolarimetry();
-	const operaStokesVector *StokesVector = Polarimetry->getStokesVector();
-	const operaStokesVector *DegreeOfPolarization = Polarimetry->getDegreeOfPolarization();
 	ss << spectralOrder->getorder() << ' ' << StokesParameter << ' ' << Polarimetry->getLength() << ' '
 	<< scientific << setprecision(5) << SpectralElements->getdistd(index) << ' '
 	<< fixed << setprecision(4) << SpectralElements->getwavelength(index) << ' '
 	<< scientific << SpectralElements->getXCorrelation(index) << ' '
-	<< StokesVector->getStokesParameterFlux(StokesParameter, index) << ' ' << StokesVector->getStokesParameterVariance(StokesParameter, index) << ' '
-	<< StokesVector->getStokesParameterFlux(StokesI, index) << ' ' << StokesVector->getStokesParameterVariance(StokesI, index) << ' '
-	<< DegreeOfPolarization->getStokesParameterFlux(StokesParameter, index) << ' ' << DegreeOfPolarization->getStokesParameterVariance(StokesParameter, index) << ' ';
+	<< Polarimetry->getStokesParameterFlux(StokesParameter, index) << ' ' << Polarimetry->getStokesParameterVariance(StokesParameter, index) << ' '
+	<< Polarimetry->getStokesParameterFlux(StokesI, index) << ' ' << Polarimetry->getStokesParameterVariance(StokesI, index) << ' '
+	<< Polarimetry->getDegreeOfPolarizationFlux(StokesParameter, index) << ' ' << Polarimetry->getDegreeOfPolarizationVariance(StokesParameter, index) << ' ';
 	if (Polarimetry->getHasFirstNullPolarization()) {
-		const operaStokesVector *FirstNullPolarization = Polarimetry->getFirstNullPolarization();
-		ss << FirstNullPolarization->getStokesParameterFlux(StokesParameter, index) << ' ' << FirstNullPolarization->getStokesParameterVariance(StokesParameter, index) << ' ';
+		ss << Polarimetry->getFirstNullPolarizationFlux(StokesParameter, index) << ' ' << Polarimetry->getFirstNullPolarizationVariance(StokesParameter, index) << ' ';
 	}
 	else ss << "0.0 0.0 ";
 	if (Polarimetry->getHasSecondNullPolarization()) {
-		const operaStokesVector *SecondNullPolarization = Polarimetry->getSecondNullPolarization();
-		ss << SecondNullPolarization->getStokesParameterFlux(StokesParameter, index) << ' ' << SecondNullPolarization->getStokesParameterVariance(StokesParameter, index) << ' ';
+		ss << Polarimetry->getSecondNullPolarizationFlux(StokesParameter, index) << ' ' << Polarimetry->getSecondNullPolarizationVariance(StokesParameter, index) << ' ';
 	}
 	else ss << "0.0 0.0 ";
 	return ss.str();
@@ -1711,14 +1899,36 @@ void operaIOFormats::setPolarFromLine(operaSpectralOrder *spectralOrder, string 
 	}
 }
 
-string operaIOFormats::getExtendedPolarimetryHeader() {
-	ostringstream ss;
-	ss << "# Extended Polarimetry format is:\n"
-	<< "# <number of orders> <StokesParameter_t> <method> <newline>\n"
-	<< "# <order number> <nElements> <elementindex> <wavelength> <wavelength telluric corrected> <heliocentric wavelength correction> <crosscorrelation>\n"
-	<< "# <StokesI flux> <StokesI variance> <normalized StokesI flux> <calibrated StokesI flux> <normalized StokesI flux variance> <calibrated StokesI flux variance>\n"
-	<< "# <degree of polarization> <degree of polarization variance> <first null polarization> <second null polarization> <newline>\n";
-	return ss.str();
+FormatHeader operaIOFormats::getExtendedPolarimetryHeader() {
+	FormatHeader header("Extended Polarimetry");
+	header << "number of orders";
+	header << "StokesParameter_t";
+	header << "method";
+	header << newline;
+	header << "order number";
+	header << "nElements";
+	header << "elementindex";
+	header << "wavelength";
+	header << "wavelength telluric corrected";
+	header << "heliocentric wavelength correction";
+	header << "crosscorrelation";
+	header << endl;
+	header << "StokesI flux";
+	header << "StokesI variance";
+	header << "normalized StokesI flux";
+	header << "normalized StokesI flux variance";
+	header << "calibrated StokesI flux";
+	header << "calibrated StokesI flux variance";
+	header << endl;
+	header << "degree of polarization";
+	header << "degree of polarization variance";
+	header << "continuum polarization removed";
+	header << "continuum polarization removed variance";
+	header << "first null polarization";
+	header << "second null polarization";
+	header << newline;
+	header << dots;
+	return header;
 }
 
 string operaIOFormats::getLineFromExtendedPolarimetry(const operaSpectralOrder *spectralOrder, unsigned index) {
@@ -1726,25 +1936,25 @@ string operaIOFormats::getLineFromExtendedPolarimetry(const operaSpectralOrder *
 	stokes_parameter_t StokesParameter = getStokesParameter(spectralOrder); //would be faster to only call this once per order, difference probably negligable vs I/O though?
 	const operaPolarimetry *Polarimetry = spectralOrder->getPolarimetry();
 	const operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-	const operaStokesVector *DegreeOfPolarization = Polarimetry->getDegreeOfPolarization();
 	double relativeVariance = SpectralElements->getrawFluxVariance(index) / (SpectralElements->getrawFlux(index) * SpectralElements->getrawFlux(index));
 	ss << spectralOrder->getorder() << ' ' << Polarimetry->getLength() << ' ' << index << ' '
 	<< fixed << setprecision(8) << SpectralElements->getwavelength(index) << ' '
 	<< SpectralElements->gettell(index) << ' ' << SpectralElements->getrvel(index) << ' '
 	<< scientific << SpectralElements->getXCorrelation(index) << ' '
 	<< SpectralElements->getrawFlux(index) << ' ' << SpectralElements->getrawFluxVariance(index) << ' '
-	<< SpectralElements->getnormalizedFlux(index) << ' ' << SpectralElements->getfcalFlux(index) << ' '
-	<< relativeVariance * SpectralElements->getnormalizedFlux(index) * SpectralElements->getnormalizedFlux(index) << ' '
-	<< relativeVariance * SpectralElements->getfcalFlux(index) * SpectralElements->getfcalFlux(index) << ' '
-	<< DegreeOfPolarization->getStokesParameterFlux(StokesParameter, index) << ' ' << DegreeOfPolarization->getStokesParameterVariance(StokesParameter, index) << ' ';
+	<< SpectralElements->getnormalizedFlux(index) << ' ' << relativeVariance * SpectralElements->getnormalizedFlux(index) * SpectralElements->getnormalizedFlux(index) << ' '
+	<< SpectralElements->getfcalFlux(index) << ' ' << relativeVariance * SpectralElements->getfcalFlux(index) * SpectralElements->getfcalFlux(index) << ' '
+	<< Polarimetry->getDegreeOfPolarizationFlux(StokesParameter, index) << ' ' << Polarimetry->getDegreeOfPolarizationVariance(StokesParameter, index) << ' ';
+	if (Polarimetry->getHasContinuumRemoved()) {
+		ss << Polarimetry->getContinuumRemovedFlux(StokesParameter, index) << ' ' << Polarimetry->getContinuumRemovedVariance(StokesParameter, index) << ' ';
+	}
+	else ss << "0.0 0.0 ";
 	if (Polarimetry->getHasFirstNullPolarization()) {
-		const operaStokesVector *FirstNullPolarization = Polarimetry->getFirstNullPolarization();
-		ss  << FirstNullPolarization->getStokesParameterFlux(StokesParameter, index) << ' ';
+		ss  << Polarimetry->getFirstNullPolarizationFlux(StokesParameter, index) << ' ';
 	}
 	else ss << "0.0 ";
 	if (Polarimetry->getHasSecondNullPolarization()) {
-		const operaStokesVector *SecondNullPolarization = Polarimetry->getSecondNullPolarization();
-		ss << SecondNullPolarization->getStokesParameterFlux(StokesParameter, index) << ' ';
+		ss << Polarimetry->getSecondNullPolarizationFlux(StokesParameter, index) << ' ';
 	}
 	else ss << "0.0 ";
 	return ss.str();
@@ -1772,8 +1982,8 @@ void operaIOFormats::setExtendedPolarimetryFromLine(operaSpectralOrder *spectral
 		Polarimetry->setHasWavelength(true);
 		Polarimetry->setmethod((method_t)method);
 	}
-	Double wavelength, tell, rvel, crosscorrelation, IFlux, IVar, normalizedFlux, fcalFlux, normalizedFluxFluxError, fcalFluxError, DegPolarFlux, DegPolarVar, FirstNullPolar, SecondNullPolar;
-	ss >> wavelength >> tell >> rvel >> crosscorrelation >> IFlux >> IVar >> normalizedFlux >> fcalFlux >> normalizedFluxFluxError >> fcalFluxError >> DegPolarFlux >> DegPolarVar >> FirstNullPolar >> SecondNullPolar;
+	Double wavelength, tell, rvel, crosscorrelation, IFlux, IVar, normalizedFlux, normalizedFluxFluxError, fcalFlux, fcalFluxError, DegPolarFlux, DegPolarVar, ContRemFlux, ContRemVar, FirstNullPolar, SecondNullPolar;
+	ss >> wavelength >> tell >> rvel >> crosscorrelation >> IFlux >> IVar >> normalizedFlux >> normalizedFluxFluxError >> fcalFlux >> fcalFluxError >> DegPolarFlux >> DegPolarVar >> ContRemFlux >> ContRemVar >> FirstNullPolar >> SecondNullPolar;
 	operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
 	spectralElements->setwavelength(wavelength.d, index);
 	spectralElements->settell(tell.d, index);
@@ -1792,6 +2002,7 @@ void operaIOFormats::setExtendedPolarimetryFromLine(operaSpectralOrder *spectral
 	Polarimetry->setStokesParameter(StokesParameter, 0.0, 0.0, index);
 	Polarimetry->setStokesParameter(StokesI, IFlux.d, IVar.d, index);
 	Polarimetry->setDegreeOfPolarization(StokesParameter, DegPolarFlux.d, DegPolarVar.d, index);
+	Polarimetry->setContinuumRemoved(StokesParameter, ContRemFlux.d, ContRemVar.d, index);
 	Polarimetry->setFirstNullPolarization(StokesParameter, FirstNullPolar.d, 0.0, index);
 	Polarimetry->setSecondNullPolarization(StokesParameter, SecondNullPolar.d, 0.0, index);
 	Polarimetry->setHasStokesI(true);
@@ -1849,10 +2060,10 @@ string operaIOFormats::getLineFromLibreEspritpolarimetry(const operaSpectralOrde
 	stokes_parameter_t stokesParameter = getStokesParameter(spectralOrder);
 	ss << fixed << setprecision(4) << spectralElements->getwavelength(index) << ' '
 	<< scientific << spectralElements->getFlux(index) << ' '
-	<< Polarimetry->getDegreeOfPolarization(stokesParameter)->getflux(index) << ' '
-	<< Polarimetry->getFirstNullPolarization(stokesParameter)->getflux(index) << ' '
-	<< Polarimetry->getSecondNullPolarization(stokesParameter)->getflux(index) << ' '
-	<< sqrt(Polarimetry->getDegreeOfPolarization(stokesParameter)->getvariance(index));
+	<< Polarimetry->getDegreeOfPolarizationFlux(stokesParameter, index) << ' '
+	<< Polarimetry->getFirstNullPolarizationFlux(stokesParameter, index) << ' '
+	<< Polarimetry->getSecondNullPolarizationFlux(stokesParameter, index) << ' '
+	<< sqrt(Polarimetry->getDegreeOfPolarizationVariance(stokesParameter, index));
 	return ss.str();
 }
 

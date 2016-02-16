@@ -47,7 +47,12 @@ do
 		next=`echo "$start $@" | awk '{ i=$1+1; print $i}'`
 		if [[ $next ]]
 		then
-			out="$out $next"
+			if [[ $out ]]
+			then
+				out="$out $next"
+			else
+				out="$next"
+			fi
 		fi
 		shift
 		((j++))

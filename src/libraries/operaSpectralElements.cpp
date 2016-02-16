@@ -27,15 +27,9 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-#include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaException.h"
-#include "libraries/operaSpectralOrder.h"		// for operaSpectralOrder_t
 #include "libraries/operaSpectralElements.h"
-#include "libraries/operaFluxVector.h"          // for operaFluxVectors
-
-#include "libraries/operaMath.h"
-#include "libraries/operaFit.h"
 
 /*!
  * operaSpectralElements
@@ -47,155 +41,58 @@
 
 using namespace std;
 
-/* 
- * \class operaSpectralElements
- * \brief A spectral element (SE) consists of a spectrally resolved 
- * \brief subdivision of a spectral order taken in the dispersion direction. 
- * \brief The minimal width of the spectral element is defined by the resolution 
- * \brief of the spectrograph (RE). The actual width could be defined as any size 
- * \brief smaller than the order size and as long as RE < RS, where RE is the 
- * \brief resolution of the element.
- * \return none
- */
-/*
- * Constructor
- */
 operaSpectralElements::operaSpectralElements() :
 nSpectralElements(0),
-maxnSpectralElements(0),
 elementHeight(0),
 SpectrumType(None),
-fluxvector(NULL),
-XCorrelation(NULL),
-photoCenterX(NULL),
-photoCenterY(NULL),
-distd(NULL),
-wavelength(NULL),
-fluxSNR(NULL),
-tell(NULL),
-rvel(NULL),
-rawFlux(NULL),
-normalizedFlux(NULL),
-fcalFlux(NULL),
 hasRawFlux(false),
 hasStandardFlux(false),
 hasOptimalFlux(false),
 hasOperaOptimalFlux(false),
-hasExtendedBeamFlux(false),
 hasXCorrelation(false),
-hasWavelength(false),    
-hasDistance(false),   
-hasFluxSNR(false)    
+hasWavelength(false),
+hasDistance(false),
+hasFluxSNR(false),
+hasExtendedBeamFlux(false)  
 {
 	
 }
 
 operaSpectralElements::operaSpectralElements(unsigned nElements):
 nSpectralElements(0),
-maxnSpectralElements(0),
 elementHeight(0),
 SpectrumType(None),
-fluxvector(NULL),
-XCorrelation(NULL),
-photoCenterX(NULL),
-photoCenterY(NULL),
-distd(NULL),
-wavelength(NULL),
-fluxSNR(NULL),
-tell(NULL),
-rvel(NULL),
-rawFlux(NULL),
-normalizedFlux(NULL),
-fcalFlux(NULL),
 hasRawFlux(false),
 hasStandardFlux(false),
 hasOptimalFlux(false),
 hasOperaOptimalFlux(false),
-hasExtendedBeamFlux(false),
 hasXCorrelation(false),
-hasWavelength(false),    
-hasDistance(false),   
-hasFluxSNR(false)    
+hasWavelength(false),
+hasDistance(false),
+hasFluxSNR(false),
+hasExtendedBeamFlux(false)
 {
-	Createvectors(nElements);
+	resize(nElements);
+	nSpectralElements = nElements;
 }
 
 operaSpectralElements::operaSpectralElements(unsigned nElements, operaSpectralOrder_t format, bool extended):
 nSpectralElements(0),
-maxnSpectralElements(0),
 elementHeight(0),
 SpectrumType(None),
-fluxvector(NULL),
-XCorrelation(NULL),
-photoCenterX(NULL),
-photoCenterY(NULL),
-distd(NULL),
-wavelength(NULL),
-fluxSNR(NULL),
-tell(NULL),
-rvel(NULL),
-rawFlux(NULL),
-normalizedFlux(NULL),
-fcalFlux(NULL),
 hasRawFlux(false),
 hasStandardFlux(false),
 hasOptimalFlux(false),
 hasOperaOptimalFlux(false),
-hasExtendedBeamFlux(false),
 hasXCorrelation(false),
-hasWavelength(false),    
-hasDistance(false),   
-hasFluxSNR(false)    
+hasWavelength(false),
+hasDistance(false),
+hasFluxSNR(false),
+hasExtendedBeamFlux(false)
 {
-	Createvectors(nElements, format, extended);
-}
-
-/*
- * Destructor
- */
-operaSpectralElements::~operaSpectralElements() {
-	Deletevectors();
-}
-
-/*
- * getters/setters
- */
-
-void operaSpectralElements::Createvectors(unsigned nElements, bool extended) {
-	if (nElements == 0) {
-		throw operaException("operaSpectralElements: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	if (maxnSpectralElements != 0) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	maxnSpectralElements = nElements;
+	hasExtendedBeamFlux = extended;
+	resize(nElements);
 	nSpectralElements = nElements;
-	SpectrumType = None;
-	fluxvector = new operaFluxVector(nElements);
-	photoCenterX = new double[nElements];
-	photoCenterY = new double[nElements];
-	distd = new double[nElements];
-	XCorrelation = new double[nElements];
-	fluxSNR = new double[nElements];
-	wavelength = new double[nElements];
-    if (extended) {
-		CreateExtendedvectors(nElements);
-	}
-}
-
-void operaSpectralElements::CreateExtendedvectors(unsigned nElements) {
-    hasExtendedBeamFlux = true;
-	tell = new double[nElements];
-	rvel = new double[nElements];
-	
-	rawFlux = new operaFluxVector(nElements);
-	normalizedFlux = new operaFluxVector(nElements);
-	fcalFlux = new operaFluxVector(nElements);
-
-}
-
-void operaSpectralElements::Createvectors(unsigned nElements, operaSpectralOrder_t format, bool extended) {
-	Createvectors(nElements, extended);
 	SpectrumType = format;
 	switch (format) {
 		case RawSpectrum:
@@ -219,429 +116,243 @@ void operaSpectralElements::Createvectors(unsigned nElements, operaSpectralOrder
 	}
 }
 
+void operaSpectralElements::createExtendedVectors() {
+	if(hasExtendedBeamFlux) throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    hasExtendedBeamFlux = true;
+    tell.resize(nSpectralElements);
+    rvel.resize(nSpectralElements);
+	rawFlux.resize(nSpectralElements);
+	normalizedFlux.resize(nSpectralElements);
+	fcalFlux.resize(nSpectralElements);
+}
+
 void operaSpectralElements::resize(unsigned nElements) {
-	if (nElements == 0) {
-		throw operaException("operaSpectralElements: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	if (maxnSpectralElements == 0) { //can't resize if it doesn't exist
-		throw operaException("operaSpectralElements: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	if (maxnSpectralElements < nElements) {
-		resizeVector(photoCenterX, maxnSpectralElements, nElements);
-		resizeVector(photoCenterY, maxnSpectralElements, nElements);
-		resizeVector(distd, maxnSpectralElements, nElements);
-		resizeVector(wavelength, maxnSpectralElements, nElements);
-		resizeVector(fluxSNR, maxnSpectralElements, nElements);
-		resizeVector(XCorrelation, maxnSpectralElements, nElements);
-		if(hasExtendedBeamFlux) {
-			resizeVector(tell, maxnSpectralElements, nElements);
-			resizeVector(rvel, maxnSpectralElements, nElements);
-		}
-		maxnSpectralElements = nElements;
-	}
-	fluxvector->resize(nElements);
+	fluxvector.resize(nElements);
+	photoCenterX.resize(nElements);
+	photoCenterY.resize(nElements);
+	distd.resize(nElements);
+	XCorrelation.resize(nElements);
+	fluxSNR.resize(nElements);
+	wavelength.resize(nElements);
 	if(hasExtendedBeamFlux) {
-		rawFlux->resize(nElements);
-		normalizedFlux->resize(nElements);
-		fcalFlux->resize(nElements);
+		tell.resize(nElements);
+		rvel.resize(nElements);
+		rawFlux.resize(nElements);
+		normalizedFlux.resize(nElements);
+		fcalFlux.resize(nElements);
 	}
 	nSpectralElements = nElements;
 }
 
-void operaSpectralElements::Deletevectors(void) {
-	if (maxnSpectralElements == 0) {
-		return;
+void operaSpectralElements::trim(operaIndexRange range) {
+	fluxvector.trim(range);
+	photoCenterX.trim(range);
+	photoCenterY.trim(range);
+	distd.trim(range);
+	XCorrelation.trim(range);
+	fluxSNR.trim(range);
+	wavelength.trim(range);
+	if(hasExtendedBeamFlux) {
+		tell.trim(range);
+		rvel.trim(range);
+		rawFlux.trim(range);
+		normalizedFlux.trim(range);
+		fcalFlux.trim(range);
 	}
-	if (photoCenterX) delete[] photoCenterX;
-	if (photoCenterY) delete[] photoCenterY;
-	if (distd) delete[] distd;
-	if (wavelength) delete[] wavelength;
-	if (fluxSNR) delete[] fluxSNR;
-	if (XCorrelation) delete[] XCorrelation;
-	if (fluxvector) delete fluxvector;
-	if (tell) delete[] tell;
-	if (rvel) delete[] rvel;
-	if (rawFlux) delete rawFlux;
-	if (normalizedFlux) delete normalizedFlux;
-	if (fcalFlux) delete fcalFlux;
-	
-	fluxvector = NULL;
-	photoCenterX = NULL;
-	photoCenterY = NULL;
-	distd = NULL;
-    XCorrelation = NULL;
-	wavelength = NULL;
-	fluxSNR = NULL;
-	tell = NULL;
-	rvel = NULL;
-	rawFlux = NULL;
-	normalizedFlux = NULL;
-	fcalFlux = NULL;
-	nSpectralElements = 0;
-	maxnSpectralElements = 0;
-	SpectrumType = None;
-    
-	setHasRawSpectrum(false);
-	setHasStandardSpectrum(false);
-	setHasOptimalSpectrum(false);
-	setHasOperaOptimalSpectrum(false);
-	setHasExtendedBeamFlux(false);
-	setHasWavelength(false);   
-	setHasDistance(false);
-	setHasFluxSNR(false);
-    setHasXCorrelation(false);    
-}
-
-void operaSpectralElements::setnSpectralElements(unsigned nElem) { 
-	if (nElem == 0) {
-		throw operaException("operaSpectralElements: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    if (nElem > maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	nSpectralElements = nElem;
+	nSpectralElements = range.size();
 }
 
 unsigned operaSpectralElements::getnSpectralElements(void) const { 
 	return nSpectralElements;
 }
 
-void operaSpectralElements::setelementHeight(double Height) { 
-	elementHeight = Height;
+const operaVector& operaSpectralElements::getWavelength(void) const {
+	return wavelength;
 }
 
-double operaSpectralElements::getelementHeight(void) const { 
-	return elementHeight;
-}
-
-operaSpectralOrder_t operaSpectralElements::getSpectrumType(void) const { 
-	return SpectrumType;
-}
-
-void operaSpectralElements::setSpectrumType(operaSpectralOrder_t format) { 
-	SpectrumType = format;
-}
-
-/*
- * clone spectralelements
- */
-void operaSpectralElements::setSpectralElements(operaSpectralElements &SpectralElements) { 
-
-    if (SpectralElements.nSpectralElements == 0) {
-		throw operaException("operaSpectralElements: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    if (SpectralElements.maxnSpectralElements == 0) {
-		throw operaException("operaSpectralElements: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	if (nSpectralElements < SpectralElements.nSpectralElements) {
-		throw operaException("operaSpectralLines: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	
-	nSpectralElements = SpectralElements.nSpectralElements;
-	maxnSpectralElements = SpectralElements.maxnSpectralElements;
-	elementHeight = SpectralElements.elementHeight;
-	SpectrumType = SpectralElements.SpectrumType;
-
-	hasRawFlux = SpectralElements.hasRawFlux;
-	hasStandardFlux = SpectralElements.hasStandardFlux;
-	hasOptimalFlux = SpectralElements.hasOptimalFlux;
-	hasOperaOptimalFlux = SpectralElements.hasOperaOptimalFlux;
-	hasExtendedBeamFlux = SpectralElements.hasExtendedBeamFlux;
-	hasXCorrelation = SpectralElements.hasXCorrelation;
-	hasWavelength = SpectralElements.hasWavelength;
-	hasDistance = SpectralElements.hasDistance;
-	hasFluxSNR = SpectralElements.hasFluxSNR;
-
-	if (fluxvector == NULL && SpectralElements.fluxvector != NULL)
-		fluxvector = new operaFluxVector(maxnSpectralElements);
-	
-	if (photoCenterX == NULL && SpectralElements.photoCenterX != NULL)
-		photoCenterX = new double[maxnSpectralElements];
-	
-	if (photoCenterY == NULL && SpectralElements.photoCenterY != NULL)
-		photoCenterY = new double[maxnSpectralElements];
-	
-	if (XCorrelation == NULL && SpectralElements.XCorrelation != NULL)
-		XCorrelation = new double[maxnSpectralElements];
-	
-	if (distd == NULL && SpectralElements.distd != NULL)
-		distd = new double[maxnSpectralElements];
-	
-	if (wavelength == NULL && SpectralElements.wavelength != NULL)
-		wavelength = new double[maxnSpectralElements];
-	
-	if (fluxSNR == NULL && SpectralElements.fluxSNR != NULL)
-		fluxSNR = new double[maxnSpectralElements];
-	
-	if (fluxSNR == NULL) {
-		throw operaException("operaSpectralElements: ", operaErrorNoMemory, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	
-	if (fluxvector != NULL) {
-		fluxvector->setVector(*SpectralElements.fluxvector); // copies...
-	}
-
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		if (photoCenterX != NULL && photoCenterY != NULL)
-			setphotoCenter(SpectralElements.getphotoCenterX(i), SpectralElements.getphotoCenterY(i), i);
-		if (XCorrelation != NULL)
-			setXCorrelation(SpectralElements.getXCorrelation(i), i);
-		if (distd != NULL)
-			setdistd(SpectralElements.getdistd(i), i);
-		if (wavelength != NULL)
-			setwavelength(SpectralElements.getwavelength(i), i);
-		if (fluxSNR != NULL)
-			setFluxSNR(SpectralElements.getFluxSNR(i), i);
-	}
-}
-
-/*
- * flux
- */
-operaFluxVector *operaSpectralElements::getFluxVector(void) {
+const operaFluxVector& operaSpectralElements::getFluxVector(void) const {
 	return fluxvector;
 }
 
-// Note that fluxvector is protected against length violations...
-double operaSpectralElements::getFlux(unsigned indexElem) const {
-	return fluxvector->getflux(indexElem);
+void operaSpectralElements::setFluxVector(const operaFluxVector &FluxVector) {
+	if(fluxvector.getlength() != FluxVector.getlength()) {
+		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+	}
+	fluxvector = FluxVector;
 }
 
-void operaSpectralElements::setFlux(double Flux, unsigned indexElem) {
-	fluxvector->setflux(Flux, indexElem);
-}
-void operaSpectralElements::setFluxVector(operaFluxVector *FluxVector) {
-	fluxvector->setVector(*FluxVector);	// copies
-}
-double operaSpectralElements::getFluxVariance(unsigned indexElem) const {
-	return fluxvector->getvariance(indexElem);
+void operaSpectralElements::calculateFluxSNR() {
+	fluxSNR = Abs(fluxvector.getflux() / Sqrt(fluxvector.getvariance()));
 }
 
-void operaSpectralElements::setFluxVariance(double FluxVariance, unsigned indexElem) {
-	fluxvector->setvariance(FluxVariance, indexElem);
-}
-
-double operaSpectralElements::getFluxSNR(unsigned indexElem) const {
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	if (!hasFluxSNR) {	// hasFluxSNR is the case where SNR is read from a .sn file
-		if (!isnan(fluxvector->geterror(indexElem)) && fluxvector->geterror(indexElem) != 0.0) {
-			fluxSNR[indexElem] = fabs(fluxvector->getflux(indexElem)/fluxvector->geterror(indexElem));
-		} else {
-			fluxSNR[indexElem] = 1.0;
-		}
-	}
-	return fluxSNR[indexElem];
-}
-
-void operaSpectralElements::setFluxSNR(double FluxSNR, unsigned indexElem) {
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	fluxSNR[indexElem] = FluxSNR;
-}
-
-/*
- * x,y coords
- */
-double operaSpectralElements::getphotoCenterX(unsigned indexElem) const {							// (flt in counts)
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	return photoCenterX[indexElem];
-}
-double operaSpectralElements::getphotoCenterY(unsigned indexElem) const {							// (flt in counts)
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	return photoCenterY[indexElem];
-}
-void operaSpectralElements::setphotoCenter(double x, double y, unsigned indexElem) {						// (flt in counts)
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	photoCenterX[indexElem] = x;
-	photoCenterY[indexElem] = y;	
-}
-
-/*
- * distance
- */
-double operaSpectralElements::getdistd(unsigned indexElem) const {							// (flt in counts)
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	return distd[indexElem];
-}
-void operaSpectralElements::setdistd(double Distd, unsigned indexElem) {
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	distd[indexElem] = Distd;
-}
-
-/*
- * wavelength
- */
-double operaSpectralElements::getwavelength(unsigned indexElem) const {
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	return wavelength[indexElem];
-}
-void operaSpectralElements::setwavelength(double Wavelength, unsigned indexElem) {
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-	wavelength[indexElem] = Wavelength;
-}
-
-void operaSpectralElements::setwavelengthsFromCalibration(operaWavelength *Wavelength) {
-    for(unsigned indexElem=0;indexElem<getnSpectralElements();indexElem++) {
+void operaSpectralElements::setwavelengthsFromCalibration(const operaWavelength *Wavelength) {
+    for(unsigned indexElem=0;indexElem<nSpectralElements;indexElem++) {
         wavelength[indexElem] = Wavelength->evaluateWavelength(distd[indexElem]);
     }
     setHasWavelength(true);
 }
 
-/*
- * x-correlation
- */
+operaIndexRange operaSpectralElements::getContainedWavelengthSubrangeIndexes(double wl0, double wlf) const {
+	return wavelength.subrange(wl0, wlf);
+}
+
+double operaSpectralElements::getFlux(unsigned indexElem) const {
+	return fluxvector.getflux(indexElem);
+}
+
+void operaSpectralElements::setFlux(double Flux, unsigned indexElem) {
+	fluxvector.setflux(Flux, indexElem);
+}
+
+double operaSpectralElements::getFluxVariance(unsigned indexElem) const {
+	return fluxvector.getvariance(indexElem);
+}
+
+void operaSpectralElements::setFluxVariance(double FluxVariance, unsigned indexElem) {
+	fluxvector.setvariance(FluxVariance, indexElem);
+}
+
+double operaSpectralElements::getFluxSNR(unsigned indexElem) const {
+	return fluxSNR[indexElem];
+}
+
+void operaSpectralElements::setFluxSNR(double FluxSNR, unsigned indexElem) {
+	fluxSNR[indexElem] = FluxSNR;
+}
+
+double operaSpectralElements::getphotoCenterX(unsigned indexElem) const {
+	return photoCenterX[indexElem];
+}
+double operaSpectralElements::getphotoCenterY(unsigned indexElem) const {
+	return photoCenterY[indexElem];
+}
+void operaSpectralElements::setphotoCenter(double x, double y, unsigned indexElem) {
+	photoCenterX[indexElem] = x;
+	photoCenterY[indexElem] = y;	
+}
+
+double operaSpectralElements::getdistd(unsigned indexElem) const {
+	return distd[indexElem];
+}
+void operaSpectralElements::setdistd(double Distd, unsigned indexElem) {
+	distd[indexElem] = Distd;
+}
+
+double operaSpectralElements::getwavelength(unsigned indexElem) const {
+	return wavelength[indexElem];
+}
+void operaSpectralElements::setwavelength(double Wavelength, unsigned indexElem) {
+	wavelength[indexElem] = Wavelength;
+}
+
 double operaSpectralElements::getXCorrelation(unsigned indexElem) const {
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
 	return XCorrelation[indexElem];
 }
+
 void operaSpectralElements::setXCorrelation(double Xcorr, unsigned indexElem){
-#ifdef RANGE_CHECK
-    if (indexElem >= maxnSpectralElements) {
-		throw operaException("operaSpectralElements: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
 	XCorrelation[indexElem] = Xcorr;
 }
-   
+
 double operaSpectralElements::gettell(unsigned indexElem) const { 
 	return tell[indexElem];
 }
+
 void operaSpectralElements::settell(double value, unsigned indexElem) { 
 	tell[indexElem] = value;
-}    
-void operaSpectralElements::copyTOtell(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		tell[i] = wavelength[i];
-	}
-}    
-void operaSpectralElements::copyFROMtell(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		wavelength[i] = tell[i];
-	}
-}    
+}
+
+void operaSpectralElements::copyTOtell(void) {
+	tell = wavelength;
+}
+
+void operaSpectralElements::copyFROMtell(void) {
+	wavelength = tell;
+}
+
 double operaSpectralElements::getrvel(unsigned indexElem) const { 
 	return rvel[indexElem];
 }
+
 void operaSpectralElements::setrvel(double value, unsigned indexElem) { 
 	rvel[indexElem] = value;
-}    
+}
+
 void operaSpectralElements::copyTOrvel(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		rvel[i] = wavelength[i];
-	}
-}    
-void operaSpectralElements::copyFROMrvel(void) { 
-	for (unsigned i=0; i<nSpectralElements; i++) {
-		wavelength[i] = rvel[i];
-	}
-}    
+	wavelength = rvel;
+}
+
+void operaSpectralElements::copyFROMrvel(void) {
+	rvel = wavelength;
+}
+
 double operaSpectralElements::getnormalizedFlux(unsigned indexElem) const { 
-	return normalizedFlux->getflux(indexElem);
+	return normalizedFlux.getflux(indexElem);
 }
+
 void operaSpectralElements::setnormalizedFlux(double value, unsigned indexElem) { 
-	normalizedFlux->setflux(value, indexElem);
+	normalizedFlux.setflux(value, indexElem);
 }
+
 double operaSpectralElements::getnormalizedFluxVariance(unsigned indexElem) const { 
-	return normalizedFlux->getvariance(indexElem);
+	return normalizedFlux.getvariance(indexElem);
 }
+
 void operaSpectralElements::setnormalizedFluxVariance(double value, unsigned indexElem) {
-	normalizedFlux->setvariance(value, indexElem);
+	normalizedFlux.setvariance(value, indexElem);
 }
+
 void operaSpectralElements::copyTOnormalizedFlux(void) { 
-    *normalizedFlux = *fluxvector;
+    normalizedFlux = fluxvector;
 }
+
 void operaSpectralElements::copyFROMnormalizedFlux(void) { 
-    *fluxvector = *normalizedFlux;
+    fluxvector = normalizedFlux;
 }
+
 double operaSpectralElements::getfcalFlux(unsigned indexElem) const { 
-	return fcalFlux->getflux(indexElem);
+	return fcalFlux.getflux(indexElem);
 }
+
 void operaSpectralElements::setfcalFlux(double value, unsigned indexElem) {
-	fcalFlux->setflux(value, indexElem);
+	fcalFlux.setflux(value, indexElem);
 }
+
 double operaSpectralElements::getfcalFluxVariance(unsigned indexElem) const { 
-	return fcalFlux->getvariance(indexElem);
+	return fcalFlux.getvariance(indexElem);
 }
+
 void operaSpectralElements::setfcalFluxVariance(double value, unsigned indexElem) {
-	fcalFlux->setvariance(value, indexElem);
+	fcalFlux.setvariance(value, indexElem);
 }
+
 void operaSpectralElements::copyTOfcalFlux(void) {
-    *fcalFlux = *fluxvector;
+    fcalFlux = fluxvector;
 }
+
 void operaSpectralElements::copyFROMfcalFlux(void) { 
-    *fluxvector = *fcalFlux;
+    fluxvector = fcalFlux;
 }
+
 double operaSpectralElements::getrawFlux(unsigned indexElem) const {
-	return rawFlux->getflux(indexElem);
+	return rawFlux.getflux(indexElem);
 }
+
 void operaSpectralElements::setrawFlux(double value, unsigned indexElem) {
-	rawFlux->setflux(value, indexElem);
+	rawFlux.setflux(value, indexElem);
 }
+
 double operaSpectralElements::getrawFluxVariance(unsigned indexElem) const {
-	return rawFlux->getvariance(indexElem);
+	return rawFlux.getvariance(indexElem);
 }
+
 void operaSpectralElements::setrawFluxVariance(double value, unsigned indexElem) {
-	rawFlux->setvariance(value, indexElem);
+	rawFlux.setvariance(value, indexElem);
 }
 
 void operaSpectralElements::copyTOrawFlux(void) {
-    *rawFlux = *fluxvector;
+    rawFlux = fluxvector;
 }
+
 void operaSpectralElements::copyFROMrawFlux(void) {
-    *fluxvector = *rawFlux;
+    fluxvector = rawFlux;
 }
-
-/*
- * Other Methods
- */
-double operaSpectralElements::getFluxSum(void) const {
-    double fluxsum = 0;
-    
-    for(unsigned indexElem=0;indexElem<getnSpectralElements();indexElem++) {
-        if(!isnan(fluxvector->getflux(indexElem))) {
-            fluxsum += fluxvector->getflux(indexElem);
-        }
-    }
-    
-    return fluxsum;
-}
-

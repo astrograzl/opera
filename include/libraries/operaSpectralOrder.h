@@ -294,13 +294,11 @@ public:
 	
 	void extractRawSum(operaFITSImage &inputImage, ofstream &sout);
 	
-	void extractRawSum(operaFITSImage &inputImage, operaFITSProduct &outputSpectrum);
-	
 	void extractRawSum(operaFITSImage &inputImage, float noise, float gain);
 	
     void measureInstrumentProfileAlongRows(operaFITSImage &masterFlatImage, unsigned binsize, unsigned sampleElementForPlot, ostream *pout);
 	
-    void measureInstrumentProfileAlongRowsInto2DWithGaussian(operaFITSImage &masterFlatImage, operaFITSImage &badpix, unsigned binsize, float gaussSig, float tiltInDegrees, bool witherrors, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
+    void measureInstrumentProfileAlongRowsInto2DWithGaussian(operaFITSImage &masterFlatImage, operaFITSImage &badpix, unsigned binsize, float gaussSig, float tiltInDegrees, bool witherrors, unsigned sampleElementForPlot, ostream *pout, unsigned minimumLines);
 	
 	void CalculateWavelengthSolution(void);
 	
@@ -312,13 +310,13 @@ public:
 	
     void setSpectralLines(operaFITSImage &masterCompImage, operaFITSImage &badpix, operaFITSImage &bias, float noise, float gain, float ReferenceLineWidth,float DetectionThreshold, float LocalMaxFilterWidth, float MinPeakDepth);        
 	
-    void measureInstrumentProfile(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
+    void measureInstrumentProfile(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, unsigned minimumLines);
 	
-    void measureInstrumentProfileWithBinning(operaFITSImage &masterCompImage, operaFITSImage &badpix, double binsize, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
+    void measureInstrumentProfileWithBinning(operaFITSImage &masterCompImage, operaFITSImage &badpix, double binsize, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, unsigned minimumLines);
     
-    void measureInstrumentProfileUsingMedian(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
+    void measureInstrumentProfileUsingMedian(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, unsigned minimumLines);
     
-    void measureInstrumentProfileUsingWeightedMean(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout, const int minimumLines);
+    void measureInstrumentProfileUsingWeightedMean(operaFITSImage &masterCompImage, operaFITSImage &badpix, double MaxContamination, double amplitudeCutOff, unsigned nSigCut, unsigned sampleElementForPlot, ostream *pout);
     
     void recenterOrderPosition(void);
     
@@ -370,9 +368,9 @@ public:
 
     void applyNormalizationFromExistingContinuum(ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, bool normalizeBeams, unsigned numberOfprintouts);
 
-    void normalizeSpectrum(operaFluxVector &uncalibratedFlux, operaFluxVector &normalizedFlux, operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial);
+    void normalizeSpectrum(const operaFluxVector &uncalibratedFlux, operaFluxVector &normalizedFlux, operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial);
 	
-    void measureContinuum(operaFluxVector &uncalibratedFlux,operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned nsigcut, unsigned orderOfPolynomial, bool usePolynomial);    
+    void measureContinuum(const operaFluxVector &uncalibratedFlux,operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned nsigcut, unsigned orderOfPolynomial, bool usePolynomial);    
 	
     void deleteSpectralEnergyDistribution(void);
     
@@ -429,7 +427,7 @@ public:
 	void CopyFluxVectorIntoNormalizedFlux();
 	void CopyNormalizedFluxIntoFluxVector();
 	
-    void TrimOrderToWavelengthRange(double wl0, double wlf);
+    void TrimOrderToWavelengthRange();
 };
 
 #endif

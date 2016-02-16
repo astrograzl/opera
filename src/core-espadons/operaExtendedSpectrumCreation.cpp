@@ -189,13 +189,17 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 
         // Load telluric correction for wavelength calibration
 		if (!telluriccorrection.empty()) {
-			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, telluriccorrection);
+			FormatData telldata;
+			operaIOFormats::ReadCustomFormat("tell", telldata, telluriccorrection);
+			spectralOrders.setTelluricRadialVelocityCorrection(telldata.extract<double>());
             spectralOrders.applyTelluricRVShiftINTOExtendendSpectra(minorder, maxorder);
 		}
         
         // Load Heliocentric RV wavelength correction
         if (!radialvelocitycorrection.empty()) {
-			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, radialvelocitycorrection);
+			FormatData rveldata;
+			operaIOFormats::ReadCustomFormat("rvel", rveldata, radialvelocitycorrection);
+			spectralOrders.setRadialVelocityCorrection(rveldata.extract<double>());
             spectralOrders.setRVCorrectionINTOExtendendSpectra(minorder, maxorder);
         }
         
@@ -228,6 +232,11 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
             }
         } else {
             spectralOrders.normalizeOrderbyOrderAndSaveFluxINTOExtendendSpectra(normalizationBinsize, minorder, maxorder, false);
+        }
+        
+        // Remove continuum polarization
+        if(PolarimetryCorrection) {
+           // spectralOrders.removeContinuumPolarization(minorder, maxorder);
         }
         
         // Output wavelength calibrated spectrum

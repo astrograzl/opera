@@ -206,9 +206,9 @@ public:
 	
     void calculateSpectralResolution(doubleValue_t ResolutionElementInPixels);
     
-    double evaluateWavelength(double distanceValue);
+    double evaluateWavelength(double distanceValue) const;
     
-    double convertPixelToWavelength(double DeltaDistanceInPixels);
+    double convertPixelToWavelength(double DeltaDistanceInPixels) const;
     
     void setRadialVelocityPrecision(double radialvelocityprecision);    
     

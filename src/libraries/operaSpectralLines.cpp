@@ -84,7 +84,7 @@ dispersiontype(distance_disp)
 		throw operaException("operaSpectralLines: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	comparisonSpectrum = new operaSpectralElements(ComparisonSpectrum->getnSpectralElements(), ComparisonSpectrum->getSpectrumType());
-	comparisonSpectrum->setSpectralElements(*ComparisonSpectrum);	// sets element by element
+	*comparisonSpectrum = *ComparisonSpectrum; // sets element by element
     referenceLineWidth = ReferenceLineWidth;
 	for (unsigned f=0; f<MAXNUMBEROFFEATURES; f++) {
 		spectralFeatures[f] = NULL;
@@ -113,7 +113,7 @@ dispersiontype(distance_disp)
 		throw operaException("operaSpectralLines: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	comparisonSpectrum = new operaSpectralElements(ComparisonSpectrum->getnSpectralElements(), ComparisonSpectrum->getSpectrumType());
-	comparisonSpectrum->setSpectralElements(*ComparisonSpectrum);	// sets element by element
+	*comparisonSpectrum = *ComparisonSpectrum; // sets element by element
     referenceLineWidth = ReferenceLineWidth;
 	for (unsigned f=0; f<MAXNUMBEROFFEATURES; f++) {
 		spectralFeatures[f] = NULL;

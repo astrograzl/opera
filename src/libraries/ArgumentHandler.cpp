@@ -4,141 +4,109 @@
 #include <sstream>
 
 template <typename T>
-std::string ArgumentList<T>::GetDescription(unsigned int index) {
-	return arglist[index].description;
+void ArgumentWrapper<T>::SetToDefaultValue() {
+	if (flag == REQUIRED_ARGUMENT) throw std::runtime_error("missing required argument");
+	SetValue(defaultValue);
 }
 
 template <typename T>
-ArgumentFlag ArgumentList<T>::GetFlag(unsigned int index) {
-	return arglist[index].flag;
+void ArgumentWrapper<T>::SetToSwitchValue() {
+	if (flag == REQUIRED_ARGUMENT || flag == OPTIONAL_ARGUMENT) throw std::runtime_error("argument expects a value");
+	SetValue(switchValue);
 }
 
 template <typename T>
-void ArgumentList<T>::SetToDefaultValue(unsigned int index) {
-	if (arglist[index].flag == REQUIRED_ARGUMENT) throw std::runtime_error("missing required argument");
-	arglist[index].SetValue(arglist[index].defaultValue);
+void ArgumentWrapper<T>::SetToValue(T value) {
+	if (flag == SWITCH) throw std::runtime_error("argument does not expect a value");
+	SetValue(value);
 }
 
 template <typename T>
-void ArgumentList<T>::SetToSwitchValue(unsigned int index) {
-	if (arglist[index].flag == REQUIRED_ARGUMENT || arglist[index].flag == OPTIONAL_ARGUMENT) throw std::runtime_error("argument expects a value");
-	arglist[index].SetValue(arglist[index].switchValue);
-}
-
-template <typename T>
-void ArgumentList<T>::SetToPassedValue(unsigned int index, T value) {
-	if (arglist[index].flag == SWITCH) throw std::runtime_error("argument does not expect a value");
-	arglist[index].SetValue(value);
-}
-
-template <>
-void ArgumentList<std::string>::SetToPassedString(unsigned int index, std::string value) {
-	SetToPassedValue(index, value);
-}
-
-template <typename T>
-void ArgumentList<T>::SetToPassedString(unsigned int index, std::string value) {
+void ArgumentWrapper<T>::SetToValueFromString(std::string value) {
 	T temp;
 	std::istringstream ss(value);
 	ss >> temp; //future work: use more stringent type-checking and error throwing?
 	if (ss.fail()) throw std::runtime_error("value could not be read into argument");
-	SetToPassedValue(index, temp);
+	SetToValue(temp);
+}
+
+template <>
+void ArgumentWrapper<std::string>::SetToValueFromString(std::string value) {
+	SetToValue(value);
 }
 
 template <typename T>
-void ArgumentList<T>::Add(ArgumentWrapper<T> arg) {
-	arglist.push_back(arg);
+std::string ArgumentWrapper<T>::GetDescription() {
+	return description;
 }
 
-template class ArgumentList <double>;
-template class ArgumentList <int>;
-template class ArgumentList <std::string>;
-template class ArgumentList <bool>;
-template class ArgumentList <unsigned>;
+template <typename T>
+ArgumentFlag ArgumentWrapper<T>::GetFlag() {
+	return flag;
+}
 
-std::string ArgumentMap::ArgumentDescriptionBuilder(ArgumentInterface& argList, unsigned int index, std::string name, char typechar) {
-	ArgumentFlag flag = argList.GetFlag(index);
+template class ArgumentWrapper<double>;
+template class ArgumentWrapper<int>;
+template class ArgumentWrapper<std::string>;
+template class ArgumentWrapper<bool>;
+template class ArgumentWrapper<unsigned>;
+
+template <> ArgumentList<double>::ArgumentList() : typestring("double") { }
+template <> ArgumentList<int>::ArgumentList() : typestring("int") { }
+template <> ArgumentList<std::string>::ArgumentList() : typestring("string") { }
+template <> ArgumentList<bool>::ArgumentList() : typestring("bool") { }
+template <> ArgumentList<unsigned>::ArgumentList() : typestring("unsigned") { }
+
+template <> ArgumentList<double>& ArgumentMap::ListSelector<double>() { return argListDouble; }
+template <> ArgumentList<int>& ArgumentMap::ListSelector<int>() { return argListInt; }
+template <> ArgumentList<std::string>& ArgumentMap::ListSelector<std::string>() { return argListString; }
+template <> ArgumentList<bool>& ArgumentMap::ListSelector<bool>() { return argListBool; }
+template <> ArgumentList<unsigned>& ArgumentMap::ListSelector<unsigned>() { return argListUnsigned; }
+
+template void ArgumentMap::Add<double>(std::string name, ArgumentWrapper<double> variable);
+template void ArgumentMap::Add<int>(std::string name, ArgumentWrapper<int> variable);
+template void ArgumentMap::Add<std::string>(std::string name, ArgumentWrapper<std::string> variable);
+template void ArgumentMap::Add<bool>(std::string name, ArgumentWrapper<bool> variable);
+template void ArgumentMap::Add<unsigned>(std::string name, ArgumentWrapper<unsigned> variable);
+
+std::string ArgumentMap::DescriptionBuilder(std::string arg) {
+	ArgumentWrapperInterface& argref = Get(arg);
+	ArgumentFlag flag = argref.GetFlag();
 	std::string temp;
 	if (flag != REQUIRED_ARGUMENT) temp += "[";
 	temp += "--";
-	temp += name;
+	temp += arg;
 	if (flag != SWITCH) {
 		if (flag == FLEXIBLE_SWITCH) temp += "[";
-		if (typechar == 'd') temp += "=double";
-		else if (typechar == 'i') temp += "=int";
-		else if (typechar == 's') temp += "=string";
-		else if (typechar == 'b') temp += "=bool";
-		else if (typechar == 'u') temp += "=unsigned";
-		else throw std::logic_error("invalid character in argument map");
+		temp += "=";
+		temp += GetList(arg).GetTypeName();
 		if (flag == FLEXIBLE_SWITCH) temp += "]";
 	}
 	if (flag != REQUIRED_ARGUMENT) temp += "]";
 	temp += "\t";
-	temp += argList.GetDescription(index);
+	temp += argref.GetDescription();
 	return temp;
 }
 
-void ArgumentMap::PassArgumentValue(std::string arg, std::string value) {
-	Selector(argMap[arg].mapchar).SetToPassedString(argMap[arg].index, value);
-}
-
-void ArgumentMap::PassSwitch(std::string arg) {
-	Selector(argMap[arg].mapchar).SetToSwitchValue(argMap[arg].index);
-}
-
-void ArgumentMap::PassNothing(std::string arg) {
-	Selector(argMap[arg].mapchar).SetToDefaultValue(argMap[arg].index);
-}
-
-std::string ArgumentMap::GetDescription(std::string arg) {
-	return ArgumentDescriptionBuilder(Selector(argMap[arg].mapchar), argMap[arg].index, arg, argMap[arg].mapchar);
-}
-
-ArgumentInterface& ArgumentMap::Selector(char typechar) {
-	switch (typechar) {
-	case 'd':
-		return dynamic_cast<ArgumentInterface&>(argListDouble);
-	case 'i':
-		return dynamic_cast<ArgumentInterface&>(argListInt);
-	case 's':
-		return dynamic_cast<ArgumentInterface&>(argListString);
-	case 'b':
-		return dynamic_cast<ArgumentInterface&>(argListBool);
-	case 'u':
-		return dynamic_cast<ArgumentInterface&>(argListUnsigned);
-	default:
-		throw std::logic_error("invalid character in argument map");
-	}
-}
-
-void ArgumentMap::AddMapping(std::string name, char mapchar, int index) {
+template <typename T>
+void ArgumentMap::Add(std::string name, ArgumentWrapper<T> variable) {
+	ArgumentList<T>& argListTyped = dynamic_cast<ArgumentList<T>&>(ListSelector<T>());
+	argListTyped.Add(variable);
 	if (argMap.count(name) != 0) throw std::logic_error("multiple arguments mapped to the name " + name);
-	argMap[name] = MapIndex(mapchar, index);
+	MapIndex ind(argListTyped, argListTyped.Size() - 1);
+	argMap.insert(std::make_pair(name, ind));
 }
 
-void ArgumentMap::Add(std::string name, ArgumentWrapper<double> variable) {
-	AddMapping(name, 'd', argListDouble.Size());
-	argListDouble.Add(variable);
+ArgumentWrapperInterface& ArgumentMap::Get(std::string name) {
+	std::map <std::string, MapIndex>::const_iterator temp = argMap.find(name);
+	if (temp == argMap.end()) throw std::logic_error("no argument in argument map named " + name);
+	return temp->second.arglist[temp->second.index];
 }
 
-void ArgumentMap::Add(std::string name, ArgumentWrapper<int> variable) {
-	AddMapping(name, 'i', argListInt.Size());
-	argListInt.Add(variable);
-}
-
-void ArgumentMap::Add(std::string name, ArgumentWrapper<std::string> variable) {
-	AddMapping(name, 's', argListString.Size());
-	argListString.Add(variable);
-}
-
-void ArgumentMap::Add(std::string name, ArgumentWrapper<bool> variable) {
-	AddMapping(name, 'b', argListBool.Size());
-	argListBool.Add(variable);
-}
-
-void ArgumentMap::Add(std::string name, ArgumentWrapper<unsigned> variable) {
-	AddMapping(name, 'u', argListUnsigned.Size());
-	argListUnsigned.Add(variable);
+ArgumentListInterface& ArgumentMap::GetList(std::string name) {
+	std::map <std::string, MapIndex>::const_iterator temp = argMap.find(name);
+	if (temp == argMap.end()) throw std::logic_error("no argument in argument map named " + name);
+	return temp->second.arglist;
 }
 
 void ArgumentHandler::AddSwitch(std::string name, bool& variable, std::string description) {
@@ -174,9 +142,10 @@ void ArgumentHandler::Parse(int argc, char* argv[]) {
 		}
 		for (unsigned int i = 0; i < argNames.size(); i++) {
 			try {
-				if (readArgs.count(argNames[i]) == 0) expectedArgs.PassNothing(argNames[i]);
-				else if (!readArgs[argNames[i]]) expectedArgs.PassSwitch(argNames[i]);
-				else expectedArgs.PassArgumentValue(argNames[i], readArgs[argNames[i]]);
+				ArgumentWrapperInterface& argref = expectedArgs.Get(argNames[i]);
+				if (readArgs.count(argNames[i]) == 0) argref.SetToDefaultValue();
+				else if (!readArgs[argNames[i]]) argref.SetToSwitchValue();
+				else argref.SetToValueFromString(readArgs[argNames[i]]);
 			}
 			catch (std::runtime_error& error) {
 				throw std::runtime_error(error.what() + (": " + argNames[i]));
@@ -199,6 +168,6 @@ void ArgumentHandler::Parse(int argc, char* argv[]) {
 void ArgumentHandler::PrintUsageSyntax() {
 	std::cout << "Usage options" << (programName.empty() ? "" : " for ") << programName << ":" << std::endl;
 	for (unsigned int i = 0; i < argNames.size(); i++) {
-		std::cout << expectedArgs.GetDescription(argNames[i]) << std::endl;
+		std::cout << expectedArgs.DescriptionBuilder(argNames[i]) << std::endl;
 	}
 }

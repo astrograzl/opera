@@ -67,7 +67,7 @@ extern "C" {
 	 * The functions below uses mpfit library (MPFIT)
 	 */
 	int MPPolyFunc(int m, int n, double *p, double *dy, double **dvec, void *vars);
-	int operaMPFitPolynomial(unsigned m_dat, double *x, double *y, double *ey, int n_par, double *par, double *epar, double *chi2);
+	int operaMPFitPolynomial(unsigned m_dat, const double *x, const double *y, const double *ey, int n_par, double *par, double *epar, double *chi2);
 	int MPGaussFunc(int m, int n, double *p, double *dy, double **dvec, void *vars);
 	int	operaMPFitGaussian(unsigned m_dat, double *x, double *y, double *ey, double *a, double *ea, double *x0, double *ex0, double *sig, double *esig, double *chi2);
     int	operaMPFitMultipleGaussian(unsigned m_dat, double *x, double *y, double *ey, unsigned ngauss, double a[], double ea[], double x0[], double ex0[], double sig[], double esig[], double *chi2);
@@ -76,15 +76,15 @@ extern "C" {
 	 * The functions below uses nr library, although all necessary functions to make them work are in operaFit.c
 	 */
 	// spline and 2D-spline interpolation and related functions
-	void operaFitSpline(unsigned nin, float *xin, float *yin, unsigned nout, float *xout, float *yout);
-	void operaFitSplineDouble(const unsigned nin, const double *xin, const double *yin, const unsigned nout, const double *xout, double *yout);
+	void operaFitSpline(unsigned nin, const float *xin, const float *yin, unsigned nout, const float *xout, float *yout);
+	void operaFitSplineDouble(unsigned nin, const double *xin, const double *yin, unsigned nout, const double *xout, double *yout);
+	int cubicspline(const float *x, const float *y, unsigned n, float yp1, float ypn, float *y2);
+	int cubicsplineDouble(const double *x, const double *y, unsigned n, double yp1, double ypn, double *y2);
+	int splineinterpolate(const float *xa, const float *ya, const float *y2a, int n, float x, float *y);
+	int splineinterpolateDouble(const double *xa, const double *ya, const double *y2a, int n, double x, double *y);
 	void operaFit2DSpline(unsigned nxin, float *xin, unsigned nyin, float *yin, float *fxyin, unsigned nxout, float *xout, unsigned nyout, float *yout, float *fxyout);
-	int cubicspline(float *x, float *y, unsigned n, float yp1, float ypn, float *y2);
-	int cubicsplineDouble(double *x, double *y, unsigned n, double yp1, double ypn, double *y2);
-	int splineinterpolate(float *xa, float *ya, float *y2a, int n, float x, float *y);
-	int splineinterpolateDouble(double *xa, double *ya, double *y2a, int n, double x, double *y);
-	void splineinterpolate2D(float *x1a, float *x2a, CMatrix ya, CMatrix y2a, int m, int n, float x1, float x2, float *y);
 	void cubicspline2D(float *x1a, float *x2a, CMatrix ya, int m, int n, CMatrix y2a);
+	void splineinterpolate2D(float *x1a, float *x2a, CMatrix ya, CMatrix y2a, int m, int n, float x1, float x2, float *y);
 	
 	// Least Average Deviation Fit
 	void ladfit(float x[], float y[], int nX, float *a, float *b, float *absdev);
