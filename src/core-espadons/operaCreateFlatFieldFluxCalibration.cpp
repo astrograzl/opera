@@ -138,23 +138,11 @@ int main(int argc, char *argv[])
         unsigned elemIndexPicked = 0;
         int refOrder = -999;
         
-        // First loop over orders to search for order with maximum number of
-        // elements
+        // First loop over orders to search for order with maximum number of elements
         // --> maxNElements
-        unsigned maxNElements = 0;
-        for (int order=minorder; order<=maxorder; order++) {
-			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-
-            if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
-                operaWavelength *wavelength = spectralOrder->getWavelength();
-                operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
-                SpectralElements->setwavelengthsFromCalibration(wavelength);
-                if(maxNElements < SpectralElements->getnSpectralElements()) {
-                    maxNElements = SpectralElements->getnSpectralElements();
-                }
-            }
-        }
-  
+        spectralOrders.setWavelengthsFromCalibration(minorder, maxorder);
+        unsigned maxNElements = spectralOrders.getMaxNumberOfElementsInOrder(minorder, maxorder);
+        
         // Calculate reference order and maximum flux for normalization
         // --> refOrder, maxFluxForNormalization
         if(wavelengthForNormalization) {
@@ -169,7 +157,6 @@ int main(int argc, char *argv[])
 
                 if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
                     
-                    //May 08 2014 -- not used -- operaWavelength *wavelength = spectralOrder->getWavelength();
                     operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
                     double tmp_FluxForNormalization = SpectralElements->getFlux(elemIndexWithReferenceFluxForNormalization[i]);
                     
@@ -251,59 +238,29 @@ int main(int argc, char *argv[])
                 operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();
                 operaWavelength *wavelength = spectralOrder->getWavelength();
 
-                // use info in SpectralElements to create spectralEnergyDistribution
-                spectralOrder->createSpectralEnergyDistributionElements(SpectralElements->getnSpectralElements());
-                
                 operaSpectralEnergyDistribution *spectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();                
-                spectralEnergyDistribution->setUncalibratedFluxElements(SpectralElements);
                 spectralEnergyDistribution->setwavelengthForNormalization(wavelengthForNormalization);
                 
                 for(unsigned beam=0; beam < numberOfBeams; beam++) {
                     operaSpectralElements *BeamElements = spectralOrder->getBeamElements(beam);
-                    for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
-                        BeamElements->setdistd(SpectralElements->getdistd(indexElem), indexElem);
-                    }
-                    BeamElements->setwavelengthsFromCalibration(wavelength);
-                    
                     operaSpectralEnergyDistribution *BeamSED = spectralOrder->getBeamSED(beam);
-                    BeamSED->setUncalibratedFluxElements(BeamElements);
                     BeamSED->setwavelengthForNormalization(wavelengthForNormalization);
                 }
                 
                 // normalize spectral Elements
-                spectralOrder->normalizeSpectralElementsByConstant(maxFluxForNormalization,maxBeamFluxForNormalization);
+				operaVector maxFluxesForNormalization;
+				maxFluxesForNormalization.insert(maxFluxForNormalization);
+				for (unsigned b = 0; b < numberOfBeams; b++) maxFluxesForNormalization.insert(maxBeamFluxForNormalization[b]);
+				spectralOrder->normalizeSpectralElementsByConstant(maxFluxesForNormalization);
 
-                operaSpectralElements *fluxCalibrationElements = spectralEnergyDistribution->getFluxCalibrationElements();
-                operaSpectralElements *thruputElements = spectralEnergyDistribution->getThroughputElements();
-                
-                for(unsigned indexElem=0;indexElem < SpectralElements->getnSpectralElements(); indexElem++) {
-                    fluxCalibrationElements->setFlux(SpectralElements->getFlux(indexElem),indexElem);
-                    thruputElements->setFlux(SpectralElements->getFlux(indexElem),indexElem);
-                    fluxCalibrationElements->setwavelength(SpectralElements->getwavelength(indexElem),indexElem);
-                    thruputElements->setwavelength(SpectralElements->getwavelength(indexElem),indexElem);
-                    
-                    for(unsigned beam=0; beam < numberOfBeams; beam++) {
-                        operaSpectralElements *BeamElements = spectralOrder->getBeamElements(beam);
-                        operaSpectralEnergyDistribution *BeamSED = spectralOrder->getBeamSED(beam);
-                        operaSpectralElements *fluxCalibrationBeamElements = BeamSED->getFluxCalibrationElements();
-                        operaSpectralElements *thruputBeamElements = BeamSED->getThroughputElements();
-
-                        fluxCalibrationBeamElements->setFlux(BeamElements->getFlux(indexElem),indexElem);
-                        thruputBeamElements->setFlux(BeamElements->getFlux(indexElem),indexElem);
-                        fluxCalibrationBeamElements->setwavelength(SpectralElements->getwavelength(indexElem),indexElem);
-                        thruputBeamElements->setwavelength(SpectralElements->getwavelength(indexElem),indexElem);
-                    }
-                }
-                
-                spectralEnergyDistribution->setHasUncalibratedFlux(true);
-                spectralEnergyDistribution->setHasFluxCalibration(true);
-                spectralEnergyDistribution->setHasInstrumentThroughput(true);
-                for(unsigned beam=0; beam < numberOfBeams; beam++) {
-                    operaSpectralEnergyDistribution *BeamSED = spectralOrder->getBeamSED(beam);
-                    BeamSED->setHasUncalibratedFlux(true);
-                    BeamSED->setHasFluxCalibration(true);
-                    BeamSED->setHasInstrumentThroughput(true);
-                }
+                for(unsigned b=0; b < spectralOrder->MainAndBeamCount(); b++) {
+					operaSpectralEnergyDistribution& sed = spectralOrder->MainAndBeamSED(b);
+					sed.setFluxCalibration(spectralOrder->MainAndBeamElements(b).getFluxVector().getflux());
+					sed.setThroughput(spectralOrder->MainAndBeamElements(b).getFluxVector().getflux());
+					sed.setCalibrationWavelength(spectralOrder->MainAndBeamElements(b).getWavelength());
+					sed.setHasFluxCalibration(true);
+					sed.setHasInstrumentThroughput(true);
+				}
                 spectralOrder->sethasSpectralEnergyDistribution(true);
                 
                 if(args.debug) {
@@ -312,9 +269,8 @@ int main(int argc, char *argv[])
                         << SpectralElements->getwavelength(i) << " "
                         << SpectralElements->getdistd(i) << " "
                         << SpectralElements->getFlux(i) << " "
-                        << spectralEnergyDistribution->getUncalibratedFluxElements()->getFlux(i) << " "
-                        << fluxCalibrationElements->getFlux(i) << " "
-                        << thruputElements->getFlux(i) << endl;
+                        << spectralEnergyDistribution->getFluxCalibration().getflux(i) << " "
+                        << spectralEnergyDistribution->getThroughput().getflux(i) << endl;
                     }
                }
 

@@ -41,7 +41,6 @@
 #include <math.h>
 
 #include "libraries/operaLibCommon.h"			// for MAXNPOLYGONSIDES
-#include "libraries/operaStats.h"   // for operaArrayIndexSort
 
 class operaPoint;
 class Rectangle;
@@ -69,72 +68,66 @@ private:
     
 public:
     operaPoint(void);
-    
     operaPoint(float xp, float yp);    
-    
-    operaPoint(const Line &inputLine1, const Line &inputLine2);
-    
-	operaPoint(const operaPoint &point);
-    
-    ~operaPoint(void);
-    
-	void setPoint(const operaPoint &point);
-    
     void setPoint(float xp, float yp);
-
     float getXcoord(void) const;
-    
     float getYcoord(void) const;
-    
+    void shift(float xshift, float yshift);
+    void rotate(float angle);
 };
 
 /*
  * Simple boxes for things like guide windows in WIRCam
  */
 class Box {
-	
 private:
 	unsigned x1, x2, y1, y2;
 	unsigned xDim, yDim;
 	
 public:
-	
-	Box();
-	
+	Box(void);
 	Box(unsigned X1, unsigned X2, unsigned Y1, unsigned Y2);
-	
 	Box(unsigned X1, unsigned X2, unsigned Y1, unsigned Y2, unsigned XDim, unsigned YDim);
-	
 	unsigned getX1(void) const;
-	
 	unsigned getX2(void) const;
-	
 	unsigned getY1(void) const;
-	
 	unsigned getY2(void) const;
-	
 	unsigned getDX(void) const;
-	
 	unsigned getDY(void) const;
-	
 	unsigned getXDim(void) const;
-	
 	unsigned getYDim(void) const;
-	
 	void setX1(unsigned X1);
-	
 	void setX2(unsigned X2);
-	
 	void setY1(unsigned Y1);
-	
 	void setY2(unsigned Y2);
-	
 	void setXDim(unsigned XDim);
-	
 	void setYDim(unsigned YDim);
-	
 	unsigned getSize(void) const;
-	
+};
+
+/*
+ * Axis aligned bounding box
+ */
+class BoundingBox {
+private:
+    float minx;
+    float maxx;
+    float miny;
+    float maxy;
+    
+public:
+	BoundingBox();
+	BoundingBox(float MinX, float MaxX, float MinY, float MaxY);
+    BoundingBox(float Width, float Height, const operaPoint &Center);
+    float getMinX() const;
+    float getMaxX() const;
+    float getMinY() const;
+    float getMaxY() const;
+    float getWidth(void) const;
+    float getHeight(void) const;
+    const operaPoint getCenter(void) const;
+    void shift(float xshift, float yshift);
+    bool pointInShape(const operaPoint &testPoint) const;
 };
 
 /*
@@ -150,38 +143,18 @@ private:
     
 public:
     Rectangle(void);
-    
     Rectangle(float Width, float Height, float Angle);
-	
-    Rectangle(float Width, float Height, float Angle, const operaPoint &Center);   
-    
-    Rectangle(float Width, float Height, float Angle, const operaPoint *Center);   
-    
-	Rectangle(const Rectangle &Rectangle);
-    
-    ~Rectangle(void);
-    
-	void setRectangle(float Width, float Height, float Angle, const operaPoint &Center);
-    
-	void setRectangle(const Rectangle &Rectangle);
-    
-	operaPoint* getCorner(unsigned index);
-	
-	const operaPoint* getCorner(unsigned index)  const;
-    
+	Rectangle(float Width, float Height, float Angle, const operaPoint &Center);   
+    const operaPoint& getCorner(unsigned index)  const;
     float getWidth(void) const;
-    
     float getHeight(void) const;
-    
     float getAngle(void) const;   
-	
-    operaPoint *getCenter(void);
-    
-    const operaPoint *getCenter(void) const;
-    
+	const operaPoint& getCenter(void) const;
+    void rotate(float Angle);
+    void shift(float xshift, float yshift);
     void printCorners(void); 
-	
-    bool pointInRectangle(const operaPoint &TestPoint) const;
+	bool pointInShape(const operaPoint &testPoint) const;
+	BoundingBox getBoundingBox() const;
 };
 
 /*
@@ -194,24 +167,13 @@ private:
     
 public:
     Circle(void);     
-	
-    Circle(float Radius);
-    
+	Circle(float Radius);
     Circle(float Radius, const operaPoint &Center);
-    
-	Circle(const Circle &ACircle);
-    
-    ~Circle(void);
-    
-	void setCircle(const Circle &ACircle);
-    
     float getRadius(void) const;
-    
-    operaPoint *getCenter(void);
-    
-    const operaPoint *getCenter(void) const;
-    
-    bool pointInCircle(const operaPoint &TestPoint) const;
+    const operaPoint &getCenter(void) const;
+    void shift(float xshift, float yshift);
+    bool pointInShape(const operaPoint &testPoint) const;
+    BoundingBox getBoundingBox() const;
 };
 
 /*
@@ -224,31 +186,14 @@ private:
     
 public:
     Polygon(void);
-    
-    Polygon(unsigned NSides, const operaPoint *Vertices[]);
-    
-	Polygon(unsigned NSides, const operaPoint Vertices[]);
- 	
-	Polygon(const Polygon &Poly);
-	
-    ~Polygon(void);
-	
-	void setPolygon(const Polygon &Poly);
-	
+    Polygon(unsigned NSides, const operaPoint Vertices[]);
+ 	unsigned getNSides(void) const;
+    const operaPoint& getVertex(unsigned index) const;
     void simplePolygonization(void);
-    
-    void setNSides(unsigned NSides);
-    
-    unsigned getNSides(void) const;
-    
-    operaPoint* getVertex(unsigned index);
-    
-    const operaPoint* getVertex(unsigned index) const;
-    
-    bool pointInPolygon(const operaPoint &testPoint) const;
-    
-    void printVertexCoordinates(void);    
-    
+    void shift(float xshift, float yshift);
+    void printVertexCoordinates(void);
+    bool pointInShape(const operaPoint &testPoint) const;
+    BoundingBox getBoundingBox() const;
 };
 
 /*
@@ -268,80 +213,33 @@ private:
     
 public:
     Line(void);
-    
     Line(float Slope);
-    
     Line(float Slope, const operaPoint &SamplePoint);
-    
     Line(float Slope, float Intercept);
-    
     Line(float Slope, float Width, float Length);
-    
-    Line(float Slope, float Width, float Length, const operaPoint &MidPoint);
-    
-    Line(float Slope, float Width, float Length, const operaPoint *MidPoint);
-    
     Line(float Slope, float Intercept, float Width, float Length);
-	
-	Line(const Line &inputLine, LinePosition_t LinePosition);
-	
-	Line(const Line &ALine);
-    
-    ~Line(void);
-    
-	void setLine(const Line &ALine);
-    
+	Line(float Slope, float Width, float Length, const operaPoint &MidPoint);
     float getSlope(void) const;
-    
     float getWidth(void) const;
-    
     float getLength(void) const;
-    
-    operaPoint *getMidPoint(void);
-    
-    const operaPoint *getMidPoint(void) const;
-    
+    const operaPoint& getMidPoint(void) const;
     void setMidPoint(const operaPoint &MidPoint);    
-	
-    void setMidPoint(const operaPoint *MidPoint);    
-	
-    float getIntercept(void) const;
-    
+	float getIntercept(void) const;
     void printLineEquation(void); 
-    
     float getYcoord(float x) const;
-    
     float getXcoord(float y) const;
-    
-    bool pointOnLine(const operaPoint &TestPoint) const;
-    
-    bool pointInLineWidth(const operaPoint &TestPoint, const Line &inputLine) const;
-    
-    Line *newPerpendicularLine(const Line &inputLine) const;
-    
-	operaPoint *newIntersectionPoint(const Line &inputLine) const;
-    
-    Line *newTopLine(const Line &inputLine) const;
-    
-    Line *newBottomLine(const Line &inputLine) const;
-    
-    Line *newLeftLine(const Line &inputLine) const;
-    
-    Line *newRightLine(const Line &inputLine) const;
-    
+    void shift(float xshift, float yshift);
     float getLineYWidth(void) const;
+    float getLineXLength(void) const;
+    operaPoint getIntersectionPoint(const Line &inputLine) const;
+    Line getPerpendicularLine() const;
+    Line getTopLine() const;
+    Line getBottomLine() const;
+    Line getLeftLine() const;
+    Line getRightLine() const;
+    bool pointOnLine(const operaPoint &TestPoint) const;
+    bool pointInShape(const operaPoint &testPoint) const;
+    BoundingBox getBoundingBox() const;
 };
 
-/*
- class Donut {
- private:
- float innerRadius;
- float outerRadius;
- operaPoint center;
- public:
- 
- }
- */
-
 #endif
-

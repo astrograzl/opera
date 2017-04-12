@@ -37,20 +37,12 @@
 // $Locker$
 // $Log$
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-    
-#include <math.h>
 #include "libraries/operaLibCommon.h"
-
-// for Linux...
-#ifndef M_PI
-#define M_PI 3.14159265358979323846264338327950288
-#endif
+#include "libraries/operaVector.h"
+#include <cmath>
 
 /*! \brief Opera Matrix library. */
-/*! \file operaMatrix.c */
+/*! \file operaMatrix.cpp */
 
 /*! 
  * operaMatrix
@@ -62,6 +54,39 @@ extern "C" {
  * \ingroup libraries
  */
 
+template <typename T>
+class Matrix {
+private:
+	std::vector<std::vector<T> > data;
+	unsigned r;
+	unsigned c;
+public:
+	Matrix(unsigned rows, unsigned cols) : data(rows, std::vector<T>(cols)), r(rows), c(cols) { }
+	std::vector<T>& operator[](unsigned i) { return data[i]; }
+	const std::vector<T>& operator[](unsigned i) const { return data[i]; }
+	unsigned rows() const { return r; }
+	unsigned cols() const { return c; }
+};
+
+template <typename T>
+class Cube {
+private:
+	std::vector<Matrix<T> > data;
+	unsigned s;
+	unsigned r;
+	unsigned c;
+public:
+	Cube(unsigned slices, unsigned rows, unsigned cols) : data(slices, Matrix<T>(rows, cols)), s(slices), r(rows), c(cols) { }
+	Matrix<T>& operator[](unsigned i) { return data[i]; }
+	const Matrix<T>& operator[](unsigned i) const { return data[i]; }
+	unsigned slices() const { return s; }
+	unsigned rows() const { return r; }
+	unsigned cols() const { return c; }
+	void clear() { data.clear(); }
+};
+
+typedef Matrix<double> DMatrix;
+typedef Cube<double> DCube;
 
 /**********************************************************************************/
 /**********************************************************************************/
@@ -175,8 +200,4 @@ void r8mat_identity ( int n, double a[] );
 double r8mat_is_eigen_right ( int n, int k, double a[], double x[], double lambda[] );
 double r8mat_norm_fro ( int m, int n, double a[] );
      
-#ifdef __cplusplus
-}
-#endif
-
 #endif

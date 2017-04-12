@@ -760,7 +760,7 @@ int operaCCDDetectOrderMapBasedOnSpacingPolynomial(unsigned np,float *fx,float *
         
         xiSqr = 0;
         
-        unsigned newmaxorders = matchMeasuredOrdersWithMap(np,fx,fy,slit,npar,par,nords,xmean,ymean,orderMap,ordSepPred,ordXPosPred,ordYValue,ordIndex,j,nAccHops,minordertouse,maxorders,&xiSqr);
+        matchMeasuredOrdersWithMap(np,fx,fy,slit,npar,par,nords,xmean,ymean,orderMap,ordSepPred,ordXPosPred,ordYValue,ordIndex,j,nAccHops,minordertouse,maxorders,&xiSqr);
         
         // cout << j << " " << xiSqr << endl;
         

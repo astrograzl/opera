@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
                 operaWavelength *wavelength =  spectralOrder->getWavelength();
                 Polynomial *wavelengthPolynomial =  wavelength->getWavelengthPolynomial();
                 
-                wavelengthPolynomial->setOrderOfPolynomial(maxorderofpolynomial);
+                wavelengthPolynomial->resize(maxorderofpolynomial);
                 
                 for(unsigned wlcoeffIndex=0; wlcoeffIndex < maxorderofpolynomial; wlcoeffIndex++) {
                     double wavelengthPolynomialCoeff = dispersionPolynomial[wlcoeffIndex]->Evaluate(double(order));

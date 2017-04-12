@@ -71,6 +71,18 @@ unsigned Date::ToJulianDayNumber() const {
       ((3 * ((year + 4900 + a) / 100)) / 4) + day - 32075;
 }
 
+std::istream& operator>>(std::istream& in, Date& var) {
+	std::string temp;
+	in >> temp;
+	if(!var.SetFromString(temp)) in.setstate(std::ios_base::failbit);
+	return in;
+}
+
+std::ostream& operator<<(std::ostream& out, const Date& var) {
+	out << var.year << ":" << var.month << ":" << var.day;
+	return out;
+}
+
 bool DateTime::SetFromString(std::string str) {
 	std::istringstream ss(str);
 	std::string datestr, timestr;

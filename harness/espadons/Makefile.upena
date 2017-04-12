@@ -177,6 +177,19 @@ snr:
 	fi
 
 #########################################################################################
+# reduce from archive
+#########################################################################################
+fromarchive:
+ifeq ($(DATADIR),$(queuedir)/)
+	@echo "In order to use the fromarchive option you must specify a DATADIR or NIGHT."
+	@exit 1
+else
+	@daterange=`$(bindir)operagetdaterange $(NIGHT)`; \
+	$(MAKE) -f $(makedir)Makefile DATADIR=$(tmpdir) NIGHT=$(NIGHT) ARCHIVE=$${daterange} WHERE="$(WHERE)" TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory reduce; \
+	echo done
+endif
+
+#########################################################################################
 # quicklook reduction
 # create the snr table for each order at wlc for intensity spectra
 # the wavelength file is given to get an estimate of wavelengths for each order
@@ -435,6 +448,7 @@ endif
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
 --wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
+--removePolarContinuum=$(RemoveContinuumPolarization) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pu.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
@@ -460,6 +474,7 @@ endif
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
 --wavelengthType=$(RVAndTelluricCorrectedWavelengthInNM) \
+--removePolarContinuum=$(RemoveContinuumPolarization) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pn.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
@@ -485,6 +500,7 @@ endif
 --object=\"$${object}\" \
 --fluxType=$(CalibratedFluxNormalizedToRefWavelength) \
 --wavelengthType=$(RVCorrectedWavelengthInNM) \
+--removePolarContinuum=$(RemoveContinuumPolarization) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*puw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
@@ -510,6 +526,7 @@ endif
 --object=\"$${object}\" \
 --fluxType=$(NormalizedFluxToContinuum) \
 --wavelengthType=$(RVCorrectedWavelengthInNM) \
+--removePolarContinuum=$(RemoveContinuumPolarization) \
 --outputLEfilename=$(spectradir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			$(MAKE) -f $(makedir)Makefile $*pnw.s.eps TYPE=$(TYPE) DETECTOR=$${detector} MODE=$${mode} SPEED=$${speed} AMPLIFIER=$${amplifier} QUALIFIERS=$(QUALIFIERS) DATADIR=$(DATADIR) TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --no-print-directory; \
@@ -547,23 +564,32 @@ distributelog:
 	if [ -e $(tmpdir)Lock_$(NIGHT) ] ; then \
 	 	cat <$(tmpdir)Lock_$(NIGHT) ; \
 	else \
-		files=`$(archivebindir)ardrangeESP $(ARCHIVE) | tr ' ' '\n' | grep 'o.fits'` ; \
-		for f in $$files;  do \
-			fullpath=`$(archivebindir)arlocate $$f` ; \
+		outputdir="/data/uhane5/upena/upena_proc/" ; \
+		echo "$(pref) Distribution for $(NIGHT)" ; \
+		objectlist=`$(archivebindir)ardrangeESP $(ARCHIVE) | tr ' ' '\n' | grep 'o.fits'` ; \
+		for object in $$objectlist; do \
+			fullpath=`$(archivebindir)arlocate $$object` ; \
 			runid=`$(bindir)operagetheader $$fullpath --keyword=RUNID | sed -e 's: ::g'` ; \
-			outfile=`echo "$$f" | sed -e s/o.$(FITS)/i.$(FITS)/`$(extension); \
-			outputdir="/data/uhane5/upena/upena_proc/" ; \
 			if [ ! -d $$outputdir$$runid/opera ] ; then \
 				mkdir $$outputdir$$runid/opera ; \
 			fi ; \
-			rm -f $$outputdir$$runid/opera/$$outfile ; \
-			if [ -e $(spectradir)/$$outfile ] ; then \
-				echo  "$(pref)$(spectradir)/$$outfile --> $$outputdir$$runid/opera" ; \
-				cp $(spectradir)/$$outfile $$outputdir$$runid/opera ; \
-			else \
-				echo "error: file $(spectradir)/$$outfile doesn't exist!" ; \
-			fi ; \
+			outfiles=`echo "$$object" | sed -e s/o.$(FITS)/i.$(FITS)/`$(extension); \
+			outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/m.$(FITS)/`$(extension)"; \
+			outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/in.s/`$(extension)"; \
+			outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/iu.s/`$(extension)"; \
+			outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/inw.s/`$(extension)"; \
+			outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/iuw.s/`$(extension)"; \
+			for outfile in $$outfiles; do \
+				if [ -e $(spectradir)/$$outfile ] ; then \
+					echo  "$(pref)$(spectradir)/$$outfile --> $$outputdir$$runid/opera" ; \
+					rm -f $$outputdir$$runid/opera/$$outfile ; \
+					cp $(spectradir)/$$outfile $$outputdir$$runid/opera ; \
+				else \
+					echo "error: file $(spectradir)/$$outfile doesn't exist!" ; \
+				fi ; \
+			done ; \
 		done ; \
+		echo "$(pref) Distribution time for $(NIGHT) $(deltat)." ; \
 	fi
 else
 distributelog:
@@ -576,31 +602,36 @@ distributelog:
 		else \
 			outputdir="/data/uhane5/upena/upena_proc/" ; \
 			echo "$(pref) Distribution for $(NIGHT)" ; \
-			runids="" ; \
-			objectlist="`ls $(DATADIR)/[0-9]*[o].$(FITS)$(inextension) $(DATADIR)/[0-9]*[o].$(FITS) 2>/dev/null | xargs -n1 basename 2>/dev/null`"; \
-			runids="" ; \
-			echo "$(pref) Step 1 -- examining the object files." ; \
+			objectlist=`ls $(DATADIR) | grep 'o.fits' | xargs -n1 basename`; \
 			for object in $$objectlist; do \
-				runid=`$(bindir)operagetheader $(DATADIR)/$$object --keyword=RUNID | sed -e 's: ::g'` ; \
+				fullpath="$(DATADIR)/$$object" ; \
+				runid=`$(bindir)operagetheader $$fullpath --keyword=RUNID | sed -e 's: ::g'` ; \
 				arfile=`$(archivebindir)arlocate $$object` ; \
 				if [[ "$$arfile" == "not.on.disk" ]] ; then \
 					echo "$(epref) File $$object is not currently in the archive." 2>&1 | tee -a $(errfile) ; \
 				else \
 					echo "the object file is in the archive at $$arfile" ; \
 				fi ; \
-				outfile=`basename "$$arfile" | sed -e s/o.$(FITS)/i.$(FITS)/`$(extension); \
 				if [ ! -d $$outputdir$$runid/opera ] ; then \
 					mkdir $$outputdir$$runid/opera ; \
 				fi ; \
-				rm -f $$outputdir$$runid/opera/$$outfile ; \
-				if [ -e $(spectradir)/$$outfile ] ; then \
-					echo  "$(pref)$(spectradir)/$$outfile --> $$outputdir$$runid" ; \
-					cp $(spectradir)/$$outfile $$outputdir$$runid/opera ; \
-				else \
-					cp "error: file $(spectradir)/$$outfile doesn't exist!" ; \
-				fi ; \
+				outfiles=`echo "$$object" | sed -e s/o.$(FITS)/i.$(FITS)/`$(extension); \
+				outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/m.$(FITS)/`$(extension)"; \
+				outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/in.s/`$(extension)"; \
+				outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/iu.s/`$(extension)"; \
+				outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/inw.s/`$(extension)"; \
+				outfiles="$$outfiles `echo "$$object" | sed -e s/o.$(FITS)/iuw.s/`$(extension)"; \
+				for outfile in $$outfiles; do \
+					if [ -e $(spectradir)/$$outfile ] ; then \
+						echo  "$(pref)$(spectradir)/$$outfile --> $$outputdir$$runid/opera" ; \
+						rm -f $$outputdir$$runid/opera/$$outfile ; \
+						cp $(spectradir)/$$outfile $$outputdir$$runid/opera ; \
+					else \
+						echo "error: file $(spectradir)/$$outfile doesn't exist!" ; \
+					fi ; \
+				done ; \
 			done ; \
-			echo "$(pref) Distribution time for $(NIGHT) $$runids $(deltat)." ; \
+			echo "$(pref) Distribution time for $(NIGHT) $(deltat)." ; \
 		fi ; \
 	fi
 endif

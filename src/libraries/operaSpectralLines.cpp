@@ -193,7 +193,7 @@ void operaSpectralLines::setDispersiontype(dispersionaxis_t Dispersiontype) {
     dispersiontype = Dispersiontype;
 }
 
-dispersionaxis_t operaSpectralLines::getDispersiontype(void) {
+dispersionaxis_t operaSpectralLines::getDispersiontype(void) const {
     return dispersiontype;
 }
 
@@ -201,7 +201,7 @@ void operaSpectralLines::setnLines(unsigned NLines) {
       nLines = NLines;  
 }
 
-unsigned operaSpectralLines::getnLines(void) {
+unsigned operaSpectralLines::getnLines(void) const {
       return nLines;  
 }
 
@@ -212,7 +212,7 @@ void operaSpectralLines::setNFeatures(unsigned NFeatures) {
     nFeatures = NFeatures;
 }
 
-unsigned operaSpectralLines::getNFeatures(void) {
+unsigned operaSpectralLines::getNFeatures(void) const {
     return nFeatures; 
 }
 
@@ -221,9 +221,16 @@ void operaSpectralLines::setReferenceLineWidth(double ReferenceLineWidth) {
     referenceLineWidth = ReferenceLineWidth;
 }
 
-double operaSpectralLines::getReferenceLineWidth(void) {
+double operaSpectralLines::getReferenceLineWidth(void) const {
     return referenceLineWidth;
 }    
+
+const operaSpectralFeature *operaSpectralLines::getSpectralFeature(unsigned indexFeature) const{
+	if (indexFeature >= nFeatures) {
+		throw operaException("operaSpectralLines: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+	}
+    return spectralFeatures[indexFeature];  
+}
 
 operaSpectralFeature *operaSpectralLines::getSpectralFeature(unsigned indexFeature){
 	if (indexFeature >= nFeatures) {
@@ -680,7 +687,7 @@ void operaSpectralLines::subtractFeatureModel(void) {
 #endif    
 }
 
-void operaSpectralLines::printLines(ostream *pout) {
+void operaSpectralLines::printLines(ostream *pout) const {
 	if (pout) {    
         unsigned totalNlines = 0;
         for(unsigned k=0;k<nFeatures;k++) {
@@ -712,7 +719,7 @@ void operaSpectralLines::printLines(ostream *pout) {
     }
 }
 
-void operaSpectralLines::printReferenceSpectrum(ostream *pout) {
+void operaSpectralLines::printReferenceSpectrum(ostream *pout) const {
 	if (comparisonSpectrum == NULL) {
 		throw operaException("operaSpectralLines ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -802,7 +809,7 @@ unsigned operaSpectralLines::selectLines(double MaxContamination, unsigned nSig,
 }
 
 // Note that these are length protected...
-inline double operaSpectralLines::getMX(unsigned k) {
+inline double operaSpectralLines::getMX(unsigned k) const {
 	if (comparisonSpectrum == NULL) {
 		throw operaException("operaSpectralLines ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -830,14 +837,14 @@ inline double operaSpectralLines::getMX(unsigned k) {
 	return NAN;
 }
 
-inline double operaSpectralLines::getMY(unsigned k) {
+inline double operaSpectralLines::getMY(unsigned k) const {
 	if (comparisonSpectrum == NULL) {
 		throw operaException("operaSpectralLines ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 	return comparisonSpectrum->getFlux(k);
 }
 
-inline double operaSpectralLines::getAbsorptionMY(unsigned k) {
+inline double operaSpectralLines::getAbsorptionMY(unsigned k) const {
 	if (comparisonSpectrum == NULL) {
 		throw operaException("operaSpectralLines ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -851,7 +858,7 @@ inline void operaSpectralLines::setMY(double value, unsigned k) {
 	comparisonSpectrum->setFlux(value, k);
 }
 
-inline double operaSpectralLines::getVar(unsigned k) {
+inline double operaSpectralLines::getVar(unsigned k) const {
 	if (comparisonSpectrum == NULL) {
 		throw operaException("operaSpectralLines ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}

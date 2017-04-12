@@ -30,11 +30,7 @@
 #ifndef OPERAGEOMETRY_H
 #define OPERAGEOMETRY_H
 
-extern "C" {
-#include "libraries/operaLibCommon.h"			// for CMatrix
-}
 #include "libraries/Polynomial.h"	
-#include "libraries/operaInstrumentProfile.h"	// for operaInstrumentProfile
 
 /*! 
  * \sa class operaGeometry

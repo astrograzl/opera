@@ -400,7 +400,11 @@ void operaIOFormats::readFormatWithoutOrders(operaSpectralOrderVector& orders, i
 void operaIOFormats::writeFormatWithOrders(const operaSpectralOrderVector& orders, ostream &fout, operaSpectralOrder_t format) {
 	fout << formatnames[format] << endl;
 	fout << getFormatHeader(format).tostring();
-	fout << orders.getMaxorder() - orders.getMinorder() + 1;
+	unsigned ordercount = 0;
+	for(unsigned order = orders.getMinorder(); order <= orders.getMaxorder(); order++) {
+		if (validFormatOrder(orders.GetSpectralOrder(order), format)) ordercount++;
+	}
+	fout << ordercount;
 	const operaSpectralOrder *firstValidOrder = NULL;
 	for(unsigned order = orders.getMinorder(); order <= orders.getMaxorder(); order++) {
 		firstValidOrder = orders.GetSpectralOrder(order);
@@ -536,7 +540,7 @@ unsigned operaIOFormats::sizeOfFormatOrder(const operaSpectralOrder *spectralOrd
 	IOFormatFlags formatflags (format);
 	if (formatflags.isSingle()) return 1;
 	if (formatflags.typeIsPolarimetry()) return spectralOrder->getPolarimetry()->getLength();
-	if (format == Fcal) return spectralOrder->getSpectralEnergyDistribution()->getFluxCalibrationElements()->getnSpectralElements();
+	if (format == Fcal) return spectralOrder->getSpectralEnergyDistribution()->getCalibrationWavelength().size();
 	if (format == Prof) return spectralOrder->getInstrumentProfile()->getNYPoints() * spectralOrder->getInstrumentProfile()->getNXPoints();
 	if (formatflags.typeIsSpectrum() || formatflags.typeIsCalibrated() || formatflags.isLE()) return spectralOrder->getSpectralElements()->getnSpectralElements();
 	return 0;
@@ -971,7 +975,7 @@ void operaIOFormats::setOrderSpacingFromLine(operaSpectralOrderVector& orders, s
 		throw operaException("operaSpectralOrder: polynomial order must be between 2 and 6", operaErrorInvalidParameter, __FILE__, __FUNCTION__, __LINE__);
 	}
 	Polynomial *p = orders.getOrderSpacingPolynomial();
-	p->setOrderOfPolynomial(npar);
+	p->resize(npar);
 	p->setChisqr(0.0);
 	for(unsigned i = 0; i < npar; i++) {
 		double orderSpacingPolynomialCoefficient = 0.0, orderSpacingPolynomialError = 0.0;
@@ -1091,16 +1095,16 @@ string operaIOFormats::getLineFromAperture(const operaSpectralOrder *spectralOrd
 	ostringstream ss;
 	ss << spectralOrder->getorder() << ' ' << spectralOrder->getnumberOfBeams() << ' ' << spectralOrder->getTiltInDegreesValue() << ' ' << spectralOrder->getTiltInDegreesError() << ' '; 
 	for (unsigned i = 0; i < LEFTANDRIGHT+spectralOrder->getnumberOfBeams(); i++) { // loop through LEFTANDRIGHT backgrounds, then beams
-		const operaExtractionAperture *aperture;
+		const operaExtractionAperture<Line> *aperture;
 		unsigned b = i;
 		if(i < LEFTANDRIGHT) aperture = spectralOrder->getBackgroundApertures(b); //first two (LEFTANDRIGHT) iterations are background
 		else {
 			b = i-LEFTANDRIGHT; //rest are the beams
 			aperture = spectralOrder->getExtractionApertures(b);
 		}
-		const Line *lineAperture = aperture->getLineAperture();
+		const Line *lineAperture = aperture->getApertureShape();
 		ss << b << ' ' << aperture->getXsampling() << ' ' << aperture->getYsampling() << ' ' << lineAperture->getWidth() << ' ' << lineAperture->getLength() << ' ' << lineAperture->getSlope() << ' '
-		<< lineAperture->getMidPoint()->getXcoord() << ' ' << lineAperture->getMidPoint()->getYcoord() << ' ' << aperture->getFluxFraction() << ' ';
+		<< lineAperture->getMidPoint().getXcoord() << ' ' << lineAperture->getMidPoint().getYcoord() << ' ' << aperture->getFluxFraction() << ' ';
 	}
 	return ss.str();
 }
@@ -1122,8 +1126,8 @@ void operaIOFormats::setApertureFromLine(operaSpectralOrder *spectralOrder, stri
 		Double width, length, slope, midpointx, midpointy, fluxfraction;
 		ss >> b >> xsampling >> ysampling >> width >> length >> slope >> midpointx >> midpointy >> fluxfraction;
 		operaPoint point(midpointx.d, midpointy.d);
-		Line LineAperture(slope.d, width.d, length.d, &point);
-		operaExtractionAperture *Aperture = new operaExtractionAperture(&LineAperture, xsampling, ysampling);
+		Line LineAperture(slope.d, width.d, length.d, point);
+		operaExtractionAperture<Line> *Aperture = new operaExtractionAperture<Line>(&LineAperture, xsampling, ysampling);
 		Aperture->setFluxFraction(fluxfraction.d);
 		if(i < LEFTANDRIGHT) spectralOrder->setBackgroundApertures(b, Aperture); //first two (LEFTANDRIGHT) iterations are background
 		else spectralOrder->setExtractionApertures(b, Aperture); //rest are the beams
@@ -1159,15 +1163,13 @@ FormatHeader operaIOFormats::getFcalHeader() {
 string operaIOFormats::getLineFromFcal(const operaSpectralOrder *spectralOrder, unsigned index) {
 	ostringstream ss;
 	const operaSpectralEnergyDistribution *spectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
-	const operaSpectralElements *FluxCalibration = spectralEnergyDistribution->getFluxCalibrationElements();
-	const operaSpectralElements *InstrumentThroughput = spectralEnergyDistribution->getThroughputElements();
-	ss << spectralOrder->getorder() << ' ' << FluxCalibration->getnSpectralElements() << ' ' << spectralOrder->getnumberOfBeams() << ' '
-	<< fixed << setprecision(4) << spectralEnergyDistribution->getwavelengthForNormalization() << ' ' << index << ' ' << FluxCalibration->getwavelength(index) << ' '
-	<< scientific << setprecision(6) << FluxCalibration->getFlux(index) << ' ' << FluxCalibration->getFluxVariance(index) << ' '
-	<< InstrumentThroughput->getFlux(index) << ' ' << InstrumentThroughput->getFluxVariance(index) << ' ';
+	ss << spectralOrder->getorder() << ' ' << spectralEnergyDistribution->getCalibrationWavelength().size() << ' ' << spectralOrder->getnumberOfBeams() << ' '
+	<< fixed << setprecision(4) << spectralEnergyDistribution->getwavelengthForNormalization() << ' ' << index << ' ' << spectralEnergyDistribution->getCalibrationWavelength()[index] << ' '
+	<< scientific << setprecision(6) << spectralEnergyDistribution->getFluxCalibration().getflux(index) << ' ' << spectralEnergyDistribution->getFluxCalibration().getvariance(index) << ' '
+	<< spectralEnergyDistribution->getThroughput().getflux(index) << ' ' << spectralEnergyDistribution->getThroughput().getvariance(index) << ' ';
 	for(unsigned beam = 0; beam < spectralOrder->getnumberOfBeams(); beam++) {
-		ss << beam << ' ' << spectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->getFlux(index) << ' ' << spectralOrder->getBeamSED(beam)->getFluxCalibrationElements()->getFluxVariance(index) << ' '
-		<< spectralOrder->getBeamSED(beam)->getThroughputElements()->getFlux(index) << ' ' << spectralOrder->getBeamSED(beam)->getThroughputElements()->getFluxVariance(index) << ' ';
+		ss << beam << ' ' << spectralOrder->getBeamSED(beam)->getFluxCalibration().getflux(index) << ' ' << spectralOrder->getBeamSED(beam)->getFluxCalibration().getvariance(index) << ' '
+		<< spectralOrder->getBeamSED(beam)->getThroughput().getflux(index) << ' ' << spectralOrder->getBeamSED(beam)->getThroughput().getvariance(index) << ' ';
 	}
 	return ss.str();
 }
@@ -1189,10 +1191,7 @@ void operaIOFormats::setFcalFromLine(operaSpectralOrder *spectralOrder, string d
 	if (beams != spectralOrder->getnumberOfBeams()) beams = 0; //Ignore all beams when the number of beams are different (previously done in operaSpectralOrderVector::correctFlatField)
 	if (neworder) {
 		spectralOrder->setnumberOfBeams(beams);
-		spectralOrder->createSpectralEnergyDistributionElements(nElements);
 		operaSpectralEnergyDistribution *spectralEnergyDistribution = spectralOrder->getSpectralEnergyDistribution();
-		spectralEnergyDistribution->getFluxCalibrationElements()->setHasWavelength(true); //we don't have checks for this when writing... should we? should this even be here?
-		spectralEnergyDistribution->getThroughputElements()->setHasWavelength(true); //we don't have checks for this when writing... should we? should this even be here?
 		spectralEnergyDistribution->setHasFluxCalibration(true);
 		spectralEnergyDistribution->setHasInstrumentThroughput(true);
 		spectralOrder->sethasSpectralEnergyDistribution(true);
@@ -1201,31 +1200,17 @@ void operaIOFormats::setFcalFromLine(operaSpectralOrder *spectralOrder, string d
 	spectralEnergyDistribution->setwavelengthForNormalization(wavelengthForNormalization);
 	Double wl, fluxcal, fcalvariance, throughput, throughputvariance;
 	ss >> wl >> fluxcal >> fcalvariance >> throughput >> throughputvariance;
-	operaSpectralElements *FluxCalibration = spectralEnergyDistribution->getFluxCalibrationElements();
-	FluxCalibration->setwavelength(wl.d, elementindex);
-	FluxCalibration->setFlux(fluxcal.d, elementindex);
-	FluxCalibration->setFluxVariance(fcalvariance.d, elementindex);
-	FluxCalibration->setphotoCenter(0.0, 0.0, elementindex);
-	operaSpectralElements *InstrumentThroughput = spectralEnergyDistribution->getThroughputElements();
-	InstrumentThroughput->setwavelength(wl.d, elementindex);
-	InstrumentThroughput->setFlux(throughput.d, elementindex);
-	InstrumentThroughput->setFluxVariance(throughputvariance.d, elementindex);
-	InstrumentThroughput->setphotoCenter(0.0, 0.0, elementindex);
+	spectralEnergyDistribution->getCalibrationWavelength().insert(wl.d);
+	spectralEnergyDistribution->getFluxCalibration().insert(fluxcal.d, fcalvariance.d);
+	spectralEnergyDistribution->getThroughput().insert(throughput.d, throughputvariance.d);
 	for (unsigned b=0; b < beams; b++) {
 		unsigned beam = 0;
 		Double beamfluxcal, beamfcalvariance, beamthroughput, beamthrouputvariance;
 		ss >> beam >> beamfluxcal >> beamfcalvariance >> beamthroughput >> beamthrouputvariance;
-		operaSpectralEnergyDistribution *BeamSED = spectralOrder->getBeamSED(beam);  
-		operaSpectralElements *beamFluxcalibration = BeamSED->getFluxCalibrationElements();
-		beamFluxcalibration->setwavelength(wl.d, elementindex);
-		beamFluxcalibration->setFlux(beamfluxcal.d, elementindex);
-		beamFluxcalibration->setFluxVariance(beamfcalvariance.d, elementindex);
-		beamFluxcalibration->setphotoCenter(0.0, 0.0, elementindex);
-		operaSpectralElements *beamThroughput = BeamSED->getThroughputElements();
-		beamThroughput->setwavelength(wl.d, elementindex);
-		beamThroughput->setFlux(beamthroughput.d, elementindex);
-		beamThroughput->setFluxVariance(beamthrouputvariance.d, elementindex);
-		beamThroughput->setphotoCenter(0.0, 0.0, elementindex);
+		operaSpectralEnergyDistribution *BeamSED = spectralOrder->getBeamSED(beam);
+		BeamSED->getCalibrationWavelength().insert(wl.d);
+		BeamSED->getFluxCalibration().insert(beamfluxcal.d, beamfcalvariance.d);
+		BeamSED->getThroughput().insert(beamthroughput.d, beamthrouputvariance.d);
 	}
 }
 
@@ -1272,7 +1257,7 @@ void operaIOFormats::setGeomFromLine(operaSpectralOrder *spectralOrder, string d
 	spectralOrder->sethasGeometry(true);
 	operaGeometry *geometry = spectralOrder->getGeometry();
 	Polynomial *p = geometry->getCenterPolynomial();
-	p->setOrderOfPolynomial(npar);
+	p->resize(npar);
 	for (unsigned i=0; i<npar; i++) {
 		Float coeff, coefferr;
 		ss >> coeff >> coefferr;
@@ -1324,7 +1309,7 @@ void operaIOFormats::setWaveFromLine(operaSpectralOrder *spectralOrder, string d
 	if(!spectralOrder->getWavelength()) spectralOrder->createWavelength(MAXORDEROFWAVELENGTHPOLYNOMIAL); //Why does a wavelgnth already exist here? Don't know, but it crashes if we don't check...
 	spectralOrder->sethasWavelength(true);
 	Polynomial *poly = spectralOrder->getWavelength()->getWavelengthPolynomial();
-	poly->setOrderOfPolynomial(npar);
+	poly->resize(npar);
 	for (unsigned i=0; i < npar; i++) {
 		Float coeff, coefferr;
 		ss >> coeff >> coefferr;
@@ -1363,10 +1348,10 @@ string operaIOFormats::getLineFromProf(const operaSpectralOrder *spectralOrder, 
 	// In other words, n = x*j + i, which means...
 	unsigned j = index / instrumentProfile->getNXPoints(); // j = n/x (integer division means i/x = 0, since i < x)
 	unsigned i = index % instrumentProfile->getNXPoints(); // i = n mod x (since x*j mod x = 0 and i mod x = i)
-	const PolynomialCoeffs_t *pp = instrumentProfile->getipPolyModelCoefficients(i,j);
-	ss << spectralOrder->getorder() << ' ' << i << ' ' << j << ' ' << pp->orderofPolynomial << ' ' << '0'/*instrumentProfile->getnDataPoints()*/ << ' ';
-	for	(unsigned coeff=0; coeff<pp->orderofPolynomial; coeff++) {
-		ss << pp->p[coeff] << ' ';
+	const Polynomial& pp = instrumentProfile->getipPolyModelCoefficients(i,j);
+	ss << spectralOrder->getorder() << ' ' << i << ' ' << j << ' ' << pp.getOrderOfPolynomial() << ' ' << '0'/*instrumentProfile->getnDataPoints()*/ << ' ';
+	for	(unsigned coeff=0; coeff<pp.getOrderOfPolynomial(); coeff++) {
+		ss << pp.getCoefficient(coeff) << ' ';
 	}
 	ss << instrumentProfile->getchisqrMatrixValue(i, j);
 	return ss.str();
@@ -1386,12 +1371,11 @@ void operaIOFormats::setProfFromLine(operaSpectralOrder *spectralOrder, string d
 		spectralOrder->setInstrumentProfileVector(xsize, xsampling, ysize, ysampling, 1);
 		spectralOrder->sethasInstrumentProfile(true);
 	}
-	PolynomialCoeffs_t pp;
-	pp.orderofPolynomial = npar;
+	Polynomial pp(npar);
 	for (unsigned i=0; i < npar; i++) {
 		Float ProfileCoeff;
 		ss >> ProfileCoeff;
-		pp.p[i] = ProfileCoeff.f;
+		pp.setCoefficient(i, ProfileCoeff.f);
 	}
 	Float chisqr;
 	ss >> chisqr;

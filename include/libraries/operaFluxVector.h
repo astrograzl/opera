@@ -88,6 +88,15 @@ public:
 	operaFluxVector(unsigned length, TendsTowards_t towards=ToDefault);
     
     /*!
+     * \brief operaFluxVector constructor from flux and variance vectors.
+     * \details This constructor creates an operaFluxVector by copying the contents of two equal sized operaVectors holding the flux and variance.
+     * \param fluxes An operaVector to copy into the flux
+     * \param variances An operaVector to copy into the variance
+     * \param towards An optional TendsTowards_t value defaults to ToDefault
+     */
+	operaFluxVector(const operaVector& fluxes, const operaVector& variances, TendsTowards_t towards=ToDefault);
+    
+    /*!
      * \brief operaFluxVector constructor from flux and variance arrays.
      * \details This constructor creates an operaFluxVector by copying the contents of two equal sized arrays holding the flux and variance.
      * \param fluxes An array with of the given length
@@ -114,29 +123,10 @@ public:
 	operaFluxVector(const operaVector &b, TendsTowards_t towards=ToDefault);
 	
     /*!
-     * \brief Sets the flux vector.
-     * \details Copies the contents of an existing flux array to the flux vector.
-     * \param fluxes An array with the same length as the existing flux vector
-     * \return void
+     * \brief Removes all elements from the operaFluxVector.
+     * \details The flux and variance vectors will be empty after this.
      */
-	void setFluxVector(double *fluxes);
-	
-    /*!
-     * \brief Sets the variance vector.
-     * \details Copies the contents of an existing variance array to the variance vector.
-     * \param variances An array with the same length as the existing variance vector
-     * \return void
-     */
-	void setVarianceVector(double *variances);
-	
-    /*!
-     * \brief Sets the flux and variance vectors.
-     * \details Copies the contents of existing flux and variance arrays to the variance vector.
-     * \param fluxes An array with the same length as the existing flux vector
-     * \param variances An array with the same length as the existing variance vector
-     * \return void
-     */
-	void setVectors(double *fluxes, double *variances);
+    void clear();
 	
 	/*!
      * \brief Resizes the operaFluxVector.
@@ -189,6 +179,34 @@ public:
      */
 	const operaVector &getvariance() const;
 	
+	/*!
+     * \brief Sets the flux vector.
+     * \param newflux The new flux vector of the same size.
+     * \return void
+     */
+	void setflux(const operaVector& newflux);
+    
+    /*!
+     * \brief Sets the variance vector.
+     * \param newvariance The new variance vector of the same size.
+     * \return void
+     */
+	void setvariance(const operaVector& newvariance);
+	
+	/*!
+     * \brief Sets the flux vector to a constant value.
+     * \param Flux The new flux value
+     * \return void
+     */
+	void setflux(double newflux);
+    
+    /*!
+     * \brief Sets the variance vector to a constant value.
+     * \param Variance The new variance value
+     * \return void
+     */
+	void setvariance(double newvariance);
+    
     /*!
      * \brief Gets the flux vector as an array.
      * \return A pointer to the flux vector
@@ -280,7 +298,7 @@ public:
     /*!
 	 * \brief Addition/assignment operator.
      * \details The operator adds and copies the elements on the right side of the operator to the corresponding elements on the left side.
-     * \details The variances are updated accordingly.
+     * \details The resulting variances will be given by var(a+b) = var(a) + var(b).
 	 * \param b The rhs operaFluxVector
 	 * \return A reference to the operaFluxVector
 	 */	
@@ -297,7 +315,7 @@ public:
 	/*!
 	 * \brief Subtraction/assignment operator.
      * \details The operator subtracts and copies the elements on the right side of the operator to the corresponding elements on the left side.
-     * \details The variances are updated accordingly.
+     * \details The resulting variances will be given by var(a-b) = var(a) + var(b).
 	 * \param b The rhs operaFluxVector
 	 * \return A reference to the operaFluxVector
 	 */
@@ -314,7 +332,7 @@ public:
     /*!
 	 * \brief Multiplication/assignment operator.
      * \details The operator multiplies and copies the elements on the right side of the operator to the corresponding elements on the left side.
-     * \details The variances are updated accordingly.
+     * \details The resulting variances will be given by var(a*b) = var(a) * b^2 + var(b) * a^2.
 	 * \param b The rhs operaFluxVector
 	 * \return A reference to the operaFluxVector
 	 */
@@ -323,8 +341,8 @@ public:
     /*! 
 	 * \brief Multiplication/assignment operator.
      * \details The operator multiplies and copies the double from the right side of the operator to every value of the flux vector on the left side.
-     * \details The variances are updated accordingly.
-	 * \param d The flux value
+     * \details The resulting variances will be given by var(a*d) = var(a) * d^2.
+     * \param d The flux value
 	 * \return A reference to the operaFluxVector
 	 */
 	operaFluxVector& operator*=(double d);
@@ -332,7 +350,8 @@ public:
     /*!
 	 * \brief Division/assignment operator.
      * \details The operator divides the elements on the left side of the operator by the corresponding elements on the right side and copies them to the left side.
-     * \details The variances are updated accordingly.
+     * \details The resulting variances will be given by var(a/b) = (var(a) * b^2 + var(b) * a^2) / b^4.
+     * \details In the case of infinite values, the resulting flux and variance values will be determined by the value of towards.
 	 * \param b The rhs operaFluxVector
 	 * \return A reference to the operaFluxVector
 	 */
@@ -341,15 +360,36 @@ public:
     /*! 
 	 * \brief Division/assignment operator.
      * \details The operator divides every value of the flux vector on the left side of the operator by the double on the right side and copies them to the left side.
-     * \details The variances are updated accordingly.
-	 * \param d The flux value
+     * \details The resulting variances will be given by var(a/d) = var(a) / d^2.
+     * \param d The flux value
 	 * \return A reference to the operaFluxVector
 	 */
 	operaFluxVector& operator/=(double d);
+
+	/*! 
+	 * \brief Subtraction operator.
+	 * \details Subtracts each flux value of an operaFluxVector from a constant flux value.
+	 * \details The resulting variances will be the same as the initial variances.
+	 * \param d The flux value
+	 * \param a An operaFluxVector
+	 * \return The resulting difference operaFluxVector
+	 */
+	friend operaFluxVector operator-(double d, operaFluxVector a);
+	
+	/*! 
+	 * \brief Divison operator.
+	 * \details Divides a flux value by an operaFluxVector without modifying it.
+	 * \details The resulting variances will be given by var(d/a) = var(a) * d^2 / a^4.
+	 * \param d The flux value
+	 * \param a An operaFluxVector
+	 * \return The resulting difference operaFluxVector
+	 */
+	friend operaFluxVector operator/(double d, operaFluxVector a);
 	
 	/*!
 	 * \brief Square root function.
 	 * \details The function applies a square root to every element in the flux vector.
+	 * \details The resulting variances will be given by var(sqrt(b)) = var(b) / 4b.
 	 * \param b An operaFluxVector
 	 * \return The resulting square root operaFluxVector
 	 */
@@ -358,6 +398,7 @@ public:
 	/*!
 	 * \brief Power function.
 	 * \details The function raises every element in the flux vector to the specified power.
+	 * \details The resulting variances will be given by var(b^d) = var(b) * b^(2(d-1)) * d^2.
 	 * \param b An operaFluxVector
 	 * \param d The power
 	 * \return The resulting power operaFluxVector
@@ -398,6 +439,7 @@ inline operaFluxVector operator+(operaFluxVector a, const operaFluxVector& b) { 
  * \return The resulting sum operaFluxVector
  */
 inline operaFluxVector operator+(operaFluxVector a, double d) { return a += d; }
+inline operaFluxVector operator+(double d, operaFluxVector a) { return a += d; }
 
  /*!
  * \brief Subtraction operator.
@@ -434,6 +476,7 @@ inline operaFluxVector operator*(operaFluxVector a, const operaFluxVector& b) { 
  * \return The resulting product operaFluxVector
  */
 inline operaFluxVector operator*(operaFluxVector a, double d) { return a*=d; }
+inline operaFluxVector operator*(double d, operaFluxVector a) { return a*=d; }
 
 /*!
  * \brief Division operator.

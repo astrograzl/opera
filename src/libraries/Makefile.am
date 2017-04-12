@@ -87,7 +87,7 @@ libGainBiasNoise_la_LDFLAGS = -version-info 1:0:0
 liboperaFluxVector_la_SOURCES = operaFluxVector.cpp operaFluxVector.h
 liboperaFluxVector_la_LDFLAGS = -version-info 1:0:0
 
-liboperaVector_la_SOURCES = operaVector.cpp operaVectorOperations.cpp operaVector.h operaVectorOperations.h
+liboperaVector_la_SOURCES = operaVector.cpp operaVectorOperations.tpp operaVector.h operaVectorOperations.h
 liboperaVector_la_LDFLAGS = -version-info 1:0:0
 
 liboperaGeometricShapes_la_SOURCES = operaGeometricShapes.cpp operaGeometricShapes.h
@@ -108,7 +108,7 @@ liboperaException_la_LDFLAGS = -version-info 1:0:0
 liboperaImage_la_SOURCES = operaImage.c operaImage.h operaLibCommon.h
 liboperaImage_la_LDFLAGS = -version-info 1:0:0
 
-liboperaMatrix_la_SOURCES = operaMatrix.c operaMatrix.h 
+liboperaMatrix_la_SOURCES = operaMatrix.cpp operaMatrix.h 
 liboperaMatrix_la_LDFLAGS = -version-info 1:0:0
 
 libPolynomial_la_SOURCES = Polynomial.cpp Polynomial.h

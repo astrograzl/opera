@@ -56,7 +56,7 @@ extern "C" {
 	/*
 	 * The functions below uses operaLMFit library (LMFIT)
 	 */
-	void operaLMFitPolynomial(unsigned m_dat, double *x, double *y, int n_par, double par[], double *chi2);
+	void operaLMFitPolynomial(unsigned m_dat, const double *x, const double *y, int n_par, double par[], double *chi2);
 	void operaLMFitLaurentPolynomial(unsigned m_dat, double *x, double *y, int minn_par, int maxn_par, double *par, double *chi2);
 	void operaLMFitGaussian(unsigned m_dat, double *x, double *y, double *a, double *x0, double *sig, double *chi2);
 	void operaLMFitMultipleGaussian(unsigned m_dat, double *x, double *y, unsigned ngauss, double a[], double x0[], double sig[], double *chi2);

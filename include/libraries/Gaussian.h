@@ -68,10 +68,10 @@ public:
 	 */
 	Gaussian();	
 	Gaussian(unsigned NumberOfPeaks);	
-	Gaussian(unsigned NumberOfPeaks, double* AmplitudeVector, double* SigmaVector, double* CenterVector);	
+	Gaussian(unsigned NumberOfPeaks, const double* AmplitudeVector, const double* SigmaVector, const double* CenterVector);	
 	Gaussian(unsigned NumberOfPeaks, 
-             double* AmplitudeVector, double* SigmaVector, double* CenterVector,
-             double* AmplitudeErrors, double* SigmaErrors, double* CenterErrors);	
+             const double* AmplitudeVector, const double* SigmaVector, const double* CenterVector,
+             const double* AmplitudeErrors, const double* SigmaErrors, const double* CenterErrors);	
     
 	~Gaussian();
 	
@@ -82,7 +82,7 @@ public:
 	 * \param index is a unsigned index of the gaussian amplitude to get
 	 * \return void
 	 */
-	double getAmplitude(unsigned index);	
+	double getAmplitude(unsigned index) const;
     
 	/*!
 	 * void setAmplitude(double amplitude, unsigned index)
@@ -91,7 +91,7 @@ public:
 	 * \param amplitude is a double value of the amplitude for the gaussian at index
 	 * \return void
 	 */
-	void setAmplitude(double amplitude, unsigned index);	
+	void setAmplitude(double amplitude, unsigned index);
     
 	/*!
 	 * double getSigma(unsigned index)
@@ -100,7 +100,7 @@ public:
 	 * \param index is a unsigned index of the gaussian sigma to get
 	 * \return void
 	 */
-	double getSigma(unsigned index);	
+	double getSigma(unsigned index) const;
     
 	/*!
 	 * void setSigma(double sigma, unsigned index)
@@ -109,7 +109,7 @@ public:
 	 * \param sigma is a double value of the sigma for the gaussian at index
 	 * \return void
 	 */
-	void setSigma(double sigma, unsigned index);	    
+	void setSigma(double sigma, unsigned index);
     
  	/*!
 	 * double getCenter(unsigned index)
@@ -118,7 +118,7 @@ public:
 	 * \param index is a unsigned index of the gaussian center to get
 	 * \return void
 	 */
-	double getCenter(unsigned index);	
+	double getCenter(unsigned index) const;
     
 	/*!
 	 * void setCenter(double center, unsigned index)
@@ -136,7 +136,7 @@ public:
 	 * \param x is a double input value for which the given gaussian is evaluated
 	 * \return double value of evaluation of the gaussian
 	 */
-	double EvaluateGaussian(double x);	
+	double EvaluateGaussian(double x) const;
     
 	/*!
 	 * double* getAmplitudeVector(void);
@@ -144,14 +144,16 @@ public:
 	 * \brief usage: double *vec = getAmplitudeVector();
 	 * \return double * - the vector of gaussian amplitude coefficients
 	 */
-	double* getAmplitudeVector(void);	
+	const double* getAmplitudeVector(void) const;
+	double* getAmplitudeVector(void);
 	/*!
 	 * double* getAmplitudeErrorVector(void);
 	 * \brief This function returns the double *amplitudeErrorVector.
 	 * \brief usage: double *errs = getAmplitudeErrorVector();
 	 * \return double * - the vector of gaussian amplitude coefficient errors
 	 */
-	double* getAmplitudeErrorVector(void);	
+	const double* getAmplitudeErrorVector(void) const;
+	double* getAmplitudeErrorVector(void);
     
 	/*!
 	 * double* getSigmaVector(void);
@@ -159,14 +161,16 @@ public:
 	 * \brief usage: double *vec = getSigmaVector();
 	 * \return double * - the vector of gaussian sigma coefficients
 	 */
-	double* getSigmaVector(void);	
+	const double* getSigmaVector(void) const;
+	double* getSigmaVector(void);
 	/*!
 	 * double* getSigmaErrorVector(void);
 	 * \brief This function returns the double *sigmaErrorVector.
 	 * \brief usage: double *errs = getSigmaErrorVector();
 	 * \return double * - the vector of gaussian sigma coefficient errors
 	 */
-	double* getSigmaErrorVector(void);	
+	const double* getSigmaErrorVector(void) const;
+	double* getSigmaErrorVector(void);
     
 	/*!
 	 * double* getCenterVector(void);
@@ -174,7 +178,8 @@ public:
 	 * \brief usage: double *vec = getCenterVector();
 	 * \return double * - the vector of gaussian center coefficients
 	 */
-	double* getCenterVector(void);	
+	const double* getCenterVector(void) const;
+	double* getCenterVector(void);
     
 	/*!
 	 * double* getCenterErrorVector(void);
@@ -182,7 +187,8 @@ public:
 	 * \brief usage: double *errs = getCenterErrorVector();
 	 * \return double * - the vector of gaussian center coefficient errors
 	 */
-	double* getCenterErrorVector(void);	    
+	const double* getCenterErrorVector(void) const;
+	double* getCenterErrorVector(void);
     
 	/*!
 	 * unsigned getNumberOfPeaks();
@@ -191,7 +197,7 @@ public:
 	 * \brief usage: unsigned npar = getNumberOfPeaks();
 	 * \return unsigned - the number of peaks
 	 */
-	unsigned getNumberOfPeaks();	
+	unsigned getNumberOfPeaks() const;
 	/*!
 	 * void setNumberOfPeaks(unsigned Order);
 	 * \brief This function sets the unsigned number of peaks (=number of Gaussians).
@@ -206,14 +212,14 @@ public:
 	 * \brief usage: setGaussianChisqr(0.98);
 	 * \return void
 	*/
-	void setGaussianChisqr(double Chisqr);	
+	void setGaussianChisqr(double Chisqr);
 	/*!
 	 * double getGaussianChisqr(void)
 	 * \brief This function gets chisqr.
 	 * \brief usage: double c = getGaussianChisqr();
 	 * \return double
 	 */
-	double getGaussianChisqr(void);	
+	double getGaussianChisqr(void) const;
     
    /*!
      * void MPFitModeltoData(void)
@@ -221,19 +227,19 @@ public:
      * \brief usage: MPFitModeltoData(np);
      * \return void
      */
-    void MPFitModeltoData(unsigned nPeaks, unsigned NumberOfDataPoints, double *Xdata, double *Ydata, double *Yerrors);    
-    void MPFitModeltoData(unsigned nPeaks, double BaselineIntercept, double BaselineSlope, unsigned NumberOfDataPoints, double *Xdata, double *Ydata, double *Yerrors);  
+    void MPFitModeltoData(unsigned nPeaks, unsigned NumberOfDataPoints, double *Xdata, double *Ydata, double *Yerrors);
+    void MPFitModeltoData(unsigned nPeaks, double BaselineIntercept, double BaselineSlope, unsigned NumberOfDataPoints, double *Xdata, double *Ydata, double *Yerrors);
     
     void setBaselineSlope(double BaselineSlope);
-    void setBaselineSlopeError(double BaselineSlopeError);    
+    void setBaselineSlopeError(double BaselineSlopeError);
     void setBaselineIntercept(double BaselineIntercept);
-    void setBaselineInterceptError(double BaselineInterceptError);    
-    void setUseBaseline(bool UseBaseline); 
-    double getBaselineSlope(void);
-    double getBaselineSlopeError(void);    
-    double getBaselineIntercept(void);
-    double getBaselineInterceptError(void);    
-    bool getUseBaseline(void);     
+    void setBaselineInterceptError(double BaselineInterceptError);
+    void setUseBaseline(bool UseBaseline);
+    double getBaselineSlope(void) const;
+    double getBaselineSlopeError(void) const;
+    double getBaselineIntercept(void) const;
+    double getBaselineInterceptError(void) const;
+    bool getUseBaseline(void) const;
     
 };
 #endif

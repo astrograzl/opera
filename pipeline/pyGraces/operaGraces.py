@@ -1,9 +1,14 @@
-#!/Users/edermartioli/Ureka/variants/common/bin/python
+#!/opt/anaconda/bin/python
 # -*- coding: iso-8859-1 -*-
-
 """
+    *** IMPORTANT NOTE ***
+    Use line below as shebang for default python location
     #!/usr/bin/python
     
+    Use a line similar to the ones below as shebang for custom python location
+    #!/$HOME/Ureka/variants/common/bin/python
+    #!/opt/anaconda/bin/python
+
     Created on May 28 2015
 
     Description: A wrapper to run Opera GRACES reduction pipeline.
@@ -29,7 +34,6 @@ from optparse import OptionParser
 import sys,os
 import gracespipeline
 import graces
-import gracesUtils
 
 parser = OptionParser()
 parser.add_option("-N", "--night", dest="night", help="night directory",type='string',default="")

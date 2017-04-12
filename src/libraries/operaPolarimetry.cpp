@@ -335,7 +335,8 @@ bool operaPolarimetry::getHasDegreeOfStokes(stokes_parameter_t StokesIndex) cons
     }
 }
 
-void operaPolarimetry::setHasDegreeOfStokes(stokes_parameter_t StokesIndex, bool HasDegreeOfStokes) {
+void operaPolarimetry::setHasDegreeOfStokes(stokes_parameter_t StokesIndex, bool HasDegreeOfStokes)
+{
     switch (StokesIndex) {
         case StokesI:
             hasDegreeOfStokesI = HasDegreeOfStokes;
@@ -359,59 +360,40 @@ void operaPolarimetry::setHasDegreeOfStokes(stokes_parameter_t StokesIndex, bool
 
 void operaPolarimetry::calculatePolarization(void)
 {
-    if (hasStokesI) {
-        if (hasDegreeOfStokesQ) {
-			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesQ) * stokesParameter.getStokesParameter(StokesI);
-            stokesParameter.setStokesParameter(StokesQ, fluxdiv);
-            hasStokesQ = true;
-        }
-        if (hasDegreeOfStokesU) {
-			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesU) * stokesParameter.getStokesParameter(StokesI);
-            stokesParameter.setStokesParameter(StokesU, fluxdiv);
-            hasStokesU = true;
-        }
-        if (hasDegreeOfStokesV) {
-			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesV) * stokesParameter.getStokesParameter(StokesI);
-            stokesParameter.setStokesParameter(StokesV, fluxdiv);
-            hasStokesV = true;
-        }
-    } else {
-        throw operaException("operaPolarimetry: missing Stokes I.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
+	//Don't bother with StokesI since the degree of polarization should always be 1.0
+	calculatePolarization(StokesQ);
+	calculatePolarization(StokesU);
+	calculatePolarization(StokesV);
 }
 
 void operaPolarimetry::calculatePolarization(stokes_parameter_t StokesIndex)
 {
     if (hasStokesI) {
-        if (getHasDegreeOfStokes(StokesIndex)) { // StokesI will not be done...
-			operaFluxVector fluxdiv = degreeOfPolarization.getStokesParameter(StokesIndex) / stokesParameter.getStokesParameter(StokesI);
-            stokesParameter.setStokesParameter(StokesIndex, fluxdiv);
+        if (getHasDegreeOfStokes(StokesIndex)) {
+            operaFluxVector fluxprod = degreeOfPolarization.getStokesParameter(StokesIndex) * stokesParameter.getStokesParameter(StokesI);
+            stokesParameter.setStokesParameter(StokesIndex, fluxprod);
             setHasStokes(StokesIndex,true);
-		}
+        }
     } else {
         throw operaException("operaPolarimetry: missing Stokes I.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
     }
 }
 
-void operaPolarimetry::calculateDegreeOfPolarization(void) {
+void operaPolarimetry::calculateDegreeOfPolarization(void)
+{
+    calculateDegreeOfPolarization(StokesI); //This should always result in a degree of polarization of 1.0
+    calculateDegreeOfPolarization(StokesQ);
+    calculateDegreeOfPolarization(StokesU);
+    calculateDegreeOfPolarization(StokesV);
+}
+
+void operaPolarimetry::calculateDegreeOfPolarization(stokes_parameter_t StokesIndex)
+{
     if (hasStokesI) {
-		operaFluxVector fluxdiv = stokesParameter.getStokesParameter(StokesI) / stokesParameter.getStokesParameter(StokesI);
-        degreeOfPolarization.setStokesParameter(StokesI, fluxdiv);
-        hasDegreeOfStokesI = true;
-        if (hasStokesQ) {
-			fluxdiv = stokesParameter.getStokesParameter(StokesQ) / stokesParameter.getStokesParameter(StokesI);
-            degreeOfPolarization.setStokesParameter(StokesQ, fluxdiv);
-            hasDegreeOfStokesQ = true;
-        }
-        if (hasStokesU) {
-			fluxdiv = stokesParameter.getStokesParameter(StokesU) / stokesParameter.getStokesParameter(StokesI);
-            degreeOfPolarization.setStokesParameter(StokesU, fluxdiv);
-            hasDegreeOfStokesU = true;
-        }
-        if (hasStokesV) {
-			fluxdiv = stokesParameter.getStokesParameter(StokesV) / stokesParameter.getStokesParameter(StokesI);
-            degreeOfPolarization.setStokesParameter(StokesV, fluxdiv);
-            hasDegreeOfStokesV = true;
+        if (getHasStokes(StokesIndex)) {
+			operaFluxVector fluxdiv = stokesParameter.getStokesParameter(StokesIndex) / stokesParameter.getStokesParameter(StokesI);
+            degreeOfPolarization.setStokesParameter(StokesIndex, fluxdiv);
+            setHasStokes(StokesIndex,true);
         }
     } else {
         throw operaException("operaPolarimetry: missing Stokes I.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
@@ -419,220 +401,67 @@ void operaPolarimetry::calculateDegreeOfPolarization(void) {
 }
 
 void operaPolarimetry::calculateDegreeOfPolarization(stokes_parameter_t StokesIndex, operaFluxVector *iE[4], operaFluxVector *iA[4], unsigned NumberOfExposures) {
-#ifdef DOUG
     if(NumberOfExposures != 2 && NumberOfExposures != 4) {
         throw operaException("operaPolarimetry: NumberOfExposures not valid.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
     }
-    
-    double PairOfExposures = (double)NumberOfExposures / 2.0;
-    operaFluxVector PoverI(length);
-    operaFluxVector N1(length),N2(length);
-    
-    if (StokesIndex != StokesQ && StokesIndex != StokesU && StokesIndex != StokesV) {
-        throw operaException("operaPolarimetry: unrecognized Stokes parameter.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
-
-    if(method == Difference || method == DifferenceWithBeamSwapped) {
-        operaFluxVector G1(length), G2(length), G3(length), G4(length);
-        operaFluxVector D1(length);
-        
-		if(method == Difference) {
-		
-			G1 = (*(iE[0]) - *(iA[0]))/(*(iE[0]) + *(iA[0]));
-			G2 = (*(iE[1]) - *(iA[1]))/(*(iE[1]) + *(iA[1]));
-			G3 = (*(iE[2]) - *(iA[2]))/(*(iE[2]) + *(iA[2]));
-			G4 = (*(iE[3]) - *(iA[3]))/(*(iE[3]) + *(iA[3]));
-		
-		} else if (method == DifferenceWithBeamSwapped) {
-			
-			for(unsigned i=0;i<NumberOfExposures;i++) {
-				switch (i) {
-					case 0:
-						G1 = *(iE[i]) - *(iE[i+1]) / *(iE[i]) + *(iE[i+1]);
-						break;
-					case 2:
-						G3 = *(iE[i]) - *(iE[i+1]) / *(iE[i]) + *(iE[i+1]);
-						break;
-					case 1:
-						G2 = *(iA[i-1]) - *(iA[i]) / *(iA[i-1]) + *(iA[i]);
-						break;
-					case 3:
-						G4 = *(iA[i-1]) - *(iA[i]) / *(iA[i-1]) + *(iA[i]);
-						break;
-					default:
-						break;
-				}
-			}
-		}
-         D1 = G1 - G2;
-        
-        if(NumberOfExposures==2) {
-        
-            PoverI = D1 / (2.0 * PairOfExposures);
-        
-        } else if (NumberOfExposures==4) {
-            
-            operaFluxVector D2(length);
-            operaFluxVector D1s(length), D2s(length);
-            
-            D2 = G3 - G4;
-            
-            PoverI = (D1 + D2) / (2.0 * PairOfExposures);
-            
-            D1s = G1 - G4;
-            D2s = G3 - G2;
-            
-            N1 = (D1 - D2) / (2.0 * PairOfExposures);
-            N2 = (D1s - D2s) / (2.0 * PairOfExposures);
-        }
-
-    } else if (method == Ratio) {
-        operaFluxVector r1(length), r2(length), r3(length), r4(length);
-        operaFluxVector R1(length);
-        operaFluxVector R(length);
-        
-		r1 = *(iE[0]) / *(iA[0]);
-		r2 = *(iE[1]) / *(iA[1]);
-		r3 = *(iE[2]) / *(iA[2]);
-		r4 = *(iE[3]) / *(iA[3]);
-    
-        R1 = r1 / r2;
-        
-        if(NumberOfExposures==2) {
-            
-            R = Pow( R1 , 1.0/(2.0 * PairOfExposures) );
-            PoverI = (R - 1.0) / (R + 1.0);
-            
-        } else if (NumberOfExposures==4) {
-            
-            operaFluxVector R2(length);
-            operaFluxVector R1s(length), R2s(length);
-
-            operaFluxVector RN1(length), RN2(length);
-            
-            R2 = r3 / r4;
-            
-            R1s = r1 / r4;
-            R2s = r3 / r2;
-            
-            R = Pow( R1 * R2, 1.0 / (2.0 * PairOfExposures) );
-            
-            PoverI = (R - 1.0) / (R + 1.0);
-            
-            RN1 = Pow( R1 / R2, 1.0 / (2.0 * PairOfExposures) );
-            N1 = (RN1 - 1.0) / (RN1 + 1.0);
-            
-            RN2 = Pow( R1s / R2s, 1.0 / (2.0 * PairOfExposures) );
-            N2 = (RN2 - 1.0) / (RN2 + 1.0);
-        }
-    } else if (method == NewMethod) {
-        PoverI = 0.0;
-        N1 = 0.0;
-        N2 = 0.0;
-    } else {
-        throw operaException("operaPolarimetry: unrecognized method to calculate polarization.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);        
-    }
-#else
-    if(NumberOfExposures != 2 && NumberOfExposures != 4) {
-        throw operaException("operaPolarimetry: NumberOfExposures not valid.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
-    
-    double PairOfExposures = (double)NumberOfExposures / 2.0;
-    operaFluxVector PoverI(length);
-    operaFluxVector N1(length),N2(length);
     
     if (StokesIndex != StokesQ && StokesIndex != StokesU && StokesIndex != StokesV) {
         throw operaException("operaPolarimetry: unrecognized Stokes parameter.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
     }
 	
+	operaFluxVector PoverI(length);
+    operaFluxVector N1(length),N2(length);
+    
     if(method == Difference || method == DifferenceWithBeamSwapped) {
-        operaFluxVector *G[4];
-        operaFluxVector D1(length);
+        operaFluxVector G[4];
         
         for(unsigned i=0;i<NumberOfExposures;i++) {
-            G[i] = new operaFluxVector(length);
-            
-            if(method == Difference) {
-				
-                *G[i] = (*iE[i] - *iA[i])/(*iE[i] + *iA[i]);
-				
-            } else if (method == DifferenceWithBeamSwapped) {
-                
-                if(i==0 || i==2) {
-                    *G[i] = (*iE[i] - *iE[i+1])/(*iE[i] + *iE[i+1]);
+            if(method == DifferenceWithBeamSwapped) {
+				if(i==0 || i==2) {
+                    G[i] = (*iE[i] - *iE[i+1])/(*iE[i] + *iE[i+1]);
                 } else if (i==1 || i==3) {
-                    *G[i] = (*iA[i-1] - *iA[i])/(*iA[i-1] + *iA[i]);
+                    G[i] = (*iA[i-1] - *iA[i])/(*iA[i-1] + *iA[i]);
                 }
-                
+            } else {
+				G[i] = (*iE[i] - *iA[i])/(*iE[i] + *iA[i]);
             }
         }
 		
-        D1 = (*G[0]) - (*G[1]);
-        
         if(NumberOfExposures==2) {
-			
-            PoverI = D1 / (2.0 * PairOfExposures);
-			
+            operaFluxVector D1 = G[0] - G[1];
+            PoverI = D1 / NumberOfExposures;
         } else if (NumberOfExposures==4) {
+            operaFluxVector D1 = G[0] - G[1];
+            operaFluxVector D2 = G[2] - G[3];
+            operaFluxVector D1s = G[0] - G[3];
+            operaFluxVector D2s = G[2] - G[1];
             
-            operaFluxVector D2(length);
-            operaFluxVector D1s(length), D2s(length);
-            
-            D2 = (*G[2]) - (*G[3]);
-            
-            PoverI = (D1 + D2) / (2.0 * PairOfExposures);
-            
-            D1s = (*G[0]) - (*G[3]);
-            D2s = (*G[2]) - (*G[1]);
-            
-            N1 = (D1 - D2) / (2.0 * PairOfExposures);
-            N2 = (D1s - D2s) / (2.0 * PairOfExposures);
-        }
-		
-        for(unsigned i=0;i<NumberOfExposures;i++) {
-            delete G[i];
+            PoverI = (D1 + D2) / NumberOfExposures;
+            N1 = (D1 - D2) / NumberOfExposures;
+            N2 = (D1s - D2s) / NumberOfExposures;
         }
     } else if (method == Ratio) {
-        operaFluxVector *r[4];
-        operaFluxVector R1(length);
-        operaFluxVector R(length);
+        operaFluxVector r[4];
         
         for(unsigned i=0;i<NumberOfExposures;i++) {
-            r[i] = new operaFluxVector(length);
-            *r[i] = (*iE[i]) / (*iA[i]);
+            r[i] = (*iE[i]) / (*iA[i]);
         }
 		
-        R1 = (*r[0]) / (*r[1]);
-        
-        if(NumberOfExposures==2) {
-            
-            R = Pow( R1 , 1.0/(2.0 * PairOfExposures) );
+		if(NumberOfExposures==2) {
+            operaFluxVector R1 = r[0] / r[1];
+            operaFluxVector R = Pow(R1 , 1.0/NumberOfExposures);
             PoverI = (R - 1.0) / (R + 1.0);
-            
         } else if (NumberOfExposures==4) {
-            
-            operaFluxVector R2(length);
-            operaFluxVector R1s(length),R2s(length);
-			
-            operaFluxVector RN1(length),RN2(length);
-            
-            R2 = (*r[2]) / (*r[3]);	// changed from r[0] / r[1] Apr 15 2013 DT
-            
-            R1s = (*r[0]) / (*r[3]);
-            R2s = (*r[2]) / (*r[1]);
-            
-            R = Pow( R1 * R2 , 1.0/(2.0 * PairOfExposures) );
-            
+            operaFluxVector R1 = r[0] / r[1];
+            operaFluxVector R2 = r[2] / r[3]; // changed from r[0] / r[1] Apr 15 2013 DT
+            operaFluxVector R1s = r[0] / r[3];
+            operaFluxVector R2s = r[2] / r[1];
+            operaFluxVector R = Pow(R1 * R2, 1.0/NumberOfExposures);
+            operaFluxVector RN1 = Pow(R1 / R2 , 1.0/NumberOfExposures);
+            operaFluxVector RN2 = Pow(R1s / R2s , 1.0/NumberOfExposures);
             PoverI = (R - 1.0) / (R + 1.0);
-            
-            RN1 = Pow( R1 / R2 , 1.0/(2.0 * PairOfExposures) );
             N1 = (RN1 - 1.0) / (RN1 + 1.0);
-            
-            RN2 = Pow( R1s / R2s , 1.0/(2.0 * PairOfExposures) );
             N2 = (RN2 - 1.0) / (RN2 + 1.0);
-        }
-        for(unsigned i=0;i<NumberOfExposures;i++) {
-            delete r[i];
         }
     } else if (method == NewMethod) {
         PoverI = 0.0;
@@ -641,17 +470,13 @@ void operaPolarimetry::calculateDegreeOfPolarization(stokes_parameter_t StokesIn
     } else {
         throw operaException("operaPolarimetry: unrecognized method to calculate polarization.", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);        
     }
-#endif
     
-    // The fix below is necessary since the angles of the analyzer with respect to the
-    // reference system for ESPaDOnS don't follow the same order as described in the literature.
-    // added on Dec 04 2013 EM
+    // The fix below is necessary since the angles of the analyzer with respect to the reference system for ESPaDOnS don't follow the same order as described in the literature. Added Dec 04 2013 EM
     if(StokesIndex == StokesQ) {
-        PoverI -= (PoverI * 2.0);
+        PoverI *= -1.0;
     }
     
     setDegreeOfPolarization(StokesIndex, PoverI);
-    
     if (NumberOfExposures==4) {
         setFirstNullPolarization(StokesIndex, N1);
         setSecondNullPolarization(StokesIndex, N2);
@@ -676,6 +501,6 @@ void operaPolarimetry::calculateStokesParameter(stokes_parameter_t StokesIndex, 
         if(!getHasDegreeOfStokes(StokesIndex)) {
             calculateDegreeOfPolarization(StokesIndex,iE,iA,NumberOfExposures);
         }
+        calculatePolarization(StokesIndex);
     }
-    calculatePolarization(StokesIndex);
 }

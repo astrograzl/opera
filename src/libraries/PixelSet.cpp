@@ -30,10 +30,9 @@
 #include "globaldefines.h"
 #include "operaError.h"
 #include "libraries/operaLib.h"		// for itos
-#include "libraries/operaExtractionAperture.h"
 #include "libraries/operaException.h"
-#include "libraries/operaStats.h"
 #include "libraries/PixelSet.h"
+#include "libraries/operaVectorOperations.h"
 
 /*! 
  * PixelSet
@@ -57,74 +56,31 @@ using namespace std;
  * PixelSet Constructor
  */
 
-PixelSet::PixelSet(void) :
-nPixels(0),
-maxnPixels(0),
-xcenter(NULL),
-ycenter(NULL),
-iIndex(NULL),
-jIndex(NULL),
-redundancy(NULL),
-pixelValue(NULL),
-subpixelArea(1)
-{
-    
-}
+PixelSet::PixelSet(void) : nPixels(0), subpixelArea(1) { }
 
-PixelSet::PixelSet(float SubPixelArea) :
-nPixels(0),
-maxnPixels(0),
-xcenter(NULL),
-ycenter(NULL),
-iIndex(NULL),
-jIndex(NULL),
-redundancy(NULL),
-pixelValue(NULL),
-subpixelArea(1)
-{
-    subpixelArea = SubPixelArea;
-}
+PixelSet::PixelSet(float SubPixelArea) : nPixels(0), subpixelArea(SubPixelArea) { }
 
 PixelSet::PixelSet(unsigned NPixels, float SubPixelArea) :
-nPixels(0),
-maxnPixels(0),
-xcenter(NULL),
-ycenter(NULL),
-iIndex(NULL),
-jIndex(NULL),
-redundancy(NULL),
-pixelValue(NULL),
-subpixelArea(1)
-{   
-	if (NPixels == 0) {
-		throw operaException("PixelSet: npixels == 0 ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    subpixelArea = SubPixelArea;
-    createVectors(NPixels);
-    nPixels = NPixels;         
-    maxnPixels = NPixels;    
+nPixels(NPixels),
+xcenter(NPixels),
+ycenter(NPixels),
+iIndex(NPixels),
+jIndex(NPixels),
+redundancy(NPixels),
+pixelValue(NPixels),
+subpixelArea(SubPixelArea)
+{
 }
-
-/*
- * PixelSet Destructor
- */
-PixelSet::~PixelSet(void) {
-    deleteVectors();
-    nPixels = 0;
-	maxnPixels = 0;
-} 
 
 /*
  * PixelSet Setters/Getters
  */
 
-unsigned PixelSet::getNPixels(void) {
+unsigned PixelSet::getNPixels(void) const {
     return nPixels;
 }
-unsigned PixelSet::getmaxNPixels(void) {
-    return maxnPixels;
-}
-float PixelSet::getXcenter(unsigned index) {
+
+float PixelSet::getXcenter(unsigned index) const {
 #ifdef RANGE_CHECK
     if (index >= nPixels) {
 		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -132,7 +88,7 @@ float PixelSet::getXcenter(unsigned index) {
 #endif
     return xcenter[index];
 }
-float PixelSet::getYcenter(unsigned index) {
+float PixelSet::getYcenter(unsigned index) const {
 #ifdef RANGE_CHECK
     if (index >= nPixels) {
 		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -140,7 +96,7 @@ float PixelSet::getYcenter(unsigned index) {
 #endif
     return ycenter[index];
 }
-int PixelSet::getiIndex(unsigned index) {
+int PixelSet::getiIndex(unsigned index) const {
 #ifdef RANGE_CHECK
     if (index >= nPixels) {
 		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -148,7 +104,7 @@ int PixelSet::getiIndex(unsigned index) {
 #endif
     return iIndex[index];    
 }
-int PixelSet::getjIndex(unsigned index) {
+int PixelSet::getjIndex(unsigned index) const {
 #ifdef RANGE_CHECK
     if (index >= nPixels) {
 		throw operaException("PixelSet: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -156,7 +112,7 @@ int PixelSet::getjIndex(unsigned index) {
 #endif
     return jIndex[index];    
 }
-unsigned PixelSet::getredundancy(unsigned index){
+unsigned PixelSet::getredundancy(unsigned index) const {
 #ifdef RANGE_CHECK
     if (index >= nPixels) {
 		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -164,7 +120,7 @@ unsigned PixelSet::getredundancy(unsigned index){
 #endif
     return redundancy[index];    
 }     
-float PixelSet::getPixelValue(unsigned index) {
+float PixelSet::getPixelValue(unsigned index) const {
 #ifdef RANGE_CHECK
     if (index >= nPixels) {
 		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
@@ -172,22 +128,14 @@ float PixelSet::getPixelValue(unsigned index) {
 #endif
     return pixelValue[index];
 }
-float PixelSet::getSubpixelArea(void) {
+float PixelSet::getSubpixelArea(void) const {
     return subpixelArea;
-}
-void PixelSet::setNPixels(unsigned NPixels) {
-#ifdef RANGE_CHECK
-    if (NPixels > maxnPixels) {
-		throw operaException("PixelSet: NPixels="+itos(NPixels)+" maxnPixels="+itos(maxnPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-#endif
-    nPixels = NPixels;
 }
 
 void PixelSet::setXcenter(float Xcenter, unsigned index) {
 #ifdef RANGE_CHECK
-    if (index >= maxnPixels) {
-		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(maxnPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+    if (index >= nPixels) {
+		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 #endif
     xcenter[index] = Xcenter;
@@ -195,8 +143,8 @@ void PixelSet::setXcenter(float Xcenter, unsigned index) {
 
 void PixelSet::setYcenter(float Ycenter, unsigned index) {
 #ifdef RANGE_CHECK
-    if (index >= maxnPixels) {
-		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(maxnPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+    if (index >= nPixels) {
+		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 #endif
     ycenter[index] = Ycenter;
@@ -204,8 +152,8 @@ void PixelSet::setYcenter(float Ycenter, unsigned index) {
 
 void PixelSet::setiIndex(int iindex, unsigned k) {
 #ifdef RANGE_CHECK
-    if (k >= maxnPixels) {
-		throw operaException("PixelSet: k="+itos(k)+" nPixels="+itos(maxnPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+    if (k >= nPixels) {
+		throw operaException("PixelSet: k="+itos(k)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 #endif
     iIndex[k] = iindex;
@@ -213,8 +161,8 @@ void PixelSet::setiIndex(int iindex, unsigned k) {
 
 void PixelSet::setjIndex(int jindex, unsigned k) {
 #ifdef RANGE_CHECK
-    if (k >= maxnPixels) {
-		throw operaException("PixelSet: k="+itos(k)+" nPixels="+itos(maxnPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+    if (k >= nPixels) {
+		throw operaException("PixelSet: k="+itos(k)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 #endif
     jIndex[k] = jindex;
@@ -222,8 +170,8 @@ void PixelSet::setjIndex(int jindex, unsigned k) {
 
 void PixelSet::setredundancy(unsigned Redundancy, unsigned k) {
 #ifdef RANGE_CHECK
-    if (k >= maxnPixels) {
-		throw operaException("PixelSet: k="+itos(k)+" nPixels="+itos(maxnPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+    if (k >= nPixels) {
+		throw operaException("PixelSet: k="+itos(k)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 #endif
     redundancy[k] = Redundancy;
@@ -231,8 +179,8 @@ void PixelSet::setredundancy(unsigned Redundancy, unsigned k) {
 
 void PixelSet::setPixelValue(float PixelValue, unsigned index) {
 #ifdef RANGE_CHECK
-    if (index >= maxnPixels) {
-		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(maxnPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+    if (index >= nPixels) {
+		throw operaException("PixelSet: index="+itos(index)+" nPixels="+itos(nPixels)+"  ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
 #endif
 	pixelValue[index] = PixelValue;
@@ -242,107 +190,32 @@ void PixelSet::setSubpixelArea(float SubpixelArea) {
     subpixelArea = SubpixelArea;
 }
 
-
 /*
  * PixelSet Methods
  */
 
-void PixelSet::createVectors(unsigned NPixels) {
-	if (NPixels == 0) {
-		throw operaException("PixelSet: NPixels == 0 ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	xcenter = new float[NPixels];
-    ycenter = new float[NPixels];
-    iIndex = new int[NPixels];
-    jIndex = new int[NPixels];
-    redundancy = new unsigned[NPixels];
-    pixelValue = new float[NPixels];
-    nPixels = NPixels;         
-    maxnPixels = NPixels;         
-}
-
-void PixelSet::deleteVectors(void) {
-	if (maxnPixels) {
-		if(xcenter) {
-			delete[] xcenter;
-		}
-		xcenter = NULL;
-		if(ycenter) {
-			delete[] ycenter;
-		}    
-		ycenter = NULL;
-		if(pixelValue) {
-			delete[] pixelValue;
-		}
-		pixelValue = NULL;
-		if(iIndex) {
-			delete[] iIndex;
-		}
-		iIndex = NULL;
-		if(jIndex) {
-			delete[] jIndex;
-		}       
-		jIndex = NULL;
-		if(redundancy) {
-			delete[] redundancy;
-		}       
-		redundancy = NULL;        
-
-		nPixels = 0;
-		maxnPixels = 0;
-	}
-}
-
-void PixelSet::setSubPixels(PixelSet &pixels) {
-	
-	subpixelArea = pixels.subpixelArea;
-	if (maxnPixels >= pixels.nPixels) { // we have enough room, just copy
-		nPixels = pixels.nPixels;
-		for (unsigned i=0; i<nPixels; i++) {
-			setXcenter(pixels.getXcenter(i), i);
-			setYcenter(pixels.getYcenter(i), i);
-			setiIndex(pixels.getiIndex(i), i);
-			setjIndex(pixels.getjIndex(i), i);
-			setredundancy(pixels.getredundancy(i), i);                        
-			setPixelValue(pixels.getPixelValue(i), i);
-		}
-	} else {
-		deleteVectors();
-		createVectors(pixels.nPixels);
-		for (unsigned i=0; i<nPixels; i++) {
-			setXcenter(pixels.getXcenter(i), i);
-			setYcenter(pixels.getYcenter(i), i);
-			setiIndex(pixels.getiIndex(i), i);
-			setjIndex(pixels.getjIndex(i), i);
-			setredundancy(pixels.getredundancy(i), i);              
-			setPixelValue(pixels.getPixelValue(i), i);
-		}
-	}
-}
-
 void PixelSet::resize(unsigned newsize) {
-	if (maxnPixels == 0) { // make more room
-		createVectors(newsize);
-	} else if (maxnPixels < newsize) { // make more room
-		deleteVectors();
-		createVectors(newsize);
-	} else {
-		nPixels = newsize;
-	}
+	xcenter.resize(newsize);
+    ycenter.resize(newsize);
+    iIndex.resize(newsize);
+    jIndex.resize(newsize);
+    redundancy.resize(newsize);
+    pixelValue.resize(newsize);
+    nPixels = newsize;
 }
 
-float PixelSet::getMinXcoord(void) {    
-    return operaArrayMinValue(nPixels,xcenter);
+float PixelSet::getMinXcoord(void) const {    
+    return Min(xcenter);
 }
 
-float PixelSet::getMaxXcoord(void) {
-    return operaArrayMaxValue(nPixels,xcenter);               
+float PixelSet::getMaxXcoord(void) const {
+    return Max(xcenter);               
 }
 
-float PixelSet::getMinYcoord(void) {
-    return operaArrayMinValue(nPixels,ycenter);               
+float PixelSet::getMinYcoord(void) const {
+    return Min(ycenter);               
 }
 
-float PixelSet::getMaxYcoord(void) {
-    return operaArrayMaxValue(nPixels,ycenter);               
+float PixelSet::getMaxYcoord(void) const {
+    return Max(ycenter);               
 }

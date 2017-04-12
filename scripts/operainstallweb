@@ -92,14 +92,14 @@ echo "rsync $zipname akua.cfht.hawaii.edu:/data/world/doug/"
 rsync $zipname akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
 echo "rsync $gzipname akua.cfht.hawaii.edu:/data/world/doug/"
 rsync $gzipname akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "rsync $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/"
-rsync $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "rsync $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/"
-rsync $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "rsync $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/"
-rsync $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
-echo "rsync $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/"
-rsync $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+#echo "rsync $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/"
+#rsync $HOME/${version}/INSTALL_OPERA-1.0.sh akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+#echo "rsync $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/"
+#rsync $HOME/${version}/DEPENDENCIES akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+#echo "rsync $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/"
+#rsync $HOME/${version}/INSTALLATION akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
+#echo "rsync $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/"
+#rsync $HOME/${version}/README akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
 echo "rsync ${version}-xcodeproj.zip akua.cfht.hawaii.edu:/data/world/doug/"
 rsync ${version}-xcodeproj.zip akua.cfht.hawaii.edu:/data/world/doug/ || echo -n
 echo "rsync ${version}-xcodeproj.tar.gz akua.cfht.hawaii.edu:/data/world/doug/"
@@ -110,10 +110,10 @@ echo "ssh akua.cfht.hawaii.edu ln -s /data/world/doug/$zipname /data/world/doug/
 ssh akua.cfht.hawaii.edu ln -s /data/world/doug/$zipname /data/world/doug/${version}.zip 
 echo "ssh akua.cfht.hawaii.edu ln -s /data/world/doug/$gzipname /data/world/doug/${version}.tar.gz"
 ssh akua.cfht.hawaii.edu ln -s /data/world/doug/$gzipname /data/world/doug/${version}.tar.gz 
-echo "ssh akua.cfht.hawaii.edu rm -f /data/world/doug/INSTALL_OPERA-1.0"
-ssh akua.cfht.hawaii.edu rm -f /data/world/doug/INSTALL_OPERA-1.0
-echo "ssh akua.cfht.hawaii.edu ln -s /data/world/doug/INSTALL_OPERA-1.0.sh /data/world/doug/INSTALL_OPERA-1.0"
-ssh akua.cfht.hawaii.edu ln -s /data/world/doug/INSTALL_OPERA-1.0.sh /data/world/doug/INSTALL_OPERA-1.0
+#echo "ssh akua.cfht.hawaii.edu rm -f /data/world/doug/INSTALL_OPERA-1.0"
+#ssh akua.cfht.hawaii.edu rm -f /data/world/doug/INSTALL_OPERA-1.0
+#echo "ssh akua.cfht.hawaii.edu ln -s /data/world/doug/INSTALL_OPERA-1.0.sh /data/world/doug/INSTALL_OPERA-1.0"
+#ssh akua.cfht.hawaii.edu ln -s /data/world/doug/INSTALL_OPERA-1.0.sh /data/world/doug/INSTALL_OPERA-1.0
 #echo "############################################################################################"
 #echo "#    copying opera web docs"
 #echo "############################################################################################"
@@ -131,10 +131,10 @@ echo "##########################################################################
 echo "#    copying the sourceforge $zipname $gzipname distribution"
 echo "############################################################################################"
 echo "scp -P 22 $zipname douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/"
-scp -P 22 $HOME/${version}/INSTALL_OPERA-1.0.sh douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
-scp -P 22 $HOME/${version}/DEPENDENCIES douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
-scp -P 22 $HOME/${version}/INSTALLATION douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
-scp -P 22 $HOME/${version}/README douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
+#scp -P 22 $HOME/${version}/INSTALL_OPERA-1.0.sh douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
+#scp -P 22 $HOME/${version}/DEPENDENCIES douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
+#scp -P 22 $HOME/${version}/INSTALLATION douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
+#scp -P 22 $HOME/${version}/README douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
 scp -P 22 $HOME/${version}/NEWS douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/ || echo -n
 #scp -P 22 ${version}-xcodeproj.zip douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n
 #scp -P 22 ${version}-xcodeproj.tar.gz douglasteeple,opera-pipeline@frs.sourceforge.net:/home/frs/project/o/op/opera-pipeline/${version}/ || echo -n

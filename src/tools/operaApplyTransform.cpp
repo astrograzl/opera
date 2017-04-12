@@ -441,7 +441,7 @@ int main(int argc, char *argv[])
                                     if(normalize) {
                                         spectralOrder->applyNormalization(normalizationBinsize, orderOfPolynomial, usePolynomial, NULL, NULL, TRUE, 0);
                                     } else if (!normalize && ApplyFluxCorrection && spectralOrder->gethasSpectralEnergyDistribution()) {
-                                        spectralOrder->applyFluxCalibration(spectralBinConstant, BeamSpectralBinConstant, uncalibratedContinuumFluxForNormalization,uncalibratedContinuumBeamFluxForNormalization, AbsoluteCalibration, NULL);
+                                        //breaking things in this module for the greater good. spectralOrder->applyFluxCalibration(spectralBinConstant, BeamSpectralBinConstant, uncalibratedContinuumFluxForNormalization,uncalibratedContinuumBeamFluxForNormalization, AbsoluteCalibration, NULL);
                                     }
                                     unsigned elements = (unsigned)ceil((float)spectralElements->getnSpectralElements());
                                     while (elements--) {

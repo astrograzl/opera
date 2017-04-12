@@ -221,15 +221,13 @@ int main(int argc, char *argv[])
         if (!inputHeliocentricCorrection.empty()) {
             FormatData rveldata;
             operaIOFormats::ReadCustomFormat("rvel", rveldata, inputHeliocentricCorrection);
-            spectralOrders.setRadialVelocityCorrection(rveldata.extract<double>());
-            
+            double heliocentricRV = rveldata.extract<double>();
             double lunar_rvel = rveldata.extract<double>();
             double orbital_rvel = rveldata.extract<double>();
             double diurnal_rvel = rveldata.extract<double>();
             HJD_UTC = rveldata.extract<double>();
             HJD_TT = rveldata.extract<double>();
-            
-            heliocentricRV_mps = spectralOrders.getRadialVelocityCorrection()*1000;
+            heliocentricRV_mps = heliocentricRV*1000;
         }
         
         double telluricRV_mps = 0.0;
@@ -237,8 +235,8 @@ int main(int argc, char *argv[])
         if (!inputTelluricCorrection.empty()) {
             FormatData telldata;
             operaIOFormats::ReadCustomFormat("tell", telldata, inputTelluricCorrection);
-            spectralOrders.setTelluricRadialVelocityCorrection(telldata.extract<double>());
-            telluricRV_mps = spectralOrders.getTelluricRadialVelocityCorrection()*1000;
+            double telluricRV = telldata.extract<double>();
+            telluricRV_mps = telluricRV*1000;
         }
 
         // Read telluric lines database lambda vs. intensity
@@ -259,10 +257,10 @@ int main(int argc, char *argv[])
          */
         
         // Detect absorption lines in the observed spectrum within telluric regions defined in inputWavelengthMaskForTelluric
-        operaSpectrum objectLines = spectralOrders.detectSpectralLinesWithinWavelengthMask(inputWavelengthMaskForTelluric, minorder, maxorder,true, normalizationBinsize,spectralResolution,emissionSpectrum,LocalMaxFilterWidth,MinPeakDepth,DetectionThreshold,nsigclip);
+        operaSpectralLineList objectLines = spectralOrders.detectSpectralLinesWithinWavelengthMask(inputWavelengthMaskForTelluric, minorder, maxorder,true, normalizationBinsize,spectralResolution,emissionSpectrum,LocalMaxFilterWidth,MinPeakDepth,DetectionThreshold,nsigclip);
         if(args.debug){
             for (unsigned l=0; l<objectLines.size(); l++) {
-                cout << objectLines.getwavelength(l) << " " << objectLines.getflux(l) << " " << objectLines.getvariance(l) << endl;
+                cout << objectLines.getwavelength(l) << " " << objectLines.getflux(l) << " " << objectLines.getsigma(l) << endl;
             }
         }
         

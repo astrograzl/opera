@@ -83,7 +83,7 @@ enum edatatype {tbyte=TBYTE, tshort=TSHORT, tushort=TUSHORT, tstring=TSTRING, tf
 //								21				11				41					31
 enum eCompression {cNone=0, cGZIP=GZIP_1, cRICE=RICE_1, cHCOMPRESS=HCOMPRESS_1, cPLIO=PLIO_1};
 
-enum eImageType {UNK, MEF, MEFCube, Cube, FITS};
+enum eImageType {UNK, MEF, MEFCube, FITSCube, FITS};
 class operaImageVector;
 class operaFITSImage;
 

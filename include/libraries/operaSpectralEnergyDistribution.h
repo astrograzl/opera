@@ -30,11 +30,7 @@
  http://www.gnu.org/licenses/gpl-3.0.html
  ********************************************************************/
 
-#include "libraries/Polynomial.h"	
-
-#ifndef MAXNUMBEROFMASKEDREGIONS
-#define MAXNUMBEROFMASKEDREGIONS 300
-#endif
+#include "libraries/operaFluxVector.h"
 
 /*! 
  * \sa class operaSpectralEnergyDistribution
@@ -50,35 +46,20 @@ private:
     
     unsigned nDataPoints;
     
-    unsigned maxnDataPoints;
-    
-    double *distanceData;
-    
-    double *wavelengthData;
-   	
+    operaVector distanceData;
+    operaVector wavelengthData;
+    operaVector fluxData; // flux measurements in instrumental units (ADU/pixel^2/spectralElement) - no point in using a flux vector since we never keep track of the variance
     double wavelengthForNormalization;
     
-    operaFluxVector *fluxData;                      // flux measurements in instrumental units (ADU/pixel^2/spectralElement)
-   	
-    operaFluxVector *spectralEnergyData;            // energy flux density obtained from standard measurements
-                                                    // flux ( ergs/(cm*cm*s*A) * 10**16 )
-      
-    operaSpectralElements *uncalibratedFluxElements;         // operaSpectralElements for uncalibrated flux
+    operaVector calibrationDist;
+    operaVector calibrationWavelength;
+    operaFluxVector uncalibratedFlux;
+    operaFluxVector calibratedFlux;
+    operaFluxVector fluxCalibration;
+    operaFluxVector instrumentThroughput;
     
-    operaSpectralElements *calibratedFluxElements;         // operaSpectralElements for calibrated flux
-
-    
-    operaSpectralElements *fluxCalibration;         // operaSpectralElements for flux calibration
-    
-    operaSpectralElements *instrumentThroughput;    // operaSpectralElements for instrument throughput
-
-    unsigned numberOfMaskedRegions;                     // number of wavelength regions to mask
-    double MaskWavelength1[MAXNUMBEROFMASKEDREGIONS];   // vector of initial wavelengths for masked regions
-    double MaskWavelength2[MAXNUMBEROFMASKEDREGIONS];   // vector of final wavelengths for masked regions
-    
-	bool hasFluxData;
-	bool hasSpectralEnergyData;   
-    
+    bool hasFluxData;
+	
 	bool hasUncalibratedFlux;
 	bool hasCalibratedFlux;
 	bool hasFluxCalibration;
@@ -86,154 +67,110 @@ private:
 
 public:
 		
-	/*
-	 * Constructors
-	 */
-    
 	operaSpectralEnergyDistribution();
     
 	operaSpectralEnergyDistribution(unsigned NDataPoints);   
 
     operaSpectralEnergyDistribution(unsigned NDataPoints, unsigned nElements);  
     
-    operaSpectralEnergyDistribution(operaSpectralElements &inputFluxCalibrationElements);   
-
-	/*
-	 * Destructor
-	 */   
-    
-	~operaSpectralEnergyDistribution();
-	
-	/*
+    /*
 	 * Methods for managing data
 	 */    
     
-    void setnDataPoints(unsigned NDataPoints);
+    unsigned getnDataPoints() const;
     
-    unsigned getnDataPoints(void) const;
+    void resizeDataVectors(unsigned NDataPoints);
+    
+    void resizeCalibrationVectors(unsigned nElements);
     
     void setwavelengthForNormalization(double WavelengthForNormalization);
     
-    double getwavelengthForNormalization(void) const;
-        
-	void createDataVectors(unsigned NDataPoints);
-
-	void deleteDataVectors(void);
+    double getwavelengthForNormalization() const;
     
-    void setdistanceData(double Distance, unsigned index);
+	void setdistanceData(double Distance, unsigned index);
     
     void setwavelengthData(double Wavelength, unsigned index);
     
-    void setfluxData(double Flux, unsigned index); 
+    void setfluxData(double Flux, unsigned index);
     
-    void setspectralEnergyData(double SpectralEnergy, unsigned index);    
-   
     double getdistanceData(unsigned index) const;
     
     double getwavelengthData(unsigned index) const;
     
     double getfluxData(unsigned index) const;
     
-    double getspectralEnergyData(unsigned index) const;
+    bool getHasFluxData() const { return hasFluxData; }
     
-	bool getHasFluxData(void) const { return hasFluxData; };
-    
-	void setHasFluxData(bool HasFluxData) { hasFluxData = HasFluxData; };
-    
-	bool getHasSpectralEnergyData(void) const { return hasSpectralEnergyData; };
-    
-	void setHasSpectralEnergyData(bool HasSpectralEnergyData) { hasSpectralEnergyData = HasSpectralEnergyData; };
+	void setHasFluxData(bool HasFluxData) { hasFluxData = HasFluxData; }
     
 	/*
-	 * Methods for managing flux calibration and throughput elements
+	 * Methods for managing flux calibration elements
 	 */
 	  
-	void createFluxCalibrationElements(unsigned nElements);     
-    
-	void deleteFluxCalibrationElements(void);    
+	void setCalibrationDist(const operaVector& CalibrationDist);
 	
-	void createThroughputElements(unsigned nElements);     
-    
-	void deleteThroughputElements(void); 
-    
-	void createUncalibratedFluxElements(unsigned nElements);     
-    
-	void deleteUncalibratedFluxElements(void); 
-    
-	void createCalibratedFluxElements(unsigned nElements);     
-    
-	void deleteCalibratedFluxElements(void);     
-    
-    void setUncalibratedFluxElements(operaSpectralElements *UncalibratedFluxElements);
+	void setCalibrationWavelength(const operaVector& CalibrationWavelength);
+	
+	void setUncalibratedFlux(const operaFluxVector& UncalibratedFluxElements);
 
-    void setCalibratedFluxElements(operaSpectralElements *CalibratedFluxElements);    
+    void setCalibratedFlux(const operaFluxVector& CalibratedFluxElements);
     
-    operaSpectralElements* getUncalibratedFluxElements(void){ return uncalibratedFluxElements; }
+    void setFluxCalibration(const operaFluxVector& FluxCalibrationElements);
     
-    const operaSpectralElements* getUncalibratedFluxElements(void) const { return uncalibratedFluxElements; }
+    void setThroughput(const operaFluxVector& ThroughputElements);
     
-    operaSpectralElements* getCalibratedFluxElements(void){ return calibratedFluxElements; }
+    operaVector& getCalibrationWavelength(){ return calibrationWavelength; }
     
-    const operaSpectralElements* getCalibratedFluxElements(void) const { return calibratedFluxElements; }
+    const operaVector& getCalibrationWavelength() const { return calibrationWavelength; }
     
-    void setFluxCalibrationElements(operaSpectralElements *FluxCalibrationElements);
+    /*operaFluxVector& getUncalibratedFlux(){ return uncalibratedFlux; }
     
-    void setThroughputElements(operaSpectralElements *ThroughputElements);
+    const operaFluxVector& getUncalibratedFlux() const { return uncalibratedFlux; }*/
     
-    operaSpectralElements* getFluxCalibrationElements(void){ return fluxCalibration; }
+    operaFluxVector& getUncalibratedFlux(){ return uncalibratedFlux; }
     
-    const operaSpectralElements* getFluxCalibrationElements(void) const { return fluxCalibration; }
+    const operaFluxVector& getUncalibratedFlux() const { return uncalibratedFlux; }
     
-    operaSpectralElements* getThroughputElements(void){ return instrumentThroughput; }
+    operaFluxVector& getCalibratedFlux(){ return calibratedFlux; }
     
-    const operaSpectralElements* getThroughputElements(void) const { return instrumentThroughput; }
+    const operaFluxVector& getCalibratedFlux() const { return calibratedFlux; }
+    
+    operaFluxVector& getFluxCalibration(){ return fluxCalibration; }
+    
+    const operaFluxVector& getFluxCalibration() const { return fluxCalibration; }
+    
+    operaFluxVector& getThroughput(){ return instrumentThroughput; }
+    
+    const operaFluxVector& getThroughput() const { return instrumentThroughput; }
         
-	bool getHasUncalibratedFlux(void) const { return hasUncalibratedFlux; };
-
-	void setHasUncalibratedFlux(bool HasUncalibratedFlux) { hasUncalibratedFlux = HasUncalibratedFlux; };
-
-	bool getHasCalibratedFlux(void) const { return hasCalibratedFlux; };
-
-	void setHasCalibratedFlux(bool HasCalibratedFlux) { hasCalibratedFlux = HasCalibratedFlux; };
-
-	bool getHasFluxCalibration(void) const { return hasFluxCalibration; };
-
-	void setHasFluxCalibration(bool HasFluxCalibration) { hasFluxCalibration = HasFluxCalibration; };
+    operaFluxVector& getCalibration(bool useThroughput) { if(useThroughput) return instrumentThroughput; return fluxCalibration; }
     
-	bool getHasInstrumentThroughput(void) const { return hasInstrumentThroughput; };
+    const operaFluxVector& getCalibration(bool useThroughput) const { if(useThroughput) return instrumentThroughput; return fluxCalibration; }
+    
+    bool getHasUncalibratedFlux() const { return hasUncalibratedFlux; };
 
-	void setHasInstrumentThroughput(bool HasInstrumentThroughput) { hasInstrumentThroughput = HasInstrumentThroughput; };
-    
-    /*
-     * wavelength mask regions
-     */
-    
-    void setnumberOfMaskedRegions(unsigned nMaskedRegions);
-    
-    unsigned getnumberOfMaskedRegions(void) const;
-    
-    void setMaskRegion(unsigned index, double Wavelength1, double Wavelength2);
-    
-    double getMaskRegionWavelength1(unsigned index) const;
-    
-    double getMaskRegionWavelength2(unsigned index) const;
- 
-    void readMaskedRegionsFromFile(string MaskedRegionsFileName);
+	void setHasUncalibratedFlux(bool HasUncalibratedFlux) { hasUncalibratedFlux = HasUncalibratedFlux; }
 
-    bool isItMasked(double Wavelength);
+	bool getHasCalibratedFlux() const { return hasCalibratedFlux; }
+
+	void setHasCalibratedFlux(bool HasCalibratedFlux) { hasCalibratedFlux = HasCalibratedFlux; }
+
+	bool getHasFluxCalibration() const { return hasFluxCalibration; }
+
+	void setHasFluxCalibration(bool HasFluxCalibration) { hasFluxCalibration = HasFluxCalibration; }
+    
+	bool getHasInstrumentThroughput() const { return hasInstrumentThroughput; }
+
+	void setHasInstrumentThroughput(bool HasInstrumentThroughput) { hasInstrumentThroughput = HasInstrumentThroughput; }
     
     /*
      * Other Methods     
      */
-    void measureUncalibratedContinuum(operaSpectralElements &uncalibratedFluxElements, unsigned binsize, unsigned nsigcut);
     
-    void calculateUncalibratedElements(unsigned binsize, unsigned nsigcut);
-
-    void populateUncalibratedElementsFromContinuumData(void);
-
-    void calculateCalibratedElements(unsigned nPointsInReference, double *refwl, double *refflux);
+    void measureUncalibratedContinuum(unsigned binsize, unsigned nsigcut);
     
-    void calculateSEDelements(double spectralBinConstant,double referenceFluxForNormalization,double uncalibratedContinuumFluxForNormalization);
+    void populateUncalibratedFluxFromContinuumData();
     
+    void calculateUncalibratedFlux(unsigned binsize, unsigned nsigcut);
 };
 #endif

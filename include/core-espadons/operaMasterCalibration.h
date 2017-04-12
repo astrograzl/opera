@@ -34,7 +34,7 @@
 /*! 
  * operaMasterCalibration
  * \brief Encapsulates the functionality of modules that create master calibration images.
- * \file operaSpectrumCalibration.h
+ * \file operaMasterCalibration.h
  * \ingroup libraries
  */
 

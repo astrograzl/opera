@@ -33,7 +33,6 @@
 #include "operaError.h"
 #include "libraries/operaSpectralElements.h"		// for operaSpectralElements
 #include "libraries/operaSpectralTools.h"			// for operaSpectrum
-#include "libraries/operaInstrumentProfile.h"
 #include "libraries/operaSpectralOrder.h"
 #include "libraries/GainBiasNoise.h"
 #include "libraries/Polynomial.h"	
@@ -57,7 +56,7 @@ using namespace std;
 class operaSpectralOrderVector {
 	
 private:
-	operaSpectralOrder **vector;	// a vector of spectral order pointers
+	std::vector<operaSpectralOrder*> vector; // a vector of spectral order pointers
 	Polynomial *orderSpacingPolynomial; // captures the spacing between orders
 	
 	string object;					// for Libre-Esprit output
@@ -73,9 +72,7 @@ private:
 	unsigned count;					// Note that this count is the count of actual orders, 
 									// not the length of the vector (which will be MAXORDERS)
 	GainBiasNoise *gainBiasNoise;	// flat stats
-	double RadialVelocityCorrection;
-	double TelluricRadialVelocityCorrection;
-
+	
 public:
 	/*
 	 * Constructors
@@ -129,26 +126,8 @@ public:
 	 */
 	GainBiasNoise *getGainBiasNoise();
 	const GainBiasNoise *getGainBiasNoise() const;
-	/*! 
-	 * unsigned getRadialVelocityCorrection();
-	 * \brief returns a double RadialVelocityCorrection.
-	 */
-	double getRadialVelocityCorrection() const;
-	/*!
-	 * void setRadialVelocityCorrection(double RadialVelocityCorrection);
-	 * \brief sets the double RadialVelocityCorrection.
-	 */
-	void setRadialVelocityCorrection(double BarycentricRadialVelocityCorrection);
-	/*! 
-	 * unsigned getRadialVelocityCorrection();
-	 * \brief returns a double RadialVelocityCorrection.
-	 */
-	double getTelluricRadialVelocityCorrection() const;
-	/*!
-	 * void setTelluricRadialVelocityCorrection(double TelluricRadialVelocityCorrection);
-	 * \brief sets the double TelluricRadialVelocityCorrection.
-	 */
-	void setTelluricRadialVelocityCorrection(double TelluricRadialVelocityCorrection);
+	
+	void setWavelengthsFromCalibration(int Minorder, int Maxorder);
 	
 	/*! 
 	 * \sa method unsigned getCount();
@@ -177,6 +156,27 @@ public:
 	 * \return none.
 	 */
 	void setCount(unsigned Count);
+	
+	/*! 
+	 * \sa method void shiftOrdersDown(unsigned shift);
+	 * \brief decreases the index and label of each order by the number specified
+	 * \return none.
+	 */
+	void shiftOrdersDown(unsigned shift);
+	
+	/*! 
+	 * \sa method void shiftOrdersUp(unsigned shift);
+	 * \brief increases the index and label of each order by the number specified
+	 * \return none.
+	 */
+	void shiftOrdersUp(unsigned shift);
+	
+	/*! 
+	 * \sa method void shiftOrders();
+	 * \brief moves the index and label of each order by the number specified.
+	 * \return none.
+	 */
+	void shiftOrders(int shift);
 	
 	/*! 
 	 * \sa void setObject(string object)
@@ -247,14 +247,16 @@ public:
 	 * \return void.
 	 */
 	void setOrderSpacingPolynomial(PolynomialCoeffs_t *pc);
-	/* 
+	
+	/*!
 	 * \sa method Polynomial *getDispersionPolynomial(unsigned index);
 	 * \brief gets the dispersion polynomial
 	 */
 	LaurentPolynomial *getDispersionPolynomial(unsigned index);
 	const LaurentPolynomial *getDispersionPolynomial(unsigned index) const;
-	/* 
-	 * setDispersionPolynomial(unsigned index, const int MinorderOfLaurentPolynomial,const int MaxorderOfLaurentPolynomial, PolynomialCoeffs_t *pc);
+	
+	/*!
+	 * \sa method setDispersionPolynomial(unsigned index, const int MinorderOfLaurentPolynomial,const int MaxorderOfLaurentPolynomial, PolynomialCoeffs_t *pc);
 	 * \brief sets the dispersion polynomial
 	 */
     void setDispersionPolynomial(unsigned index, const int MinorderOfLaurentPolynomial,const int MaxorderOfLaurentPolynomial, PolynomialCoeffs_t *pc);
@@ -274,6 +276,7 @@ public:
     unsigned getElemIndexAndOrdersByWavelength(int *orderWithReferenceFluxForNormalization, unsigned *elemIndexWithReferenceFluxForNormalization, double wavelength);
 
     unsigned getOrdersByWavelengthRange(int *orderForWavelengthRange, double Range_wl0, double Range_wlf);
+    void getOrdersByWavelengthRange(operaWavelengthRange wavelengthRange, int& Minorder, int& Maxorder);
 
     void measureContinuumAcrossOrders(unsigned binsize, int orderBin, unsigned nsigcut);
 
@@ -287,23 +290,39 @@ public:
 	
 	void readLEFluxCalibration(string LEfluxCalibration, operaSpectralElements *fluxCalibrationElements);
     
+    /// Returns a clean uniform sample of the continuum flux for the spectral elements (and optionally the beam elements) of all orders
+    operaSpectrum calculateCleanUniformSampleOfContinuum(int Minorder, int Maxorder, unsigned binsize, double delta_wl, string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, bool useBeams);
+    // Overload using float arrays instead of operaSpectrum
     void calculateCleanUniformSampleOfContinuum(int Minorder, int Maxorder, unsigned binsize, double delta_wl, string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, float *uniform_wl, float *uniform_flux,float *uniform_Beamflux[MAXNUMBEROFBEAMS], bool useBeams);
     
     void trimOrdersByWavelengthRanges(int Minorder, int Maxorder);
-    void applyTelluricRVShiftINTOExtendendSpectra(int Minorder, int Maxorder);
-    void setRVCorrectionINTOExtendendSpectra(int Minorder, int Maxorder);
-    void correctFlatField(int Minorder, int Maxorder, bool StarPlusSky, bool starplusskyInvertSkyFiber=false);
-    void saveExtendedFlux(int Minorder, int Maxorder);
+    void applyTelluricRVCorrectionINTOExtendendSpectra(double tellCorrection, int Minorder, int Maxorder);
+    void setRVCorrectionINTOExtendendSpectra(double rvelCorrection, int Minorder, int Maxorder);
+    void correctFlatField(int Minorder, int Maxorder, bool StarPlusSky, bool starplusskyInvertSkyFiber=false, double skyOverStarFiberAreaRatio=1.0);
+    
+    /// Saves the flux into both the normalized flux and fcal flux of the extended spectra
+    void saveFluxINTOExtendedSpectra(int Minorder, int Maxorder);
+    
+    /// Normalizes the flux order-by-order and saves the result into the normalized flux of the extended spectra
+    void normalizeFluxOrderbyOrderINTOExtendendSpectra(unsigned normalizationBinsize, int Minorder, int Maxorder, bool normalizeBeams);
+    
+    /// Normalizes the flux to the continuum by sampling the continuum across all orders, and saves the result into the normalized flux of the extended spectra
     void normalizeFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams);
+    
+    /// Normalizes the flux to the continuum and applies flux calibrations (does some weird stuff currently) and saves the result into the normalized flux and the fcal flux of the extended spectra, respectively
     void normalizeAndCalibrateFluxINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, double exposureTime, bool AbsoluteCalibration, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams, double SkyOverStarFiberAreaRatio, bool StarPlusSky);
-    void normalizeINTOExtendendSpectra(string inputWavelengthMaskForUncalContinuum, unsigned numberOfPointsInUniformSample, unsigned normalizationBinsize, double delta_wl, int Minorder, int Maxorder, bool normalizeBeams);
+    
+    /// Applies a flat response calibration to the flux and saves the result into the fcal flux of the extended spectra
     void applyFlatResponseINTOExtendendSpectra(string flatResponse, bool FITSformat, int Minorder, int Maxorder);
+    
+    /// Applies the removal of the continuum polarization and saves the result into the continuum removed polarization
     void removeContinuumPolarization(int Minorder, int Maxorder);
-    unsigned getMaxNumberOfElementsInOrder(int Minorder, int Maxorder);
-    unsigned getNumberofBeams(int Minorder, int Maxorder) const;
+    
+    unsigned getMaxNumberOfElementsInOrder(int Minorder, int Maxorder) const;
+    unsigned getNumberOfBeams(int Minorder, int Maxorder) const;
     
     operaSpectrum getSpectrumWithinTelluricMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize);
-    operaSpectrum detectSpectralLinesWithinWavelengthMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double spectralResolution, bool emissionSpectrum,double LocalMaxFilterWidth,double MinPeakDepth,double DetectionThreshold,double nsigclip);
+    operaSpectralLineList detectSpectralLinesWithinWavelengthMask(string inputWavelengthMaskForTelluric, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double spectralResolution, bool emissionSpectrum,double LocalMaxFilterWidth,double MinPeakDepth,double DetectionThreshold,double nsigclip);
 
     operaSpectrum getSpectrumAroundLines(operaSpectrum sourceLines, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double spectralResolution,double nsig, double snrClip, unsigned numberOfPointsToCutInOrderEnds);
     operaSpectrum getSpectrumWithinWavelengthRange(operaWavelengthRange range, int Minorder, int Maxorder, bool normalized, unsigned normalizationBinsize, double snrClip, unsigned numberOfPointsToCutInOrderEnds);
@@ -311,29 +330,11 @@ public:
     void calculateRawFluxQuantities(int Minorder, int Maxorder, double *integratedFlux, double *meanFlux, double *maxSNR, double *meanSNR);
 
     void readFlatResponseIntoSED(string filename,int Minorder, int Maxorder, bool FITSformat);
-    unsigned readFITSFlatResponse(string filename,float *frwavelength,float *flatresp);
-    unsigned readLibreEspritFlatResponse(string filename,float *frwavelength,float *flatresp);
-
-    void normalizeOrderbyOrderAndSaveFluxINTOExtendendSpectra(unsigned normalizationBinsize, int Minorder, int Maxorder, bool normalizeBeams);
+    operaSpectrum readFITSFlatResponse(string filename);
+	operaSpectrum readLibreEspritFlatResponse(string filename);
     
+    /// Returns an operaSpectrum containing the specified parts of the extended spectrum orders based on input parameters.
     operaSpectrum getExtendedSpectrum(int Minorder, int Maxorder, unsigned RawNormalizedOrCalibrated, bool wavelengthTelluricCorrected, bool wavelengthHelioCorrected, double snrClip, unsigned numberOfPointsToCutInOrderEnds, double sourceRV_KMS);
-};
-
-/*
- * now define spectralordervector iterators, only supports iterating in a positive direction
- * from low to higher order
- */
-#include <iterator>
-
-class operaSpectralOrderVectorIterator : public iterator<input_iterator_tag, operaSpectralOrderVector> {
-	operaSpectralOrderVector *ovp;
-public:
-	operaSpectralOrderVectorIterator(operaSpectralOrderVector *o) : ovp(o) {}
-	operaSpectralOrderVectorIterator(const operaSpectralOrderVectorIterator &it) : ovp(it.ovp) {}
-	operaSpectralOrderVectorIterator& operator ++() {ovp++; return *this;}
-	bool operator ==(const operaSpectralOrderVectorIterator & rhs) {return ovp == rhs.ovp;}
-	bool operator !=(const operaSpectralOrderVectorIterator & rhs) {return ovp != rhs.ovp;}
-	operaSpectralOrderVector& operator *() {return *ovp;}
 };
 
 #endif

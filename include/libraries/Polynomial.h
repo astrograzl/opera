@@ -30,9 +30,8 @@
 #ifndef POLYNOMIAL_H
 #define POLYNOMIAL_H
 
-#include <math.h>		// for pow
-
 #include "libraries/operaLibCommon.h"
+#include "libraries/operaVector.h"
 
 /*! 
  * \sa class Polynomial
@@ -43,24 +42,49 @@
 class Polynomial {
 	
 private:
-	unsigned orderOfPolynomial;
-	double polynomialVector[MAXPOLYNOMIAL];
-	double polynomialErrors[MAXPOLYNOMIAL];
+	operaVector polynomialVector;
+	operaVector polynomialErrors;
 	double polychisqr;
 	
 public:
 	/*
-	 * Constructors / Destructors
+	 * Constructors
 	 */
-	Polynomial();	
-	Polynomial(const unsigned OrderOfPolynomial);	
-	Polynomial(const unsigned OrderOfPolynomial, const double* CoefficientVector);	
-	Polynomial(const unsigned OrderOfPolynomial, const double* CoefficientVector, const double* CoefficientErrorVector);
+	Polynomial();
+	Polynomial(const operaVector& coeffs);
+	Polynomial(unsigned OrderOfPolynomial);	
+	Polynomial(unsigned OrderOfPolynomial, const double* CoefficientVector);
+	Polynomial(unsigned OrderOfPolynomial, const double* CoefficientVector, const double* CoefficientErrorVector);
 	Polynomial(const PolynomialCoeffs_t* Coefficients);	
 	Polynomial(const doublePolynomialCoeffs_t* Coefficients);	
 	
-	~Polynomial();
-	
+	/*!
+	 * const operaVector& getCoefficients()
+	 * \brief This function returns an immutable reference to the vector of coefficients.
+	 * \return const operaVector& - the immutable vector of polynomial coefficients
+	 */
+	const operaVector& getCoefficients() const;
+	/*!
+	 * const operaVector& getErrors()
+	 * \brief This function returns an immutable reference to the vector of coefficient errors.
+	 * \return const operaVector& - the immutable vector of polynomial coefficient errors
+	 */
+	const operaVector& getErrors() const;
+	/*!
+	 * void setCoefficients(const operaVector& coeffs, const operaVector& errors)
+	 * \brief This function sets the coefficent values and errors.
+	 * \param coeffs are the values to use for the coefficients
+	 * \param errors are the values to use for the coefficient errors
+	 * \return void
+	 */
+	void setCoefficients(const operaVector& coeffs, const operaVector& errors);
+	/*!
+	 * void setCoefficients(const operaVector& coeffs)
+	 * \brief This function sets the coefficent values.
+	 * \param coeffs are the values to use for the coefficients
+	 * \return void
+	 */
+	void setCoefficients(const operaVector& coeffs);
 	/*!
 	 * double Get(const unsigned index)
 	 * \brief This function gets the polynomial value at index.
@@ -110,12 +134,12 @@ public:
 	 */
 	unsigned getOrderOfPolynomial() const;
 	/*!
-	 * void setOrderOfPolynomial(unsigned Order);
+	 * void resize(unsigned Order);
 	 * \brief This function sets the unsigned polynomial Order.
-	 * \note usage: setOrderOfPolynomial(3);
+	 * \note usage: resize(3);
 	 * \return void
 	 */
-	void setOrderOfPolynomial(unsigned Order);	
+	void resize(unsigned Order);	
 	/*!
 	 * void double getCoefficient(unsigned index);
 	 * \brief This function gets a coefficent at the index.
@@ -126,7 +150,6 @@ public:
 	/*!
 	 * void setCoefficient(unsigned index, double value);
 	 * \brief This function sets a coefficent at the index.
-	 * \note usage: setOrderOfPolynomial(3);
 	 * \return void
 	 */
 	void setCoefficient(unsigned index, double value);	
@@ -145,19 +168,11 @@ public:
 	 */
 	void setCoefficientError(unsigned index, double value);	
 	/*!
-	 * struct PolynomialCoeffs_t* getPolynomialCoeffs();
-	 * \brief This function returns a PolynomialCoeffs_t struct.
-	 * \note usage: PolynomialCoeffs_t *p = getPolynomialCoeffs<float>();
-	 * \note allocates storage that must be freed
-	 * \return PolynomialCoeffs_t  * - the PolynomialCoeffs_t struct *
-	 */
-	PolynomialCoeffs_t* getPolynomialCoeffs();
-	/*!
 	 * void setPolynomialCoeffs(PolynomialCoeffs_t* coeffs);
 	 * \brief This function sets a PolynomialCoeffs_t struct.
 	 * \return void
 	 */
-	 void setPolynomialCoeffs(const PolynomialCoeffs_t* coeffs);	
+	void setPolynomialCoeffs(const PolynomialCoeffs_t* coeffs);
 	/*!
 	 * void setChisqr(double Chisqr)
 	 * \brief This function sets chisqr.
@@ -178,22 +193,15 @@ public:
 	 * \note usage: printEquation(&cout);
 	 * \return void
 	 */
-	void printEquation(ostream *pout);
+	void printEquation(ostream *pout) const;
+	/*!
+	 * double operator()(double x)
+	 * \brief Evaluates the polynomial function at x.
+	 * \note usage: double value = polynomial((double)x);
+	 * \param x is a double input value for which the given polynomial is evaluated
+	 * \return double value of evaluation of the polynomial
+	 */
+	double operator()(double x) const;
 };
-/*!
- * SimpletType EvaluatePolynomialQuick(double x, Polynomial &pol)
- * \brief This function returns the value of a given polynomial function.
- * \note usage: float value = Evaluate<float>((float)x);
- * \note usage: double value = Evaluate((double)x);
- * \note x is a double input value for which the given polynomial is evaluated
- * \return double value of evaluation of the polynomial
- */
-static inline double EvaluatePolynomialQuick(const double x, Polynomial &poly) {
-	double *polynomialVector = poly.getVector();
-	double fpoly = polynomialVector[0];
-	for (unsigned i=1; i<poly.getOrderOfPolynomial(); i++) {
-		fpoly += polynomialVector[i]*pow(x, (int)i);
-	}
-	return fpoly;
-}
+
 #endif

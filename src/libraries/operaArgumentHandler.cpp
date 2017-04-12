@@ -19,3 +19,8 @@ void operaArgumentHandler::AddOrderLimitArguments(int& ordernumber, int& minorde
 	AddOptionalArgument("minorder", minorder, default_value, "Minimum order to use");
 	AddOptionalArgument("maxorder", maxorder, default_value, "Maximum order to use");
 }
+
+bool operaArgumentHandler::verbose = false;
+bool operaArgumentHandler::debug = false;
+bool operaArgumentHandler::trace = false;
+bool operaArgumentHandler::plot = false;

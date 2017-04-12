@@ -3,10 +3,16 @@
 Created on Oct 21 2014
 @author: Eder Martioli
 Laboratorio Nacional de Astrofisica, Brazil
-Last update on Mar 26, 2015
+Last update on Mar 8, 2017
 """
 import sys, os
 import subprocess
+from time import strftime
+
+pylibdir = os.path.split(os.path.dirname(__file__))[0] + '/pyLib'
+sys.path.insert(0,pylibdir)
+
+from operacommands import *
 
 ########## DIRECTORIES ############
 class Directories :
@@ -47,11 +53,12 @@ class ConfigFiles :
         self.THARATLASSPECTRUM = Dirs.CONFIGDIR + "LovisPepe_ThArAtlas.dat.gz"
         self.WAVEFIRSTGUESS = Dirs.CONFIGDIR + "wcal_ref.dat.gz"
         self.SOLARTYPEWAVELENGTHMASK = Dirs.CONFIGDIR + "wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt"
-        self.ATYPEWAVELENGTHMASK = Dirs.CONFIGDIR + "wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt"
-        #self.ATYPEWAVELENGTHMASK = Dirs.CONFIGDIR + "wavelengthMaskForUncalContinuumDetection.txt"
+        #self.ATYPEWAVELENGTHMASK = Dirs.CONFIGDIR + "wavelengthMaskForUncalContinuumDetection_SolarTypeStars.txt"
+        self.ATYPEWAVELENGTHMASK = Dirs.CONFIGDIR + "wavelengthMaskForUncalContinuumDetection.txt"
         self.ATLASWAVELENGTHMASK = Dirs.CONFIGDIR + "wavelengthMaskForRefContinuumDetection.txt"
         self.TELLURICWAVELENGTHMASK = Dirs.CONFIGDIR + "wavelengthMaskForTelluricAbsorption.txt"
         self.TELLURICLINES = Dirs.CONFIGDIR + "opera_HITRAN08-extracted.par.gz"
+        #self.TELLURICLINES = Dirs.CONFIGDIR + "skyline_skycal-Eso_mod.txt"
         self.TELLURICSPECTRUM = Dirs.CONFIGDIR + "KPNO_atmtrans.dat.gz"
         self.LEORDERWAVELENGTH = Dirs.CONFIGDIR + "LE_order_wavelength.dat"
 
@@ -65,13 +72,22 @@ class ConfigFiles :
         self.OLAPAFLATRESPONSE = Dirs.CONFIGDIR + "flat_resp_olapa.fits.gz"
         self.EEV1FLATRESPONSE = Dirs.CONFIGDIR + "flat_resp_eev1.s"
 
-        #self.SOURCELINES = Dirs.CONFIGDIR + "/spectralLinesLibraries/sourcelinesForRVMeasurements.txt"
-        self.SOURCELINES = Dirs.CONFIGDIR + "/spectralLinesLibraries/sourcelinesForRVMeasurements_SolarType.txt"
+        self.SOURCELINES = Dirs.CONFIGDIR + "sourcelinesForRVMeasurements.txt"
+        #self.SOURCELINES = Dirs.CONFIGDIR + "sourcelinesForRVMeasurements_SolarType.txt"
         self.INTERSTELLARLINES = Dirs.CONFIGDIR + "/spectralLinesLibraries/interstellarLinesForRVMeasurements.txt"
         self.WAVELENGTHRANGESFORRVMEASUREMENTS = Dirs.CONFIGDIR + "/spectralLinesLibraries/wavelengthRangesForRVMeasurements.txt"
         
         self.SOMEREFERENCESPECTRUM = "/Users/edermartioli/Reductions/GRACES/20150807/KIC09472174_20150807_master.norm.spc"
 
+        self.LEAPSECONDSFILE = Dirs.CONFIGDIR + "/leapseconds.dat"
+    
+        self.TIMESTAMPFILE =Dirs.OP_HOME + "/TIMESTAMP"
+        self.OPERAVERSION = self.readfirstline(self.TIMESTAMPFILE)
+    
+    def readfirstline(self, file) :
+        with open(file, 'r') as f:
+            first_line = f.readline()
+            return first_line.rstrip()
 
 # Function below reads list of standard stars for which there is available calibration data
     def readStandards(self, Dirs, stdListFilename) :
@@ -139,6 +155,11 @@ class Keywords :
         self.COMPKEYWORD="COMPARISON"
         self.ALIGNKEYWORD="ALIGN"
         self.OBJECTKEYWORD="OBJECT"
+
+        self.INSTRUMEKEY = 'INSTRUME'
+        self.OBSTYPEKEY = 'OBSTYPE'
+        self.READMODEKEY = 'EREADSPD'
+        self.INSTMODEKEY = 'INSTMODE'
 ##############################
 
 ######### DEFAULT CALIBRATION ###########
@@ -163,124 +184,298 @@ class InstMode :
         self.mode = int(intrumentmode)
 
         self.INSTRUME="ESPaDOnS"
-        self.WAVELENGTHFORNORMALIZATION=548
-        self.APERTUREHEIGHT = 0.6923
-        
-        self.MINORDERTOEXTRACT = 22
-        self.MAXORDERTOEXTRACT = 61
-        
-        self.RVBINFOROUTPUTSTACKEDSPECTRUM = 2.4    # spectral bin in km/s
-        self.MINWLFOROUTPUTSTACKEDSPECTRUM = 0.0    # min wavelength in nm (0 for full range)
-        self.MAXWLFOROUTPUTSTACKEDSPECTRUM = 0.0    # max wavelength in nm (0 for full range)
-        self.SNRCLIPFOROUTPUTSTACKEDSPECTRUM = 10    # Min SNR to accept a given spectral point
-        self.NCUTATORDERENDSFOROUTPUTSTACKEDSPECTRUM = 300    # Number of points to exclude at order edges
 
-        self.SOURCELINERESOLUTION = 20000
+        self.observatory_coords = '19:49:36 -155:28:18'
+        self.observatory_elevation = '4207'
 
-        self.APPLYTELLINSTACKEDSPECTRUM = 1
-        self.APPLYHELIOINSTACKEDSPECTRUM = 1
+        self.MINORDERTOEXTRACT = '22'
+        self.MAXORDERTOEXTRACT = '61'
+
+        #self.MINORDERTOEXTRACT = '36'
+        #self.MAXORDERTOEXTRACT = '59'
+
+        self.MASTERCOMP_COMBINEMETHOD='2'
+        self.MASTERCOMP_SATURATIONLIMIT='65535'
+        self.MASTERCOMP_OUTPUTEXPOSURETIME='40'
+        self.MASTERCOMP_TRUNCATEOUTPUTFLUXTOSATURATION='1'
+        self.MASTERCOMP_BIASCONSTANT='0'
+        self.MASTERCOMP_EXPTIMEFITSKEYWORD='EXPTIME'
+        
+        self.GAIN_DATASEC='1 2048 1 4608'
+        self.GAIN_NUMBEROFAMPLIFIERS='1'
+        self.GAIN_SUBWINDOW='100 800 500 4000'
+        self.GAIN_MINPIXPERBIN='1000'
+        self.GAIN_MAXNBINS='100'
+        self.GAIN_LOWESTCOUNT='1000'
+        self.GAIN_HIGHESTCOUNT='30000'
+        
+        self.SPACING_NUMBEROFSAMPLES = '30'
+        self.SPACING_SAMPECENTERPOSITION = '2300'
+        self.SPACING_DETECTIONMETHOD = '2'
+        self.SPACING_SUBFORMAT = '300 2040 3 4600'
+        
+        self.GEOM_SUBFORMAT='8 2040 3 4100'
+        self.GEOM_DETECTIONMETHOD = '2'
+        self.GEOM_FFTFILTER = '0'
+        self.GEOM_NSAMPLES = '5'
+        self.GEOM_ORDEROFTRACINGPOLYNOMIAL = '3'
+        self.GEOM_BINSIZE = '25'
+        self.GEOM_COLDISPERSION = '1'
+        self.GEOM_INVERTORDERS = '1'
+        self.GEOM_REFERENCEORDERSAMPLEPOSITION = '2300'
+        self.GEOM_GRACES = '1'
+        
+        self.PROF_BINSIZE = '100'
+        self.PROF_SPECTRALELEMENTHEIGHT = '1.0'
+        self.PROF_MAXTHREADS = '4'
+        self.PROF_MINIMUMLINES = '3'
+        self.PROF_LOCALMAXFILTERWIDTH = '3.0'
+        self.PROF_DETECTIONTHRESHOLD = '0.03'
+        self.PROF_MINPEAKDEPTH = '0.2'
+        self.PROF_IPMETHOD='2'
+        
+        self.APER_APERTUREHEIGHT = '0.6923'
+        self.APER_PICKIMAGEROW = '0'
+        self.APER_NROWSAMPLES = '10'
+        self.APER_XBIN = '8'
+        
+        self.CALEXTRACTION_SPECTRUMTYPE='5'
+        self.CALEXTRACTION_SPECTRUMTYPENAME='RawBeamSpectrum'
+        self.CALEXTRACTION_BACKGROUNDBINSIZE='300'
+        self.CALEXTRACTION_REMOVEBACKGROUND='0'
+        self.CALEXTRACTION_ITERATIONS='3'
+        self.CALEXTRACTION_ONTARGETPROFILE='1'
+        self.CALEXTRACTION_USEPOLYNOMIALFIT='0'
+        self.CALEXTRACTION_REJECTBADPIXINRAWEXTRACTION='1'
+        self.CALEXTRACTION_MINSIGMACLIP='15'
+        self.CALEXTRACTION_SIGMACLIPRANGE='6'
+        
+        self.WAVE_PARSESOLUTION='0'
+        self.WAVE_PARRANGESIZEINPERCENT='2'
+        self.WAVE_NPOINTSPERPAR='1000'
+        self.WAVE_MAXNITER='40'
+        self.WAVE_MINNUMBEROFLINES='40'
+        self.WAVE_MAXORDEROFPOLYNOMIAL='5'
+        self.WAVE_DAMPINGFACTOR='0.9'
+        self.WAVE_INITIALACCEPTABLEMISMATCH='1.5'
+        self.WAVE_NSIGCLIP='2.25'
+        self.WAVE_NORMALIZEUNCALIBRATEDSPECTRUM='0'
+        self.WAVE_NORMALIZATIONBINSIZE='100'
+        self.WAVE_LOCALMAXFILTERWIDTH='5'
+        self.WAVE_DETECTIONTHRESHOLD='0.05'
+        self.WAVE_MINPEAKDEPTH='1.0'
+        self.WAVE_NORDERSTOSEARCHAROUND = '3'
+        self.WAVE_REFERENCEORDER='50'
+        
+        self.FLATFLUXCAL_BINSIZE='500'
+        
+        self.EXTRACTION_MAXTHREADS='4'
+        self.EXTRACTION_SPECTRUMTYPE='7'
+        self.EXTRACTION_SPECTRUMTYPENAME='OptimalBeamSpectrum'
+        self.EXTRACTION_BACKGROUNDBINSIZE='300'
+        self.EXTRACTION_REMOVEBACKGROUND='0'
+        self.EXTRACTION_ITERATIONS='2'
+        self.EXTRACTION_ONTARGETPROFILE='1'
+        self.EXTRACTION_USEPOLYNOMIALFIT='0'
+        self.EXTRACTION_REJECTBADPIXINRAWEXTRACTION='0'
+        self.EXTRACTION_MINSIGMACLIP='25'
+        self.EXTRACTION_SIGMACLIPRANGE='6'
+        
+        self.TELL_XCORRELATIONTHRESHOLD='0.1'
+        self.TELL_NORMALIZATIONBINSIZE='110'
+        self.TELL_RVCORRECTIONMETHOD='1'
+        self.TELL_LOCALMAXFILTERWIDTH='3.0'
+        self.TELL_MINPEAKDEPTH='1.0'
+        self.TELL_DETECTIONTHRESHOLD='0.01'
+        self.TELL_NSIGCLIP='3.0'
+        self.TELL_MINNUMBEROFMATCHEDLINES='10'
+        self.TELL_DUPLICATELINETHRESHOLD='0.001'
+        self.TELL_RADIALVELOCITYRANGE='0.8'
+        self.TELL_RADIALVELOCITYSTEP='0.05'
+        
+        self.SNR_SPECTRUMTYPE='31'
+        self.SNR_CENTRALSNR='1'
+        self.SNR_SPECTRALBINSIZE=self.APER_APERTUREHEIGHT
+        
+        self.RV2_NORMALIZATIONBINSIZE='400'
+        self.RV2_INITIALRVGUESS='0.0'
+        self.RV2_SOURCELINERESOLUTION = '2500'
+        
+        self.FCAL_NUMBEROFPOINTSINUNIFORMSAMPLE='150'
+        self.FCAL_NUMBEROFPOINTSINUNIFORMREFSAMPLE='70'
+        self.FCAL_BINSIZE='500'
+        self.FCAL_WAVELENGTHFORNORMALIZATION='548'
+        
+        self.FLATRESP_NUMBEROFPOINTSINUNIFORMSAMPLE='300'
+        self.FLATRESP_NUMBEROFPOINTSINUNIFORMREFSAMPLE='70'
+        self.FLATRESP_BINSIZE='750'
+        
+        self.SPC_SPECTRUMTYPE='17'
+        self.SPC_NUMBEROFPOINTSINUNIFORMSAMPLE='150'
+        self.SPC_NORMALIZATIONBINSIZE='110'
+        self.SPC_ABSOLUTECALIBRATION='0'
+        
+        self.STACKSPC_RVBIN = '1.6'    # spectral bin in km/s
+        self.STACKSPC_MINWL = '0.0'    # min wavelength in nm (0 for full range)
+        self.STACKSPC_MAXWL = '0.0'    # max wavelength in nm (0 for full range)
+        self.STACKSPC_SNRCLIP = '10'    # Min SNR to accept a given spectral point
+        self.STACKSPC_NCUTATORDERENDS = '100'    # Number of points to exclude at order edges
+        self.STACKSPC_APPLYTELL = '1'
+        self.STACKSPC_APPLYHELIO = '1'
 
         if (self.mode == 1) :
-            self.INSTRUMENTMODESHORTNAME="StarOnly"
-            self.INSTRUMENTMODEKEY="Spectroscopy, star only, R=80,000"
+            
+            self.INSTRUMENTMODESHORTNAME='StarOnly'
+            self.INSTRUMENTMODEKEY='Spectroscopy, star only, R=80,000'
             self.STARPLUSKYMODEFLAG=0
-            self.INVERTSKYFIBERFLAG=""
-            self.SKYOVERSTARFIBERAREARATIO=1.0
-            self.SPCMODULE="operaStarOnly"
-            self.recenterIPUsingSliceSymmetry="0"
-            self.NUMBEROFSLICES="6"
-            self.NUMBEROFBEAMS="1"
-            self.SPECTRALRESOLUTION="80000"
-            self.LESPECTRUMTYPE=21
-            self.ORDSPCAPERTURE=30
-            self.SPACINGREFERENCEORDERNUMBER=48
-            self.SPACINGREFERENCEORDERSEPARATION=57.5
-            self.GEOMAPERTURE=30
-            self.GEOMMAXNORDERS=40
-            self.GEOMMINORDERTOUSE=22
-            self.REFERENCELINEWIDTH=2.0
-            self.IPXSIZE="30"
-            self.IPYSIZE="4"
-            self.IPXSAMPLING="3"
-            self.IPYSAMPLING="5"
-            self.TILTANGLE="-2.0"
-            self.CONSTANTTILTFLAG="0"
-            self.APERAPERTURE=30
-            self.APERGAP=0
-            self.WAVEUNCALLINEWIDTH=1.6
-            self.RADIALVELOCITYRANGE=5.0
-            self.RADIALVELOCITYSTEP=0.15
-            self.RADIALVELOCITYSEARCHRANGE=200
-            self.RADIALVELOCITYSEARCHSTEP=0.5
+            
+            self.EXTRACTION_INVERTSKYFIBERFLAG=''
+            
+            self.SPC_MODULENAME='operaStarOnly'
+            self.SPC_SKYOVERSTARFIBERAREARATIO=' --SkyOverStarFiberAreaRatio=1.0'
+            self.SPC_INVERTSKYFIBERFLAG=''
+
+            self.SPECTRALRESOLUTION='80000'
+            self.LESPECTRUMTYPE='21'
             self.OUTPUTFITSSPECTRUMTYPE=21
 
-        elif (self.mode == 2) :
-            self.INSTRUMENTMODESHORTNAME="StarPlusSky"
-            self.INSTRUMENTMODEKEY="Spectroscopy, star+sky, R=65,000"
-            self.STARPLUSKYMODEFLAG=1
-            self.INVERTSKYFIBERFLAG="--starplusskyInvertSkyFiber=0"
-            self.SKYOVERSTARFIBERAREARATIO=1.890625 # (2.2*2.2)/(1.6*1.6)
-            self.SPCMODULE="operaStarPlusSky"
-            self.recenterIPUsingSliceSymmetry="1"
-            self.NUMBEROFSLICES="3"
-            self.NUMBEROFBEAMS="2"
-            self.SPECTRALRESOLUTION="65000"
-            self.LESPECTRUMTYPE=20
-            self.ORDSPCAPERTURE=32
-            self.SPACINGREFERENCEORDERNUMBER=48
-            self.SPACINGREFERENCEORDERSEPARATION=57.5
-            self.GEOMAPERTURE=32
-            self.GEOMMAXNORDERS=40
-            self.GEOMMINORDERTOUSE=22
-            self.REFERENCELINEWIDTH=1.8
-            self.IPXSIZE="32"
-            self.IPYSIZE="4"
-            self.IPXSAMPLING="3"
-            self.IPYSAMPLING="5"
-            self.TILTANGLE="-1.0"
-            self.CONSTANTTILTFLAG="1"
-            self.APERAPERTURE=32
-            self.APERGAP=0
-            self.WAVEUNCALLINEWIDTH=1.8
-            self.RADIALVELOCITYRANGE=5.0
-            self.RADIALVELOCITYSTEP=0.15
+            self.SPACING_APERTURE='30'
+            self.SPACING_REFERENCEORDERNUMBER='48'
+            self.SPACING_REFERENCEORDERSEPARATION='57.5'
+            
+            self.GEOM_APERTURE='30'
+            self.GEOM_MAXNORDERS='40'
+            self.GEOM_MINORDERTOUSE='22'
+            self.GEOM_RECENTERIPUSINGSLICESYMMETRY='0'
+            self.GEOM_NUMBEROFSLICES='6'
+            
+            self.PROF_REFERENCELINEWIDTH='2.0'
+            self.PROF_IPXSIZE='30'
+            self.PROF_IPYSIZE='4'
+            self.PROF_IPXSAMPLING='3'
+            self.PROF_IPYSAMPLING='5'
+            self.PROF_TILTANGLE='-2.0'
+            
+            self.APER_NUMBEROFBEAMS='1'
+            self.APER_CONSTANTTILTFLAG='0'
+            self.APER_APERTURE='30'
+            self.APER_SKYAPERAPERTURE='1'
+            self.APER_GAP='0'
+    
+            self.WAVE_UNCALLINEWIDTH='1.6'
+            
+            self.SPC_MODULENAME='operaStarOnly'
+            self.SPC_SKYOVERSTARFIBERAREARATIO=''
+            self.SPC_INVERTSKYFIBERFLAG=''
+            
+            self.RV_RADIALVELOCITYRANGE='0.8'
+            self.RV_RADIALVELOCITYSTEP='0.05'
+            self.RV_THRESHOLD='0.05'
+            
+            self.RADIALVELOCITYRANGE=0.8
+            self.RADIALVELOCITYSTEP=0.05
             self.RADIALVELOCITYSEARCHRANGE=200
             self.RADIALVELOCITYSEARCHSTEP=0.5
+
+        elif (self.mode == 2) :
+            
+            self.INSTRUMENTMODESHORTNAME='StarPlusSky'
+            self.INSTRUMENTMODEKEY='Spectroscopy, star+sky, R=65,000'
+            self.STARPLUSKYMODEFLAG=1
+            
+            self.EXTRACTION_INVERTSKYFIBERFLAG=''
+            
+            self.SPECTRALRESOLUTION='65000'
+            self.LESPECTRUMTYPE='20'
             self.OUTPUTFITSSPECTRUMTYPE=20
+            
+            self.SPACING_APERTURE='32'
+            self.SPACING_REFERENCEORDERNUMBER='48'
+            self.SPACING_REFERENCEORDERSEPARATION='57.5'
+            
+            self.GEOM_APERTURE='32'
+            self.GEOM_MAXNORDERS='40'
+            self.GEOM_MINORDERTOUSE='22'
+            self.GEOM_RECENTERIPUSINGSLICESYMMETRY='1'
+            self.GEOM_NUMBEROFSLICES='3'
+            
+            self.PROF_REFERENCELINEWIDTH='2.0'
+            self.PROF_IPXSIZE='32'
+            self.PROF_IPYSIZE='4'
+            self.PROF_IPXSAMPLING='3'
+            self.PROF_IPYSAMPLING='5'
+            self.PROF_TILTANGLE='-1.0'
+            
+            self.APER_NUMBEROFBEAMS='2'
+            self.APER_CONSTANTTILTFLAG='1'
+            self.APER_APERTURE='32'
+            self.APER_SKYAPERAPERTURE='1'
+            self.APER_GAP='0'
+            
+            self.WAVE_UNCALLINEWIDTH='1.8'
+            
+            self.SPC_MODULENAME='operaStarPlusSky'
+            self.SPC_SKYOVERSTARFIBERAREARATIO=' --SkyOverStarFiberAreaRatio=1.890625'
+            self.SPC_INVERTSKYFIBERFLAG=' --starplusskyInvertSkyFiber=0'
+            
+            self.RV_RADIALVELOCITYRANGE='0.8'
+            self.RV_RADIALVELOCITYSTEP='0.05'
+            self.RV_THRESHOLD='0.05'
+            
+            self.RADIALVELOCITYRANGE=0.8
+            self.RADIALVELOCITYSTEP=0.05
+            self.RADIALVELOCITYSEARCHRANGE=200
+            self.RADIALVELOCITYSEARCHSTEP=0.5
 
         elif (self.mode == 3) :
-            self.INSTRUMENTMODESHORTNAME="Polar"
-            self.INSTRUMENTMODEKEY="Polarimetry, R=65,000"
+            
+            self.INSTRUMENTMODESHORTNAME='Polar'
+            self.INSTRUMENTMODEKEY='Polarimetry, R=65,000'
             self.STARPLUSKYMODEFLAG=0
-            self.INVERTSKYFIBERFLAG=""
-            self.SKYOVERSTARFIBERAREARATIO=1.0
-            self.SPCMODULE="operaPolarIntensity"
-            self.recenterIPUsingSliceSymmetry="1"
-            self.NUMBEROFSLICES="3"
-            self.NUMBEROFBEAMS="2"
-            self.SPECTRALRESOLUTION="65000"
-            self.LESPECTRUMTYPE=20
-            self.ORDSPCAPERTURE=32
-            self.SPACINGREFERENCEORDERNUMBER=48
-            self.SPACINGREFERENCEORDERSEPARATION=57.2
-            self.GEOMAPERTURE=30
-            self.GEOMMAXNORDERS=40
-            self.GEOMMINORDERTOUSE=22
-            self.REFERENCELINEWIDTH=2.5
-            self.IPXSIZE="32"
-            self.IPYSIZE="4"
-            self.IPXSAMPLING="3"
-            self.IPYSAMPLING="5"
-            self.TILTANGLE="-2.0"
-            self.CONSTANTTILTFLAG="0"
-            self.APERAPERTURE=32
-            self.APERGAP=0
-            self.WAVEUNCALLINEWIDTH=1.8
-            self.RADIALVELOCITYRANGE=5.0
-            self.RADIALVELOCITYSTEP=0.15
+            
+            self.EXTRACTION_INVERTSKYFIBERFLAG=''
+            
+            self.SPECTRALRESOLUTION='65000'
+            self.LESPECTRUMTYPE='22'
+            self.OUTPUTFITSSPECTRUMTYPE=22
+            
+            self.SPACING_APERTURE='30'
+            self.SPACING_REFERENCEORDERNUMBER='48'
+            self.SPACING_REFERENCEORDERSEPARATION='57.2'
+            
+            self.GEOM_APERTURE='30'
+            self.GEOM_MAXNORDERS='40'
+            self.GEOM_MINORDERTOUSE='22'
+            self.GEOM_RECENTERIPUSINGSLICESYMMETRY='1'
+            self.GEOM_NUMBEROFSLICES='3'
+            
+            self.PROF_REFERENCELINEWIDTH='2.0'
+            self.PROF_IPXSIZE='32'
+            self.PROF_IPYSIZE='4'
+            self.PROF_IPXSAMPLING='3'
+            self.PROF_IPYSAMPLING='5'
+            self.PROF_TILTANGLE='-2.0'
+            
+            self.APER_NUMBEROFBEAMS='2'
+            self.APER_CONSTANTTILTFLAG='0'
+            self.APER_APERTURE='32'
+            self.APER_SKYAPERAPERTURE='1'
+            self.APER_GAP='0'
+
+            self.WAVE_UNCALLINEWIDTH='1.8'
+            
+            self.SPC_MODULENAME='operaPolarIntensity'
+            self.SPC_SKYOVERSTARFIBERAREARATIO=''
+            self.SPC_INVERTSKYFIBERFLAG=''
+            
+            self.RV_RADIALVELOCITYRANGE='0.8'
+            self.RV_RADIALVELOCITYSTEP='0.05'
+            self.RV_THRESHOLD='0.05'
+            
+            self.RADIALVELOCITYRANGE=0.8
+            self.RADIALVELOCITYSTEP=0.05
             self.RADIALVELOCITYSEARCHRANGE=200
             self.RADIALVELOCITYSEARCHSTEP=0.5
-            self.OUTPUTFITSSPECTRUMTYPE=22
 
 ##################################
 
@@ -308,7 +503,7 @@ class ReadoutMode :
 ##################################
 
 ######### OBJECT PRODUCT FILE NAMES, DEPENDENCIES, AND  COMMAND LINES ###########
-def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keywords, config, verbose) :
+def setObjectProducts(products, Dirs, night, Instmode, Readmode, DefaultCal, Keywords, config, verbose) :
     
     emptystring = ""
     
@@ -319,10 +514,11 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
     objproducts = {}
     objdependencies = {}
     objcommands = {}
+    objcommandsType = {}
     
-    commandline = ObjectListCommand(Dirs, Instmode, Readmode, Keywords.OBJECTKEYWORD)
+    commandline = ObjectListCommand(Dirs, Instmode, Readmode, Keywords.OBJECTKEYWORD, Keywords)
     objectfiles = subprocess.check_output(commandline,stderr=subprocess.STDOUT,shell=True).rstrip('\n') 
-    objfilelist = objectfiles.split()
+    objfilelist = sorted(objectfiles.split())
     
     polquad = []
     polextkey = []
@@ -342,14 +538,11 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
     
     listofstdfcalkey = []
     listofstdfcaltargets = []
-    
-    ### Create TARGET for master flux calibration ######
-    #masterfcalkey = "MASTERFLUXCALIBRATION"
-    #INSTCONFIGPREFIX = Dirs.PRODUCTDIR + night + "_" + Instmode.INSTRUMENTMODESHORTNAME + "_" + Readmode.READOUTSPEEDSHORTNAME
-    #masterfcaltarget = INSTCONFIGPREFIX + ".fcal.gz"
-    #objproducts[masterfcalkey] = masterfcaltarget
-    ####################################################
-    
+
+    masterfcalkeytarget = config.OLAPAFLATRESPONSE
+    inputMaskForSPCModule = ""
+    masterfcalkey = "MASTERFLATRESP"+Instmode.INSTRUMENTMODESHORTNAME
+
     for file in objfilelist:
         
         base=os.path.basename(file)
@@ -364,15 +557,17 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
             print "Error: unknown extension, exiting ..."
             exit()
         
-        if verbose :
-            print "Object filename: ",file, ", basename = ", basename
-        
         ### Get header data info #########
         objectcommand = Dirs.EXE +"operagetheader --keyword=OBJECT " + file
         objectname = subprocess.check_output(objectcommand,stderr=subprocess.STDOUT,shell=True).rstrip('\n')
 
         objectNameWithoutWhites = objectname.replace(" ", "")
-    
+        
+        currentTime = strftime("%c")
+
+        if verbose :
+            print "Object filename: ",file, ", basename = ", basename, ", object=",objectNameWithoutWhites
+
         if objectNameWithoutWhites not in listofobjects :
             listofobjects.append(objectNameWithoutWhites)
             listofobjectspcs[objectNameWithoutWhites] = []
@@ -420,6 +615,7 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         objproducts[extkey] = exttarget
         objdependencies[extkey] = ["MASTERBIAS","MASTERFLAT","GAINPRODUCT","GEOMETRYPRODUCT","INSTRUMENTPROFILEPRODUCT","APERTUREPRODUCT"]
         objcommands[extkey] = objectExtractionCommand(Dirs, exttarget, file, products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["GAINPRODUCT"], products["GEOMETRYPRODUCT"],products["INSTRUMENTPROFILEPRODUCT"],products["APERTUREPRODUCT"], Instmode) + verstr
+        objcommandsType[extkey] = True
         ########################################
 
         ### Create TARGETS for telluric wavelength correction #########
@@ -428,14 +624,16 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         objproducts[tellkey] = telltarget
         objdependencies[tellkey] = [extkey,"WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"]
         objcommands[tellkey] = TelluricWaveCommand(Dirs, telltarget, exttarget, products["WAVELENGTHPRODUCT"], products["FLATFLUXCALIBRATIONSPECTRUM"], config, Instmode, False) + verstr
+        objcommandsType[tellkey] = True
         ###############################################################
     
         ### Create TARGETS for heliocentric wavelength correction ######
         rvelkey = "HELIORVEL" + basename
         rveltarget = Dirs.PRODUCTDIR + basename + ".rvel.gz"
         objproducts[rvelkey] = rveltarget
-        objdependencies[rvelkey] = [tellkey]
-        objcommands[rvelkey] = HeliocentricWaveCommand(Dirs, rveltarget, absra_center, absdec_center, mjdate, exptime, startHA) + verstr
+        objdependencies[rvelkey] = []
+        objcommands[rvelkey] = HeliocentricWaveCommand(Dirs, rveltarget, absra_center, absdec_center, mjdate, exptime, startHA, config, Instmode) + verstr
+        objcommandsType[rvelkey] = True
         ###############################################################
     
         ###############################################################
@@ -444,15 +642,26 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         objproducts[radvel2key] = radvel2target
         objdependencies[radvel2key] = [extkey,"WAVELENGTHPRODUCT",rvelkey, tellkey,"FLATFLUXCALIBRATIONSPECTRUM"]
         objcommands[radvel2key] = RadialVelocity2Command(Dirs, radvel2target, exttarget, products["WAVELENGTHPRODUCT"], rveltarget,telltarget,"", config, Instmode, mjdate , False) + verstr
+        objcommandsType[radvel2key] = True
+        ###############################################################
+
+        ###############################################################
+        snrkey = "SNR" + basename
+        snrtarget = Dirs.PRODUCTDIR + basename + ".sn.gz"
+        objproducts[snrkey] = snrtarget
+        objdependencies[snrkey] = [extkey,"WAVELENGTHPRODUCT"]
+        objcommands[snrkey] = GenerateSNR(Dirs, exttarget, snrtarget, products["WAVELENGTHPRODUCT"], objectNameWithoutWhites, Instmode)
+        objcommandsType[snrkey] = True
         ###############################################################
 
         ### Create TARGETS for calibrated spectrum *.spc ##############
         spckey = "OPSPC" + basename
         spctarget = Dirs.PRODUCTDIR + basename + ".spc.gz"
         objproducts[spckey] = spctarget
-        objdependencies[spckey] = [extkey,tellkey,rvelkey,"WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"]
+        objdependencies[spckey] = [extkey,tellkey,rvelkey,"WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM",masterfcalkey]
         #objcommands[spckey] = SpcModuleCommand(Dirs, spctarget, Instmode, config, exttarget, products["FLATFLUXCALIBRATIONSPECTRUM"],objproducts["MASTERFLUXCALIBRATION"], rveltarget, telltarget, products["WAVELENGTHPRODUCT"], objectname, exptime) + verstr
         objcommands[spckey] = SpcModuleCommand(Dirs, spctarget, Instmode, config, exttarget, products["FLATFLUXCALIBRATIONSPECTRUM"],emptystring, rveltarget, telltarget,products["WAVELENGTHPRODUCT"], objectname, exptime) + verstr
+        objcommandsType[spckey] = True
 
         if objectNameWithoutWhites in listofobjects :
             listofobjectspcs[objectNameWithoutWhites].append(spctarget)
@@ -468,23 +677,37 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         ###############################################################
 
         ### Create TARGETS for Radial Velocity #########
-        radvelkey = "RADIALVELOCITY" + basename
+        radvelkey = "RADIALVELOCITY1" + basename
         radveltarget = Dirs.PRODUCTDIR + basename + ".rv.gz"
+        radvelexttarget = Dirs.PRODUCTDIR + basename + ".rv_ext.gz"
         objproducts[radvelkey] = radveltarget
         objdependencies[radvelkey] = [spckey, rvelkey]
-        objcommands[radvelkey] = RadialVelocityCommand(Dirs, radveltarget, spctarget, rveltarget, config, Instmode, mjdate ) + verstr
+        objcommands[radvelkey] = RadialVelocityCommand(Dirs, radveltarget, radvelexttarget, spctarget, rveltarget, config, Instmode, mjdate ) + verstr
+        objcommandsType[radvelkey] = True
+        ###############################################################
+
+        ###############################################################
+        onedspeckey = "ONEDSPEC" + basename
+        onedspectarget = Dirs.PRODUCTDIR + basename + ".1d.spc"
+        objproducts[onedspeckey] = onedspectarget
+        objdependencies[onedspeckey] = [spckey,rvelkey]
+        dummylist = [spctarget]
+        objcommands[onedspeckey] = StackObjectSpectra(Dirs, onedspectarget, objectNameWithoutWhites, Instmode, dummylist, "", 0, 2) + verstr
+        objcommandsType[onedspeckey] = True
         ###############################################################
 
         ### Create TARGETS for final FITS spectrum *.fits.gz ##############
         spcfitskey = "OPFITSSPC" + basename
-        spcfitstarget = Dirs.PRODUCTDIR + basename + "m.fits.gz"
+        spcfitstarget = Dirs.PRODUCTDIR + basename + ".m.fits.gz"
         objproducts[spcfitskey] = spcfitstarget
-        objdependencies[spcfitskey] = [spckey,tellkey,rvelkey]
-        objcommands[spcfitskey] = CreateOPERAFITSProductCommand(Dirs, spcfitstarget, spctarget, file, config, rveltarget, telltarget, str(Instmode.OUTPUTFITSSPECTRUMTYPE)) + verstr
+        objdependencies[spcfitskey] = ["WAVELENGTHPRODUCT",spckey,rvelkey,tellkey,snrkey]
+        objcommands[spcfitskey] = operaCreateProduct_SPC_Intensity(Dirs, file, spctarget, spcfitstarget, rveltarget, telltarget, snrtarget, products["WAVELENGTHRESOLUTIONPRODUCT"], config.OPERAVERSION, currentTime) + verstr
+        objcommandsType[spcfitskey] = True
         ###############################################################
 
         ### Create TARGETS for flux calibration Standards ######
         standardname = ""
+
         if config.hasStandard(objectname.replace(" ", "")) :
             standardname = objectname.replace(" ", "")
         elif config.hasStandard(objectname) :
@@ -500,6 +723,7 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
             objproducts[stdfcalkey] = stdfcaltarget
             objdependencies[stdfcalkey] = [extkey,"APERTUREPRODUCT","WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"]
             objcommands[stdfcalkey] = CreateFcalCommand(Dirs, stdfcaltarget, exttarget, config.getStandardDataFile(standardname), products["FLATFLUXCALIBRATIONSPECTRUM"], config, Instmode, products["APERTUREPRODUCT"], products["WAVELENGTHPRODUCT"], exptime) + verstr
+            objcommandsType[stdfcalkey] = True
             
             # -- The target below produces a LE-style flat response for each observation of
             #    standard stars. However it could be limited to the Moon spectrum only.
@@ -509,7 +733,7 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
             objproducts[flatrespkey] = flatresptarget
             objdependencies[flatrespkey] = [extkey,"WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"]
             objcommands[flatrespkey] = CreateFlatResponseCommand(Dirs, flatresptarget, exttarget, file, config.getStandardDataFile(standardname), products["FLATFLUXCALIBRATIONSPECTRUM"], config, Instmode, products["APERTUREPRODUCT"], products["WAVELENGTHPRODUCT"]) + verstr
-            
+            objcommandsType[flatrespkey] = True
         ###############################################################
         
         ### Create TARGETS for LE formats #############################
@@ -517,46 +741,51 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
         lespcnwtarget = Dirs.PRODUCTDIR + basename + ".inw.s.gz"
         objproducts[lespcnwkey] = lespcnwtarget
         objdependencies[lespcnwkey] = [spckey]
-        objcommands[lespcnwkey] = GenLEFormatsCommand(Dirs, config, lespcnwtarget, spctarget, Instmode.LESPECTRUMTYPE, objectname, 2, 3) + verstr
+        objcommands[lespcnwkey] = GenLEFormatsCommand(Dirs, config, lespcnwtarget, spctarget, Instmode, objectname, 2, 3) + verstr
+        objcommandsType[lespcnwkey] = True
         #
         lespcukey = "LESPCU" + basename
         lespcutarget = Dirs.PRODUCTDIR + basename + ".iu.s.gz"
         objproducts[lespcukey] = lespcutarget
         objdependencies[lespcukey] = [spckey]
-        objcommands[lespcukey] = GenLEFormatsCommand(Dirs, config, lespcutarget, spctarget, Instmode.LESPECTRUMTYPE, objectname, 3, 4) + verstr
+        objcommands[lespcukey] = GenLEFormatsCommand(Dirs, config, lespcutarget, spctarget, Instmode, objectname, 3, 4) + verstr
+        objcommandsType[lespcukey] = True
         #
         lespcuwkey = "LESPCUW" + basename
         lespcuwtarget = Dirs.PRODUCTDIR + basename + ".iuw.s.gz"
         objproducts[lespcuwkey] = lespcuwtarget
         objdependencies[lespcuwkey] = [spckey]
-        objcommands[lespcuwkey] = GenLEFormatsCommand(Dirs, config, lespcuwtarget, spctarget, Instmode.LESPECTRUMTYPE, objectname, 3, 3) + verstr
+        objcommands[lespcuwkey] = GenLEFormatsCommand(Dirs, config, lespcuwtarget, spctarget, Instmode, objectname, 3, 3) + verstr
+        objcommandsType[lespcuwkey] = True
         #
         lespcnkey = "LESPCN" + basename
         lespcntarget = Dirs.PRODUCTDIR + basename + ".in.s.gz"
         objproducts[lespcnkey] = lespcntarget
         objdependencies[lespcnkey] = [spckey]
-        objcommands[lespcnkey] = GenLEFormatsCommand(Dirs, config, lespcntarget, spctarget, Instmode.LESPECTRUMTYPE, objectname, 2, 4) + verstr
+        objcommands[lespcnkey] = GenLEFormatsCommand(Dirs, config, lespcntarget, spctarget, Instmode, objectname, 2, 4) + verstr
+        objcommandsType[lespcnkey] = True
         #
-        
         fitsLEproductkey = "LEFITSPRODUCT" + basename
-        fitsLEproducttarget = Dirs.PRODUCTDIR + basename + "i.fits.gz"
+        fitsLEproducttarget = Dirs.PRODUCTDIR + basename + ".i.fits.gz"
         objproducts[fitsLEproductkey] = fitsLEproducttarget
-        objdependencies[fitsLEproductkey] = [lespcnwkey,lespcukey,lespcuwkey,lespcnkey,rvelkey]
-        objcommands[fitsLEproductkey] = CreateLEFITSProductCommand(Dirs, fitsLEproducttarget, lespcutarget, lespcntarget, lespcuwtarget, lespcnwtarget, file, rveltarget) + verstr
+        objdependencies[fitsLEproductkey] = ["WAVELENGTHPRODUCT",lespcnwkey,lespcukey,lespcuwkey,lespcnkey,rvelkey,tellkey,snrkey]
+        objcommands[fitsLEproductkey] = operaCreateProduct_LE_Intensity(Dirs, file, fitsLEproducttarget, lespcutarget, lespcntarget, lespcuwtarget, lespcnwtarget, rveltarget, telltarget, snrtarget, products["WAVELENGTHRESOLUTIONPRODUCT"], config.OPERAVERSION, currentTime) + verstr
+        objcommandsType[fitsLEproductkey] = True
         ###############################################################
 
         if (Instmode.mode == 3) :
             command = Dirs.EXE +"operagetheader " + file + " --keyword=CMMTSEQ | awk '{print $3}' | sed -e s/,//"
+
             POLAREXPOSURE = subprocess.check_output(command,stderr=subprocess.STDOUT,shell=True).rstrip('\n')
 
             if (int(POLAREXPOSURE) == 1 and polcount == 0) :
-                             
                 ### Create TARGETS for raw polarimetry spectrum *.p.gz ########
                 pkey = "POLAR" + basename
                 ptarget = Dirs.PRODUCTDIR + basename + ".p.gz"
                 objdependencies[pkey] = []
                 objcommands[pkey] = ""
                 objproducts[pkey] = ptarget
+                objcommandsType[pkey] = True
                 ###############################################################
 
                 ### Create TARGETS for final polarimetry spectrum *.pol.gz ####
@@ -566,14 +795,16 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
                 objdependencies[polkey] = [pkey,tellkey,rvelkey,"WAVELENGTHPRODUCT","FLATFLUXCALIBRATIONSPECTRUM"]
                 #objcommands[polkey] = CalibratedPolarCommand(Dirs, poltarget, Instmode, config, ptarget, products["FLATFLUXCALIBRATIONSPECTRUM"], objproducts["MASTERFLUXCALIBRATION"], rveltarget, telltarget, products["WAVELENGTHPRODUCT"], objectname, exptime) + verstr
                 objcommands[polkey] = CalibratedPolarCommand(Dirs, poltarget, Instmode, config, ptarget, products["FLATFLUXCALIBRATIONSPECTRUM"], emptystring, rveltarget, telltarget, products["WAVELENGTHPRODUCT"], objectname, exptime) + verstr
+                objcommandsType[polkey] = True
                 ###############################################################
 
                 ### Create TARGETS for final FITS polarimetry *pol.fits.gz ##############
                 polfitskey = "OPFITSPOL" + basename
-                polfitstarget = Dirs.PRODUCTDIR + basename + "pol.fits.gz"
+                polfitstarget = Dirs.PRODUCTDIR + basename + ".pol.fits.gz"
                 objproducts[polfitskey] = polfitstarget
-                objdependencies[polfitskey] = [pkey,polkey,tellkey,rvelkey]
-                objcommands[polfitskey] = CreateOPERAFITSProductCommand(Dirs, polfitstarget, poltarget, file, config, rveltarget, telltarget, "23") + verstr
+                objdependencies[polfitskey] = ["WAVELENGTHPRODUCT",polkey,rvelkey,tellkey,snrkey]
+                objcommands[polfitskey] = operaCreateProduct_SPC_Polar(Dirs, file, poltarget, polfitstarget, rveltarget, telltarget, snrtarget, products["WAVELENGTHRESOLUTIONPRODUCT"], config.OPERAVERSION, currentTime) + verstr
+                objcommandsType[polfitskey] = True
                 ###############################################################
 
                 ### Create TARGETS for Polarimetric LE formats #############################
@@ -581,27 +812,40 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
                 lepolnwtarget = Dirs.PRODUCTDIR + basename + ".pnw.s.gz"
                 objproducts[lepolnwkey] = lepolnwtarget
                 objdependencies[lepolnwkey] = [polkey]
-                objcommands[lepolnwkey] = GenLEFormatsCommand(Dirs, config, lepolnwtarget, poltarget, 23, objectname, 2, 3) + verstr
+                objcommands[lepolnwkey] = GenLEFormatsCommand(Dirs, config, lepolnwtarget, poltarget, Instmode, objectname, 2, 3) + verstr
+                objcommandsType[lepolnwkey] = True
                 #
                 lepolukey = "LEPOLU" + basename
                 lepolutarget = Dirs.PRODUCTDIR + basename + ".pu.s.gz"
                 objproducts[lepolukey] = lepolutarget
                 objdependencies[lepolukey] = [polkey]
-                objcommands[lepolukey] = GenLEFormatsCommand(Dirs, config, lepolutarget, poltarget, 23, objectname, 3, 4) + verstr
+                objcommands[lepolukey] = GenLEFormatsCommand(Dirs, config, lepolutarget, poltarget, Instmode, objectname, 3, 4) + verstr
+                objcommandsType[lepolukey] = True
                 #
                 lepoluwkey = "LEPOLUW" + basename
                 lepoluwtarget = Dirs.PRODUCTDIR + basename + ".puw.s.gz"
                 objproducts[lepoluwkey] = lespcuwtarget
                 objdependencies[lepoluwkey] = [polkey]
-                objcommands[lepoluwkey] = GenLEFormatsCommand(Dirs, config, lepoluwtarget, poltarget, 23, objectname, 3, 3) + verstr
+                objcommands[lepoluwkey] = GenLEFormatsCommand(Dirs, config, lepoluwtarget, poltarget, Instmode, objectname, 3, 3) + verstr
+                objcommandsType[lepoluwkey] = True
                 #
                 lepolnkey = "LEPOLN" + basename
                 lepolntarget = Dirs.PRODUCTDIR + basename + ".pn.s.gz"
                 objproducts[lepolnkey] = lepolntarget
                 objdependencies[lepolnkey] = [polkey]
-                objcommands[lepolnkey] = GenLEFormatsCommand(Dirs, config, lepolntarget, poltarget, 23, objectname, 2, 4) + verstr
+                objcommands[lepolnkey] = GenLEFormatsCommand(Dirs, config, lepolntarget, poltarget, Instmode, objectname, 2, 4) + verstr
+                objcommandsType[lepolnkey] = True
                 ###############################################################
                 
+                ### Create TARGETS for final LE FITS polarimetry *p.fits.gz ##############
+                lepolfitskey = "LEFITSPOL" + basename
+                lepolfitstarget = Dirs.PRODUCTDIR + basename + ".p.fits.gz"
+                objproducts[lepolfitskey] = polfitstarget
+                objdependencies[lepolfitskey] = ["WAVELENGTHPRODUCT",lepolnwkey,lepolukey,lepoluwkey,lepolnkey,polkey,rvelkey,tellkey,snrkey]
+                objcommands[lepolfitskey] = operaCreateProduct_LE_Polar(Dirs, file, lepolfitstarget, lepolutarget, lepolntarget, lepoluwtarget, lepolnwtarget, rveltarget, telltarget, snrtarget, products["WAVELENGTHRESOLUTIONPRODUCT"], config.OPERAVERSION, currentTime) + verstr
+                objcommandsType[lepolfitskey] = True
+                ###############################################################
+
                 polquad.append(exttarget)
                 polextkey.append(extkey)
                 polcount += 1
@@ -610,7 +854,6 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
                 polquad.append(exttarget)
                 polextkey.append(extkey)                
                 polcount +=1
-        
             elif( int(POLAREXPOSURE) == 4 and polcount == 3) :
                 polquad.append(exttarget)
                 polextkey.append(extkey)
@@ -620,6 +863,7 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
                    
                 objdependencies[pkey] = [polextkey[0], polextkey[1], polextkey[2], polextkey[3],"WAVELENGTHPRODUCT"]
                 objcommands[pkey] = PolarCommand(Dirs, Instmode, ptarget, polquad[0], polquad[1], polquad[2], polquad[3], products["WAVELENGTHPRODUCT"], stokes) + verstr
+                objcommandsType[pkey] = True
 
                 pkey = ""
                 ptarget = ""
@@ -627,101 +871,205 @@ def setObjectTargets(products, Dirs, night, Instmode, Readmode, DefaultCal, Keyw
                 polextkey = []
                 polcount = 0
 
-
     for object in listofobjects :
         stacknormobjectkey = "STACKNORM" + object
         stacknormobjecttarget = Dirs.PRODUCTDIR + object + "_" + night + "_master.norm.spc"
         objproducts[stacknormobjectkey] = stacknormobjecttarget
         objdependencies[stacknormobjectkey] = listofobjectspcsDependencies[object] + listofobjectrvsDependencies[object]
         objcommands[stacknormobjectkey] = StackObjectSpectra(Dirs, stacknormobjecttarget, object, Instmode, listofobjectspcs[object], listofobjectrvs[object], 0, 1) + verstr
+        objcommandsType[stacknormobjectkey] = True
         
         stackrawobjectkey = "STACKRAW" + object
         stackrawobjecttarget = Dirs.PRODUCTDIR + object + "_" + night + "_master.raw.spc"
         objproducts[stackrawobjectkey] = stackrawobjecttarget
         objdependencies[stackrawobjectkey] = listofobjectspcsDependencies[object] + listofobjectrvsDependencies[object]
         objcommands[stackrawobjectkey] = StackObjectSpectra(Dirs, stackrawobjecttarget, object, Instmode, listofobjectspcs[object], listofobjectrvs[object], 0, 0) + verstr
+        objcommandsType[stackrawobjectkey] = True
         
         stackfcalobjectkey = "STACKFCAL" + object
         stackfcalobjecttarget = Dirs.PRODUCTDIR + object + "_" + night + "_master.fcal.spc"
         objproducts[stackfcalobjectkey] = stackfcalobjecttarget
         objdependencies[stackfcalobjectkey] = listofobjectspcsDependencies[object] + listofobjectrvsDependencies[object]
         objcommands[stackfcalobjectkey] = StackObjectSpectra(Dirs, stackfcalobjecttarget, object, Instmode, listofobjectspcs[object], listofobjectrvs[object], 0, 2) + verstr
+        objcommandsType[stackfcalobjectkey] = True
 
 
-# E. Martioli Mar 16 2015 - I have commented the lines below to avoid using the flux calibration
-# generated by opera. Instead, we're using a default flat response.
-    ### Create DEPENDENCIES and COMMANDLINE for master flux calibration ######
-    #    if listofstdfcalkey :
-    #    listofstdfcalkey.append("WAVELENGTHPRODUCT")
-    #    listofstdfcalkey.append("FLATEXTRACTEDSPECTRUM")
-    #    objdependencies[masterfcalkey] = listofstdfcalkey
-    #    objcommands[masterfcalkey] = MasterFcalCommand(Dirs, masterfcaltarget, listofstdfcaltargets, products["FLATEXTRACTEDSPECTRUM"], products["WAVELENGTHPRODUCT"]) + verstr
-#   else :
-#       defaultMasterFCal = [DefaultCal.DEFAULTMASTERFLUXCAL]
-#       objdependencies[masterfcalkey] = ["WAVELENGTHPRODUCT","FLATEXTRACTEDSPECTRUM"]
-#       objcommands[masterfcalkey] = MasterFcalCommand(Dirs, masterfcaltarget, defaultMasterFCal, products["FLATEXTRACTEDSPECTRUM"], products["WAVELENGTHPRODUCT"]) + verstr
-    ##########################################################################
+
+    # E. Martioli Jun 22 2016 -- The part below is to produce a master flat response
+    # out of standard observations and include this into the spc file.
+    ### Create DEPENDENCIES and COMMANDLINE for master flat response ######
+    hasStandard = False
+    if listofstdfcalkey :
+        masterfcalkeytarget = Dirs.PRODUCTDIR + night + "_" + Instmode.INSTRUMENTMODESHORTNAME + "_flat_resp.fits.gz"
+        objproducts[masterfcalkey] = masterfcalkeytarget
+        objdependencies[masterfcalkey] = listofstdfcalkey
+        objcommands[masterfcalkey] = MasterFlatResponseCommand(Dirs, "operaMedianCombine", masterfcalkeytarget, listofstdfcaltargets) + verstr
+        objcommandsType[masterfcalkey] = True
+        hasStandard = True
+
+    for file in objfilelist:
+        base=os.path.basename(file)
+        if ".fits.gz" in base :
+            basename = os.path.splitext(os.path.splitext(base)[0])[0]
+        elif ".fits" in base :
+            basename = os.path.splitext(base)[0]
+        elif ".fit" in base :
+            basename = os.path.splitext(base)[0]
+        else :
+            print "Error: unknown extension, exiting ..."
+            exit()
+        #### Append flux calib stuff to command lines for calibrated spectrum *.spc ########
+        spckey = "OPSPC" + basename
+        if not hasStandard :
+            objdependencies[spckey].remove(masterfcalkey);
+
+        objcommands[spckey] += ' --flatResponse=' + masterfcalkeytarget  + ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK
+        objcommandsType[spckey] = True
+    ###############################################################
     
-    return objproducts, objdependencies, objcommands
+    return objproducts, objdependencies, objcommands,objcommandsType
 #-------------------------------------------
 
 ######### PRODUCT FILE NAMES ###########
-def setProductFilenames(Dirs,night,Instmode,Readmode,DefaultCal,Keywords,allowanyreadout) :
+def setCalibrationProducts(Dirs,night,Instmode,Readmode,DefaultCal,Keywords,allowanyreadout,config, plots,verbose) :
 
     INSTCONFIGPREFIX = Dirs.PRODUCTDIR + night + "_" + Instmode.INSTRUMENTMODESHORTNAME + "_" + Readmode.READOUTSPEEDSHORTNAME
 
     products = {}
+    dependencies = {}
+    commands = {}
+    commandsType = {}
     
+    verstr = ""
+    if (verbose) :
+        verstr = " --verbose"
+    
+    command = ""
+
     biascheck = testBiasListCommand(Dirs, Instmode, Readmode, Keywords)
     if subprocess.check_output(biascheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') :
         products["BIASLIST"] = INSTCONFIGPREFIX + "_bias.list"
+        dependencies["BIASLIST"] = []
+        commands["BIASLIST"] = BiasListCommand(Dirs, Instmode, Readmode, Keywords, products["BIASLIST"])
+        commandsType["BIASLIST"] = True
+        
         products["MASTERBIAS"] = INSTCONFIGPREFIX + "_masterbias.fits.gz"
+        dependencies["MASTERBIAS"] = ["BIASLIST"]
+        commands["MASTERBIAS"] = MasterCalibrationCommand(Dirs, "operaMasterBias", products["MASTERBIAS"], products["BIASLIST"]) + verstr
+        commandsType["MASTERBIAS"] = True
     else :
         products["MASTERBIAS"] = DefaultCal.DEFAULTMASTERBIAS
+        dependencies["MASTERBIAS"] = []
 
-    flatcheck = testCalibrationListCommand(Dirs, Instmode, Readmode, Keywords.FLATKEYWORD, allowanyreadout)
+    flatcheck = testCalibrationListCommand(Dirs, Instmode, Readmode, Keywords.FLATKEYWORD, Keywords, allowanyreadout)
     if subprocess.check_output(flatcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') :
         products["FLATLIST"] = INSTCONFIGPREFIX + "_flat.list"
+        dependencies["FLATLIST"] = []
+        commands["FLATLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, Keywords.FLATKEYWORD, Keywords, products["FLATLIST"],allowanyreadout)
+        commandsType["FLATLIST"] = True
+        
         products["MASTERFLAT"] = INSTCONFIGPREFIX + "_masterflat.fits.gz"
+        dependencies["MASTERFLAT"] = ["FLATLIST"]
+        commands["MASTERFLAT"] = MasterCalibrationCommand(Dirs, "operaMasterFlat", products["MASTERFLAT"], products["FLATLIST"]) + verstr
+        commandsType["MASTERFLAT"] = True
     else :
         products["MASTERFLAT"] = DefaultCal.DEFAULTMASTERFLAT
+        dependencies["MASTERFLAT"] = []
 
-    compcheck = testCalibrationListCommand(Dirs, Instmode, Readmode, Keywords.COMPKEYWORD, allowanyreadout)
+    compcheck = testCalibrationListCommand(Dirs, Instmode, Readmode, Keywords.COMPKEYWORD, Keywords, allowanyreadout)
     if subprocess.check_output(compcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') :
         products["COMPLIST"] = INSTCONFIGPREFIX + "_comp.list"
+        dependencies["COMPLIST"] = []
+        commands["COMPLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, Keywords.COMPKEYWORD, Keywords, products["COMPLIST"],allowanyreadout)
+        commandsType["COMPLIST"] = True
+        
         products["MASTERCOMP"] = INSTCONFIGPREFIX + "_mastercomp.fits.gz"
+        dependencies["MASTERCOMP"] = ["COMPLIST"]
+        commands["MASTERCOMP"] = MasterComparisonCommand(Dirs, products["MASTERCOMP"], products["COMPLIST"], config.BADPIXELMASK, products["MASTERBIAS"], Instmode) + verstr
+        commandsType["MASTERCOMP"] = True
     else :
         products["MASTERCOMP"] = DefaultCal.DEFAULTMASTERCOMP
+        dependencies["MASTERCOMP"] = []
 
     if (Instmode.mode == 1 or Instmode.mode == 3) :
-        aligncheck = testCalibrationListCommand(Dirs, Instmode, Readmode, Keywords.ALIGNKEYWORD, allowanyreadout)
+        aligncheck = testCalibrationListCommand(Dirs, Instmode, Readmode, Keywords.ALIGNKEYWORD, Keywords, allowanyreadout)
         if subprocess.check_output(aligncheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') :
             products["ALIGNLIST"] = INSTCONFIGPREFIX + "_align.list"
+            dependencies["ALIGNLIST"] =[]
+            commands["ALIGNLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, Keywords.ALIGNKEYWORD, Keywords, products["ALIGNLIST"],allowanyreadout)
+            commandsType["ALIGNLIST"] = True
+            
             products["MASTERALIGN"] = INSTCONFIGPREFIX + "_masteralign.fits.gz"
+            dependencies["MASTERALIGN"] = ["ALIGNLIST"]
+            commands["MASTERALIGN"] = MasterCalibrationCommand(Dirs, "operaMasterFlat", products["MASTERALIGN"], products["ALIGNLIST"]) + verstr
+            commandsType["MASTERALIGN"] = True
         else :
             if "COMPLIST" in products :
                 products["MASTERALIGN"] = products["MASTERCOMP"]
             else :
                 products["MASTERALIGN"] = DefaultCal.DEFAULTMASTERALIGN
+                dependencies["MASTERALIGN"] = []
 
     if subprocess.check_output(biascheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') and \
-       subprocess.check_output(flatcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') :
+        subprocess.check_output(flatcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') :
         products["GAINPRODUCT"] = INSTCONFIGPREFIX + ".gain.gz"
+        dependencies["GAINPRODUCT"] = ["BIASLIST","FLATLIST"]
+        commands["GAINPRODUCT"] = GainCommand(Dirs,products["GAINPRODUCT"], products["BIASLIST"], products["FLATLIST"], config.BADPIXELMASK, Readmode, Instmode) + verstr
+        commandsType["GAINPRODUCT"] = True
     else :
         products["GAINPRODUCT"] = DefaultCal.DEFAULTGAIN
+        dependencies["GAINPRODUCT"] = []
 
     products["ORDERSPACINGPRODUCT"] = INSTCONFIGPREFIX + ".ordp.gz"
+    dependencies["ORDERSPACINGPRODUCT"] = ["GAINPRODUCT","MASTERBIAS","MASTERFLAT"]
+    commands["ORDERSPACINGPRODUCT"] = OrderSpacingCommand(Dirs,products["ORDERSPACINGPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,Instmode,plots["ORDERSPACINGPRODUCT"]) + verstr
+    commandsType["ORDERSPACINGPRODUCT"] = True
+    
     products["GEOMETRYPRODUCT"] = INSTCONFIGPREFIX + ".geom.gz"
+    dependencies["GEOMETRYPRODUCT"] = ["GAINPRODUCT","MASTERBIAS","MASTERFLAT","ORDERSPACINGPRODUCT"]
+    commands["GEOMETRYPRODUCT"] = GeometryCommand(Dirs,products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["ORDERSPACINGPRODUCT"],Instmode,plots["GEOMETRYPRODUCT"]) + verstr
+    commandsType["GEOMETRYPRODUCT"] = True
+    
     products["INSTRUMENTPROFILEPRODUCT"] = INSTCONFIGPREFIX + ".prof.gz"
-    products["APERTUREPRODUCT"] = INSTCONFIGPREFIX + ".aper.gz"
-    products["COMPEXTRACTEDSPECTRUM"] = INSTCONFIGPREFIX + "_comp.e.gz"
-    products["FLATEXTRACTEDSPECTRUM"] = INSTCONFIGPREFIX + "_flat.e.gz"
-    #products["FIRSTWAVELENGTHPRODUCT"] = INSTCONFIGPREFIX + ".wcar.gz"
-    products["WAVELENGTHPRODUCT"] = INSTCONFIGPREFIX + ".wcal.gz"
-    products["FLATFLUXCALIBRATIONSPECTRUM"] = INSTCONFIGPREFIX + "_flat.fcal.gz"
-    #products["OBJECTLIST"] = INSTCONFIGPREFIX + "_object.list"
+    commandsType["INSTRUMENTPROFILEPRODUCT"] = True
+    if (Instmode.mode == 1 or Instmode.mode == 3) :
+        dependencies["INSTRUMENTPROFILEPRODUCT"] = ["GEOMETRYPRODUCT","GAINPRODUCT","MASTERBIAS","MASTERFLAT","MASTERALIGN"]
+        commands["INSTRUMENTPROFILEPRODUCT"] = InstrumentProfileCommand(Dirs,products["INSTRUMENTPROFILEPRODUCT"], products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],products["MASTERALIGN"],config.BADPIXELMASK,Instmode,plots["INSTRUMENTPROFILEPRODUCT"]) + verstr
+    elif (Instmode.mode == 2) :
+        dependencies["INSTRUMENTPROFILEPRODUCT"] = ["GEOMETRYPRODUCT","GAINPRODUCT","MASTERBIAS","MASTERFLAT","MASTERCOMP"]
+        commands["INSTRUMENTPROFILEPRODUCT"] = InstrumentProfileCommand(Dirs,products["INSTRUMENTPROFILEPRODUCT"], products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],products["MASTERCOMP"],config.BADPIXELMASK,Instmode,plots["INSTRUMENTPROFILEPRODUCT"]) + verstr
 
-    return products
+    products["APERTUREPRODUCT"] = INSTCONFIGPREFIX + ".aper.gz"
+    dependencies["APERTUREPRODUCT"] = ["GEOMETRYPRODUCT","INSTRUMENTPROFILEPRODUCT","ORDERSPACINGPRODUCT"]
+    commands["APERTUREPRODUCT"] = ApertureCommand(Dirs,products["APERTUREPRODUCT"],products["GEOMETRYPRODUCT"],products["INSTRUMENTPROFILEPRODUCT"],products["ORDERSPACINGPRODUCT"],Instmode,plots["APERTUREPRODUCT"]) + verstr
+    commandsType["APERTUREPRODUCT"] = True
+    
+    products["COMPEXTRACTEDSPECTRUM"] = INSTCONFIGPREFIX + "_comp.e.gz"
+    dependencies["COMPEXTRACTEDSPECTRUM"] = ["MASTERCOMP","MASTERBIAS","MASTERFLAT","GAINPRODUCT","GEOMETRYPRODUCT","INSTRUMENTPROFILEPRODUCT","APERTUREPRODUCT"]
+    commands["COMPEXTRACTEDSPECTRUM"] = compRawExtractionCommand(Dirs,products["COMPEXTRACTEDSPECTRUM"],products["MASTERCOMP"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["GAINPRODUCT"], products["GEOMETRYPRODUCT"],products["INSTRUMENTPROFILEPRODUCT"],products["APERTUREPRODUCT"],Instmode) + verstr
+    commandsType["COMPEXTRACTEDSPECTRUM"] = True
+    
+    products["FLATEXTRACTEDSPECTRUM"] = INSTCONFIGPREFIX + "_flat.e.gz"
+    dependencies["FLATEXTRACTEDSPECTRUM"] = ["MASTERFLAT","MASTERBIAS","MASTERFLAT","GAINPRODUCT","GEOMETRYPRODUCT","INSTRUMENTPROFILEPRODUCT","APERTUREPRODUCT"]
+    commands["FLATEXTRACTEDSPECTRUM"] = calibrationExtractionCommand(Dirs,products["FLATEXTRACTEDSPECTRUM"],products["MASTERFLAT"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["GAINPRODUCT"], products["GEOMETRYPRODUCT"],products["INSTRUMENTPROFILEPRODUCT"],products["APERTUREPRODUCT"],Instmode) + verstr
+    commandsType["FLATEXTRACTEDSPECTRUM"] = True
+    
+    products["WAVELENGTHPRODUCT"] = INSTCONFIGPREFIX + ".wcal.gz"
+    dependencies["WAVELENGTHPRODUCT"] = ["GEOMETRYPRODUCT","COMPEXTRACTEDSPECTRUM"]
+    products["WAVELENGTHRESOLUTIONPRODUCT"] = INSTCONFIGPREFIX + ".sres.gz"
+    dependencies["WAVELENGTHRESOLUTIONPRODUCT"] = ["WAVELENGTHPRODUCT"]
+    inputwaveguess = ' --inputWaveFile=' + config.WAVEFIRSTGUESS
+    commands["WAVELENGTHPRODUCT"] = WavelengthCommand(Dirs, products["WAVELENGTHPRODUCT"], products["WAVELENGTHRESOLUTIONPRODUCT"], products["GEOMETRYPRODUCT"], products["COMPEXTRACTEDSPECTRUM"], Instmode, config ,inputwaveguess, plots["WAVELENGTHPRODUCT"]) + verstr
+    commands["WAVELENGTHRESOLUTIONPRODUCT"] = ""
+    commandsType["WAVELENGTHRESOLUTIONPRODUCT"] = True
+    commandsType["WAVELENGTHPRODUCT"] = True
+    
+    products["FLATFLUXCALIBRATIONSPECTRUM"] = INSTCONFIGPREFIX + "_flat.fcal.gz"
+    dependencies["FLATFLUXCALIBRATIONSPECTRUM"] = ["FLATEXTRACTEDSPECTRUM","WAVELENGTHPRODUCT"]
+    commands["FLATFLUXCALIBRATIONSPECTRUM"] = FlatFluxCalibrationCommand(Dirs, products["FLATFLUXCALIBRATIONSPECTRUM"],products["FLATEXTRACTEDSPECTRUM"], Instmode, products["WAVELENGTHPRODUCT"]) + verstr
+    commandsType["FLATFLUXCALIBRATIONSPECTRUM"] = True
+    
+    return products,dependencies,commands,commandsType
 ##################################
 
 ######### PRODUCT FILE NAMES ###########
@@ -795,830 +1143,6 @@ def setPlotFilenames(Dirs,night,Instmode,Readmode, plotbool) :
 ##################################
 
 
-######### DEPENDENCIES ###########
-def setDependencies(products,Instmode) :
-    dependencies = {}
-    
-    # Template for a target is: targets[key] = filename
-    if "BIASLIST" in products :
-        dependencies["BIASLIST"] = []
-        dependencies["MASTERBIAS"] = ["BIASLIST"]
-    else :
-        dependencies["MASTERBIAS"] = []
-    
-    if "FLATLIST" in products :
-        dependencies["FLATLIST"] = []
-        dependencies["MASTERFLAT"] = ["FLATLIST"]
-    else :
-        dependencies["MASTERFLAT"] = []
-
-    if "COMPLIST" in products :
-        dependencies["MASTERCOMP"] = ["COMPLIST","MASTERBIAS"]
-        dependencies["COMPLIST"] = []
-    else :
-        dependencies["MASTERCOMP"] = ["MASTERBIAS"]
-
-    if "ALIGNLIST" in products :
-        dependencies["ALIGNLIST"] =[]
-        dependencies["MASTERALIGN"] = ["ALIGNLIST"]
-    else :
-        dependencies["MASTERALIGN"] = []
-
-    if "FLATLIST" in products and "BIASLIST" in products :
-        dependencies["GAINPRODUCT"] = ["BIASLIST","FLATLIST"]
-    else :
-        dependencies["GAINPRODUCT"] = []
-
-    dependencies["ORDERSPACINGPRODUCT"] = ["GAINPRODUCT","MASTERBIAS","MASTERFLAT"]
-    dependencies["GEOMETRYPRODUCT"] = ["GAINPRODUCT","MASTERBIAS","MASTERFLAT","ORDERSPACINGPRODUCT"]
-    
-    if (Instmode.mode == 1 or Instmode.mode == 3) :
-        dependencies["INSTRUMENTPROFILEPRODUCT"] = ["GEOMETRYPRODUCT","GAINPRODUCT","MASTERBIAS","MASTERFLAT","MASTERALIGN"]
-    elif (Instmode.mode == 2) :
-        dependencies["INSTRUMENTPROFILEPRODUCT"] = ["GEOMETRYPRODUCT","GAINPRODUCT","MASTERBIAS","MASTERFLAT","MASTERCOMP"]
-
-    dependencies["APERTUREPRODUCT"] = ["GEOMETRYPRODUCT","INSTRUMENTPROFILEPRODUCT","ORDERSPACINGPRODUCT"]
-    dependencies["COMPEXTRACTEDSPECTRUM"] = ["MASTERCOMP","MASTERBIAS","MASTERFLAT","GAINPRODUCT","GEOMETRYPRODUCT","INSTRUMENTPROFILEPRODUCT","APERTUREPRODUCT"]
-    dependencies["FLATEXTRACTEDSPECTRUM"] = ["MASTERFLAT","MASTERBIAS","MASTERFLAT","GAINPRODUCT","GEOMETRYPRODUCT","INSTRUMENTPROFILEPRODUCT","APERTUREPRODUCT"]
-    dependencies["WAVELENGTHPRODUCT"] = ["GEOMETRYPRODUCT","COMPEXTRACTEDSPECTRUM"]
-# Uncomment the two lines below and remove the one above to go back using StitchOrders
-#    dependencies["FIRSTWAVELENGTHPRODUCT"] = ["GEOMETRYPRODUCT","COMPEXTRACTEDSPECTRUM"]
-#    dependencies["WAVELENGTHPRODUCT"] = ["FIRSTWAVELENGTHPRODUCT","COMPEXTRACTEDSPECTRUM"]
-    dependencies["FLATFLUXCALIBRATIONSPECTRUM"] = ["FLATEXTRACTEDSPECTRUM","WAVELENGTHPRODUCT"]
-
-    #dependencies["OBJECTLIST"]=[]
-
-    return dependencies
-##################################
-
-######### COMMAND LINES ###########
-def setPipelineCommands(products,Dirs,night,Instmode,Readmode,keywords,config,plots,allowanyreadout,verbose) :
-    commands = {}
-
-    verstr = ""
-    if (verbose) :
-        verstr = " --verbose"
-    
-    command = ""
-    
-    if "BIASLIST" in products :
-        commands["BIASLIST"] = BiasListCommand(Dirs, Instmode, Readmode, keywords, products["BIASLIST"])
-        commands["MASTERBIAS"] = MasterCalibrationCommand(Dirs, "operaMasterBias", products["MASTERBIAS"], products["BIASLIST"]) + verstr
-            
-    if "FLATLIST" in products :
-        commands["FLATLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, keywords.FLATKEYWORD, products["FLATLIST"],allowanyreadout)
-        commands["MASTERFLAT"] = MasterCalibrationCommand(Dirs, "operaMasterFlat", products["MASTERFLAT"], products["FLATLIST"]) + verstr
-
-    if "COMPLIST" in products :
-        commands["COMPLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, keywords.COMPKEYWORD, products["COMPLIST"],allowanyreadout)
-        commands["MASTERCOMP"] = MasterComparisonCommand(Dirs, products["MASTERCOMP"], products["COMPLIST"], config.BADPIXELMASK, products["MASTERBIAS"]) + verstr
-
-    if "ALIGNLIST" in products :
-        commands["ALIGNLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, keywords.ALIGNKEYWORD, products["ALIGNLIST"],allowanyreadout)
-        if "MASTERALIGN" in products :
-            commands["MASTERALIGN"] = MasterCalibrationCommand(Dirs, "operaMasterFlat", products["MASTERALIGN"], products["ALIGNLIST"]) + verstr
-
-    if "FLATLIST" in products and "BIASLIST" in products :
-        commands["GAINPRODUCT"] = GainCommand(Dirs,products["GAINPRODUCT"], products["BIASLIST"], products["FLATLIST"], config.BADPIXELMASK, Readmode) + verstr
-
-    commands["ORDERSPACINGPRODUCT"] = OrderSpacingCommand(Dirs,products["ORDERSPACINGPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,Instmode,plots["ORDERSPACINGPRODUCT"]) + verstr
-    commands["GEOMETRYPRODUCT"] = GeometryCommand(Dirs,products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["ORDERSPACINGPRODUCT"],Instmode,plots["GEOMETRYPRODUCT"]) + verstr
-
-    if (Instmode.mode == 1 or Instmode.mode == 3) :
-        commands["INSTRUMENTPROFILEPRODUCT"] = InstrumentProfileCommand(Dirs,products["INSTRUMENTPROFILEPRODUCT"], products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],"",products["MASTERALIGN"],4,config.BADPIXELMASK,Instmode,plots["INSTRUMENTPROFILEPRODUCT"]) + verstr
-    elif (Instmode.mode == 2) :
-        commands["INSTRUMENTPROFILEPRODUCT"] = InstrumentProfileCommand(Dirs,products["INSTRUMENTPROFILEPRODUCT"], products["GEOMETRYPRODUCT"],products["GAINPRODUCT"],products["MASTERBIAS"],products["MASTERFLAT"],products["MASTERCOMP"],"",2,config.BADPIXELMASK,Instmode,plots["INSTRUMENTPROFILEPRODUCT"]) + verstr
-
-    commands["APERTUREPRODUCT"] = ApertureCommand(Dirs,products["APERTUREPRODUCT"],products["GEOMETRYPRODUCT"],products["INSTRUMENTPROFILEPRODUCT"],products["ORDERSPACINGPRODUCT"],Instmode,plots["APERTUREPRODUCT"]) + verstr
-    commands["COMPEXTRACTEDSPECTRUM"] = compRawExtractionCommand(Dirs,products["COMPEXTRACTEDSPECTRUM"],products["MASTERCOMP"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["GAINPRODUCT"], products["GEOMETRYPRODUCT"],products["INSTRUMENTPROFILEPRODUCT"],products["APERTUREPRODUCT"], Instmode) + verstr
-    commands["FLATEXTRACTEDSPECTRUM"] = calibrationExtractionCommand(Dirs,products["FLATEXTRACTEDSPECTRUM"],products["MASTERFLAT"],products["MASTERBIAS"],products["MASTERFLAT"],config.BADPIXELMASK,products["GAINPRODUCT"], products["GEOMETRYPRODUCT"],products["INSTRUMENTPROFILEPRODUCT"],products["APERTUREPRODUCT"], Instmode) + verstr
-    commands["WAVELENGTHPRODUCT"] = WavelengthCommand(Dirs, products["WAVELENGTHPRODUCT"], products["GEOMETRYPRODUCT"], products["COMPEXTRACTEDSPECTRUM"], Instmode, config ,plots["WAVELENGTHPRODUCT"]) + verstr
-# Uncomment the two lines below and remove the one above to go back using StitchOrders
-#   commands["FIRSTWAVELENGTHPRODUCT"] = WavelengthCommand(Dirs, products["FIRSTWAVELENGTHPRODUCT"], products["GEOMETRYPRODUCT"], products["COMPEXTRACTEDSPECTRUM"], Instmode, config ,plots["FIRSTWAVELENGTHPRODUCT"]) + verstr
-#   commands["WAVELENGTHPRODUCT"] = StitchOrdersCommand(Dirs, products["WAVELENGTHPRODUCT"], products["COMPEXTRACTEDSPECTRUM"], products["FIRSTWAVELENGTHPRODUCT"],plots["WAVELENGTHPRODUCT"]) + verstr
-    commands["FLATFLUXCALIBRATIONSPECTRUM"] = FlatFluxCalibrationCommand(Dirs, products["FLATFLUXCALIBRATIONSPECTRUM"],products["FLATEXTRACTEDSPECTRUM"], Instmode, products["WAVELENGTHPRODUCT"]) + verstr
-
-    #commands["OBJECTLIST"] = ObjectListCommandToFile(Dirs, Instmode, Readmode, keywords.OBJECTKEYWORD, products["OBJECTLIST"])
-
-    return commands
-##################################
-
-######### PRODUCTS ###########
-class Products :
-    'Common base class for pipeline products'
-    targets = {}
-    dependencies = {}
-    commands = {}
-    
-    plots = {}    
-    existenceStatus = {}
-
-    trace = False    
-    simulation = False
-        
-    def __init__(self,Targets, Plots, Dependencies, Commands, Trace):
-        self.targets = Targets
-        self.plots = Plots
-        self.dependencies = Dependencies
-        self.commands = Commands
-        self.setExistenceStatus()
-        self.trace = Trace
-    
-    # Function below sets processing in simulation mode
-    def setSimulation(self) :
-        self.simulation = True
-    #-------------------------------------------
-    
-    # Function below resets simulation back to non-simulation mode
-    def resetSimulation(self) :
-        self.simulation = False
-        self.setExistenceStatus()
-    #-------------------------------------------    
-    
-    # Function below returns the product file name <string> associated to a target
-    def getTarget(self, key) :
-        return self.targets[key]
-    #-------------------------------------------
-
-    # Function to display targets
-    def displayTargets(self) :
-        for targetItem in self.targets.items():
-            print '"',targetItem[0],'" :', targetItem[1]
-    #-------------------------------------------
-    
-    # Function to add targets from input dictionary.
-    # Input is a vector of three dictionaries: target{}, dependencies{}, commands{}
-    def addTargets(self, inputDictVec) :
-        # input: inputDictVec = [target{}, dependencies{}, commands{}]
-        
-        self.targets.update(inputDictVec[0])
-        
-        newkeys = []
-        for item in inputDictVec[0].items():
-            newkeys.append(item[0])
-        
-        dictbool = dict.fromkeys(newkeys, False)
-        self.existenceStatus.update(dictbool)
-                
-        self.dependencies.update(inputDictVec[1])
-        self.commands.update(inputDictVec[2])
-                
-        self.setExistenceStatus()
-    #-------------------------------------------
-    
-    # Function below returns the list of dependencies to produce product file
-    def getDependencies(self, key) :
-        return self.dependencies[key]
-    #-------------------------------------------
-
-    # Function below returns the command line to produce product file
-    def getCommandLine(self, key) :
-        return self.commands[key]
-    #-------------------------------------------
-    
-    # Function below executes a single target
-    def executeTarget(self, key) :
-        if (self.simulation == False) :
-            self.setExistenceStatus()
-        # If target exists then set target existenceStatus to True and exit
-        if self.existenceStatus[key] == True :
-            return True
-        # Otherwise execute command and recheck target existence and exit
-        else :
-            if self.resolveDependencies(key) == True :
-                if (self.simulation == True) :
-                    if key in self.commands :
-                        print self.getCommandLine(key)
-                        self.existenceStatus[key] = True
-                else :
-                    try :
-                        if(self.trace == True) :
-                            print self.getCommandLine(key)
-                        
-                        if key in self.commands :
-                            #subprocess.check_output(self.getCommandLine(key),stderr=subprocess.STDOUT,shell=True)
-                            os.system(self.getCommandLine(key))
-                                
-                        if os.path.exists(self.targets[key]) :
-                            self.existenceStatus[key] = True
-                    except :
-                        print "Error: can\'t execute command: ",self.getCommandLine(key)
-                
-        return self.getExistenceStatus(key)
-    #-------------------------------------------
-
-    # Function below executes all targets matching any substring given in the input list of substrings
-    def executeTargetsWithSubstrings(self,substrings) :
-        self.setExistenceStatus()
-        targetItems = self.targets.items()
-        for targetItem in targetItems :
-            for str in substrings :
-                if (str in targetItem[0]) or (str in targetItem[1]) :
-                    self.executeTarget(targetItem[0])
-    
-        if (self.simulation == True) :
-            self.setExistenceStatus()
-
-    # Function below returns the status of a target <bool>
-    def getExistenceStatus(self, key) :
-        return self.existenceStatus[key]
-    #-------------------------------------------
-
-    # Function below sets the status of each target based on existence check       
-    def setExistenceStatus(self) :
-        # Convert to list of tuples
-        targetItems = self.targets.items()
-        for targetItem in targetItems:
-            if os.path.exists(targetItem[1]) :
-                self.existenceStatus[targetItem[0]] = True
-            else :
-                self.existenceStatus[targetItem[0]] = False
-    #-------------------------------------------
-
-    # Function below execute every step where ExistenceStatus is FALSE
-    def executeAllTargets(self) :
-        self.setExistenceStatus()
-        targetItems = self.targets.items()
-        for targetItem in targetItems:
-            if (self.existenceStatus[targetItem[0]] == False) :
-                self.executeTarget(targetItem[0])
-        if (self.simulation == True) :
-            self.setExistenceStatus()
-    #-------------------------------------------
-
-    # Function to check dependencies.
-    # Return False if any dependency is missing.
-    def checkDependencies(self, key) :
-        dependenciesstatus = True
-        for dkey in self.dependencies[key] :
-            if self.existenceStatus[dkey] == False :
-                dependenciesstatus = False
-        return dependenciesstatus
-    #-------------------------------------------
-
-    # Function to resolve dependencies                    
-    def resolveDependencies(self, key) :
-        if (self.checkDependencies(key) == False) :
-            for dkey in self.dependencies[key] :
-                if self.existenceStatus[dkey] == False :
-                    self.executeTarget(dkey)
-
-        return self.checkDependencies(key)
-    #-------------------------------------------
-
-    # Function to delete all targets
-    def cleanTargets(self) :
-        targetItems = self.targets.items()
-        for targetItem in targetItems:
-            if os.path.exists(targetItem[1]) :
-                try :
-                    if(self.simulation == True) :
-                        print "rm " + targetItem[1]
-                    else :
-                        os.remove(targetItem[1])
-                except:
-                    print "Error: can\'t remove file: ", targetItem[1]
-                else:
-                    self.existenceStatus[targetItem[0]] = False
-
-        return
-    #-------------------------------------------
-
-    # Function to delete all plots
-    def cleanPlots(self) :
-        for plotItem in self.plots.items():
-            for plotItemItem in plotItem[1].items() :
-                if os.path.exists(plotItemItem[1]) :
-                    try :
-                        if(self.simulation == True) :
-                            print "rm " + plotItemItem[1]
-                        else :
-                            os.remove(plotItemItem[1])
-                    except:
-                        print "Error: can\'t remove file: ", plotItemItem[1]
-        return
-    #-------------------------------------------
-
-    # Function to delete all targets and plots
-    def cleanAll(self) :
-        self.cleanPlots()
-        self.cleanTargets()
-        return
-    #-------------------------------------------
-
-    # Function to remove targets matching any substring given in the input list of substrings
-    def removeTargets(self,substrings) :
-        targetItems = self.targets.items()
-        for targetItem in targetItems :
-            for str in substrings :
-                if (str in targetItem[0]) or (str in targetItem[1]) :
-                    self.targets.pop(targetItem[0], None)
-        return
-    #-------------------------------------------
-
-##################################
-
-#### Function to generate a command line for BIAS list: ####
-def BiasListCommand(Dirs, Instmode, Readmode, keywords,listfilename) :
-    commandline = Dirs.EXE + 'operaQueryImageInfo --directory=' + Dirs.DATADIR + \
-    ' -q "INSTRUME EREADSPD OBSTYPE"' + \
-    ' INSTRUME="'+ Instmode.INSTRUME +'" EREADSPD="'+Readmode.READOUTSPEED+'" OBSTYPE='+keywords.BIASKEYWORD + \
-    ' > ' + listfilename
-    return commandline
-###########################################
-
-#### Function to test BIAS list: ####
-def testBiasListCommand(Dirs, Instmode, Readmode, keywords) :
-    commandline = Dirs.EXE + 'operaQueryImageInfo --directory=' + Dirs.DATADIR + \
-    ' -q "INSTRUME EREADSPD OBSTYPE"' + \
-    ' INSTRUME="'+ Instmode.INSTRUME + '" EREADSPD="'+Readmode.READOUTSPEED+'" OBSTYPE='+keywords.BIASKEYWORD
-    return commandline
-###########################################
-                    
-#### Function to generate a command line for FLAT, COMP, ALIGN lists: ####
-def CalibrationListCommand(Dirs, Instmode, Readmode, keyword, listfilename, allowanyreadout) :
-    commandline = ""
-    if allowanyreadout :
-        commandline = Dirs.EXE + 'operaQueryImageInfo --directory=' + Dirs.DATADIR + \
-        ' -q "INSTRUME INSTMODE OBSTYPE"' + \
-        ' INSTRUME="'+ Instmode.INSTRUME +'" INSTMODE="'+Instmode.INSTRUMENTMODEKEY+'" OBSTYPE='+keyword + \
-        ' > ' + listfilename
-    else :
-        commandline = Dirs.EXE + 'operaQueryImageInfo --directory=' + Dirs.DATADIR + \
-        ' -q "INSTRUME INSTMODE EREADSPD OBSTYPE"' + \
-        ' INSTRUME="'+ Instmode.INSTRUME +'" INSTMODE="'+Instmode.INSTRUMENTMODEKEY+'" EREADSPD="'+Readmode.READOUTSPEED+'" OBSTYPE='+keyword + \
-        ' > ' + listfilename    
-    return commandline
-###########################################
-
-#### Function to test FLAT, COMP, ALIGN lists: ####
-def testCalibrationListCommand(Dirs, Instmode, Readmode, keyword, allowanyreadout) :
-    commandline = ""
-    if allowanyreadout :
-        commandline = Dirs.EXE + 'operaQueryImageInfo --directory=' + Dirs.DATADIR + \
-        ' -q "INSTRUME INSTMODE OBSTYPE"' + \
-        ' INSTRUME="'+ Instmode.INSTRUME +'" INSTMODE="'+Instmode.INSTRUMENTMODEKEY+'" OBSTYPE='+keyword
-    else :
-        commandline = Dirs.EXE + 'operaQueryImageInfo --directory=' + Dirs.DATADIR + \
-        ' -q "INSTRUME INSTMODE EREADSPD OBSTYPE"' + \
-        ' INSTRUME="'+ Instmode.INSTRUME +'" INSTMODE="'+Instmode.INSTRUMENTMODEKEY+'" EREADSPD="'+Readmode.READOUTSPEED+'" OBSTYPE='+keyword
-    return commandline
-###########################################
-
-#### Function to generate a command line for mastercalibrations: ####
-def MasterCalibrationCommand(Dirs, bin, product, list) :
-    commandline = Dirs.EXE + bin + " --output=" + product + " --imagelistfile=" + list
-    return commandline
-###########################################
-
-#### Function to generate a command line for mastercomparison: ####
-def MasterComparisonCommand(Dirs, product, list, badpix, masterbias) :
-    commandline = Dirs.EXE + 'operaMasterComparison --output=' + product + \
-    ' --imagelistfile=' + list + ' --badpixelmask=' + badpix + ' --masterbias=' + masterbias + ' --biasConstant=1' + \
-    ' --combineMethod=1 --saturationLimit=65535 --outputExposureTime=60 --truncateOuputFluxToSaturation=1 --expTimeFITSKeyword=EXPTIME'
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaGain: ####
-def GainCommand(Dirs, product, biaslist, flatlist, badpix, Readmode) :
-    commandline = Dirs.EXE + 'operaGain --output=' + product + \
-    ' --biaslistfile=' + biaslist + ' --flatlistfile=' + flatlist + \
-    ' --badpixelmask=' + badpix + ' --defaultgain=' +  Readmode.DEFAULTGAIN + ' --defaultnoise=' + Readmode.DEFAULTNOISE + \
-    ' --DATASEC="1 2048 1 4608" --numberofamplifiers=1 --subwindow="100 800 500 4000" --gainMinPixPerBin=1000 --gainMaxNBins=100 --gainLowestCount=1000 --gainHighestCount=30000'
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaOrderSpacingCalibration: ####
-def OrderSpacingCommand(Dirs, product, gainproduct, masterbias, masterflat, badpix, Instmode, plots) :
-    
-    plotstring = ' --plotfilename=' + plots["ORDSPCPLOTFILE"] + ' --datafilename=' + plots["ORDSPCDATAFILE"] + ' --scriptfilename=' + plots["ORDSPCSCRIPTFILE"]
-        
-    commandline = Dirs.EXE + 'operaOrderSpacingCalibration --orderspacingoutput=' + product + \
-    ' --inputGainFile=' + gainproduct + ' --masterbias=' + masterbias + ' --masterflat=' + masterflat + \
-    ' --badpixelmask=' + badpix + ' --aperture=' + str(Instmode.ORDSPCAPERTURE) + ' --referenceOrderNumber=' + str(Instmode.SPACINGREFERENCEORDERNUMBER) + \
-    ' --referenceOrderSeparation=' + str(Instmode.SPACINGREFERENCEORDERSEPARATION) + \
-    ' --numberOfsamples=30 --sampleCenterPosition=2300 --subformat="8 2040 3 4600"' + \
-    plotstring
-    
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaGeometryCalibration: ####
-def GeometryCommand(Dirs, product, gainproduct, masterbias, masterflat, badpix, orderspacing, Instmode, plots) :
-
-    plotstring = ' --plotfilename=' + plots["GEOMPLOTFILE"] + ' --datafilename=' + plots["GEOMDATAFILE"] + ' --scriptfilename=' + plots["GEOMSCRIPTFILE"]
-    
-    commandline = Dirs.EXE + 'operaGeometryCalibration --outputGeomFile=' + product + \
-    ' --inputGainFile=' + gainproduct + ' --masterbias=' + masterbias + ' --masterflat=' + masterflat + \
-    ' --badpixelmask=' + badpix + ' --inputOrderSpacing=' + orderspacing + ' --aperture=' + str(Instmode.GEOMAPERTURE) + \
-    ' --maxorders=' + str(Instmode.GEOMMAXNORDERS) + ' --minordertouse=' + str(Instmode.GEOMMINORDERTOUSE) + \
-    ' --recenterIPUsingSliceSymmetry=' + str(Instmode.recenterIPUsingSliceSymmetry) + ' --totalNumberOfSlices=' + str(Instmode.NUMBEROFSLICES) + \
-    ' --subformat="8 2040 3 4600" --detectionMethod=2 --FFTfilter=0 --nsamples=5  --orderOfTracingPolynomial=3' + \
-    ' --binsize=25 --colDispersion=1 --invertOrders=1 --referenceOrderSamplePosition=2300' + \
-    plotstring
-
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaInstrumentProfileCalibration: ####
-def InstrumentProfileCommand(Dirs, product, geomproduct, gainproduct, masterbias, masterflat, mastercomp, masteralign, ipmethod, badpix, Instmode, plots) :
-    
-    plotstring = ' --plotfilename=' + plots["PROFPLOTFILE"] + ' --datafilename=' + plots["PROFDATAFILE"] + ' --scriptfilename=' + plots["PROFSCRIPTFILE"]
-
-    commandline = Dirs.EXE + "operaInstrumentProfileCalibration --outputProf=" + product + \
-    ' --geometryfilename=' + geomproduct + ' --masterbias=' + masterbias + ' --masterflat=' + masterflat + \
-    ' --badpixelmask=' + badpix + ' --mastercomparison=' +  mastercomp + ' --masterfabperot=' + masteralign + ' --gainfilename=' + gainproduct + \
-    ' --xSize=' + str(Instmode.IPXSIZE) + ' --ySize=' + str(Instmode.IPYSIZE) + ' --xSampling=' + str(Instmode.IPXSAMPLING) + \
-    ' --ySampling=' + str(Instmode.IPYSAMPLING) + ' --referenceLineWidth=' + str(Instmode.REFERENCELINEWIDTH) + \
-    ' --binsize=100 --ordernumber=-999 --method=' + str(ipmethod) + ' --tilt=' + str(Instmode.TILTANGLE) + \
-    ' --spectralElementHeight=1.0 --maxthreads=4 --minimumlines=5' + \
-    ' --LocalMaxFilterWidth=3.0 --DetectionThreshold=0.2 --MinPeakDepth=1.5' + \
-    plotstring
-    
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaExtractionApertureCalibration: ####
-def ApertureCommand(Dirs, product, geomproduct, profproduct, orderspacing, Instmode, plots) :
-
-    plotstring = ' --plotfilename=' + plots["APERPLOTFILE"] + \
-                 ' --datafilename=' + plots["APERDATAFILE"] + \
-                 ' --scriptfilename=' + plots["APERSCRIPTFILE"] + \
-                 ' --tiltplotfilename=' + plots["APERTILTPLOTFILE"] + \
-                 ' --tiltdata1filename=' + plots["APERTILTDATA1FILE"] + \
-                 ' --tiltdata2filename=' + plots["APERTILTDATA2FILE"] + \
-                 ' --tiltscriptfilename=' + plots["APERTILTSCRIPTFILE"]
-
-    commandline = Dirs.EXE + "operaExtractionApertureCalibration --outputApertureFile=" + product + \
-    ' --inputgeom=' + geomproduct + ' --inputprof=' + profproduct + ' --inputorderspacing=' + orderspacing + \
-    ' --numberOfBeams=' + str(Instmode.NUMBEROFBEAMS) + ' --gapBetweenBeams=' + str(Instmode.APERGAP) + \
-    ' --apertureHeight=' + str(Instmode.APERTUREHEIGHT) + ' --apertureWidth=' + str(Instmode.APERAPERTURE) + \
-    ' --constantTilt=' + str(Instmode.CONSTANTTILTFLAG) + \
-    ' --backgroundAperture=1.0 --pickImageRow=0 --nRowSamples=10 --xbin=10' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT) + \
-    plotstring
-    
-    return commandline
-###########################################
-
-#### Function to generate a command line for Raw Extraction of Comparison spectra: ####
-def compRawExtractionCommand(Dirs, product, inputImage, masterbias, masterflat, badpix, gainproduct, geomproduct, profproduct, aperproduct, Instmode) :
-    commandline = Dirs.EXE + 'operaExtraction --outputSpectraFile=' + product + \
-    ' --inputImage=' + inputImage + ' --masterbias=' + masterbias + ' --masterflat=' + masterflat + ' --badpixelmask=' + badpix + \
-    ' --inputGainFile=' + gainproduct + ' --inputGeometryFile=' + geomproduct + \
-    ' --inputInstrumentProfileFile=' + profproduct + ' --inputApertureFile=' + aperproduct + \
-    ' --spectrumtype=5 --spectrumtypename=RawBeamSpectrum --starplusskymode=0  --maxthreads=4' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-
-    return commandline
-###########################################
-
-#### Function to generate a command line for Optimal Extraction of spectra: ####
-def calibrationExtractionCommand(Dirs, product, inputImage, masterbias, masterflat, badpix, gainproduct, geomproduct, profproduct, aperproduct, Instmode) :
-    commandline = Dirs.EXE + 'operaExtraction --outputSpectraFile=' + product + \
-    ' --inputImage=' + inputImage + ' --masterbias=' + masterbias + ' --masterflat=' + masterflat + ' --badpixelmask=' + badpix + \
-    ' --inputGainFile=' + gainproduct + ' --inputGeometryFile=' + geomproduct + \
-    ' --inputInstrumentProfileFile=' + profproduct + ' --inputApertureFile=' + aperproduct + \
-    ' --spectrumtype=7 --spectrumtypename=OptimalBeamSpectrum --backgroundBinsize=300 --sigmaclip=6 ' + \
-    ' --removeBackground=0 --iterations=3 --onTargetProfile=1 --usePolynomialFit=0 --starplusskymode=0 --maxthreads=4' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaWavelengthCalibration: ####
-def WavelengthCommand(Dirs, product, geomproduct, compspectrum, Instmode, config, plots) :
-    
-    plotstring = ' --ordersplotfilename=' + plots["WAVEORDSPLOTFILE"] + ' --specplotfilename=' + plots["WAVESPECPLOTFILE"] + \
-    ' --ordersscriptfilename=' + plots["WAVEORDSCRIPTFILE"] + ' --specscriptfilename=' + plots["WAVESPECSCRIPTFILE"] + \
-    ' --ordersdatafilename=' + plots["WAVEORDSDATAFILE"] + ' --atlasdatafilename=' + plots["WAVEATLASDATAFILE"] + \
-    ' --compdatafilename=' + plots["WAVECOMPDATAFILE"] + ' --linesdatafilename=' + plots["WAVELINESDATAFILE"]
-
-    commandline = Dirs.EXE + 'operaWavelengthCalibration --outputWaveFile=' + product + \
-    ' --inputGeomFile=' + geomproduct + ' --uncalibrated_spectrum=' + compspectrum +  \
-    ' --inputWaveFile=' + config.WAVEFIRSTGUESS + ' --uncalibrated_linewidth=' + str(Instmode.WAVEUNCALLINEWIDTH) + \
-    ' --atlas_lines=' + config.THARATLASLINES + ' --atlas_spectrum=' + config.THARATLASSPECTRUM + \
-    ' --parseSolution=0 --ParRangeSizeInPerCent=1.0 --NpointsPerPar=3000 --maxNIter=40 --minNumberOfLines=40' +\
-    ' --maxorderofpolynomial=4 --dampingFactor=0.85 --initialAcceptableMismatch=1.5 --nsigclip=2.25 ' +\
-    ' --normalizeUncalibratedSpectrum=0 --normalizationBinSize=180 --LocalMaxFilterWidth=6' +\
-    ' --DetectionThreshold=0.1 --MinPeakDepth=1.5' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT) + \
-    plotstring
-    
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaStitchOrders: ####
-def StitchOrdersCommand(Dirs, product, compspectrum, wave, plots) :
-
-    plotstring = ' --plotfilename=' + plots["STITCHPLOTFILE"] + \
-                 ' --datafilename=' + plots["STITCHDATAFILE"] + \
-                 ' --scriptfilename=' + plots["STITCHSCRIPTFILE"]
-
-    commandline = Dirs.EXE + 'operaStitchOrders --outputWaveFile=' + product + \
-    ' --inputSpectrum=' + compspectrum + ' --inputWaveFile=' + wave + \
-    ' --orderOfReference=51 --RVRange=10 --RVStep=0.01 --XCorrelationThreshold=0.1 --sigmaThreshold=2.5' + \
-    plotstring
-
-    return commandline
-###########################################
-
-#### Function to generate a command line for operaCreateFlatFieldFluxCalibration: ####
-def FlatFluxCalibrationCommand(Dirs, product, flatspectrum, Instmode, wave) :
-
-    commandline = Dirs.EXE + 'operaCreateFlatFieldFluxCalibration --outputFluxCalibrationFile=' + product + \
-    ' --inputMasterFlatSpectrum=' + flatspectrum + ' --wavelengthCalibration=' + wave + \
-    ' --wavelengthForNormalization=' + str(Instmode.WAVELENGTHFORNORMALIZATION) + ' --binsize=500' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-    
-    return commandline
-###########################################
-
-
-#### Function to generate a command line for OBJECT list on screen: ####
-def ObjectListCommand(Dirs, Instmode, Readmode, keyword) :
-    commandline = Dirs.EXE + 'operaQueryImageInfo --directory=' + Dirs.DATADIR + \
-    ' -q "INSTRUME INSTMODE EREADSPD OBSTYPE"' + ' INSTRUME="'+ Instmode.INSTRUME + \
-    '" INSTMODE="'+Instmode.INSTRUMENTMODEKEY+'" EREADSPD="'+Readmode.READOUTSPEED+'" OBSTYPE='+keyword
-
-    return commandline
-###########################################
-
-#### Function to generate a command line to create OBJECT list into a file: ####
-def ObjectListCommandToFile(Dirs, Instmode, Readmode, keyword, listfilename) :
-    commandline = ObjectListCommand(Dirs, Instmode, Readmode, keyword) + \
-    ' > ' + listfilename
-    return commandline
-###########################################
-
-#### Function to generate a command line for Optimal Extraction of object spectra: ####
-def objectExtractionCommand(Dirs, product, inputImage, masterbias, masterflat, badpix, gainproduct, geomproduct, profproduct, aperproduct, Instmode) :
-    commandline = Dirs.EXE + 'operaExtraction --outputSpectraFile=' + product + \
-    ' --inputImage=' + inputImage + ' --masterbias=' + masterbias + ' --masterflat=' + masterflat + ' --badpixelmask=' + badpix + \
-    ' --inputGainFile=' + gainproduct + ' --inputGeometryFile=' + geomproduct + \
-    ' --inputInstrumentProfileFile=' + profproduct + ' --inputApertureFile=' + aperproduct + \
-    ' --starplusskymode=' + str(Instmode.STARPLUSKYMODEFLAG) + ' ' + Instmode.INVERTSKYFIBERFLAG + \
-    ' --spectrumtype=7 --spectrumtypename=OptimalBeamSpectrum --backgroundBinsize=300 --sigmaclip=6 ' + \
-    ' --removeBackground=0 --iterations=3 --onTargetProfile=1 --usePolynomialFit=0 --maxthreads=4' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-    
-    return commandline
-###########################################
-
-
-#### Function to generate a command line for Telluric Wavelength Correction: ####
-def TelluricWaveCommand(Dirs, product, inputSpectrum, wave, flatSpectrum, config, Instmode, plotbool) :
-    
-    if plotbool :
-        plotstring = ' --rvcorrsplotfilename=' + "rvcorr.eps" + ' --specplotfilename=' + "tellspec.eps" + \
-    ' --rvcorrscriptfilename=' + "rvcorr.gnu" + ' --specscriptfilename=' + "spec_tmp.gnu" + \
-    ' --rvcorrdatafilename=' + "rvcorr.dat" + ' --rvcorrfitdatafilename=' + "rvcorr-fit.dat" + \
-    ' --specdatafilename=' + "tellspec.dat"
-    else :
-        plotstring = ''
-    
-    if Instmode.STARPLUSKYMODEFLAG != 0 :
-        flagstring = ' --StarPlusSky'
-    else :
-        flagstring = ''
-    
-    commandline = Dirs.EXE + 'operaTelluricWavelengthCorrection --outputWaveFile=' + product + \
-    ' --inputObjectSpectrum=' + inputSpectrum + ' --inputWaveFile=' + wave + \
-    ' --telluric_lines=' + config.TELLURICLINES + \
-    ' --inputWavelengthMaskForTelluric=' + config.TELLURICWAVELENGTHMASK + \
-    ' --spectralResolution=' + str(Instmode.SPECTRALRESOLUTION) + \
-    ' --radialVelocityRange=' + str(Instmode.RADIALVELOCITYRANGE) + \
-    ' --radialVelocityStep=' + str(Instmode.RADIALVELOCITYSTEP) + \
-    ' --XCorrelationThreshold=0.1 --normalizationBinsize=110' + \
-    ' --inputFlatFluxCalibration=' + flatSpectrum + ' --useFitToFindMaximum' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT) + \
-    ' --RVCorrectionMethod=1 ' + \
-    flagstring + plotstring
-
-    return commandline
-##########################################
-
-#### Function to generate a command line for Radial Velocity module: ####
-def RadialVelocityCommand(Dirs, product, inputSpectrum, rvel, config, Instmode, mjdate) :
-    
-    commandline = Dirs.EXE + 'operaRadialVelocity --outputRVFile=' + product + \
-    ' --inputObjectSpectrum=' + inputSpectrum + \
-    ' --telluric_lines=' + config.TELLURICLINES + \
-    ' --template_spectrum=' + config.SOMEREFERENCESPECTRUM + \
-    ' --inputWavelengthRangesForRVMeasurements=' + config.WAVELENGTHRANGESFORRVMEASUREMENTS + \
-    ' --inputHeliocentricCorrection=' + rvel + \
-    ' --mjdate=' + str(mjdate) + \
-    ' --useFitToFindMaximum' + \
-    ' --radialVelocityRange=150' + \
-    ' --radialVelocityStep=0.3' + \
-    ' --threshold=0.05' + \
-    ' --spectralResolution=' + str(Instmode.SPECTRALRESOLUTION) + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-    
-    return commandline
-##########################################
-
-#### Function to generate a command line for Radial Velocity module: ####
-def RadialVelocity2Command(Dirs, product, inputSpectrum, wave, rvel, tell, flatSpectrum, config, Instmode, mjdate, plotbool) :
-    
-    if Instmode.STARPLUSKYMODEFLAG != 0 :
-        flagstring = ' --StarPlusSky'
-    else :
-        flagstring = ''
-    
-    commandline = Dirs.EXE + 'operaRadialVelocityFromSelectedLines --outputRVFile=' + product + \
-    ' --inputObjectSpectrum=' + inputSpectrum + ' --inputWaveFile=' + wave + \
-    ' --telluric_lines=' + config.TELLURICLINES + \
-    ' --source_lines=' + config.SOURCELINES + \
-    ' --mjdate=' + str(mjdate) + \
-    ' --inputWavelengthMaskForTelluric=' + config.TELLURICWAVELENGTHMASK + \
-    ' --spectralResolution=' + str(Instmode.SPECTRALRESOLUTION) + \
-    ' --normalizationBinsize=400' + \
-    ' --initialRVguess=0.0' + \
-    ' --inputHeliocentricCorrection=' + rvel + \
-    ' --inputTelluricCorrection=' + tell + \
-    ' --inputFlatFluxCalibration=' + flatSpectrum  + \
-    ' --robustFit' + \
-    ' --sourceLineWidthResolution=' + str(Instmode.SOURCELINERESOLUTION) + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT) + \
-    ' --gnuScriptFileName=' + \
-    flagstring
-
-    return commandline
-##########################################
-
-#### Function to generate a command line for Barycentric Wavelength Correction: ####
-def HeliocentricWaveCommand(Dirs, product, ra, dec, mjdate, exptime, startHA) :
-    
-    commandline = Dirs.EXE + 'operaHeliocentricWavelengthCorrection --outputRVelFile=' + product + \
-    ' --observatory_coords="19:49:36 -155:28:18" --observatory_elevation=4207' + \
-    ' --object_coords="' + str(ra) + ' ' + str(dec) + '" --MJDTime=' + str(mjdate) + ' --etime=' + str(exptime)
-    
-    return commandline
-##########################################
-
-#### Function to generate a command line to create a flux calibration spectrum *.fcal: ####
-def CreateFcalCommand(Dirs, product, inputSpectrum, stdcaldata, flatSpectrum, config, Instmode, aperture, wave, exptime):
-
-    commandline = Dirs.EXE + 'operaCreateFluxCalibration --outputFluxCalibrationFile=' + product + \
-    ' --inputUncalibratedSpectrum=' + inputSpectrum + ' --inputCalibratedSpectrum=' + stdcaldata  + \
-    ' --inputFlatFluxCalibration=' + flatSpectrum + ' --inputWavelengthMaskForRefContinuum=' + config.ATLASWAVELENGTHMASK + \
-    ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK + ' --inputWaveFile=' + wave + \
-    ' --inputApertureFile=' + aperture  + ' --wavelengthForNormalization=' + str(Instmode.WAVELENGTHFORNORMALIZATION) + ' --exposureTime=' + str(exptime) + \
-    ' --numberOfPointsInUniformSample=150 --numberOfPointsInUniformRefSample=70 --binsize=500' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-    
-    return commandline
-##########################################
-
-#### Function to generate a command line to create a LE flat response file *.s: ####
-def CreateFlatResponseCommand(Dirs, product, inputSpectrum, inputImage, stdcaldata, flatSpectrum, config, Instmode, aperture, wave):
-    
-    commandline = Dirs.EXE + 'operaCreateFlatResponse --outputFlatResponseFile=' + product + \
-    ' --inputUncalibratedSpectrum=' + inputSpectrum + ' --inputSpectrumFITSImage=' + inputImage + \
-    ' --outputFITS' + ' --inputCalibratedSpectrum=' + stdcaldata  + \
-    ' --inputFlatFluxCalibration=' + flatSpectrum + ' --inputWavelengthMaskForRefContinuum=' + config.ATLASWAVELENGTHMASK + \
-    ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK + ' --inputWaveFile=' + wave + \
-    ' --wavelengthForNormalization=' + str(Instmode.WAVELENGTHFORNORMALIZATION) + \
-    ' --numberOfPointsInUniformSample=300 --numberOfPointsInUniformRefSample=70 --binsize=750'  + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-
-    return commandline
-##########################################
-
-#### Function to generate a command line to create a master flux calibration spectrum *.fcal: ####
-def MasterFcalCommand(Dirs, product, inputFcalFiles, inputRefSpectrum, wave):
-
-    inputfileentries = ""
-    for file in inputFcalFiles :
-        inputfileentries += ' --inputfcal=' + file
-    
-    commandline = Dirs.EXE + 'operaMasterFluxCalibration --outputfcal=' + product + \
-    inputfileentries + ' --inputWaveFile=' + wave + ' --inputReferenceSpectrum=' + inputRefSpectrum + \
-    ' --combineMethod=1'
-
-    return commandline
-##########################################
-
-#### Function to generate a command line for calibrated spectrum *.spc: ####
-def SpcModuleCommand(Dirs, product, Instmode, config, inputSpectrum, flatSpectrum, inputFcal, rvelwave, tellwave, wave, objectname, exptime) :
-	
-    if Instmode.STARPLUSKYMODEFLAG == 1 :
-        starskyargs = ' --SkyOverStarFiberAreaRatio=' + str(Instmode.SKYOVERSTARFIBERAREARATIO) + ' ' + Instmode.INVERTSKYFIBERFLAG
-    else :
-        starskyargs = ''
-    
-    commandline = Dirs.EXE + Instmode.SPCMODULE + ' --outputCalibratedSpectrum=' + product + \
-    ' --inputUncalibratedSpectrum=' + inputSpectrum + ' --inputFlatFluxCalibration=' + flatSpectrum  + \
-    ' --fluxCalibration=' + inputFcal + ' --flatResponse=' + config.OLAPAFLATRESPONSE + \
-    ' --radialvelocitycorrection=' + rvelwave + ' --telluriccorrection=' + tellwave + ' --wavelengthCalibration=' + wave +\
-    ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK + \
-    ' --object="' + objectname + '" --etime=' + str(exptime) + starskyargs + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT) + \
-    ' --spectrumtype=17 --numberOfPointsInUniformSample=150 --normalizationBinsize=750 --AbsoluteCalibration=0' + \
-    ' --wlrangefile=' + config.LEORDERWAVELENGTH
-
-    return commandline
-##########################################
-
-#### Function to generate a command line for converting from *.spc to Libre-Esprit format: ####
-def GenLEFormatsCommand(Dirs, config, product,inputSpectrum, LESPECTRUMTYPE, objectname, fluxtype, wavetype) :
-    
-    commandline = Dirs.EXE + 'operaGenerateLEFormats --outputLEfilename=' + product + \
-    ' --inputOperaSpectrum=' + inputSpectrum + ' --LibreEspritSpectrumType=' + str(LESPECTRUMTYPE) + \
-    ' --object="' + objectname + '" --fluxType=' + str(fluxtype) + ' --wavelengthType=' + str(wavetype) + \
-    ' --LEorderwavelength=' + config.LEORDERWAVELENGTH
-    
-    return commandline
-##########################################
-
-#### Function to generate the final product in FITS format: ####
-def CreateLEFITSProductCommand(Dirs, product,inputUS, inputUN, inputUW, inputNW, objectfile, rvelwave) :
-    
-    commandline = Dirs.EXE + 'operaCreateProduct --output=' + product + \
-    ' --input=' + objectfile + \
-    ' --ufile=' + inputUS + \
-    ' --nfile=' + inputUN + \
-    ' --uwfile=' + inputUW + \
-    ' --nwfile=' + inputNW + \
-    ' --rvel=' + rvelwave + \
-    ' --spectrumtype=21 --centralsnr --compressiontype=21'
-    
-    return commandline
-##########################################
-
-#### Function to generate the final OPERA product in FITS format: ####
-def CreateOPERAFITSProductCommand(Dirs, product, spectrumfile, objectfile, config, rvelwave, tellwave, spectrumtype) :
-    
-    commandline = Dirs.EXE + 'operaCreateProduct --output=' + product + \
-    ' --input=' + objectfile + \
-    ' --spectrumfile=' + spectrumfile + \
-    ' --wlrangefile=' + config.LEORDERWAVELENGTH + \
-    ' --rvel=' + rvelwave + \
-    ' --tell=' + tellwave + \
-    ' --spectrumtype=' + spectrumtype + \
-    ' --compressiontype=21'
-    
-    return commandline
-##########################################
-
-#### Function to generate a command line for raw polarimetry *.p.gz: ####
-def PolarCommand(Dirs, Instmode, product, INPUT1, INPUT2, INPUT3, INPUT4, wave, stokes) :
-    
-    commandline = Dirs.EXE + 'operaPolar --output=' + product + \
-    ' --input1=' + INPUT1 + ' --input2=' + INPUT2 + ' --input3=' + INPUT3 + ' --input4=' + INPUT4 + \
-    ' --inputWaveFile=' + wave + ' --stokesparameter=' + str(stokes) + \
-    ' --numberofexposures=4 --method=2 --ordernumber=-999 ' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT)
-    
-    return commandline
-##########################################
-
-#### Function to generate a command line for polarimetry calibrated product *.pol.gz : ####
-def CalibratedPolarCommand(Dirs, product, Instmode, config, polar, flatSpectrum, inputFcal, rvelwave, tellwave, wave, objectname, exptime) :
-    
-    commandline = Dirs.EXE + 'operaPolarimetryCorrection --outputCalibratedSpectrum=' + product + \
-    ' --polar=' + polar + ' --inputFlatFluxCalibration=' + flatSpectrum + \
-    ' --fluxCalibration=' + inputFcal + ' --flatResponse=' + config.OLAPAFLATRESPONSE + \
-    ' --radialvelocitycorrection=' + rvelwave + ' --telluriccorrection=' + tellwave + ' --wavelengthCalibration=' + wave + \
-    ' --object="' + objectname + '" --etime=' + str(exptime) + ' --inputWavelengthMaskForUncalContinuum=' + config.ATYPEWAVELENGTHMASK + \
-    ' --spectrumtype=18 --numberOfPointsInUniformSample=150 --normalizationBinsize=750 --AbsoluteCalibration=0' + \
-    ' --minorder=' + str(Instmode.MINORDERTOEXTRACT) + ' --maxorder=' + str(Instmode.MAXORDERTOEXTRACT) + \
-    ' --wlrangefile=' + config.LEORDERWAVELENGTH
-
-    return commandline
-##########################################
-
-#### Function to generate a command line to stack *.spc spectra: ####
-def StackObjectSpectra(Dirs, output, objectname, Instmode, inputSpectralFiles, inputRVFiles, combineMethod, spectrumTypeToExtract) :
-    
-    inputfileentries = ' --inputspectrum="'
-    for file in inputSpectralFiles :
-        inputfileentries += file + ' '
-    inputfileentries += '"'
-
-    inputrvfileentries = ' --inputRVfile="'
-    for file in inputRVFiles :
-        inputrvfileentries += file + ' '
-    inputrvfileentries += '"'
-    
-    commandline = Dirs.EXE + 'operaStackObjectSpectra --outputspectrum=' + output + \
-    inputfileentries + inputrvfileentries +  \
-    ' --combineMethod=' + str(combineMethod) + \
-    ' --spectrumTypeToExtract=' + str(spectrumTypeToExtract) + \
-    ' --applyTelluricWaveCorrection=' + str(Instmode.APPLYTELLINSTACKEDSPECTRUM) + \
-    ' --applyHeliocentricRVCorrection=' + str(Instmode.APPLYHELIOINSTACKEDSPECTRUM) + \
-    ' --object=' + objectname + \
-    ' --RadialVelocityBin=' + str(Instmode.RVBINFOROUTPUTSTACKEDSPECTRUM) + \
-    ' --firstWavelength=' + str(Instmode.MINWLFOROUTPUTSTACKEDSPECTRUM) + \
-    ' --lastWavelength=' + str(Instmode.MAXWLFOROUTPUTSTACKEDSPECTRUM) + \
-    ' --snrClip=' + str(Instmode.SNRCLIPFOROUTPUTSTACKEDSPECTRUM) + \
-    ' --numberOfPointsToCutInOrderEnds=' + str(Instmode.NCUTATORDERENDSFOROUTPUTSTACKEDSPECTRUM)
-    
-    return commandline
-##########################################
-
-
 ############# Class to encapsulate modes for reduction ####################
 # This class contains the information on all available 
 class ReductionModes :
@@ -1652,7 +1176,7 @@ class ReductionModes :
                     ncomps = 0
                     naligns = 0
                     
-                    objectcheck = ObjectListCommand(dirs, Instmode, Readmode, keywords.OBJECTKEYWORD)
+                    objectcheck = ObjectListCommand(dirs, Instmode, Readmode, keywords.OBJECTKEYWORD,keywords)
                     objects = (subprocess.check_output(objectcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n')).split()
                     if len(objects) :
                         nobjects = len(objects)
@@ -1662,17 +1186,17 @@ class ReductionModes :
                     if len(biases) :
                         nbiases = len(biases)
                 
-                    flatcheck = testCalibrationListCommand(dirs, Instmode, Readmode,  keywords.FLATKEYWORD, allowanyreadout)
+                    flatcheck = testCalibrationListCommand(dirs, Instmode, Readmode, keywords.FLATKEYWORD, keywords, allowanyreadout)
                     flats = (subprocess.check_output(flatcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n')).split()
                     if len(flats) :
                         nflats = len(flats)
             
-                    compcheck = testCalibrationListCommand(dirs, Instmode, Readmode,  keywords.COMPKEYWORD, allowanyreadout)            
+                    compcheck = testCalibrationListCommand(dirs, Instmode, Readmode, keywords.COMPKEYWORD, keywords, allowanyreadout)
                     comps = (subprocess.check_output(compcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n')).split()
                     if len(comps) :
                         ncomps = len(comps)
             
-                    aligncheck = testCalibrationListCommand(dirs, Instmode, Readmode,  keywords.ALIGNKEYWORD, allowanyreadout)
+                    aligncheck = testCalibrationListCommand(dirs, Instmode, Readmode, keywords.ALIGNKEYWORD, keywords, allowanyreadout)
                     aligns = (subprocess.check_output(aligncheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n')).split()
                     if len(aligns) :
                         naligns = len(aligns)

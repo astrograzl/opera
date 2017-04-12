@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
     unsigned LibreEspritSpectrumType_val = LibreEspritsp2Spectrum;
     unsigned fluxType_val = RawFluxInElectronsPerElement;
     unsigned wavelengthType_val = ThArCalibratedInNM;
+    bool removePolarContinuum;
 	int ordernumber = NOTPROVIDED;
     int minorder = 0;
     int maxorder = 0;
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("LibreEspritSpectrumType", LibreEspritSpectrumType_val, "Spectrum type");
 	args.AddRequiredArgument("fluxType", fluxType_val, "Flux type");
 	args.AddRequiredArgument("wavelengthType", wavelengthType_val, "Wavelength type");
+	args.AddOptionalArgument("removePolarContinuum", removePolarContinuum, false, "Use continuum polarization removal");
 	args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
 	
 	try {
@@ -178,6 +180,12 @@ int main(int argc, char *argv[])
                             break;
                     }
                 }
+			}
+			if (spectralOrder->gethasPolarimetry() && removePolarContinuum) {
+				operaPolarimetry *polarimetry = spectralOrder->getPolarimetry();
+				if (polarimetry->getHasContinuumRemoved()) {
+					polarimetry->copyFROMcontinuumremoved();
+				}
 			}
 		}        
  		// output wavelength/flux calibrated spectrum...

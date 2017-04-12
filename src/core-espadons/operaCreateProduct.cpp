@@ -68,7 +68,7 @@ public:
 };
 
 template <typename T>
-class Matrix {
+class DataMatrix {
 private:
 	std::vector<DataRow<T> > data;
 public:
@@ -79,11 +79,11 @@ public:
 };
 
 // Reads in a table from a file into matrix, skipping the first skiplines of the file.
-void GetMatrixFromDataFile(string filename, Matrix<float>& matrix, unsigned skiplines);
+void GetMatrixFromDataFile(string filename, DataMatrix<float>& matrix, unsigned skiplines);
 
 // Updates the FITS product to contain the values in matrix. Starts at coloffset.
 // Product must have at least as many rows as matrix and at least coloffset more columns than matrix.
-void UpdateProductFromMatrix(operaFITSProduct& Product, const Matrix<float>& matrix, unsigned coloffset = 0);
+void UpdateProductFromMatrix(operaFITSProduct& Product, const DataMatrix<float>& matrix, unsigned coloffset = 0);
 
 void SetHeaderColumnsLE(operaFITSProduct& Product, operaSpectralOrder_t spectralOrderType);
 
@@ -322,7 +322,7 @@ int main(int argc, char *argv[])
 		if (!ufile.empty() && !nfile.empty() && ! uwfile.empty() && !nwfile.empty()) {
 			string inputfiles[4] = {nfile, ufile, nwfile, uwfile};
 			for(unsigned i = 0; i < 4; i++) {
-				Matrix<float> readdata;
+				DataMatrix<float> readdata;
 				GetMatrixFromDataFile(inputfiles[i], readdata, 2);
 				if(i == 0) {
 					Product.resize(readdata.Rows(), readdata.Cols()*4);
@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
 			}
         }
         else if (!spectrumfile.empty()) {
-			Matrix<float> readdata;
+			DataMatrix<float> readdata;
 			GetMatrixFromDataFile(spectrumfile, readdata, 1);
 			Product.resize(readdata.Rows(), readdata.Cols());
 			SetHeaderColumnsExtended(Product, spectralOrderType, readdata.Cols());
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 }
 
-void GetMatrixFromDataFile(const string filename, Matrix<float>& matrix, const unsigned skiplines) {
+void GetMatrixFromDataFile(const string filename, DataMatrix<float>& matrix, const unsigned skiplines) {
 	operaistream fin(filename.c_str());
 	if (fin.is_open()) {
 		string dataline;
@@ -376,7 +376,7 @@ void GetMatrixFromDataFile(const string filename, Matrix<float>& matrix, const u
 	}
 }
 
-void UpdateProductFromMatrix(operaFITSProduct& Product, const Matrix<float>& matrix, const unsigned coloffset) {
+void UpdateProductFromMatrix(operaFITSProduct& Product, const DataMatrix<float>& matrix, const unsigned coloffset) {
 	for (unsigned row = 0; row < matrix.Rows(); row++) {
 		for (unsigned col = 0; col < matrix.Cols(); col++) {
 			Product[col+coloffset][row] = matrix[row][col];

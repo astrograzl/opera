@@ -81,14 +81,17 @@ int maxorder = NOTPROVIDED;
 double biasConstantToAdd = 0;
 double effectiveApertureFraction = 0.99;
 unsigned backgroundBinsize = 1;
-unsigned sigmaclip = 50;
+double minsigmaclip = 25;
+double sigmacliprange;
 unsigned iterations = 3;
 bool onTargetProfile = false;
 bool usePolynomialFit = false;
 bool removeBackground = false;
 bool starplusskymode = false;
 bool starplusskyInvertSkyFiber = false;
+double skyOverStarFiberAreaRatio = 1.0;
 bool noCrossCorrelation = false;
+bool rejectBadpixInRawExtraction = false;
 unsigned spectralOrderType_val = RawBeamSpectrum;
 string spectrumtypename;
 unsigned maxthreads = 1;
@@ -138,26 +141,26 @@ void *processOrder(void *argument) {
         
         switch (spectralOrderType) {
             case RawBeamSpectrum:
-                spectralOrder->extractRawSpectrum(*object, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, NULL);
-                if(!noCrossCorrelation) {
-                    spectralOrder->calculateXCorrBetweenIPandImage(*object,*badpix,NULL);
+                if(rejectBadpixInRawExtraction) {
+                    spectralOrder->extractRawSpectrumRejectingBadpixels(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize, minsigmaclip, iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, !noCrossCorrelation, NULL);
+                } else {
+                    spectralOrder->extractRawSpectrum(*object, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction);
+                    if(!noCrossCorrelation) spectralOrder->calculateXCorrBetweenIPandImage(*object,*badpix,NULL);
                 }
                 break;
             case StandardBeamSpectrum:
-                spectralOrder->extractStandardSpectrum(*object, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize, NULL);
-                if(!noCrossCorrelation) {
-                    spectralOrder->calculateXCorrBetweenIPandImage(*object,*badpix,NULL);
-                }
+                spectralOrder->extractStandardSpectrum(*object, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize);
+                if(!noCrossCorrelation) spectralOrder->calculateXCorrBetweenIPandImage(*object,*badpix,NULL);
                 break;
             case OptimalBeamSpectrum:
-				spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize,sigmaclip,iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, !noCrossCorrelation, NULL);
+				spectralOrder->extractOptimalSpectrum(*object, *flat, *normalizedflat, *bias, *badpix, *gainBiasNoise, effectiveApertureFraction, backgroundBinsize, minsigmaclip, sigmacliprange, iterations, onTargetProfile, usePolynomialFit, removeBackground, args.verbose, !noCrossCorrelation, NULL);
                 break;
             default:
                 break;
         }
-        
+        spectralOrder->normalizeFluxToAperture();
         if(starplusskymode) {
-            spectralOrder->calculateStarAndSkyElements(starplusskyInvertSkyFiber, NULL);
+            spectralOrder->calculateStarAndSkyElements(starplusskyInvertSkyFiber, skyOverStarFiberAreaRatio);
         }
     } else {
         spectralOrder->sethasSpectralElements(false);
@@ -217,14 +220,17 @@ int main(int argc, char *argv[])
     args.AddOptionalArgument("effectiveApertureFraction", effectiveApertureFraction, 0.99, "Fraction of aperture width to set spectral element size");
     args.AddOptionalArgument("biasConstantToAdd", biasConstantToAdd, 0.0, "Bias constant to add -- to avoid negative numbers in extracted spectrum");
     args.AddOptionalArgument("backgroundBinsize", backgroundBinsize, 1, "Number of points to bin for IP measurements");
-    args.AddOptionalArgument("sigmaclip", sigmaclip, 50, "Variance threshold for optimal extraction");
+    args.AddOptionalArgument("minsigmaclip", minsigmaclip, 25, "Minimum variance threshold for optimal extraction");
+    args.AddOptionalArgument("sigmacliprange", sigmacliprange, 6, "Maximum range of points to filter in single iteration");
     args.AddOptionalArgument("iterations", iterations, 3, "Number iterations for optimal extraction");
     args.AddOptionalArgument("onTargetProfile", onTargetProfile, false, "Measure spatial profile on-target instead of using flat-field");
     args.AddOptionalArgument("usePolynomialFit", usePolynomialFit, false, "Use polynomial instead of median for first measurement of profile");
     args.AddOptionalArgument("removeBackground", removeBackground, false, "Remove background. May be turned Off if target is bright.");
     args.AddOptionalArgument("starplusskymode", starplusskymode, false, "Star+sky: main flux is the sum of right beams minus sum of left beams.");
     args.AddOptionalArgument("starplusskyInvertSkyFiber", starplusskyInvertSkyFiber, false, "Star+sky: invert sky fiber (default is beam[0]=star and beam[1]=sky).");
+	args.AddOptionalArgument("skyOverStarFiberAreaRatio", skyOverStarFiberAreaRatio, 1.0, "Area of the sky fiber over the area of the star fiber.");
     args.AddOptionalArgument("noCrossCorrelation", noCrossCorrelation, false, "Turn-off the cross-correlation calculation");
+    args.AddOptionalArgument("rejectBadpixInRawExtraction", rejectBadpixInRawExtraction, false, "Apply raw extraction but reject badpixels");
     args.AddRequiredArgument("spectrumtype", spectralOrderType_val, "Method for extraction: 5 = Raw Flux Sum (default), 6 = Standard Flux, 7 = Optimal Extraction, 8 = OPERA Optimal Extraction");
     args.AddRequiredArgument("spectrumtypename", spectrumtypename, "Spectrum type name for verbose mode");
     args.AddRequiredArgument("maxthreads", maxthreads, "Maximum number of threads");
@@ -278,12 +284,15 @@ int main(int argc, char *argv[])
             cout << "operaExtraction: backgroundBinsize = " << backgroundBinsize << endl;
             cout << "operaExtraction: starplusskymode = " << starplusskymode << endl;
             cout << "operaExtraction: starplusskyInvertSkyFiber = " << starplusskyInvertSkyFiber << endl;
-            cout << "operaExtraction: sigmaclip = " << sigmaclip << endl;
+			cout << "operaExtraction: skyOverStarFiberAreaRatio = " << skyOverStarFiberAreaRatio << endl;
+            cout << "operaExtraction: minsigmaclip = " << minsigmaclip << endl;
+            cout << "operaExtraction: sigmacliprange = " << sigmacliprange << endl;
 			cout << "operaExtraction: iterations = " << iterations << endl;
 			cout << "operaExtraction: onTargetProfile = " << onTargetProfile << endl;
 			cout << "operaExtraction: usePolynomialFit = " << usePolynomialFit << endl;
 			cout << "operaExtraction: removeBackground = " << removeBackground << endl;
 			cout << "operaExtraction: noCrossCorrelation = " << noCrossCorrelation << endl;
+            cout << "operaExtraction: rejectBadpixInRawExtraction = " << rejectBadpixInRawExtraction << endl;
             if(ordernumber != NOTPROVIDED) cout << "operaExtraction: ordernumber = " << ordernumber << endl;
             if(args.plot) {
                 cout << "operaExtraction: plotfilename = " << plotfilename << endl;
@@ -305,27 +314,27 @@ int main(int argc, char *argv[])
             *flat = 1.0;
         }
         
-		if (!masterbias.empty()){              
+		if (!masterbias.empty()){
 			bias = new operaFITSImage(masterbias, tfloat, READONLY);
             *bias = *bias - (float)biasConstantToAdd;
 		} else {
             bias = new operaFITSImage(object->getnaxis1(),object->getnaxis2(),tfloat);
             *bias = 0.0;
-        }	        
+        }
         
-		if (!badpixelmask.empty()){              
+		if (!badpixelmask.empty()){
 			badpix = new operaFITSImage(badpixelmask, tfloat, READONLY);
 		} else {
             badpix = new operaFITSImage(object->getnaxis1(),object->getnaxis2(),tfloat);
             *badpix = 1.0;
-        }		
+        }
         
-		if (!normalizedflatfile.empty()){              
+		if (!normalizedflatfile.empty()){
 			normalizedflat = new operaFITSImage(normalizedflatfile, tfloat, READONLY);
 		} else {
             normalizedflat = new operaFITSImage(object->getnaxis1(),object->getnaxis2(),tfloat);
             *normalizedflat = 1.0;
-        }        		
+        }
 
 		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputgeom);
         operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputaper);

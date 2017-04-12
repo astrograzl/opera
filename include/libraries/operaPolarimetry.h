@@ -362,6 +362,8 @@ public:
      */
     void setHasDegreeOfStokes(stokes_parameter_t StokesIndex, bool HasDegreeOfStokes);
     
+    void copyFROMcontinuumremoved() { degreeOfPolarization = continuumRemoved; }
+    
     bool getHasStokesI(void) const { return hasStokesI; }
     bool getHasStokesQ(void) const { return hasStokesQ; }
     bool getHasStokesU(void) const { return hasStokesU; }
@@ -415,6 +417,14 @@ public:
      * \return void
      */
     void calculateDegreeOfPolarization(void);
+    
+    /*!
+     * \brief Calculates the degree of polarization.
+     * \details A function that calculates the degree of polarization from the polarization and stores it in the degree of polarization vector.
+     * \param StokesIndex is the selected Stokes parameter
+     * \return void
+     */
+    void calculateDegreeOfPolarization(stokes_parameter_t StokesIndex);
     
     /*!
      * \brief Calculates the degree of polarization.

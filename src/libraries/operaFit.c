@@ -71,13 +71,9 @@
  */
 double PolynomialFunction(double x, const double *p, int n_par)
 {
-	double fpoly = p[0];
-	int i;
-	
-	for(i=1;i<n_par;i++) {
-		fpoly += p[i]*pow(x,(double)i); 
-	}
-	return fpoly;
+	double total = 0;
+	for(unsigned i = n_par; i > 0; i--) total = x*total + p[i-1];
+	return total;
 }
 
 /* 
@@ -91,7 +87,7 @@ double PolynomialFunction(double x, const double *p, int n_par)
  * \param chi2 is a double pointer that returns the reduced chi-square of the fit
  * \return void
  */
-void operaLMFitPolynomial(unsigned m_dat, double *x, double *y, int n_par, double *par, double *chi2) 
+void operaLMFitPolynomial(unsigned m_dat, const double *x, const double *y, int n_par, double *par, double *chi2) 
 {
 	int i;  
 	/* auxiliary parameters */
@@ -275,25 +271,28 @@ int operaMPFitPolynomial(unsigned m_dat, const double *x, const double *y, const
 {
   struct vars_struct v;
   int status;
-    
-  mp_result result;	
-  memset(&result,0,sizeof(result));       /* Zero results structure */
-
+  
+  mp_result* resultptr = 0;
+  if(epar) {
+    mp_result result;
+    memset(&result,0,sizeof(result));       /* Zero results structure */
+    result.xerror = epar;
+    resultptr = &result;
+  }
+  
   mp_par pars[MAXPOLYNOMIAL];
   memset(pars, 0, sizeof(pars));       /* Initialize constraint structure */
-	
-  result.xerror = epar;
-	
+  
   v.x = x;
   v.y = y;
   v.ey = ey;
-	
+  
   /* Call fitting function for 10 data points and 2 parameters */
-  status = mpfit(MPPolyFunc, m_dat, n_par, par, pars, 0, (void *) &v, &result);
-	
-	if(chi2) *chi2 = result.bestnorm/(double)(m_dat-n_par);
-	
-	return status;
+  status = mpfit(MPPolyFunc, m_dat, n_par, par, pars, 0, (void *) &v, resultptr);
+  
+  if(chi2 && resultptr) *chi2 = resultptr->bestnorm/(double)(m_dat-n_par);
+  
+  return status;
 }
 
 int MPPolyFunc(int m, int n, double *p, double *dy, double **dvec, void *vars)

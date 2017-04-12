@@ -536,7 +536,7 @@ directoriescreated:
 			$(ECHO) $(MAKE) -f $(makedir)Makefile DATADIRS= DATADIR=$${datadir} TIME=$(TIME) TRACE=$(TRACE) DEBUG=$(DEBUG) VERBOSE=$(VERBOSE) PLOT=$(PLOT) optargs="$(optargs)" --jobs --no-print-directory directoriescreated; \
 		done ; \
 	else \
-		if [ -d $(DATADIR) ] ; then \
+		if [ -d $(DATADIR) ] || [ -n "$(ARCHIVE)" ] ; then \
 			if [ ! -d $(spectradir) ]		; then mkdir -p $(spectradir); chmod a+rw $(spectradir) ; fi ; \
 			if [ ! -d $(calibrationdir) ]	; then mkdir -p $(calibrationdir); chmod a+rw $(calibrationdir) ; fi ; \
 			if [ ! -d $(byproductsdir) ]	; then mkdir -p $(byproductsdir); chmod a+rw $(byproductsdir) ; fi ; \

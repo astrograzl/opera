@@ -44,6 +44,7 @@
 #include "libraries/operaExtractionAperture.h"  // for operaExtractionAperture
 #include "libraries/operaSpectralEnergyDistribution.h" // for operaSpectralEnergyDistribution
 #include "libraries/GainBiasNoise.h" // for GainBiasNoise
+#include "libraries/operaSpectralTools.h"
 
 using namespace std;
 
@@ -92,9 +93,9 @@ private:
     
     operaSpectralElements *BackgroundElements[LEFTANDRIGHT]; // pointer to spectral elements for background 
     
-	operaExtractionAperture *ExtractionApertures[MAXNUMBEROFBEAMS];    // pointer to the apertures for extraction
+	operaExtractionAperture<Line> *ExtractionApertures[MAXNUMBEROFBEAMS];    // pointer to the apertures for extraction
 	
-    operaExtractionAperture *BackgroundApertures[LEFTANDRIGHT];    // pointer to the apertures for background    
+    operaExtractionAperture<Line> *BackgroundApertures[LEFTANDRIGHT];    // pointer to the apertures for background    
 	
 	operaSpectralEnergyDistribution *BeamSED[MAXNUMBEROFBEAMS];	// pointer to the operaSpectralEnergyDistribution class instance        
     
@@ -153,6 +154,8 @@ public:
     
 	unsigned getorder(void) const;
 	
+	void setorder(unsigned ordernumber);
+	
 	void sethasSpectralElements(bool HasSpectralElement);
 	
 	void sethasSkyElements(bool HasSkyElements);
@@ -203,11 +206,8 @@ public:
 	
 	void createSpectralElements(unsigned maxdatapoints, operaSpectralOrder_t SpectrumType, bool extended = false);
 	
-    void createSkyElements(unsigned maxdatapoints, operaSpectralOrder_t SpectrumType);    
-#if 0
-    -- Jan 2013 DT deprecated -- bad interface
-	void createSpectralEnergyDistribution(void);
-#endif	
+    void createSkyElements(unsigned maxdatapoints, operaSpectralOrder_t SpectrumType);
+
 	operaSpectralElements *getSpectralElements(void);
 	const operaSpectralElements *getSpectralElements(void) const;
 	
@@ -246,13 +246,13 @@ public:
     operaSpectralElements *getBackgroundElements(unsigned LeftOrRight);
     const operaSpectralElements *getBackgroundElements(unsigned LeftOrRight) const;
     
-	operaExtractionAperture *getExtractionApertures(unsigned beam);
-	const operaExtractionAperture *getExtractionApertures(unsigned beam) const;
+	operaExtractionAperture<Line> *getExtractionApertures(unsigned beam);
+	const operaExtractionAperture<Line> *getExtractionApertures(unsigned beam) const;
 	
-	operaExtractionAperture *calculateMainApertureFromExtractionBeams(bool useIP);
+	operaExtractionAperture<Line> *calculateMainApertureFromExtractionBeams(bool useIP);
     
-    operaExtractionAperture *getBackgroundApertures(unsigned LeftOrRight);
-    const operaExtractionAperture *getBackgroundApertures(unsigned LeftOrRight) const;
+    operaExtractionAperture<Line> *getBackgroundApertures(unsigned LeftOrRight);
+    const operaExtractionAperture<Line> *getBackgroundApertures(unsigned LeftOrRight) const;
     
     void setBeamElements(unsigned beam, operaSpectralElements *beamElements);
     
@@ -260,9 +260,9 @@ public:
     
     void setBackgroundElements(unsigned LeftOrRight, operaSpectralElements *backgroundElements);
     
-	void setExtractionApertures(unsigned beam, operaExtractionAperture *extractionApertures);
+	void setExtractionApertures(unsigned beam, operaExtractionAperture<Line> *extractionApertures);
 	
-    void setBackgroundApertures(unsigned LeftOrRight, operaExtractionAperture *backgroundApertures);
+    void setBackgroundApertures(unsigned LeftOrRight, operaExtractionAperture<Line> *backgroundApertures);
 	
 	double getCenterSNR(void) const;
 	
@@ -322,21 +322,34 @@ public:
     
     void setApertureElements(operaSpectralOrder_t format);
     
-    void extractRawSpectrum(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, ostream *pout);
-	
-    void extractStandardSpectrum(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, unsigned BackgroundBinsize, ostream *pout);
+    operaFluxVector extractFluxElement(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, unsigned indexElem, const PixelSet *aperturePixels);
+    operaFluxVector extractSubpixelFlux(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, unsigned badpixValue, GainBiasNoise &gainBiasNoise, unsigned indexElem, const PixelSet *aperturePixels, Vector<unsigned>* pixcol=0, Vector<unsigned> *pixrow=0);
     
-    void extractStandardSpectrumNoBackground(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, ostream *pout);
-	
-    void extractOptimalSpectrum(operaFITSImage &objectImage, operaFITSImage &flatImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, unsigned BackgroundBinsize, unsigned sigmaClip, unsigned iterations, bool onTargetProfile, bool usePolynomialFit, bool removeBackground, bool verbose, bool calculateXCorrelation, ostream *pout);
-	
-    void measureBeamSpatialProfiles(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, bool usePolynomialFit);
+    void extractSpectrum(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, const operaFluxVector& backgroundModelFlux);
     
-    void measureOptimalSpectrum(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, unsigned sigmaClip, ostream *pout);
-        
-    void refineBeamSpatialProfiles(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix,GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, unsigned NumberofElementsToBin, unsigned sigmaClip, bool usePolynomialFit);
-
-	void calculateXCorrBetweenIPandImage(operaFITSImage &Image, operaFITSImage &badpix, ostream *pout);
+    operaFluxVector extractBackground(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, unsigned NumberofElementsToBin);
+    
+    void normalizeFluxToAperture();
+    
+    void extractRawSpectrum(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction);
+	
+    void extractRawSpectrumRejectingBadpixels(operaFITSImage &objectImage, operaFITSImage &flatImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, unsigned BackgroundBinsize, double minSigmaClip, unsigned iterations, bool onTargetProfile, bool usePolynomialFit, bool removeBackground, bool verbose, bool calculateXCorrelation, ostream *pout);
+    
+    void extractStandardSpectrum(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, unsigned BackgroundBinsize);
+    
+    void extractStandardSpectrumNoBackground(operaFITSImage &objectImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction);
+	
+    void extractOptimalSpectrum(operaFITSImage &objectImage, operaFITSImage &flatImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double effectiveApertureFraction, unsigned BackgroundBinsize, double minSigmaClip, double sigmaClipRange, unsigned iterations, bool onTargetProfile, bool usePolynomialFit, bool removeBackground, bool verbose, bool calculateXCorrelation, ostream *pout);
+	
+    void measureBeamSpatialProfiles(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, bool usePolynomialFit);
+    
+    void updateBadPixelsToRejectCosmicRays(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double minSigmaClip);
+    
+    void measureRawSpectrumRejectingBadpixels(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise);
+    
+    void measureOptimalSpectrum(operaFITSImage &inputImage, operaFITSImage &nflatImage, operaFITSImage &biasImage, operaFITSImage &badpix, GainBiasNoise &gainBiasNoise, double minSigmaClip, double sigmaClipRange);
+    
+    void calculateXCorrBetweenIPandImage(operaFITSImage &Image, operaFITSImage &badpix, ostream *pout);
 	
 	operaSpectralOrder_t getSpectrumType(void) const;
 	
@@ -355,63 +368,50 @@ public:
 	double getsnrSpectralBinSize() const;
 	void setsnrSpectralBinSize(double spectralbinsize);
 	
+	void setWavelengthsFromCalibration();
+
 	/*
 	 * Normalization/Flux Calibration...
 	 */
-	void fitSEDUncalibratedFluxToSample(unsigned uniform_npoints, float *uniform_wl, float *uniform_flux, float **uniform_beamflux);
-	
-	void fitSEDFcalAndThroughputToFlatResp(unsigned npoints, float *frwavelength, float *flatresp);
-	
-	void applyNormalization(unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial, ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, unsigned numberOfprintouts);
-	
-    void applyNormalizationForEmissionSpectrum(unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial, ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, unsigned numberOfprintouts);
+	operaSpectralElements& MainAndBeamElements(unsigned index);
 
-    void applyNormalizationFromExistingContinuum(ostream *poutspec, ostream *poutcontinuum, bool overwriteUncalFlux, bool normalizeBeams, unsigned numberOfprintouts);
+	operaSpectralEnergyDistribution& MainAndBeamSED(unsigned index);
 
-    void normalizeSpectrum(const operaFluxVector &uncalibratedFlux, operaFluxVector &normalizedFlux, operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial);
+	unsigned MainAndBeamCount();
+
+	operaVector getMainAndBeamFluxes(unsigned index);
+
+	void fitSEDUncalibratedFluxToSample(const operaSpectrum& uniformSample);
 	
-    void measureContinuum(const operaFluxVector &uncalibratedFlux,operaFluxVector &outputContinuum, operaSpectralEnergyDistribution &spectralEnergyDistribution, unsigned binsize, unsigned nsigcut, unsigned orderOfPolynomial, bool usePolynomial);    
+	void fitSEDFcalAndThroughputToFlatResp(const operaSpectrum& flatresp);
+	
+	void applyNormalization(unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial, bool overwriteUncalFlux, bool normalizeBeams);
+	
+    void applyNormalizationForEmissionSpectrum(unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial, bool overwriteUncalFlux, bool normalizeBeams);
+
+    void applyNormalizationFromExistingContinuum(bool normalizeBeams);
+
+    void normalizeSpectrum(const operaFluxVector &uncalibratedFlux, operaFluxVector &normalizedFlux, operaFluxVector &outputContinuum, unsigned binsize, unsigned orderOfPolynomial, bool usePolynomial);
+	
+    void measureContinuum(const operaFluxVector &uncalibratedFlux,operaFluxVector &outputContinuum, unsigned binsize, unsigned nsigcut, unsigned orderOfPolynomial, bool usePolynomial);
 	
     void deleteSpectralEnergyDistribution(void);
     
-    void createSpectralEnergyDistribution(unsigned binsize);
+    void createSpectralEnergyDistribution();
     
-    void createSpectralEnergyDistributionElements(unsigned nElements);
+    void calculateContinuum(unsigned binsize, unsigned nsigcut);
     
-    void calculateContinuum(unsigned binsize, unsigned nsigcut, ostream *poutspec, ostream *poutcontinuum);
-    
-    void calculateFluxCalibrationFromExistingContinuum(unsigned nPointsInReference,double *refwl,double *refflux,double referenceFluxForNormalization,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], ostream *poutspec, ostream *poutcontinuum);
-        
-    void calculateFluxCalibration(unsigned nPointsInReference,double *refwl,double *refflux,double referenceFluxForNormalization, unsigned binsize,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], ostream *poutspec, ostream *poutcontinuum);
-    
-    void calculateFluxCalibration(unsigned nPointsInReference,double *refwl,double *refflux, unsigned binsize,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS], ostream *poutspec, ostream *poutcontinuum);    
-    
-    void applyFluxCalibration(double exposureTime, ostream *poutcontinuum);
-    
-    void applyFluxCalibration(double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS],double uncalibratedContinuumFluxForNormalization,double uncalibratedContinuumBeamFluxForNormalization[MAXNUMBEROFBEAMS], bool absoluteCalibration, ostream *poutspec);
-        
-    void divideSpectralElementsBySEDElements(bool useThroughput, ostream *poutspec, bool StarPlusSky, bool starplusskyInvertSkyFiber);
+    void normalizeSpectralElementsByConstant(const operaVector& maxFluxForNormalization);
 
-    void multiplySpectralElementsBySEDElements(bool useThroughput,double spectralBinConstant,double BeamSpectralBinConstant[MAXNUMBEROFBEAMS], ostream *poutspec);
+	void divideSpectralElementsBySEDElements(bool useThroughput);
 
-    void multiplySpectralElementsBySEDElements(bool useThroughput,double spectralBinConstant, ostream *poutspec);
+    void multiplySpectralElementsBySEDElements(bool useThroughput, const operaVector& spectralBinConstants);
     
-    void normalizeSpectralElementsByConstant(double maxFluxForNormalization, double maxBeamFluxForNormalization[MAXNUMBEROFBEAMS]);
-
-    
-	/*
-	 * LE compatibility
-	 */
-	void applyFlatResponse(double exposureTime, operaSpectralElements *fluxCalibrationElements, ostream *poutspec);
     /*
      * Star+Sky Mode
      */
-    void calculateStarAndSkyElements(bool starplusskyInvertSkyFiber,ostream *poutspec);
+    void calculateStarAndSkyElements(bool starplusskyInvertSkyFiber, double skyOverStarFiberAreaRatio);
     
-	/*
-	 * Polar Mode, take the mean of the two beams
-	 */
-	void calculatePolarElements(ostream *poutspec);
 	/*
 	 * Radial Velocity Wavelength Correction
 	 */
@@ -428,6 +428,9 @@ public:
 	void CopyNormalizedFluxIntoFluxVector();
 	
     void TrimOrderToWavelengthRange();
+
+	operaSpectralLineList getRawLinesFromUncalSpectrum(double linewidth, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, double nsigclip, dispersionaxis_t dispersiontype);
+	operaSpectralLineList detectSpectralLines(double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, double nsigclip, double spectralResolution, bool emissionSpectrum);
 };
 
 #endif

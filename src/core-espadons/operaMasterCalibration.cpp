@@ -41,7 +41,7 @@ using namespace std;
  * operaMasterCalibration
  * \author Doug Teeple / Christopher Usher
  * \brief Encapsulates the functionality of modules that create master calibration images.
- * \file operaSpectrumCalibration.cpp
+ * \file operaMasterCalibration.cpp
  * \ingroup libraries
  */
 

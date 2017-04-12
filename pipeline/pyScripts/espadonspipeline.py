@@ -3,10 +3,15 @@
 Created on Oct 21 2014
 @author: Eder Martioli
 Laboratorio Nacional de Astrofisica, Brazil
-Last update on Nov 03, 2014
+Last update on Mar 07, 2017
 """
-import sys
+import sys,os
 import espadons
+
+pylibdir = os.path.split(os.path.dirname(__file__))[0] + '/pyLib'
+sys.path.insert(0,pylibdir)
+
+from pipelinebrain import Products
 
 ############# MAIN FUNCTION TO EXECUTE PIPELINE ###############
 def executePipeline(input, Dirs, config, keywords):
@@ -40,27 +45,20 @@ def executePipeline(input, Dirs, config, keywords):
     """
     CALIBRATION: Create calibration product file names, dependencies and command lines: 
     """
-    productFilenames = espadons.setProductFilenames(Dirs,night,Instmode,Readmode,DefaultCal,keywords,allowanyreadout)
     plotFilenames = espadons.setPlotFilenames(Dirs,night,Instmode,Readmode,plot)
-    productDependencies = espadons.setDependencies(productFilenames,Instmode)
-    productCommands = espadons.setPipelineCommands(productFilenames,Dirs,night,Instmode,Readmode,keywords,config,plotFilenames,allowanyreadout,verbose)
-   
-    """
-    Configure calibration product targets
-    """
-    products = espadons.Products(productFilenames,plotFilenames,productDependencies,productCommands,trace)
+    productFilenames,productDependencies,productCommands,productCommandTypes = espadons.setCalibrationProducts(Dirs,night,Instmode,Readmode,DefaultCal,keywords,allowanyreadout,config,plotFilenames,verbose)
     
     """
     REDUCTION: Create object product file names, dependencies and command lines:
     """
-    
-    objproductFilenames = espadons.setObjectTargets(productFilenames, Dirs, night, Instmode, Readmode, DefaultCal, keywords, config, verbose)
+    objectproducts = espadons.setObjectProducts(productFilenames, Dirs, night, Instmode, Readmode, DefaultCal, keywords, config, verbose)
     
     """
-    Configure reduction product targets
+    Configure calibration and object product targets:
     """
-    products.addTargets(objproductFilenames)
-        
+    products = Products(productFilenames,plotFilenames,productDependencies,productCommands,productCommandTypes,trace)
+    products.addTargets(objectproducts)
+    
     """
     Activate simulation mode
     """    

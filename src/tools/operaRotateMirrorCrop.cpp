@@ -202,14 +202,27 @@ int main(int argc, char *argv[])
         string outputImages[MAXIMAGES];
         
         for(unsigned i=0;i<imageIndex;i++) {
+            
+            string imageSuffix =  images[i].substr(images[i].find_last_of("."));
+                        
             if(!outputdir.empty()) {
                 string basefilename = images[i];
                 if (images[i].find_last_of("/") != string::npos) {
                     basefilename = images[i].substr(images[i].find_last_of("/")+1);
                 }
-                outputImages[i] = outputdir + basefilename + sufix;
+                
+                if (imageSuffix.compare(sufix) != 0) {
+                    outputImages[i] = outputdir + basefilename + sufix;
+                } else {
+                    outputImages[i] = outputdir + basefilename;
+                }
+                
             } else {
-                outputImages[i] = images[i] + sufix;
+                if (imageSuffix.compare(sufix) != 0) {
+                    outputImages[i] = images[i];
+                } else {
+                    outputImages[i] = images[i] + sufix;
+                }
             }
         }
 
@@ -240,7 +253,7 @@ int main(int argc, char *argv[])
                 cout << "operaRotateMirrorCrop: processing image " << i + 1 << " of " << imageIndex << " " << images[i] << " -> " << outputImages[i]<< endl;
             }
             
-            operaFITSImage outputImage(outputImages[i],inputImage.getnaxis1(),inputImage.getnaxis2(),inputImage.getdatatype(),READWRITE,false);
+            operaFITSImage outputImage(outputImages[i],inputImage.getnaxis1(),inputImage.getnaxis2(),inputImage.getdatatype(),compression,false);
 			outputImage.operaFITSImageCopyHeader(&inputImage);
             
             outputImage = inputImage;

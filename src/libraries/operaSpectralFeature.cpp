@@ -134,11 +134,11 @@ void operaSpectralFeature::setnLines(unsigned NLines) {
     nLines = maxnLines = NLines;
 }
 
-unsigned operaSpectralFeature::getnLines(void) {
+unsigned operaSpectralFeature::getnLines(void) const {
     return nLines;
 }
 
-double operaSpectralFeature::getBackgroundSlope(void) {
+double operaSpectralFeature::getBackgroundSlope(void) const {
     return BackgroundSlope;
 }
 
@@ -146,7 +146,7 @@ void operaSpectralFeature::setBackgroundSlope(double Slope) {
     BackgroundSlope = Slope;
 }
 
-double operaSpectralFeature::getBackgroundIntercept(void) {
+double operaSpectralFeature::getBackgroundIntercept(void) const {
     return BackgroundIntercept;
 }
 
@@ -158,10 +158,15 @@ void operaSpectralFeature::setGaussianFit(Gaussian *GaussianFit) {
     gaussianFit = GaussianFit;
 }
 
+const Gaussian *operaSpectralFeature::getGaussianFit(void) const {
+    return gaussianFit;
+}
+
 Gaussian *operaSpectralFeature::getGaussianFit(void) {
     return gaussianFit;
 }
-unsigned operaSpectralFeature::getNDataPoints(void) {
+
+unsigned operaSpectralFeature::getNDataPoints(void) const {
     return nDataPoints;
 }
 
@@ -170,11 +175,11 @@ void operaSpectralFeature::setOriginalIndex(unsigned i0,unsigned i1) {
     originalIndex[1] = i1;
 }
 
-unsigned operaSpectralFeature::getOriginalInitialIndex(void) {
+unsigned operaSpectralFeature::getOriginalInitialIndex(void) const {
     return originalIndex[0];    
 }
 
-unsigned operaSpectralFeature::getOriginalFinalIndex(void) {
+unsigned operaSpectralFeature::getOriginalFinalIndex(void) const {
     return originalIndex[1];   
 }
 

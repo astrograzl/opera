@@ -41,28 +41,88 @@
 /*! \file operWavelengthCalibration.h */
 /*! \ingroup core */
 
-#define MAXREFWAVELENGTHS 21000
-#define MAXFULLREFWAVELENGTHS 220000
-#define MAXORDEROFPOLYNOMIAL 6
+#include <map>
 
 class operaSpectralElements;
 class operaSpectralOrder;
 
-unsigned getRawLines(operaSpectralOrder *spectralOrder, double *rawlinecenter, double *rawlinecenterError, double *rawlineflux, double *rawlinesigma, double *rawlinewidth, double *rawlinewidth_err);
+struct DetectionParameters {
+	double RawLineWidth;
+	double RawLineWidthErr;
+	double LocalMaxFilterWidth;
+	double MinPeakDepth;
+	double DetectionThreshold;
+};
 
-unsigned getRawLinesFromUncalSpectrum(operaSpectralOrder *spectralOrder, double *rawlinecenter, double *rawlinecenterError, double *rawlineflux, double *rawlinesigma, double *rawlinewidth, double *rawlinewidth_err, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, double nsigclip);
+class WavelengthSolutions {
+private:
+	std::map <int, Polynomial> polynomials;
+	void readLineSet(string inputLineSetFilename, int order, operaVector& wavelength, operaVector& distance) const;
+public:
+	void SetFromSpectralOrders(const operaSpectralOrderVector& spectralOrders, int minorder, int maxorder);
+	void CalculateFromLineSet(string inputLineSetFilename, int minorder, int maxorder, unsigned maxorderofpolynomial);
+	bool HasSolutionForOrder(int order) const;
+	const Polynomial& GetSolutionForOrder(int order) const;
+};
 
-unsigned getAtlasLinesFromSpectrum(operaWavelength *wavelength, double rawlinewidth, double uncalibrated_linewidth, int order, double *atlasLineswl,double *atlasLineswlError,double *atlasLinesflux, ofstream& fatlasdata, double LocalMaxFilterWidth, double MinPeakDepth, double DetectionThreshold, bool generate3DPlot);
+class WavelengthCalibration {
+public:
+	WavelengthCalibration(operaSpectralOrder* spectralOrder, const operaSpectrum& atlasSpectrum, const operaSpectralLineList& atlasLines);
 
-unsigned readThoriumArgonAtlas(string thorium_argon_atlas, double *thAtlasWavelength, double *thAtlasIntensity);
+	void SetFromInitialSolution(const WavelengthSolutions& initialSolutions, int order);
 
-unsigned getThoriumArgonAtlasRange(double wl0, double wlf, double **thwl, double **thi);
+	void CalculateWavelengthSolution(double ParRangeSizeInPerCent, DetectionParameters detectionParams, double nsigclip, bool parseSolution, unsigned NpointsPerPar, double initialAcceptableMismatch, double dampingFactor, unsigned minNumberOfLines, unsigned maxNIter);
 
-unsigned readAtlasSpectrum(string atlas_spectrum, double *atlasWavelength, double *atlasIntensity, double *atlasVariance);
+	void InitializeDistanceLimitsFromGeometry();
+	void FindAndSetComparisonAndAtlasLines(DetectionParameters detectionParams, double nsigclip);
+	void FitSolutionPolynomialUsingMatchingLines(double acceptableMismatch);
+	void RefineSolutionPolynomialFit(double acceptableMismatch, double dampingFactor, unsigned minNumberOfLines, double nsigclip, unsigned maxNIter);
+	void FinishedShrinkingPolynomialFit();
 
-unsigned getAtlasSpectrumRange(double wl0, double wlf, double **thwl, double **thi, double **thvar);
+	bool HasUncalLines() const;
+	bool HasUncalSpectrum() const;
+	operaSpectralLineList GetUncalLines();
+	operaSpectralLineList GetLinesFromUncalSpectrum(DetectionParameters detection, double nsigclip);
+	operaSpectralLineList GetAtlasLinesInRange(operaWavelengthRange wlrange, double rawLineWidth);
+	operaSpectralLineList GetLinesFromAtlasSpectrum(operaWavelengthRange wlrange, DetectionParameters detection);
+	void SetComparisonLines(const operaSpectralLineList& comparisonLines);
+	void SetAtlasLines(const operaSpectralLineList& atlasLines);
 
-//unsigned createSimulatedSpectrum(unsigned nLines, double *lineCenters, double *lineAmplitudes, double lineSigma, double minwl, double maxwl, double wlstep, double *outputwl, double *outputSpectrum);
+	operaSpectralLineList DetectAtlasLines(operaWavelengthRange wlrange, DetectionParameters detection);
+
+	void PrintSolution();
+	void PrintPrecisionAndResolution();
+
+	void WritePlotAtlasData(const operaSpectrum& atlasRegion);
+	void WritePlotComparisonData(double rawlinewidth);
+	void WritePlotLinesData();
+	void WritePlotOrdersData();
+
+	static ofstream fatlasdata;
+	static ofstream fcompdata;
+	static ofstream flinesdata;
+	static ofstream fordersdata;
+	static bool generate3DPlot;
+	static bool skipPlots;
+
+private:
+	operaSpectralOrder* spectralOrder;
+	const operaSpectrum& atlasSpectrumFull;
+	const operaSpectralLineList& atlasLinesFull;
+	bool hasComparisonLines;
+	bool hasAtlasLines;
+	double comparisonLineWidth;
+	double comparisonLineWidthErr;
+	unsigned order;
+	operaWavelength* wavelength;
+	double wl_central;
+};
+
+operaSpectralLineList readThoriumArgonAtlas(string atlas_lines);
+
+operaSpectrum readAtlasSpectrum(string atlas_spectrum);
+
+int DetermineOrderShift(operaSpectralOrderVector& spectralOrders, int referenceMinOrder, int referenceMaxOrder, const WavelengthSolutions& initialSolutions, int nOrdersToSearchAround, const operaSpectrum& atlasSpectrum, const operaSpectralLineList& atlasLines, double ParRangeSizeInPerCent, DetectionParameters detectionParams, double nsigclip, unsigned NpointsPerPar, double initialAcceptableMismatch, double dampingFactor, unsigned minNumberOfLines, unsigned maxNIter);
 
 void GenerateWavelengthOrdersPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, bool display);
 
@@ -71,9 +131,5 @@ void GenerateWavelengthSpecPlot(string gnuScriptFileName, string outputPlotEPSFi
 void GenerateWavelength3DSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string atlasdatafilename, string compdatafilename, bool subtractCentralWavelength, bool display);
 
 void GenerateWavelengthSolutionPlot(string gnuScriptFileName, string outputPlotEPSFileName, string dataFileName, unsigned npolynomials, Polynomial *polynomials[], bool display);
-
-void calculateInitialSolutionFromLineSet(string inputLineSetFilename, operaSpectralOrder *spectralOrder, int order, unsigned maxorderofpolynomial);
-
-unsigned readLineSet(string inputLineSetFilename, int order, double *wavelengthData, double *wavelengthErrors, double *distanceData);
 
 #endif

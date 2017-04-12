@@ -35,6 +35,7 @@
 #include "libraries/Gaussian.h"
 #include "libraries/operaFit.h"	 // for operaMPFitPolynomial and operaLMFitPolynomial
 #include "libraries/operaMath.h"	 // for DiffPolynomialFunction
+#include "libraries/operaSpectralTools.h"		// for operaSpectralLineList
 
 #define NPOINTPERSIGMA 4
 
@@ -53,77 +54,58 @@ using namespace std;
  * \brief Encapsulation of Wavelength information.
  * \return none
  */
-/*
- * Constructors
- */
+
 operaWavelength::operaWavelength() :
 dmin(0.0),
 dmax(0.0),
-maxNDataPoints(0),
 nDataPoints(0),
-distanceData(NULL),
-wavelengthData(NULL),
-wavelengthErrors(NULL),
-matchAtlasindex(NULL),
-matchComparisonindex(NULL),
-maxNAtlasLines(0),
 nAtlasLines(0),
-atlasLinesflux(NULL),
-atlasLineswl(NULL),
-atlasLineswlError(NULL),
-maxNComparisonLines(0), 
 nComparisonLines(0), 
-comparisonLinesflux(NULL),
-comparisonLinespix(NULL),
-comparisonLinespixError(NULL),
-comparisonLineswl(NULL),
 radialVelocityPrecision(0.0),
-xcorrelation(0.0),
-wavelengthPolynomial(NULL)	   
-{
-	wavelengthPolynomial = new Polynomial();
-}
+xcorrelation(0.0)
+{ }
 
 operaWavelength::operaWavelength(unsigned Coeffs) :
 dmin(0.0),
 dmax(0.0),
-maxNDataPoints(0),
 nDataPoints(0),
-distanceData(NULL),
-wavelengthData(NULL),
-wavelengthErrors(NULL),
-matchAtlasindex(NULL),
-matchComparisonindex(NULL),
-maxNAtlasLines(0),
 nAtlasLines(0),
-atlasLinesflux(NULL),
-atlasLineswl(NULL),
-atlasLineswlError(NULL),
-maxNComparisonLines(0), 
 nComparisonLines(0), 
-comparisonLinesflux(NULL),
-comparisonLinespix(NULL),
-comparisonLinespixError(NULL),
-comparisonLineswl(NULL),
 radialVelocityPrecision(0.0),
 xcorrelation(0.0),
-wavelengthPolynomial(NULL)	   
-{
-	wavelengthPolynomial = new Polynomial(Coeffs);
+wavelengthPolynomial(Coeffs)
+{ }
+
+// Wavelength polynomial
+
+Polynomial *operaWavelength::getWavelengthPolynomial(void) {
+	return &wavelengthPolynomial;
 }
 
-operaWavelength::~operaWavelength() {
-	deleteDataVectors();
-	deleteAtlasDataVectors();
-	deleteComparisonDataVectors();
-	//if (wavelengthPolynomial != NULL)
-	//	delete wavelengthPolynomial;    
-	wavelengthPolynomial = NULL;
+const Polynomial *operaWavelength::getWavelengthPolynomial(void) const {
+	return &wavelengthPolynomial;
 }
 
-/*
- * Methods
- */
+double operaWavelength::evaluateWavelength(double distanceValue) const {
+    return wavelengthPolynomial(distanceValue);
+}
+
+operaVector operaWavelength::evaluateWavelength(const operaVector& distancevalues) const {
+	return Operation(wavelengthPolynomial, distancevalues);
+}
+
+double operaWavelength::convertPixelToWavelength(double DeltaDistanceInPixels) const {
+	const operaVector& par = wavelengthPolynomial.getCoefficients();
+    return DeltaDistanceInPixels * DiffPolynomialFunction(getcentralWavelength(), par.datapointer(), par.size());
+}
+
+void operaWavelength::applyRadialVelocityCorrection(double rvshift_InKPS) {
+    operaVector coeffs = wavelengthPolynomial.getCoefficients();
+    coeffs *= (1 + rvshift_InKPS/SPEED_OF_LIGHT_KMS);
+    wavelengthPolynomial.setCoefficients(coeffs);
+}
+
+// Min and max distances
 
 double operaWavelength::getDmin(void) const {
 	return dmin;
@@ -141,850 +123,148 @@ void operaWavelength::setDmax(double Dmax) {
 	dmax = Dmax;
 }
 
-double operaWavelength::getDistance(unsigned index) const {
-	if (index >= maxNDataPoints) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	return distanceData[index];
-}
-
-double operaWavelength::getWavelength(unsigned index) const {
-	if (index >= maxNDataPoints) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	return wavelengthData[index];
-}
-
-
-double operaWavelength::getWavelengthError(unsigned index) const {
-	if (index >= maxNDataPoints) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	return wavelengthErrors[index];
-}
-
-unsigned operaWavelength::getMatchAtlasIndex(unsigned index) const {
-	if (index >= maxNDataPoints) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-	}
-	return matchAtlasindex[index];
-}
-
-unsigned operaWavelength::getMatchComparisonIndex(unsigned index) const {
-	if (index >= maxNDataPoints) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-	}
-	return matchComparisonindex[index];
-}
-
-double operaWavelength::getcentralWavelength(void) const {
-	return wavelengthPolynomial->Evaluate(dmin + (dmax - dmin)/2);
-}
-
 double operaWavelength::getinitialWavelength(void) const {
-	return wavelengthPolynomial->Evaluate(dmin);
+	return wavelengthPolynomial.Evaluate(dmin);
 }
 
 double operaWavelength::getfinalWavelength(void) const {
-	return wavelengthPolynomial->Evaluate(dmax);
+	return wavelengthPolynomial.Evaluate(dmax);
 }
 
-Polynomial *operaWavelength::getWavelengthPolynomial(void) {
-	return wavelengthPolynomial;
+double operaWavelength::getcentralWavelength(void) const {
+	return wavelengthPolynomial.Evaluate((dmin + dmax)/2);
 }
 
-const Polynomial *operaWavelength::getWavelengthPolynomial(void) const {
-	return wavelengthPolynomial;
-}
-
-void operaWavelength::setnDataPoints(unsigned NDataPoints) {
-	if (NDataPoints == 0) {
-		// DT Apr 2013, causes wcals to throw an exception when ndatapoints is zero...
-		//throw operaException("operaWavelength: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	if (NDataPoints > maxNDataPoints) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    nDataPoints = NDataPoints;
-}
+// Distance-wavelength data points
 
 unsigned operaWavelength::getnDataPoints(void) const {
     return nDataPoints;
 }
 
-void operaWavelength::createDataVectors(unsigned NDataPoints) {
-	if (NDataPoints == 0) {
-		throw operaException("operaWavelength: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	distanceData = (double *)malloc(sizeof(double)*NDataPoints);  
-	wavelengthData = (double *)malloc(sizeof(double)*NDataPoints);      
-	wavelengthErrors = (double *)malloc(sizeof(double)*NDataPoints);        
-	matchAtlasindex = (unsigned *)malloc(sizeof(unsigned)*NDataPoints); 
-	matchComparisonindex = (unsigned *)malloc(sizeof(unsigned)*NDataPoints); 
-    maxNDataPoints = NDataPoints;
+double operaWavelength::getDistance(unsigned index) const {
+	return distanceData[index];
 }
 
-void operaWavelength::createDataVectors(unsigned NDataPoints, double *WavelengthData, double *WavelengthErrors, double *DistanceData){
+double operaWavelength::getWavelength(unsigned index) const {
+	return wavelengthData[index];
+}
 
-    createDataVectors(NDataPoints);
-    
-    nDataPoints = NDataPoints;
+double operaWavelength::getWavelengthError(unsigned index) const {
+	return wavelengthErrors[index];
+}
 
+unsigned operaWavelength::getMatchAtlasIndex(unsigned index) const {
+	return matchAtlasindex[index];
+}
+
+unsigned operaWavelength::getMatchComparisonIndex(unsigned index) const {
+	return matchComparisonindex[index];
+}
+
+void operaWavelength::createDataVectors(const operaVector& WavelengthData, const operaVector& WavelengthErrors, const operaVector& DistanceData) {
+    distanceData = DistanceData;
+    wavelengthData = WavelengthData;
+    wavelengthErrors = WavelengthErrors;
+    nDataPoints = DistanceData.size();
+    matchAtlasindex.resize(nDataPoints);
+    matchComparisonindex.resize(nDataPoints);
     for(unsigned i=0; i< nDataPoints; i++ ) {
-        distanceData[i] = DistanceData[i];
-        wavelengthData[i] = WavelengthData[i];
-        wavelengthErrors[i] = WavelengthErrors[i];
         matchAtlasindex[i] = i;
         matchComparisonindex[i] = i;
     }
 }
 
-void operaWavelength::deleteDataVectors(void) {
-    if(distanceData) {
-        free(distanceData);
-        distanceData = NULL;
-    }
-    if(wavelengthData) {
-        free(wavelengthData);  
-        wavelengthData = NULL;
-    }
-    if(wavelengthErrors) {
-        free(wavelengthErrors); 
-        wavelengthErrors = NULL;  
-    }
-    if(matchAtlasindex) {
-        free(matchAtlasindex);  
-        matchAtlasindex = NULL; 
-    }
-    if(matchComparisonindex) {
-        free(matchComparisonindex); 
-        matchComparisonindex = NULL;
-    }
-    maxNDataPoints = 0;
+void operaWavelength::resize(unsigned NDataPoints) {
+	distanceData.resize(NDataPoints);
+	wavelengthData.resize(NDataPoints);
+	wavelengthErrors.resize(NDataPoints);
+	matchAtlasindex.resize(NDataPoints);
+	matchComparisonindex.resize(NDataPoints);
+    nDataPoints = NDataPoints;
+}
+
+void operaWavelength::clear() {
+	distanceData.clear();
+	wavelengthData.clear();
+	wavelengthErrors.clear();
+	matchAtlasindex.clear();
+	matchComparisonindex.clear();
     nDataPoints = 0;
 }
 
-void operaWavelength::CalculateWavelengthSolution(unsigned maxcoeffs, bool witherrors) {
-    
-	doublePolynomialCoeffs_t coeffs;
-	int nparbestfit = maxcoeffs;
-	double bestchisqr = BIG;
-    double chisqr = BIG;
-    
-	for (unsigned currentfit=1; currentfit<=maxcoeffs; currentfit++) {
-        if (wavelengthPolynomial) {
-            int npar = wavelengthPolynomial->getOrderOfPolynomial();
-            double *currentpar = (double *)wavelengthPolynomial->getVector();
-            double *currenterrs = (double *)wavelengthPolynomial->getErrorVector();
-            
-            for(unsigned i=0;i<currentfit;i++) {
-                if(i < (unsigned)npar) {
-                    coeffs.p[i] = currentpar[i];
-                    coeffs.e[i] = currenterrs[i];
-                } 
-            }       
-        } else {
-            for	(unsigned i=0; i<maxcoeffs; i++) {
-                coeffs.p[i] = 1.0;
-                coeffs.e[i] = 0.0;
-            }
-        }
-		
-		if (witherrors) {
-			int errorcode = operaMPFitPolynomial(nDataPoints, distanceData, wavelengthData, wavelengthErrors, currentfit, coeffs.p, coeffs.e, &chisqr);
-			if (errorcode <= 0) {
-				throw operaException("operaWavelength: ", operaErrorGeometryBadFit, __FILE__, __FUNCTION__, __LINE__);	
-			}	
-		} else {
-			operaLMFitPolynomial(nDataPoints, distanceData, wavelengthData, currentfit, coeffs.p, &chisqr);
-		}
-		if (chisqr < bestchisqr) {
-			bestchisqr = chisqr;
-			nparbestfit = currentfit;
-		}
-	}
-	
-    if (wavelengthPolynomial) {
-        int npar = wavelengthPolynomial->getOrderOfPolynomial();
-        double *currentpar = (double *)wavelengthPolynomial->getVector();
-        double *currenterrs = (double *)wavelengthPolynomial->getErrorVector();
-        
-        for(unsigned i=0;i<(unsigned)nparbestfit;i++) {
-            if(i < (unsigned)npar) {
-				coeffs.p[i] = currentpar[i];
-				coeffs.e[i] = currenterrs[i];
-            }
-        }       
-    } else {
-        for	(unsigned i=0; i<(unsigned)nparbestfit; i++) {
-			coeffs.p[i] = 1.0;
-			coeffs.e[i] = 0.0;
-        }
-    }    
-	if (witherrors) {
-		int errorcode = operaMPFitPolynomial(nDataPoints, distanceData, wavelengthData, wavelengthErrors, nparbestfit, coeffs.p, coeffs.e, &chisqr);
-		if (errorcode <= 0) {
-			throw operaException("operaWavelength: ", operaErrorGeometryBadFit, __FILE__, __FUNCTION__, __LINE__);	
-		}
-	} else {
-		operaLMFitPolynomial(nDataPoints, distanceData, wavelengthData, nparbestfit, coeffs.p, &chisqr);
-	}		
-	coeffs.orderofPolynomial = nparbestfit;
-	coeffs.polychisqr = chisqr;
-	PolynomialCoeffs_t fcoeffs;
-	PolynomialCoeffsToFloat(&fcoeffs, &coeffs);
-	// wants floats...
-	wavelengthPolynomial->setPolynomialCoeffs(&fcoeffs);    
-}
-
-void operaWavelength::RefineWavelengthSolution(unsigned ncoeffs, bool witherrors) {
-    if (!wavelengthPolynomial) {
-        throw operaException("operaWavelength: no polynomial found: ", operaErrorGeometryBadFit, __FILE__, __FUNCTION__, __LINE__);	        
-    }
-	
-    int npar = wavelengthPolynomial->getOrderOfPolynomial();
-    
-	doublePolynomialCoeffs_t coeffs;
-    
-	double *currentpar = (double *)wavelengthPolynomial->getVector();
-    double *currenterrs = (double *)wavelengthPolynomial->getErrorVector();
-	
-    for(unsigned i=0;i<(unsigned)npar;i++) {
-		coeffs.p[i] = currentpar[i];
-		coeffs.e[i] = currenterrs[i];
-    } 
-    
-    if(ncoeffs > (unsigned)npar) {
-        for(unsigned i=(unsigned)npar;i<ncoeffs;i++) {
-			coeffs.p[i] = 1.0;
-			coeffs.e[i] = 0.0;
-        } 
-    }
-    
-	double currentchisqr = wavelengthPolynomial->getChisqr();
-    double newchisqr = 0.0;
-    
-    if (witherrors) {
-        int errorcode = operaMPFitPolynomial(nDataPoints, distanceData, wavelengthData, wavelengthErrors, ncoeffs, coeffs.p, coeffs.e, &newchisqr);
-        if (errorcode <= 0) {
-            throw operaException("operaWavelength: ", operaErrorGeometryBadFit, __FILE__, __FUNCTION__, __LINE__);	
-        }	
-    } else {
-        operaLMFitPolynomial(nDataPoints, distanceData, wavelengthData, ncoeffs, coeffs.p, &newchisqr);
-    }
-    if (newchisqr < currentchisqr) {
-		coeffs.orderofPolynomial = ncoeffs;
-		coeffs.polychisqr = newchisqr;
-		PolynomialCoeffs_t fcoeffs;
-		PolynomialCoeffsToFloat(&fcoeffs, &coeffs);
-		// wants floats...
-		wavelengthPolynomial->setPolynomialCoeffs(&fcoeffs);    
-    }
-}
-
-
-void operaWavelength::setSpectralResolution(doubleValue_t Resolution) {
-    spectralResolution = Resolution;
-}
-
-doubleValue_t operaWavelength::getSpectralResolution(void) const {
-    return spectralResolution;
-}
-
-
-/*
- * Function to calculate spectral resolution
- */
-void operaWavelength::calculateSpectralResolution(doubleValue_t ResolutionElementInPixels) {
-    
-    double deltawl = convertPixelToWavelength(ResolutionElementInPixels.value);
-    double errorwl = convertPixelToWavelength(ResolutionElementInPixels.error);
-    
-    spectralResolution.value = getcentralWavelength()/deltawl;   
-    spectralResolution.error = errorwl * getcentralWavelength()/(deltawl*deltawl);     
-}
-
-/*
- * Function to evaluate the wavelength (in nm) correspondent to a given distance value (in pixels)
- */
-double operaWavelength::evaluateWavelength(double distanceValue) const {
-    return wavelengthPolynomial->Evaluate(distanceValue);
-}
-
-/*
- * Function to evaluate the wavelength (in nm) correspondent to a given distance value (in pixels)
- */
-double operaWavelength::convertPixelToWavelength(double DeltaDistanceInPixels) const {
-	int npar = wavelengthPolynomial->getOrderOfPolynomial();
-	double *par = (double *)wavelengthPolynomial->getVector();
-    double deltawl = DeltaDistanceInPixels * (double)DiffPolynomialFunction(getcentralWavelength(),par,npar);
-    return deltawl;
-}
-
-
-void operaWavelength::setRadialVelocityPrecision(double radialvelocityprecision) {
-    radialVelocityPrecision = radialvelocityprecision;
-}
-
-double operaWavelength::getRadialVelocityPrecision(void) const {
-    return radialVelocityPrecision;
-}
-
-double operaWavelength::getxcorrelation(void) const {
-    return xcorrelation;
-}
-
-void operaWavelength::setxcorrelation(double Xcorrelation) {
-    xcorrelation = Xcorrelation;
-}
-
-/*
- * Function to calculate radial velocity precision in m/s
- */
-void operaWavelength::calculateRadialVelocityPrecision(void) {
-    
-    double speedoflight = 299792458; // in m/s    
-    double radialvelocity_residuals = 0;
-    
-    for(unsigned i=0;i<nDataPoints;i++) {
-		radialvelocity_residuals += (speedoflight*(wavelengthData[i] - evaluateWavelength(distanceData[i]))/evaluateWavelength(distanceData[i]))*(speedoflight*(wavelengthData[i] - evaluateWavelength(distanceData[i]))/evaluateWavelength(distanceData[i]));
-    }
-	
-    radialVelocityPrecision = sqrt(radialvelocity_residuals/(double)nDataPoints);
-}
-
-/*
- * Function to calculate radial velocity precision in m/s
- */
-double operaWavelength::calculateWavelengthRMSPrecision(void) {
-    
-    double rms_of_wlresiduals = 0;
-    
-    for(unsigned i=0;i<nDataPoints;i++) {
-        rms_of_wlresiduals += (wavelengthData[i] - evaluateWavelength(distanceData[i]))*(wavelengthData[i] - evaluateWavelength(distanceData[i]));
-    }
-    
-    rms_of_wlresiduals = sqrt(rms_of_wlresiduals/(double)nDataPoints);
-    
-    return rms_of_wlresiduals;
-}
-
-/*
- * Function to calculate radial velocity precision in m/s
- */
-double operaWavelength::calculateWavelengthMedianPrecision(void) {
-    
-    float *wlresiduals = new float[nDataPoints];
-    
-    for(unsigned i=0;i<nDataPoints;i++) {
-        wlresiduals[i] = (float)fabs(wavelengthData[i] - evaluateWavelength(distanceData[i]));
-    }
-    
-    double MedianPrecision = (double)operaArrayMedianSigmaQuick(nDataPoints,wlresiduals,operaArrayMedianQuick(nDataPoints,wlresiduals));
-    
-    delete[] wlresiduals;
-    
-    return MedianPrecision;
-}
-
-/*
- * Atlas wavelength data
- */
-
-void operaWavelength::setnAtlasLines(unsigned NAtlasLines) {
-    maxNAtlasLines = NAtlasLines;
-    nAtlasLines = NAtlasLines;
-}
+// Atlas wavelength data
 
 unsigned operaWavelength::getnAtlasLines(void) const {
     return nAtlasLines;
-}    
+}
+
 double operaWavelength::getatlasLinesflux(unsigned index) const {
-	if (index > nAtlasLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    return atlasLinesflux[index];
+	return atlasLinesflux[index];
 } 
 
 double operaWavelength::getatlasLineswl(unsigned index) const {
-	if (index > nAtlasLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    return atlasLineswl[index];
+	return atlasLineswl[index];
 }
 
 double operaWavelength::getatlasLineswlError(unsigned index) const {
-	if (index > nAtlasLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    return atlasLineswlError[index];
+	return atlasLineswlError[index];
 }
 
-void operaWavelength::setatlasLinesflux(double AtlasLinesflux, unsigned index) {
-	if (index > nAtlasLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    atlasLinesflux[index] = AtlasLinesflux;
+void operaWavelength::setAtlasDataVectors(const operaSpectralLineList& atlasLines) {
+    atlasLineswl = atlasLines.center;
+    atlasLineswlError = atlasLines.centerError;
+    atlasLinesflux = atlasLines.amplitude;
+    nAtlasLines = atlasLines.size();
 }
 
-void operaWavelength::setatlasLineswl(double AtlasLineswl, unsigned index) {
-	if (index > nAtlasLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    atlasLineswl[index] = AtlasLineswl;   
-}
-
-void operaWavelength::setatlasLineswl(double AtlasLineswl, double AtlasLineswlError, unsigned index) {
-	if (index > nAtlasLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    atlasLineswl[index] = AtlasLineswl;
-    atlasLineswlError[index] = AtlasLineswlError;    
-}
-
-void operaWavelength::createAtlasDataVectors(unsigned NAtlasLines, double *AtlasLineswl, double *AtlasLineswlError, double *AtlasLinesflux) {
-    nAtlasLines = NAtlasLines; 
-    maxNAtlasLines = NAtlasLines; 
-    if(nAtlasLines) {
-        atlasLinesflux = (double *)malloc(sizeof(double)*nAtlasLines);  
-        atlasLineswl = (double *)malloc(sizeof(double)*nAtlasLines);  
-        atlasLineswlError = (double *)malloc(sizeof(double)*nAtlasLines);         
-        for(unsigned i=0; i< nAtlasLines; i++ ) {
-            atlasLinesflux[i] = AtlasLinesflux[i];
-            atlasLineswl[i] = AtlasLineswl[i];
-            atlasLineswlError[i] = AtlasLineswlError[i];            
-        }
-    }
-}
-
-void operaWavelength::createAtlasDataVectors(unsigned NAtlasLines) {
-    nAtlasLines = NAtlasLines; 
-    maxNAtlasLines = NAtlasLines; 
-    if(nAtlasLines) {
-        atlasLinesflux = (double *)malloc(sizeof(double)*nAtlasLines);  
-        atlasLineswl = (double *)malloc(sizeof(double)*nAtlasLines);  
-        atlasLineswlError = (double *)malloc(sizeof(double)*nAtlasLines);        
-    }
-}
-
-void operaWavelength::deleteAtlasDataVectors(void) {
-    if(atlasLinesflux)
-        free(atlasLinesflux);
-	atlasLinesflux = NULL;
-    if(atlasLineswl)
-        free(atlasLineswl);
-	atlasLineswl = NULL;
-    if(atlasLineswlError)
-        free(atlasLineswlError); 
-	atlasLineswlError = NULL;
-    nAtlasLines = 0;
-    maxNAtlasLines = 0;
-}
-
-/*
- *  Comparison pixel data
- */    
-
-void operaWavelength::setnComparisonLines(unsigned NComparisonLines) {
-    nComparisonLines = NComparisonLines;
-    maxNComparisonLines = NComparisonLines;
-}    
+//  Comparison pixel data
 
 unsigned operaWavelength::getnComparisonLines(void) const {
     return nComparisonLines;
 }  
 
 double operaWavelength::getcomparisonLinesflux(unsigned index) const {
-	if (index > nComparisonLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    return comparisonLinesflux[index];
+	return comparisonLinesflux[index];
 } 
 
 double operaWavelength::getcomparisonLinespix(unsigned index) const {
-	if (index > nComparisonLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    return comparisonLinespix[index];
+	return comparisonLinespix[index];
 } 
 
 double operaWavelength::getcomparisonLinespixError(unsigned index) const {
- 	if (index > nComparisonLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-	return comparisonLinespixError[index];
+ 	return comparisonLinespixError[index];
 } 
 
 double operaWavelength::getcomparisonLineswl(unsigned index) const {
-	if (index > nComparisonLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    return comparisonLineswl[index];
+	return comparisonLineswl[index];
 } 
 
-void operaWavelength::setcomparisonLinesflux(double ComparisonLinesflux, unsigned index) {
-	if (index > nComparisonLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    comparisonLinesflux[index] = ComparisonLinesflux;
-}
-
-void operaWavelength::setcomparisonLinespix(double ComparisonLinespix, double ComparisonLinespixError, unsigned index) {
-	if (index > nComparisonLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    comparisonLinespix[index] = ComparisonLinespix;
-    comparisonLinespixError[index] = ComparisonLinespixError;    
-}
-
-void operaWavelength::setcomparisonLineswl(double ComparisonLineswl, unsigned index) {
-	if (index > nComparisonLines) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    comparisonLineswl[index] = ComparisonLineswl;
-}
-
-void operaWavelength::createComparisonDataVectors(unsigned NComparisonLines) {
-    nComparisonLines = NComparisonLines; 
-    maxNComparisonLines = NComparisonLines; 
-    if(nComparisonLines) {
-        comparisonLinesflux = (double *)malloc(sizeof(double)*nComparisonLines);  
-        comparisonLinespix = (double *)malloc(sizeof(double)*nComparisonLines); 
-        comparisonLinespixError = (double *)malloc(sizeof(double)*nComparisonLines);        
-        comparisonLineswl = (double *)malloc(sizeof(double)*nComparisonLines);         
-    }
-}
-
-void operaWavelength::createComparisonDataVectors(unsigned NComparisonLines, double *ComparisonLinespix, double *ComparisonLinespixError, double *ComparisonLinesflux){
-    nComparisonLines = NComparisonLines; 
-    maxNComparisonLines = NComparisonLines; 
-    if(nComparisonLines) {
-        comparisonLinesflux = (double *)malloc(sizeof(double)*nComparisonLines);  
-        comparisonLinespix = (double *)malloc(sizeof(double)*nComparisonLines); 
-        comparisonLinespixError = (double *)malloc(sizeof(double)*nComparisonLines);         
-        comparisonLineswl = (double *)malloc(sizeof(double)*nComparisonLines);   
-        for(unsigned i=0; i< nComparisonLines; i++ ) {
-            comparisonLinesflux[i] = ComparisonLinesflux[i];
-            comparisonLinespix[i] = ComparisonLinespix[i];
-            comparisonLinespixError[i] = ComparisonLinespixError[i];            
-            comparisonLineswl[i] = evaluateWavelength(comparisonLinespix[i]);            
-        }        
-    }
+void operaWavelength::setComparisonDataVectors(const operaSpectralLineList& comparisonLines){
+    comparisonLinesflux = comparisonLines.amplitude;
+    comparisonLinespix = comparisonLines.center;
+    comparisonLinespixError = comparisonLines.centerError;
+    comparisonLineswl = evaluateWavelength(comparisonLines.center);
+    nComparisonLines = comparisonLines.size();
 }
 
 void operaWavelength::recalculateComparisonLineswlVector(void) {
-    for(unsigned i=0; i< nComparisonLines; i++ ) {
-        comparisonLineswl[i] = evaluateWavelength(comparisonLinespix[i]);            
-    }        
+    comparisonLineswl = evaluateWavelength(comparisonLinespix);
 }
 
-void operaWavelength::deleteComparisonDataVectors(void) {
-    if(comparisonLinesflux)
-        free(comparisonLinesflux);
-	comparisonLinesflux = NULL;
-    if(comparisonLinespix)
-        free(comparisonLinespix);  
-	comparisonLinespix = NULL;
-    if(comparisonLinespixError)
-        free(comparisonLinespixError);    
-	comparisonLinespixError = NULL;
-    if(comparisonLineswl)
-        free(comparisonLineswl);      
-	comparisonLineswl = NULL;
-    nComparisonLines = 0;
-    maxNComparisonLines = 0;
-}
-
-void operaWavelength::refineWavelengthSolutionOfSecondOrderByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch) {
-    
-    // EM May 25 2015 -- it only works to search solutions on a 2nd order polynomial (parabola).
-    //                   I changed this function because the previous version was wrong and
-    //                   it wouldn't work. However it is not used by ESPaDOnS.
-    
-    /*
-     * Note that nPointsPerParameter and parameterRangetoSearch are input parameters
-     * that determine the step and range for which the coefficients will be searched
-     */
-    unsigned nPointsPerPar0 = nPointsPerParameter;
-    double par0RangetoSearch = parameterRangetoSearch;
-    unsigned nPointsPerPar1 = nPointsPerParameter;
-    double par1RangetoSearch = parameterRangetoSearch;
-    
-    double simulwl[MAXPOINTSINSIMULATEDSPECTRUM];
-    double atlasSimulSpectrum[MAXPOINTSINSIMULATEDSPECTRUM];
-    double comparisonSimulSpectrum[MAXPOINTSINSIMULATEDSPECTRUM];
-    unsigned NSimulatedPoints;
-    
-    int npar = 3;  // Force 2nd order polynomial
-    wavelengthPolynomial->setOrderOfPolynomial(npar);
-    double *par = (double *)wavelengthPolynomial->getVector();
-    
-    double maxpar0 = par[0];
-    double maxpar1 = par[1];
-    double maxpar2 = 0.0;
-    
-    double par0range = fabs(par[0] * par0RangetoSearch/100.0);
-    double dpar0 = par0range/double(nPointsPerPar0);
-    double par0ini = par[0] - par0range/2.0;
-    
-    double par1range = fabs(par[1] * par1RangetoSearch/100.0);
-    double dpar1 = par1range/double(nPointsPerPar1);
-    double par1ini = par[1] - par1range/2.0;
-    
-    double par2range = 1e-5;
-    double dpar2 = 2*par2range/double(nPointsPerPar1);
-    double par2ini = - par2range;
-    
-    /*
-     * Below it attempts to find the coefficients that gives the highest correlation
-     * between the raw and atlas simulated spectra.
-     */
-    double Maxcorrelation = -1.0;
-    
-    par[2] = par2ini;
-    for (unsigned k=0;k<nPointsPerPar1; k++) {
-        
-        par[1] = par1ini;
-        for (unsigned j=0;j<nPointsPerPar1; j++) {
-            
-            par[0] = par0ini;
-            for (unsigned i=0;i<nPointsPerPar0; i++) {
-                
-                recalculateComparisonLineswlVector();
-                
-                NSimulatedPoints = createAtlasSimulatedSpectrumWithConstantFlux(simulwl, atlasSimulSpectrum, NPOINTPERSIGMA);
-                NSimulatedPoints = createComparisonSimulatedSpectrumWithConstantFlux(simulwl, comparisonSimulSpectrum, NPOINTPERSIGMA);
-                
-                double crosscorrelation = operaCrossCorrelation(NSimulatedPoints,atlasSimulSpectrum,comparisonSimulSpectrum);
-#ifdef PRINT_DEBUG
-                cout << par[0] << " " << par[1] << " " << par[2] << " " << crosscorrelation << endl;
-#endif
-                if(crosscorrelation > Maxcorrelation) {
-                    Maxcorrelation = crosscorrelation;
-                    maxpar0 = par[0];
-                    maxpar1 = par[1];
-                    maxpar2 = par[2];
-                }
-                
-                par[0] += dpar0;
-            }
-#ifdef PRINT_DEBUG
-            cout << endl;
-#endif
-            par[1] += dpar1;
-        }
-#ifdef PRINT_DEBUG
-        cout << endl;
-#endif
-        par[2] += dpar2;
-    }
-    
-    par[0] = maxpar0;
-    par[1] = maxpar1;
-    par[2] = maxpar2;
-    
-    recalculateComparisonLineswlVector();
-    
-    setxcorrelation(Maxcorrelation);
-}
-
-void operaWavelength::refineWavelengthSolutionByFindingMaxMatching(unsigned NpointsPerPar, double ParRangeSizeInPerCent, double acceptableMismatch) {
-    double maxpercentage = 0;
-    double *par = (double *)(getWavelengthPolynomial()->getVector());
-    // DT May 8 2014 -- not used -- double parcentre = par[0];
-    double dpar = fabs(par[0] * ParRangeSizeInPerCent/100.0)/double(NpointsPerPar);
-    double par0 = par[0] -  fabs(par[0] * ParRangeSizeInPerCent/100.0)/2.0;
-    double maxpar0 = par[0];
-    //double dlambdamax = 0;
-    par[0] = par0;
-    
-    for(unsigned i = 0; i < NpointsPerPar; i++) {
-        matchAtlaswithComparisonLines(acceptableMismatch);
-        //double dlambda = par[0] - parcentre;
-        double MatchPercentage = (getPerCentageOfComparisonMatch() + getPerCentageOfAtlasMatch())/2;
-        if(MatchPercentage > maxpercentage) {
-            maxpercentage = MatchPercentage;
-            //dlambdamax = dlambda;
-            maxpar0 = par[0];
-        }
-        
-        //    cout << order << " " <<  getWavelengthPolynomial()->getVector()[0] << " " << MatchPercentage << " " << dlambda << endl;
-        par[0] += dpar;
-    }
-    par[0] = maxpar0;
-}
-
-
-/*
- * Function to create an Atlas simulated spectrum with all line fluxes constant = 1.0
- */
-unsigned operaWavelength::createAtlasSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma) {
-    unsigned nLines = nAtlasLines;
-    double *lineCenters = atlasLineswl;
-    double *lineAmplitudes = new double[nLines];
-    
-    double wlc = getcentralWavelength();
-    double minwl = getinitialWavelength();
-    double maxwl = getfinalWavelength();
-    
-    double lineSigma = wlc/(spectralResolution.value);
-    double wlstep = lineSigma/(double)nstepspersigma;
-    
-    unsigned npoints = (unsigned)ceil(fabs(maxwl - minwl)/wlstep);
-    
-    double *sigmaVector = new double[nLines];
-    
-    for(unsigned i=0;i<nLines;i++) {
-        sigmaVector[i] = lineSigma;
-        lineAmplitudes[i] = 1.0;
-    }
-    
-    Gaussian spectrumModel(nLines,lineAmplitudes,sigmaVector,lineCenters);
-    
-    double wl = minwl;
-    
-    for(unsigned i=0;i<npoints;i++) {
-        outputSpectrum[i] = spectrumModel.EvaluateGaussian(wl);
-        outputwl[i] = wl;
-        wl += wlstep;
-    }
-    
-    delete[] sigmaVector;
-    
-    return npoints;
-}
-
-/*
- * Function to create a comparison simulated spectrum with all line fluxes constant = 1.0
- */
-unsigned operaWavelength::createComparisonSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma) {
-    unsigned nLines = nComparisonLines;
-    
-    if (nLines >= MAXPOINTSINSIMULATEDSPECTRUM) {
-        throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
-    }
-    double *lineAmplitudes = new double[nComparisonLines];
-    double wlc = getcentralWavelength();
-    double minwl = getinitialWavelength();
-    double maxwl = getfinalWavelength();
-    double lineSigma = wlc/(spectralResolution.value);
-    double wlstep = lineSigma/(double)nstepspersigma;
-    unsigned npoints = (unsigned)ceil(fabs(maxwl - minwl)/wlstep);
-    double *sigmaVector = new double[nLines];
-    for(unsigned i=0;i<nLines;i++) {
-        sigmaVector[i] = lineSigma;
-        lineAmplitudes[i] = 1.0;
-    }
-    recalculateComparisonLineswlVector();
-    Gaussian spectrumModel(nLines,lineAmplitudes,sigmaVector,comparisonLineswl);
-    double wl = minwl;
-    for(unsigned i=0;i<npoints;i++) {
-        outputSpectrum[i] = spectrumModel.EvaluateGaussian(wl);
-        outputwl[i] = wl;
-        wl += wlstep;
-    }
-    delete[] sigmaVector;
-    return npoints;
-}
-
-
-void operaWavelength::calculateXCorrelation(void) {
-    
-    double simulwl[MAXPOINTSINSIMULATEDSPECTRUM];
-    double atlasSimulSpectrum[MAXPOINTSINSIMULATEDSPECTRUM];
-    double comparisonSimulSpectrum [MAXPOINTSINSIMULATEDSPECTRUM];
-    
-    unsigned NSimulatedPoints;
-    NSimulatedPoints = createAtlasSimulatedSpectrum(simulwl, atlasSimulSpectrum, NPOINTPERSIGMA);
-    NSimulatedPoints = createComparisonSimulatedSpectrum(simulwl, comparisonSimulSpectrum, NPOINTPERSIGMA);
-    double crosscorrelation = operaCrossCorrelation(NSimulatedPoints,atlasSimulSpectrum,comparisonSimulSpectrum);                       
-    setxcorrelation(crosscorrelation);
-}
-/*
- * Function to create an Atlas simulated spectrum
- */
-unsigned operaWavelength::createAtlasSimulatedSpectrum(double *outputwl, double *outputSpectrum, unsigned nstepspersigma) {
-    unsigned nLines = nAtlasLines;
-    double *lineCenters = atlasLineswl;
-    double *lineAmplitudes = atlasLinesflux;
-    
-    double wlc = getcentralWavelength();
-    double minwl = getinitialWavelength();
-    double maxwl = getfinalWavelength();    
-    
-    double lineSigma = wlc/(spectralResolution.value);
-    double wlstep = lineSigma/(double)nstepspersigma;
-    
-    unsigned npoints = (unsigned)ceil(fabs(maxwl - minwl)/wlstep);
-    
-    double *sigmaVector = new double[nLines];
-    
-    for(unsigned i=0;i<nLines;i++) {
-        sigmaVector[i] = lineSigma;
-    }
-    
-    Gaussian spectrumModel(nLines,lineAmplitudes,sigmaVector,lineCenters);
-	
-    double wl = minwl;
-    
-    for(unsigned i=0;i<npoints;i++) {
-        outputSpectrum[i] = spectrumModel.EvaluateGaussian(wl);
-        outputwl[i] = wl;
-        wl += wlstep;
-    }
-    
-    delete[] sigmaVector;
-    
-    return npoints;
-}
-
-/*
- * Function to create a comparison simulated spectrum
- */
-unsigned operaWavelength::createComparisonSimulatedSpectrum(double *outputwl, double *outputSpectrum, unsigned nstepspersigma) {
-    unsigned nLines = nComparisonLines;
-    
-	if (nLines >= MAXPOINTSINSIMULATEDSPECTRUM) {
-		throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-	}
-    double *lineAmplitudes = comparisonLinesflux;
-    double wlc = getcentralWavelength();
-    double minwl = getinitialWavelength();
-    double maxwl = getfinalWavelength();
-    double lineSigma = wlc/(spectralResolution.value);
-    double wlstep = lineSigma/(double)nstepspersigma;
-    unsigned npoints = (unsigned)ceil(fabs(maxwl - minwl)/wlstep);
-    double *sigmaVector = new double[nLines];
-    for(unsigned i=0;i<nLines;i++) {
-        sigmaVector[i] = lineSigma;
-    }
-    recalculateComparisonLineswlVector();
-    Gaussian spectrumModel(nLines,lineAmplitudes,sigmaVector,comparisonLineswl);
-    double wl = minwl;
-    for(unsigned i=0;i<npoints;i++) {
-        outputSpectrum[i] = spectrumModel.EvaluateGaussian(wl);
-        outputwl[i] = wl;
-        wl += wlstep;
-    }
-    delete[] sigmaVector;
-    return npoints;
-}
-
+// Line matching and filtering
 
 void operaWavelength::matchAtlaswithComparisonLines(double acceptableMismatch) {
     
     double wlc = getcentralWavelength();
-    double lineSigma = wlc/(spectralResolution.value);    
-    
+    double lineSigma = wlc / spectralResolution.value;
     double acceptMismatchInwlUnits = acceptableMismatch*lineSigma;
     
     recalculateComparisonLineswlVector();
     
-    /*
-     * Below it identifies and select the set of lines that match both comparison and atlas.
-     * The criteria for matching is that the difference between centers must be < acceptableMismatch x sigma 
-     */          
-    unsigned nmatch = 0;
+    clear();
+    
+    // Identify and select the set of lines that match both comparison and atlas.
+    // The criteria for matching is the difference between centers must be < acceptableMismatch * sigma 
     unsigned nextfirstline = 0;
 	
     for (unsigned i=0; i<getnComparisonLines(); i++) {
@@ -995,57 +275,46 @@ void operaWavelength::matchAtlaswithComparisonLines(double acceptableMismatch) {
         for(unsigned l=nextfirstline;l<getnAtlasLines();l++) {
             
             double difference = fabs(comparisonLineswl[i] - atlasLineswl[l]);
-#ifdef PRINT_DEBUG	    
-            cout << "mindiff=" << mindifference << " diff=" << difference << " comp[" << i << "]=" << comparisonLineswl[i] << " atlas[" << l << "]=" << atlasLineswl[l] << endl; 
-#endif               
             
-            if(comparisonLineswl[i] > atlasLineswl[l]  && difference < mindifference) {
-                mindifference = difference;
-                bestAtlasMatchIndex = l;
-            } else if (comparisonLineswl[i] <= atlasLineswl[l] && difference < mindifference) {
-                distanceData[nmatch] = comparisonLinespix[i];
-                wavelengthData[nmatch] = atlasLineswl[l];
-                wavelengthErrors[nmatch] = atlasLineswlError[l];
-                matchAtlasindex[nmatch] = l;
-                matchComparisonindex[nmatch] = i;
-                nextfirstline = l+1; 
-                nmatch++;
-                break;
-            } else if (comparisonLineswl[i] <= atlasLineswl[l]  && difference > mindifference) {
+            if(difference < mindifference) {
+                if(comparisonLineswl[i] > atlasLineswl[l]) {
+                    mindifference = difference;
+                    bestAtlasMatchIndex = l;
+                } else {
+                    InsertLineMatch(l, i);
+                    nextfirstline = l+1;
+                    break;
+                }
+            } else if (comparisonLineswl[i] <= atlasLineswl[l] && difference > mindifference) {
                 if(bestAtlasMatchIndex) {
-                    distanceData[nmatch] = comparisonLinespix[i];
-                    wavelengthData[nmatch] = atlasLineswl[bestAtlasMatchIndex];
-                    wavelengthErrors[nmatch] = atlasLineswlError[bestAtlasMatchIndex];
-                    matchAtlasindex[nmatch] = bestAtlasMatchIndex;
-                    matchComparisonindex[nmatch] = i;
-                    nextfirstline = bestAtlasMatchIndex+1;                    
-                    nmatch++;                     
+                    InsertLineMatch(bestAtlasMatchIndex, i);
+                    nextfirstline = bestAtlasMatchIndex+1;
                 }
                 break;
             }
             if(l==nAtlasLines-1) {
                 if(bestAtlasMatchIndex) {
-                    distanceData[nmatch] = comparisonLinespix[i];
-                    wavelengthData[nmatch] = atlasLineswl[bestAtlasMatchIndex];
-                    wavelengthErrors[nmatch] = atlasLineswlError[bestAtlasMatchIndex];
-                    matchAtlasindex[nmatch] = bestAtlasMatchIndex;
-                    matchComparisonindex[nmatch] = i;
-                    nextfirstline = bestAtlasMatchIndex+1;                    
-                    nmatch++;                     
-                }  
+                    InsertLineMatch(bestAtlasMatchIndex, i);
+                    nextfirstline = bestAtlasMatchIndex+1;
+                }
             }
-			if (nmatch >= getnAtlasLines()) {
+			if (nDataPoints >= getnAtlasLines()) {
 				throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 			}
-			if (nmatch >= getnComparisonLines()) {
-				throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
-			}
-			if (nmatch >= maxNDataPoints) {
-				throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
+			if (nDataPoints >= getnComparisonLines()) {
+				throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
 			}
         }
     }
-    setnDataPoints(nmatch);
+}
+
+void operaWavelength::InsertLineMatch(unsigned atlasindex, unsigned compareindex) {
+	distanceData.insert(comparisonLinespix[compareindex]);
+	wavelengthData.insert(atlasLineswl[atlasindex]);
+	wavelengthErrors.insert(atlasLineswlError[atlasindex]);
+	matchAtlasindex.insert(atlasindex);
+	matchComparisonindex.insert(compareindex);
+	nDataPoints++;
 }
 
 double operaWavelength::getPerCentageOfComparisonMatch(void) const {
@@ -1066,10 +335,10 @@ void operaWavelength::filterDataPointsBySigmaClip(double nsig) {
             wavelengthErrors[np] = wavelengthErrors[i];
             matchAtlasindex[np] = matchAtlasindex[i];
             matchComparisonindex[np] = matchComparisonindex[i];
-            np++; 
+            np++;
         }
     }
-    setnDataPoints(np);
+    resize(np);
 }
 
 void operaWavelength::filterDataPointsByErrorClip(double nsig) {
@@ -1082,17 +351,250 @@ void operaWavelength::filterDataPointsByErrorClip(double nsig) {
             wavelengthErrors[np] = wavelengthErrors[i];
             matchAtlasindex[np] = matchAtlasindex[i];
             matchComparisonindex[np] = matchComparisonindex[i];
-            np++; 
+            np++;
         }
     }
-    setnDataPoints(np);
+    resize(np);
 }
 
-void operaWavelength::applyRadialVelocityCorrection(double rvshift_InKPS) {
-    for (unsigned i=0; i < wavelengthPolynomial->getOrderOfPolynomial(); i++) {
-        double newCoeff = wavelengthPolynomial->getCoefficient(i)*(1 + rvshift_InKPS / SPEED_OF_LIGHT_KMS);
-        wavelengthPolynomial->setCoefficient(i,newCoeff);
+// Resolution and precision
+
+doubleValue_t operaWavelength::getResolutionElementInPixels(void) const {
+	return resolutionElementInPixels;
+}
+    
+void operaWavelength::setResolutionElementInPixels(doubleValue_t ResolutionElementInPixels) {
+	resolutionElementInPixels = ResolutionElementInPixels;
+}
+
+doubleValue_t operaWavelength::getSpectralResolution(void) const {
+    return spectralResolution;
+}
+
+void operaWavelength::setSpectralResolution(doubleValue_t Resolution) {
+    spectralResolution = Resolution;
+}
+
+double operaWavelength::getRadialVelocityPrecision(void) const {
+    return radialVelocityPrecision;
+}
+
+void operaWavelength::setRadialVelocityPrecision(double radialvelocityprecision) {
+    radialVelocityPrecision = radialvelocityprecision;
+}
+
+void operaWavelength::calculateSpectralResolution() {
+    double deltawl = convertPixelToWavelength(resolutionElementInPixels.value);
+    double errorwl = convertPixelToWavelength(resolutionElementInPixels.error);
+    spectralResolution.value = getcentralWavelength() / deltawl;
+    spectralResolution.error = errorwl * getcentralWavelength() / (deltawl*deltawl);
+}
+
+void operaWavelength::calculateRadialVelocityPrecision(void) {
+    double speedoflight = 299792458; // in m/s
+    const operaVector& tempwl = evaluateWavelength(distanceData);
+    operaVector scaledResiduals = (wavelengthData - tempwl)/tempwl;
+    radialVelocityPrecision = speedoflight * RMS(scaledResiduals);
+}
+
+double operaWavelength::calculateWavelengthRMSPrecision(void) {
+    return RMS(wavelengthData - evaluateWavelength(distanceData));
+}
+
+double operaWavelength::calculateWavelengthMedianPrecision(void) {
+    operaVector wlresiduals = Abs(wavelengthData - evaluateWavelength(distanceData));
+    double medianResidual = MedianQuick(wlresiduals);
+    return MedianStdDev(wlresiduals, medianResidual);
+}
+
+// Cross-correlation
+
+double operaWavelength::getxcorrelation(void) const {
+    return xcorrelation;
+}
+
+void operaWavelength::setxcorrelation(double Xcorrelation) {
+    xcorrelation = Xcorrelation;
+}
+
+void operaWavelength::calculateXCorrelation(void) {
+    operaVector atlasSimulSpectrum = createAtlasSimulatedSpectrum(NPOINTPERSIGMA);
+    operaVector comparisonSimulSpectrum = createComparisonSimulatedSpectrum(NPOINTPERSIGMA);
+    double crosscorrelation = operaCrossCorrelation(atlasSimulSpectrum, comparisonSimulSpectrum);
+    setxcorrelation(crosscorrelation);
+}
+
+// Simulated spectra
+
+operaVector operaWavelength::createAtlasSimulatedSpectrum(unsigned nstepspersigma) const {
+    return createSimulatedSpectrum(atlasLineswl, atlasLinesflux, nstepspersigma);
+}
+
+operaVector operaWavelength::createComparisonSimulatedSpectrum(unsigned nstepspersigma) {
+    recalculateComparisonLineswlVector();
+    return createSimulatedSpectrum(comparisonLineswl, comparisonLinesflux, nstepspersigma);
+}
+
+operaVector operaWavelength::createAtlasSimulatedSpectrumWithConstantFlux(unsigned nstepspersigma) const {
+    operaVector lineAmplitudes(nAtlasLines);
+    lineAmplitudes = 1.0;
+    return createSimulatedSpectrum(atlasLineswl, lineAmplitudes, nstepspersigma);
+}
+
+operaVector operaWavelength::createComparisonSimulatedSpectrumWithConstantFlux(unsigned nstepspersigma) {
+    operaVector lineAmplitudes(nComparisonLines);
+    lineAmplitudes = 1.0;
+    recalculateComparisonLineswlVector();
+    return createSimulatedSpectrum(comparisonLineswl, lineAmplitudes, nstepspersigma);
+}
+
+operaVector operaWavelength::createSimulatedSpectrum(const operaVector& wl, const operaVector& flux, unsigned nstepspersigma) const {
+    unsigned nLines = wl.size();
+    if (nLines >= MAXPOINTSINSIMULATEDSPECTRUM) {
+        throw operaException("operaWavelength: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+    }
+    
+    double wlc = getcentralWavelength();
+    double minwl = getinitialWavelength();
+    double maxwl = getfinalWavelength();
+    
+    double lineSigma = wlc / spectralResolution.value;
+    
+    operaVector sigmaVector(nLines);
+    sigmaVector = lineSigma;
+    
+    Gaussian spectrumModel(nLines, flux.datapointer(), sigmaVector.datapointer(), wl.datapointer());
+    
+    double wlstep = lineSigma / nstepspersigma;
+    unsigned npoints = (unsigned)ceil(fabs(maxwl - minwl)/wlstep);
+    double wlcurrent = minwl;
+    
+    operaVector outputSpectrum;
+    for(unsigned i=0;i<npoints;i++) {
+        outputSpectrum.insert(spectrumModel.EvaluateGaussian(wlcurrent));
+        wlcurrent += wlstep;
+    }
+    return outputSpectrum;
+}
+
+// Wavelength solution calculation
+
+void operaWavelength::CalculateWavelengthSolution(unsigned maxcoeffs, bool witherrors) {
+    Polynomial bestfitpoly;
+    bestfitpoly.setChisqr(BIG);
+    
+    if (maxcoeffs > wavelengthPolynomial.getOrderOfPolynomial()) {
+		maxcoeffs = wavelengthPolynomial.getOrderOfPolynomial();
+	}
+	
+	for (unsigned currentfit=1; currentfit<=maxcoeffs; currentfit++) {
+		operaVector coeffs(wavelengthPolynomial.getVector(), currentfit);
+		operaVector errors(wavelengthPolynomial.getErrorVector(), currentfit);
+		
+		Polynomial polyfit;
+		if (witherrors) {
+			polyfit = PolynomialFit(distanceData, wavelengthData, wavelengthErrors, coeffs, errors);
+		} else {
+			polyfit = PolynomialFit(distanceData, wavelengthData, coeffs);
+		}
+		
+		if (polyfit.getChisqr() < bestfitpoly.getChisqr()) {
+			bestfitpoly = polyfit;
+		}
+	}
+	
+	wavelengthPolynomial = bestfitpoly;
+}
+
+void operaWavelength::RefineWavelengthSolution(unsigned ncoeffs, bool witherrors) {
+    unsigned npar = wavelengthPolynomial.getOrderOfPolynomial();
+    operaVector coeffs = wavelengthPolynomial.getCoefficients();
+	operaVector errors = wavelengthPolynomial.getErrors();
+	coeffs.resize(ncoeffs);
+	errors.resize(ncoeffs);
+    if(ncoeffs > npar) {
+        for(unsigned i=npar; i<ncoeffs; i++) {
+			coeffs[i] = 1.0;
+			errors[i] = 0.0;
+        }
+    }
+    
+	Polynomial newpoly;
+    if (witherrors) {
+        newpoly = PolynomialFit(distanceData, wavelengthData, wavelengthErrors, coeffs, errors);
+    } else {
+        newpoly = PolynomialFit(distanceData, wavelengthData, coeffs);
+    }
+    if (newpoly.getChisqr() < wavelengthPolynomial.getChisqr()) {
+		wavelengthPolynomial = newpoly;
     }
 }
 
+void operaWavelength::refineWavelengthSolutionOfSecondOrderByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch) {
+    // EM May 25 2015 -- it only works to search solutions on a 2nd order polynomial (parabola).
+    // I changed this function because the previous version was wrong and it wouldn't work. However it is not used by ESPaDOnS.
+    
+    int npar = 3;  // Force 2nd order polynomial
+    wavelengthPolynomial.resize(npar);
+    
+    // Note that the input parameters determine the step and range for which the coefficients will be searched
+    operaVector par = wavelengthPolynomial.getCoefficients();
+    par[npar-1] = 0;
+    operaVector range = Abs(par) * parameterRangetoSearch/100.0;
+    range[npar-1] = 2.0*1e-5;
+    operaVector delta = range / double(nPointsPerParameter);
+    operaVector initial = par - (range/2.0);
+    operaVector maxpar = par;
+    
+    // Attempt to find the coefficients that gives the highest correlation between the raw and atlas simulated spectra.
+    double maxcorrelation = -1.0;
+    
+    par[2] = initial[2];
+    for (unsigned k=0;k<nPointsPerParameter; k++) {
+        par[1] = initial[1];
+        for (unsigned j=0;j<nPointsPerParameter; j++) {
+            par[0] = initial[0];
+            for (unsigned i=0;i<nPointsPerParameter; i++) {
+                recalculateComparisonLineswlVector();
+                
+                operaVector atlasSimulSpectrum = createAtlasSimulatedSpectrumWithConstantFlux(NPOINTPERSIGMA);
+                operaVector comparisonSimulSpectrum = createComparisonSimulatedSpectrumWithConstantFlux(NPOINTPERSIGMA);
+                
+                double crosscorrelation = operaCrossCorrelation(atlasSimulSpectrum, comparisonSimulSpectrum);
+                if(crosscorrelation > maxcorrelation) {
+                    maxcorrelation = crosscorrelation;
+                    maxpar = par;
+                }
+                par[0] += delta[0];
+            }
+            par[1] += delta[1];
+        }
+        par[2] += delta[2];
+    }
+    setxcorrelation(maxcorrelation);
+    wavelengthPolynomial.setCoefficients(maxpar);
+    
+    recalculateComparisonLineswlVector();
+}
 
+void operaWavelength::refineWavelengthSolutionByFindingMaxMatching(unsigned NpointsPerPar, double ParRangeSizeInPerCent, double acceptableMismatch) {
+    double coeff = wavelengthPolynomial.getCoefficient(0);
+    double searchRange = fabs(coeff * ParRangeSizeInPerCent/100.0);
+    double delta = searchRange / NpointsPerPar;
+    
+    double maxcoeff = coeff;
+    double maxpercentage = 0;
+    coeff -= searchRange/2.0;
+    
+    for(unsigned i = 0; i < NpointsPerPar; i++) {
+		wavelengthPolynomial.setCoefficient(0, coeff);
+        matchAtlaswithComparisonLines(acceptableMismatch);
+        double MatchPercentage = (getPerCentageOfComparisonMatch() + getPerCentageOfAtlasMatch())/2;
+        if(MatchPercentage > maxpercentage) {
+            maxpercentage = MatchPercentage;
+            maxcoeff = coeff;
+        }
+        coeff += delta;
+    }
+    wavelengthPolynomial.setCoefficient(0, maxcoeff);
+}

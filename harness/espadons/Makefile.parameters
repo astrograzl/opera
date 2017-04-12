@@ -192,6 +192,7 @@ gainMinPixPerBin		:= 1000
 gainMaxNBins			:= 100
 gainLowestCount			:= 1000
 gainHighestCount		:= 30000
+gainMinimumAllowed		:= 0.95
 
 #########################################################################################
 # geometry
@@ -313,9 +314,9 @@ wcal_MinPeakDepth				:= $(wcal_MinPeakDepth_$(MODE))
 # telluric wavelength correction parameters
 #########################################################################################
 
-telluric_atlas_lines			:= upena_tel #opera_HITRAN08-extracted.par.gz (beforeFeb17)
+telluric_atlas_lines			:= skyline_skycal-Eso_mod.txt
 telluric_reference_spectrum		:= KPNO_atmtrans.dat.gz
-telluric_absorptionMask			:= wavelengthMaskForTelluricAbsorption.txt #wavelengthMaskForTelluricAbsorption_beforeFeb17.txt
+telluric_absorptionMask			:= wavelengthMaskForTelluricAbsorption.txt
 telluric_spectralResolution_sp1	:= 65000
 telluric_spectralResolution_sp2	:= 80000
 telluric_spectralResolution_pol	:= 65000
@@ -330,6 +331,8 @@ telluric_LocalMaxFilterWidth	:= 3.0 #4.0
 telluric_MinPeakDepth			:= 3.0
 telluric_DetectionThreshold		:= 0.05
 telluric_nsigclip				:= 3.0
+telluric_minMatchedLines		:= 10
+telluric_duplicateLineThreshold	:= 0.001
 
 #########################################################################################
 # radial velocity parameters
@@ -468,6 +471,7 @@ constanttiltflag		:= $($(MODE)_constanttiltflag)
 aperpickImageRow		:= 0
 apernRowSamples			:= 10
 aperxbin				:= 10
+aperapplyoffset			:= 1
 
 #########################################################################################
 # Plotting
@@ -493,13 +497,12 @@ normalize_binsize		:= 110
 #########################################################################################
 
 extraction_backgroundBinsize	:= 300
-extraction_sigmaclip_sp1		:= 6
-extraction_sigmaclip_sp2		:= 6
-extraction_sigmaclip_pol		:= 7
-extraction_sigmaclip			:= $(extraction_sigmaclip_$(MODE))
+extraction_minsigmaclip			:= 25
+extraction_sigmacliprange		:= 6
 extraction_usePolynomialFit		:= 0
 extraction_removeBackground		:= 0
-extraction_iterations			:= 3
+extraction_iterations			:= 5
+extraction_iterations_ff		:= 2
 
 #########################################################################################
 # Create Flux Calibration
@@ -625,6 +628,8 @@ ThArCalibratedInNM                      := 1
 TelluricCorrectedWavelengthInNM         := 2
 RVCorrectedWavelengthInNM               := 3
 RVAndTelluricCorrectedWavelengthInNM    := 4
+
+RemoveContinuumPolarization				:= 1
 
 LEOrderWavelength                       := LE_order_wavelength.dat
 

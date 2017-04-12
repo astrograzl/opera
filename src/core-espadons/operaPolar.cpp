@@ -333,8 +333,7 @@ int main(int argc, char *argv[])
         
         operaSpectralOrder *spectralOrder[4];
         operaSpectralElements *spectralElements[4];
-        operaWavelength *wavelength[4];
-
+        
 		/*
          * Take note that the algorithm is duplicated for the 2 and 4 exposures mode. Any changes made to the algorithm should be applied to both versions.
          */
@@ -349,8 +348,7 @@ int main(int argc, char *argv[])
                     spectralElements[i] = spectralOrder[i]->getSpectralElements();
                     spectralElementsTest++;
 					if (spectralOrder[i]->gethasWavelength()) {
-						wavelength[i] = spectralOrder[i]->getWavelength();
-						spectralElements[i]->setwavelengthsFromCalibration(wavelength[i]);
+						spectralOrder[i]->setWavelengthsFromCalibration();
 					}
                 }
             }
@@ -363,12 +361,7 @@ int main(int argc, char *argv[])
                 
                 operaSpectralOrder *outputspectralOrder = outputorderVector.GetSpectralOrder(order);
                 operaSpectralElements *outputspectralElements = outputspectralOrder->getSpectralElements();
-                operaWavelength *outputwavelength = NULL;
-                
-                if (outputspectralOrder->gethasWavelength()) {
-                    outputwavelength = outputspectralOrder->getWavelength();
-                    outputspectralElements->setwavelengthsFromCalibration(outputwavelength);
-                }
+                outputspectralOrder->setWavelengthsFromCalibration();
                 
                 /* Create Polarimetry for output vector */
                 outputspectralOrder->deletePolarimetry();

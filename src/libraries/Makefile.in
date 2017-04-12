@@ -344,9 +344,9 @@ liboperaMath_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 liboperaMatrix_la_LIBADD =
 am_liboperaMatrix_la_OBJECTS = operaMatrix.lo
 liboperaMatrix_la_OBJECTS = $(am_liboperaMatrix_la_OBJECTS)
-liboperaMatrix_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(liboperaMatrix_la_LDFLAGS) $(LDFLAGS) -o $@
+liboperaMatrix_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(liboperaMatrix_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaMuellerMatrix_la_LIBADD =
 am_liboperaMuellerMatrix_la_OBJECTS = operaMuellerMatrix.lo
 liboperaMuellerMatrix_la_OBJECTS =  \
@@ -493,7 +493,7 @@ liboperaTelescope_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(liboperaTelescope_la_LDFLAGS) $(LDFLAGS) -o $@
 liboperaVector_la_LIBADD =
-am_liboperaVector_la_OBJECTS = operaVector.lo operaVectorOperations.lo
+am_liboperaVector_la_OBJECTS = operaVector.lo
 liboperaVector_la_OBJECTS = $(am_liboperaVector_la_OBJECTS)
 liboperaVector_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -813,7 +813,7 @@ libGainBiasNoise_la_SOURCES = GainBiasNoise.cpp GainBiasNoise.h
 libGainBiasNoise_la_LDFLAGS = -version-info 1:0:0
 liboperaFluxVector_la_SOURCES = operaFluxVector.cpp operaFluxVector.h
 liboperaFluxVector_la_LDFLAGS = -version-info 1:0:0
-liboperaVector_la_SOURCES = operaVector.cpp operaVectorOperations.cpp operaVector.h operaVectorOperations.h
+liboperaVector_la_SOURCES = operaVector.cpp operaVectorOperations.tpp operaVector.h operaVectorOperations.h
 liboperaVector_la_LDFLAGS = -version-info 1:0:0
 liboperaGeometricShapes_la_SOURCES = operaGeometricShapes.cpp operaGeometricShapes.h
 liboperaGeometricShapes_la_LDFLAGS = -version-info 1:0:0
@@ -827,7 +827,7 @@ liboperaException_la_SOURCES = operaException.cpp operaException.h
 liboperaException_la_LDFLAGS = -version-info 1:0:0
 liboperaImage_la_SOURCES = operaImage.c operaImage.h operaLibCommon.h
 liboperaImage_la_LDFLAGS = -version-info 1:0:0
-liboperaMatrix_la_SOURCES = operaMatrix.c operaMatrix.h 
+liboperaMatrix_la_SOURCES = operaMatrix.cpp operaMatrix.h 
 liboperaMatrix_la_LDFLAGS = -version-info 1:0:0
 libPolynomial_la_SOURCES = Polynomial.cpp Polynomial.h
 libPolynomial_la_LDFLAGS = -version-info 1:0:0
@@ -1172,7 +1172,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaStokesVector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaTelescope.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaVector.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaVectorOperations.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/operaWavelength.Plo@am__quote@
 
 .c.o:

@@ -341,7 +341,8 @@ $${nargs} \
 --inputApertureFile=$(calibrationdir)$(QUALIFIERS).aper$(gzip) \
 --inputGainFile=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
 --backgroundBinsize=$(extraction_backgroundBinsize) \
---sigmaclip=$(extraction_sigmaclip) \
+--minsigmaclip=$(extraction_minsigmaclip) \
+--sigmacliprange=$(extraction_sigmacliprange) \
 --removeBackground=$(extraction_removeBackground) \
 --iterations=$(extraction_iterations) \
 --onTargetProfile=1 \
@@ -383,9 +384,10 @@ $${nargs} \
 --inputApertureFile=$(calibrationdir)$(QUALIFIERS).aper$(gzip) \
 --inputGainFile=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
 --backgroundBinsize=$(extraction_backgroundBinsize) \
---sigmaclip=$(extraction_sigmaclip) \
+--minsigmaclip=$(extraction_minsigmaclip) \
+--sigmacliprange=$(extraction_sigmacliprange) \
 --removeBackground=$(extraction_removeBackground) \
---iterations=$(extraction_iterations) \
+--iterations=$(extraction_iterations_ff) \
 --onTargetProfile=1 \
 --usePolynomialFit=$(extraction_usePolynomialFit) \
 --starplusskymode=0 \
@@ -479,7 +481,11 @@ $${pargs} \
 	if [ ! -e $(spectradir)$@ ] ; then \
 		echo "$(pref) Starting extended polar spectrum generation for $@ $(QUALIFIERS)" ; \
 		inputfits="$(OFITS)" ; \
-		etime=`$(bindir)operagetheader --keyword=EXPTIME $${inputfits}` ; \
+		ETIME1=`$(bindir)operagetheader --keyword=EXPTIME $(OFITS)` ; \
+		ETIME2=`$(bindir)operagetheader --keyword=EXPTIME $(O2)` ; \
+		ETIME3=`$(bindir)operagetheader --keyword=EXPTIME $(O3)` ; \
+		ETIME4=`$(bindir)operagetheader --keyword=EXPTIME $(O4)` ; \
+		etime=`echo $${ETIME1} + $${ETIME2} + $${ETIME3} + $${ETIME4} | bc ` ; \
 		object=`$(bindir)operagetheader --keyword=OBJECT $${inputfits}` ; \
 		if [[ "$(PLOT)" != "0" ]] ; then \
 			pargs="--plotfilename=$(visualsdir)$*p.eps --datafilename=$(byproductsdir)$*p.sdat --scriptfilename=$(byproductsdir)$*p.gnu" ; \
@@ -569,10 +575,12 @@ $${nargs} \
 --inputApertureFile=$(calibrationdir)$(QUALIFIERS).aper$(gzip) \
 --inputGainFile=$(calibrationdir)$(QUALIFIERS).gain$(gzip) \
 --backgroundBinsize=$(extraction_backgroundBinsize) \
---sigmaclip=$(extraction_sigmaclip) \
+--minsigmaclip=$(extraction_minsigmaclip) \
+--sigmacliprange=$(extraction_sigmacliprange) \
 --onTargetProfile=1 \
 --starplusskymode=$(starplusskymode) \
 --starplusskyInvertSkyFiber=$(starplusskyInvertSkyFiber) \
+--skyOverStarFiberAreaRatio=$(ssfiberarearatio) \
 --ordernumber=$(ordernumber) \
 --usePolynomialFit=$(extraction_usePolynomialFit) \
 --removeBackground=$(extraction_removeBackground) \
@@ -599,6 +607,9 @@ $${nargs} \
 		if [[ "$(starplusskymode)" != "0" ]] ; then \
 			opt_switches="$${opt_switches} --StarPlusSky"; \
 		fi ; \
+		if [[ "$(starplusskyInvertSkyFiber)" != "0" ]] ; then \
+			opt_switches="$${opt_switches} --starplusskyInvertSkyFiber"; \
+		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelluricWavelengthCorrection \
 --inputObjectSpectrum=$(spectradir)$*.e$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
@@ -610,11 +621,14 @@ $${nargs} \
 --XCorrelationThreshold=$(telluric_XCorrelationThreshold) \
 --normalizationBinsize=$(telluric_normalizationbinsize) \
 --inputFlatFluxCalibration=$(calibrationdir)masterflatfluxcalibration_$(QUALIFIERS).fcal$(gzip) \
+--skyOverStarFiberAreaRatio=$(ssfiberarearatio) \
 --RVCorrectionMethod=$(telluric_correction_method) \
 --LocalMaxFilterWidth=$(telluric_LocalMaxFilterWidth) \
 --MinPeakDepth=$(telluric_MinPeakDepth) \
 --DetectionThreshold=$(telluric_DetectionThreshold) \
 --nsigclip=$(telluric_nsigclip) \
+--minNumberOfMatchedLines=$(telluric_minMatchedLines) \
+--duplicateLineThreshold=$(telluric_duplicateLineThreshold) \
 --hitranformat=0 \
 $${pargs} \
 $${opt_switches} \
@@ -633,12 +647,12 @@ $${opt_switches} \
 		inputfits="$(OFITS)" ; \
 		shutopen=`$(bindir)operagetheader --keyword=SHUTOPEN $${inputfits}` ; \
 		mjd=`$(bindir)operaMJD --datetime=$${shutopen}` ; \
-		if [ -n $${mjd} ] ; then \
+		if [ -z $${mjd} ] ; then \
 			dateobs=`$(bindir)operagetheader --keyword=DATE-OBS $${inputfits}` ; \
 			timeobs=`$(bindir)operagetheader --keyword=TIME-OBS $${inputfits}` ; \
 			mjd=`$(bindir)operaMJD --date=$${dateobs} --time=$${timeobs}` ; \
 		fi ; \
-		if [ -n $${mjd} ] ; then \
+		if [ -z $${mjd} ] ; then \
 			mjd=`$(bindir)operagetheader --keyword=MJDATE $${inputfits}` ; \
 		fi ; \
 		absra_center=`$(bindir)operagetheader --keyword=RA_DEG $${inputfits}` ; \
@@ -654,6 +668,7 @@ $${opt_switches} \
 --observatory_elevation=$(observatory_elevation) \
 --MJDTime=$${mjd} \
 --etime=$${exposure} \
+--leapseconds=$(configdir)leapseconds.dat \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Heliocentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi
@@ -815,6 +830,9 @@ $${pargs} \
 		if [[ "$(starplusskymode)" != "0" ]] ; then \
 			opt_switches="$${opt_switches} --StarPlusSky"; \
 		fi ; \
+		if [[ "$(starplusskyInvertSkyFiber)" != "0" ]] ; then \
+			opt_switches="$${opt_switches} --starplusskyInvertSkyFiber"; \
+		fi ; \
 		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaTelluricWavelengthCorrection \
 --inputObjectSpectrum=$(spectradir)$*.p$(gzip) \
 --inputWaveFile=$(calibrationdir)$(QUALIFIERS).wcal$(gzip) \
@@ -831,6 +849,8 @@ $${pargs} \
 --MinPeakDepth=$(telluric_MinPeakDepth) \
 --DetectionThreshold=$(telluric_DetectionThreshold) \
 --nsigclip=$(telluric_nsigclip) \
+--minNumberOfMatchedLines=$(telluric_minMatchedLines) \
+--duplicateLineThreshold=$(telluric_duplicateLineThreshold) \
 --hitranformat=0 \
 $${pargs} \
 $${opt_switches} \
@@ -852,22 +872,22 @@ $${opt_switches} \
 		echo "$(pref) Heliocentric Radial Velocity Correction generation for $*o.$(FITS) $(QUALIFIERS)" ; \
 		shutopen=`$(bindir)operagetheader --keyword=SHUTOPEN $${PF1}` ; \
 		MJDATE1=`$(bindir)operaMJD --datetime=$${shutopen}` ; \
-		if [ -n $${mjd} ] ; then \
+		if [ -z $${mjd} ] ; then \
 			dateobs=`$(bindir)operagetheader --keyword=DATE-OBS $${PF1}` ; \
 			timeobs=`$(bindir)operagetheader --keyword=TIME-OBS $${PF1}` ; \
 			MJDATE1=`$(bindir)operaMJD --date=$${dateobs} --time=$${timeobs}` ; \
 		fi ; \
-		if [ -n $${mjd} ] ; then \
+		if [ -z $${mjd} ] ; then \
 			MJDATE1=`$(bindir)operagetheader --keyword=MJDATE $${PF1}` ; \
 		fi ; \
 		shutopen=`$(bindir)operagetheader --keyword=SHUTOPEN $${PF4}` ; \
 		MJDATE4=`$(bindir)operaMJD --datetime=$${shutopen}` ; \
-		if [ -n $${mjd} ] ; then \
+		if [ -z $${mjd} ] ; then \
 			dateobs=`$(bindir)operagetheader --keyword=DATE-OBS $${PF4}` ; \
 			timeobs=`$(bindir)operagetheader --keyword=TIME-OBS $${PF4}` ; \
 			MJDATE4=`$(bindir)operaMJD --date=$${dateobs} --time=$${timeobs}` ; \
 		fi ; \
-		if [ -n $${mjd} ] ; then \
+		if [ -z $${mjd} ] ; then \
 			MJDATE4=`$(bindir)operagetheader --keyword=MJDATE $${PF4}` ; \
 		fi ; \
 		ETIME4=`$(bindir)operagetheader --keyword=EXPTIME $${PF4}` ; \
@@ -884,6 +904,7 @@ $${opt_switches} \
 --observatory_elevation=$(observatory_elevation) \
 --MJDTime=$${MJDATE1} \
 --etime=$${exposure} \
+--leapseconds=$(configdir)leapseconds.dat \
 --outputRVelFile=$(calibrationdir)$@ $(optargs)" 2>&1 | tee -a $(logdir)$*.log ; \
 		echo "$(pref) Heliocentric Radial Velocity Correction $@ created in $(deltat)" ; \
 	fi

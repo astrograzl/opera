@@ -36,8 +36,6 @@
 // $Locker$
 // $Log$
 
-#include "libraries/operaLibCommon.h"			// for CMatrix
-#include "libraries/Polynomial.h"	
 #include "libraries/Gaussian.h"
 
 #ifndef MAXLINESPERFEATURE
@@ -94,27 +92,29 @@ public:
     
     void setnLines(unsigned NLines);
     
-    unsigned getnLines(void);
+    unsigned getnLines(void) const;
     
     void setBackgroundSlope(double Slope);
     
-    double getBackgroundSlope(void);
+    double getBackgroundSlope(void) const;
     
     void setBackgroundIntercept(double Intercept);
     
-    double getBackgroundIntercept(void);
+    double getBackgroundIntercept(void) const;
     
     void setGaussianFit(Gaussian *GaussianFit);
     
+    const Gaussian *getGaussianFit(void) const;
+    
     Gaussian *getGaussianFit(void);
 
-    unsigned getNDataPoints(void);     
+    unsigned getNDataPoints(void) const;
     
     void setOriginalIndex(unsigned i0,unsigned i1);
     
-    unsigned getOriginalInitialIndex(void);    
+    unsigned getOriginalInitialIndex(void) const;
  
-    unsigned getOriginalFinalIndex(void);    
+    unsigned getOriginalFinalIndex(void) const;
     
     void CreateDataVectors(unsigned NDataPoints);    
     

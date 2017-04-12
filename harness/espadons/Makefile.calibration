@@ -399,16 +399,19 @@ ifeq ($(DATADIR),$(queuedir)/)
 else
 	@if [ ! -e $(byproductsdir)$@ ] ;  then \
 		files=`$(archivebindir)ardrangeESP $(ARCHIVE) | tr ' ' '\n' | sed -e '/*x.$(FITS)/d'` ; \
-		for f in $$files;  do \
-				arfile=`$(archivebindir)arlocate $$f` ; \
-				if [[ "$$arfile" == "not.on.disk" ]] ; then \
-						echo "$(epref) File $$f is not currently in the archive." 2>&1 | tee -a $(errfile) ; \
-				else \
+		for f in $${files} ; do \
+			arfile=`$(archivebindir)arlocate $$f` ; \
+			if [[ "$$arfile" == "not.on.disk" ]] ; then \
+				echo "$(epref) File $$f is not currently in the archive." 2>&1 | tee -a $(errfile) ; \
+			else \
+				filenight=`$(bindir)operagetheader --keyword=PATHNAME $$arfile | xargs -n1 basename` ; \
+				if [[ $$filenight == $(NIGHT) ]] ; then \
 					echo $${arfile} >> $(byproductsdir)$@; \
 				fi ; \
+			fi ; \
 		done ;\
 		if [ ! -s $(byproductsdir)$@ ] ; then \
-			echo "$(epref) *** error: files in the data range $(ARCHIVE) are not available." 2>&1 | tee -a $(errfile) ; \
+			echo "$(epref) *** error: files in the data range $(ARCHIVE) with night directory $(NIGHT) are not available." 2>&1 | tee -a $(errfile) ; \
 		fi ; \
 	fi
 endif
@@ -705,6 +708,7 @@ $${dsecargs} \
 --gainMaxNBins=$(gainMaxNBins) \
 --gainLowestCount=$(gainLowestCount) \
 --gainHighestCount=$(gainHighestCount) \
+--minimumAllowedGain=$(gainMinimumAllowed) \
 --output=$(calibrationdir)$@ \
 --flatimgs=\"$${flats}\" \
 --biasimgs=\"$${biases}\" \
@@ -948,6 +952,7 @@ $(optargs)" 2>&1 | tee -a $(logfile); \
 --nRowSamples=$(apernRowSamples) \
 --xbin=$(aperxbin) \
 --constantTilt=$(constanttiltflag) \
+--applyoffset=$(aperapplyoffset) \
 $${pargs} \
 --ordernumber=$(ordernumber) \
 --outputApertureFile=$(calibrationdir)$@ \
@@ -1147,6 +1152,7 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 			wcar=$(calibrationdir)$(QUALIFIERS).wcar$(gzip) ; \
 		fi ; \
 		cp $(calibrationdir)$(QUALIFIERS).wcar$(gzip) $(calibrationdir)$(QUALIFIERS).wcal$(gzip); \
+	fi
 #		$(bindir)operatrace $(TRACE) $(errfile) $(MACHINE) "$(bindir)operaStitchOrders \
 #--inputSpectrum=$(calibrationdir)th_$(QUALIFIERS).e$(gzip) \
 #--inputWaveFile=$${wcar} \
@@ -1159,7 +1165,6 @@ $(optargs)" 2>&1 | tee -a $(logfile) ; \
 #$${pargs} \
 #$(optargs)" 2>&1 | tee -a $(logfile) ; \
 #		echo "$(pref) Wavelength refinement with operaStitchOrders for $(QUALIFIERS) complete in $(deltat)" ; \
-	fi
 
 #########################################################################################
 # Calculate the Resolution

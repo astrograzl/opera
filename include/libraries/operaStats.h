@@ -72,7 +72,6 @@ extern "C" {
 
 float operaArrayMean(unsigned np, const float *array);
 double operaArrayMean_d(unsigned np, const double *array);
-        
 float operaArrayWeightedMean(unsigned np, const float *array, const float *weigh);
 float operaArrayAvgSigmaClip(unsigned np, const float *array, unsigned nsig);
 float operaArraySigma(unsigned np, const float *array);
@@ -176,281 +175,145 @@ static inline void operaArrayIndexedSigmaQuick(unsigned np, const float *array, 
 	}
 }
 
-
 /*! 
- * float operaArrayMeanQuick(unsigned np, const float *array)
- * \brief This function ....
- * \param np is an unsigned that ..,
- * \param array is a const float pointer that ..,
- * \return float
+ * static inline float operaArrayMedianQuick(unsigned np, float *arr)
+ * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
+ * \param arr - the array to get median from
+ * \param np - number of pixels
+ * \return median
  */
-static inline float operaArrayMeanQuick(unsigned np, const float *array) {
-	float xmean = 0.0;
-	unsigned i=np;
-	while (i--) xmean += *array++;
-	if (!np)
-		return 0.0;
-	else
-		return xmean/(float)np;
-}
-
-/*! 
- * float operaArrayWeightedMeanQuick(unsigned np, const float *array, const float *weigh)
- * \brief This function ....
- * \param np is an unsigned that ..,
- * \param array is a const float pointer that ..,
- * \param weigh is a const float pointer that ..,
- * \return float
- */
-static inline float operaArrayWeightedMeanQuick(unsigned np, const float *array, const float *weigh) {
-	float xmean = 0.0;
-	float npf = 0.0;	
+static inline float operaArrayMedianQuick(unsigned np, /*MODIFIED!!!*/float *arr) {
+	unsigned low = 0, high = np-1; 
+	unsigned median = (low + high) / 2; 
+	unsigned odd = (np & 1);
+	unsigned middle, ll, hh; 
 	
-	while (np--){
-		xmean += (*array++)*(*weigh);
-		npf += *weigh++;
+	if (np == 0) {
+		return FP_NAN;
 	}
-	if (npf == 0.0)
-		return 0.0;
-	else
-		return xmean/npf;
-}
-
-/*! 
- * float operaArraySigmaQuick(unsigned np, const float *array)
- * \brief This function ,,.
- * \param np is an unsigned that ..,
- * \param array is a const float pointer that ..,
- * \return float
- */
-static inline float operaArraySigmaQuick(unsigned np, const float *array) {
-	
-	float xsig = 0.0;	
-	float xmean = 0.0;
-	unsigned i=np;
-	
-	if(np){
-		while (i--) xmean += *array++;
-		xmean/=(float)np;
-		i=np;
-		while (i--) {
-			array--;			
-			xsig += (*array - xmean)*(*array - xmean);
-		}	
-		xsig/=(float)np;
+	if (np == 1) {
+		return arr[0];
 	}
-	return sqrt(xsig);	
-}
-
-/*! 
- * float operaArrayWeightedSigmaQuick(unsigned np, const float *array, const float *weigh)
- * \brief This function....
- * \param np is an unsigned that ..,
- * \param array is a const float pointer that ..,
- * \param weigh is a const float pointer that ..,
- * \return float
- */
-static inline float operaArrayWeightedSigmaQuick(unsigned np, const float *array, const float *weigh) {
-	float xmean = 0.0;
-	float xsig = 0.0;
-	float npf = 0.0;	
-	unsigned i=np;
-	
-	if (np) {
-		while (i--){
-			xmean += (*array)*(*weigh);		
-			npf += *weigh;
-			array++;
-			weigh++;			
-		}	
-		xmean /= npf;				// NOTE: This may throw a floating point exception if weigh is all zeroes
-		i=np;
-		while (i--){
-			array--;
-			weigh--;			
-			xsig += (*weigh)*(*array - xmean)*(*array - xmean);
-		}	
-		xsig /= npf;
+	if (np == 2) {
+		return (arr[0]+arr[1])/2.0;
 	}
-	return sqrt(xsig);	
-}
-/*! 
- * float operaArrayAvgSigClipQuick(unsigned np, const float *array, unsigned nsig)
- * \brief This function does an average sigma clip of an array.
- * \param np is an unsigned that ..,
- * \param array is a const float pointer that ..,
- * \param nsig is n unsigned that ..,
- * \return float
- */
-static inline float operaArrayAvgSigmaClipQuick(unsigned np, const float *array, unsigned nsig) 
-{
-	float xsig = 0.0;	
-	float xmean = 0.0;
-	float clipedmean = 0.0;	
-	unsigned clipednp = 0;
-	unsigned i=np;
-	
-	if(np){
-		while (i--) xmean += *array++;
-		xmean/=(float)np;
-		i=np;
-		while (i--) {
-			array--;			
-			xsig += (*array - xmean)*(*array - xmean);
-		}	
-		xsig = sqrt(xsig/(float)np);		
+	while (1) { 
 		
-		i=np;
-		while (i--) {
-			if((*array > xmean - (float)nsig*xsig) && (*array < xmean + (float)nsig*xsig)) {
-				clipedmean += *array;
-				clipednp++;
-			}
-			array++;			
-		}			
-	}
-	return(clipedmean/(float)clipednp);	
-}
-
-	/*! 
-	 * static inline float operaArrayMedianQuick(unsigned np, float *arr)
-	 * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
-	 * \param arr - the array to get median from
-	 * \param np - number of pixels
-	 * \return median
-	 */
-	static inline float operaArrayMedianQuick(unsigned np, /*MODIFIED!!!*/float *arr) {
-		unsigned low = 0, high = np-1; 
-		unsigned median = (low + high) / 2; 
-		unsigned odd = (np & 1);
-		unsigned middle, ll, hh; 
-		
-		if (np == 0) {
-			return FP_NAN;
+		if (high <= low) {/* One element only */ 
+			return arr[median] ; 
 		}
-		if (np == 1) {
-			return arr[0];
-		}
-		if (np == 2) {
-			return (arr[0]+arr[1])/2.0;
-		}
-		while (1) { 
-			
-			if (high <= low) {/* One element only */ 
+		if (high == low + 1) { /* Two elements only */ 
+			if (arr[low] > arr[high]) 
+				ELEM_SWAP(arr[low], arr[high]) ; 
+			if (odd)
 				return arr[median] ; 
-			}
-			if (high == low + 1) { /* Two elements only */ 
-				if (arr[low] > arr[high]) 
-					ELEM_SWAP(arr[low], arr[high]) ; 
-				if (odd)
-					return arr[median] ; 
-				else
-					return (arr[low] + arr[high]) / 2.0;
-			} 
-			
-			/* Find median of low, middle and high items; swap into position low */ 
-			middle = (low + high) / 2; 
-			if (arr[middle] > arr[high]) 
-				ELEM_SWAP(arr[middle], arr[high]) 
-				if (arr[low] > arr[high]) 
-					ELEM_SWAP(arr[low], arr[high]) 
-					if (arr[middle] > arr[low]) 
-						ELEM_SWAP(arr[middle], arr[low]) 
-						
-					/* Swap low item (now in position middle) into position (low+1) */ 
-						ELEM_SWAP(arr[middle], arr[low+1]) ; 
-			
-			/* Nibble from each end towards middle, swapping items when stuck */ 
-			ll = low + 1; 
-			hh = high; 
-			for (;;) { 
-				do ll++; while (arr[low] > arr[ll]) ; 
-				do hh--; while (arr[hh] > arr[low]) ; 
-				
-				if (hh < ll)
-					break;
-				ELEM_SWAP(arr[ll], arr[hh])
-			} 
-			
-			/* Swap middle item (in position low) back into correct position */ 
-			ELEM_SWAP(arr[low], arr[hh]) 
-			
-			/* Re-set active partition */ 
-			if (hh <= median) low = ll;
-			if (hh >= median) high = hh - 1; 
-		} 	
-	}
-	
-	/*! 
-	 * static inline float operaArrayMedianQuick(unsigned np, float *arr)
-	 * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
-	 * \param arr - the array to get median from
-	 * \param np - number of pixels
-	 * \return median
-	 */
-	static inline float operaArrayMedianQuick_d(unsigned np, /*MODIFIED!!!*/double *arr) {
-		unsigned low = 0, high = np-1; 
-		unsigned median = (low + high) / 2; 
-		unsigned odd = (np & 1);
-		unsigned middle, ll, hh; 
+			else
+				return (arr[low] + arr[high]) / 2.0;
+		} 
 		
-		if (np == 0) {
-			return NAN;
-		}
-		if (np == 1) {
-			return arr[0];
-		}
-		if (np == 2) {
-			return (arr[0]+arr[1])/2.0;
-		}
-		while (1) { 
+		/* Find median of low, middle and high items; swap into position low */ 
+		middle = (low + high) / 2; 
+		if (arr[middle] > arr[high]) 
+			ELEM_SWAP(arr[middle], arr[high]) 
+			if (arr[low] > arr[high]) 
+				ELEM_SWAP(arr[low], arr[high]) 
+				if (arr[middle] > arr[low]) 
+					ELEM_SWAP(arr[middle], arr[low]) 
+					
+				/* Swap low item (now in position middle) into position (low+1) */ 
+					ELEM_SWAP(arr[middle], arr[low+1]) ; 
+		
+		/* Nibble from each end towards middle, swapping items when stuck */ 
+		ll = low + 1; 
+		hh = high; 
+		for (;;) { 
+			do ll++; while (arr[low] > arr[ll]) ; 
+			do hh--; while (arr[hh] > arr[low]) ; 
 			
-			if (high <= low) {/* One element only */ 
-				return arr[median] ; 
-			}
-			if (high == low + 1) { /* Two elements only */ 
-				if (arr[low] > arr[high]) 
-					ELEM_SWAP(arr[low], arr[high]) ; 
-				if (odd)
-					return arr[median] ; 
-				else
-					return (arr[low] + arr[high]) / 2.0;
-			} 
-			
-			/* Find median of low, middle and high items; swap into position low */ 
-			middle = (low + high) / 2; 
-			if (arr[middle] > arr[high]) 
-				ELEM_SWAP_d(arr[middle], arr[high]) 
-				if (arr[low] > arr[high]) 
-					ELEM_SWAP_d(arr[low], arr[high]) 
-					if (arr[middle] > arr[low]) 
-						ELEM_SWAP_d(arr[middle], arr[low]) 
-						
-					/* Swap low item (now in position middle) into position (low+1) */ 
-						ELEM_SWAP_d(arr[middle], arr[low+1]) ; 
-			
-			/* Nibble from each end towards middle, swapping items when stuck */ 
-			ll = low + 1; 
-			hh = high; 
-			for (;;) { 
-				do ll++; while (arr[low] > arr[ll]) ; 
-				do hh--; while (arr[hh] > arr[low]) ; 
-				
-				if (hh < ll)
-					break;
-				ELEM_SWAP_d(arr[ll], arr[hh])
-			} 
-			
-			/* Swap middle item (in position low) back into correct position */ 
-			ELEM_SWAP_d(arr[low], arr[hh]) 
-			
-			/* Re-set active partition */ 
-			if (hh <= median) low = ll;
-			if (hh >= median) high = hh - 1; 
-		} 	
-	}
+			if (hh < ll)
+				break;
+			ELEM_SWAP(arr[ll], arr[hh])
+		} 
+		
+		/* Swap middle item (in position low) back into correct position */ 
+		ELEM_SWAP(arr[low], arr[hh]) 
+		
+		/* Re-set active partition */ 
+		if (hh <= median) low = ll;
+		if (hh >= median) high = hh - 1; 
+	} 	
+}
+
+/*! 
+ * static inline float operaArrayMedianQuick(unsigned np, float *arr)
+ * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
+ * \param arr - the array to get median from
+ * \param np - number of pixels
+ * \return median
+ */
+static inline float operaArrayMedianQuick_d(unsigned np, /*MODIFIED!!!*/double *arr) {
+	unsigned low = 0, high = np-1; 
+	unsigned median = (low + high) / 2; 
+	unsigned odd = (np & 1);
+	unsigned middle, ll, hh; 
 	
-	/*! 
+	if (np == 0) {
+		return NAN;
+	}
+	if (np == 1) {
+		return arr[0];
+	}
+	if (np == 2) {
+		return (arr[0]+arr[1])/2.0;
+	}
+	while (1) { 
+		
+		if (high <= low) {/* One element only */ 
+			return arr[median] ; 
+		}
+		if (high == low + 1) { /* Two elements only */ 
+			if (arr[low] > arr[high]) 
+				ELEM_SWAP(arr[low], arr[high]) ; 
+			if (odd)
+				return arr[median] ; 
+			else
+				return (arr[low] + arr[high]) / 2.0;
+		} 
+		
+		/* Find median of low, middle and high items; swap into position low */ 
+		middle = (low + high) / 2; 
+		if (arr[middle] > arr[high]) 
+			ELEM_SWAP_d(arr[middle], arr[high]) 
+			if (arr[low] > arr[high]) 
+				ELEM_SWAP_d(arr[low], arr[high]) 
+				if (arr[middle] > arr[low]) 
+					ELEM_SWAP_d(arr[middle], arr[low]) 
+					
+				/* Swap low item (now in position middle) into position (low+1) */ 
+					ELEM_SWAP_d(arr[middle], arr[low+1]) ; 
+		
+		/* Nibble from each end towards middle, swapping items when stuck */ 
+		ll = low + 1; 
+		hh = high; 
+		for (;;) { 
+			do ll++; while (arr[low] > arr[ll]) ; 
+			do hh--; while (arr[hh] > arr[low]) ; 
+			
+			if (hh < ll)
+				break;
+			ELEM_SWAP_d(arr[ll], arr[hh])
+		} 
+		
+		/* Swap middle item (in position low) back into correct position */ 
+		ELEM_SWAP_d(arr[low], arr[hh]) 
+		
+		/* Re-set active partition */ 
+		if (hh <= median) low = ll;
+		if (hh >= median) high = hh - 1; 
+	} 	
+}
+
+/*! 
  * static inline unsigned short operaArrayMedianQuickUSHORT(unsigned np, float *arr)
  * \brief Optimized inline function returning a median -- WARNING: DESTRUCTIVE -- the input is modified.
  * \param arr - the array to get median from

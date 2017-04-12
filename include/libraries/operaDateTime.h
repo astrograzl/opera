@@ -117,6 +117,9 @@ class Date {
 		 * \return The JDN.
 		 */
 		unsigned ToJulianDayNumber() const;
+		
+		friend std::istream& operator>>(std::istream& in, Date& var);
+		friend std::ostream& operator<<(std::ostream& out, const Date& var);
 	private:
 		int year;
 		int month;

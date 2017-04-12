@@ -9,10 +9,10 @@ public:
 	void AddPlotFileArguments(std::string& plotfilename, std::string& datafilename, std::string& scriptfilename, bool& interactive);
 	void AddOrderLimitArguments(int& ordernumber, int& minorder, int& maxorder, const int default_value);
 	
-	bool verbose;
-	bool debug;
-	bool trace;
-	bool plot;
+	static bool verbose;
+	static bool debug;
+	static bool trace;
+	static bool plot;
 };
 
 #endif

@@ -84,6 +84,8 @@ int main(int argc, char *argv[])
     int minorder = NOTPROVIDED;
     int maxorder = NOTPROVIDED;
     bool StarPlusSky = false;
+    bool starplusskyInvertSkyFiber = false;
+	double skyOverStarFiberAreaRatio = 1.0;
     
     // The parameters below we don't know yet whether they would be useful if used as input
     double spectralResolution = 80000;
@@ -99,6 +101,7 @@ int main(int argc, char *argv[])
 	double nsigclip=3.0;
 	bool emissionSpectrum = false;
 	unsigned minNumberOfMatchedLines = 10;
+	double duplicateLineThreshold = 0.001;
 
     unsigned RVCorrectionMethod = 1; // 1. line matching; 2. x-correlation;
     
@@ -109,6 +112,7 @@ int main(int argc, char *argv[])
     string rvcorrdatafilename;
     string specdatafilename;
     string rvcorrfitdatafilename;
+    string linesdatafilename;
     
     args.AddRequiredArgument("inputWaveFile", inputWaveFile, "input wavelength calibration file (.wcal)");
 	args.AddRequiredArgument("inputObjectSpectrum", inputObjectSpectrum, "input object spectrum file (.e or .p)");
@@ -121,21 +125,25 @@ int main(int argc, char *argv[])
     args.AddRequiredArgument("spectralResolution", spectralResolution, "input spectral resolution (wl/dwl) as reference for line detection");
     args.AddRequiredArgument("radialVelocityRange", radialVelocityRange, "radial Velocity Range (in km/s) to scan for first order correction");
     args.AddRequiredArgument("radialVelocityStep", radialVelocityStep, "radial Velocity Step step (in km/s) to scan for first order correction");
-    args.AddOptionalArgument("XCorrelationThreshold", XCorrelationThreshold, 0.0, "X-correlation lower threshold to consider a match between telluric and object spectra");
     args.AddRequiredArgument("normalizationBinsize", normalizationBinsize, "binsize to normalize input object spectrum");
-    args.AddSwitch("useFitToFindMaximum", useFitToFindMaximum, "use gaussian fit to find RV correction");
     
     args.AddRequiredArgument("RVCorrectionMethod", RVCorrectionMethod, "Method for measuring RV correction: 1 = Line matching (default), 2 = Spectral cross-correlation");
     
-    args.AddOptionalArgument("LocalMaxFilterWidth", LocalMaxFilterWidth, 4.0, "Used for line matching");
-    args.AddOptionalArgument("MinPeakDepth", MinPeakDepth, 3, "Used for line matching");
-    args.AddOptionalArgument("DetectionThreshold", DetectionThreshold, 0.05, "Used for line matching");
-    args.AddOptionalArgument("nsigclip", nsigclip, 3.0, "Used for line matching");
-    args.AddSwitch("emissionSpectrum", emissionSpectrum, "Used for line matching");
-    args.AddOptionalArgument("minNumberOfMatchedLines", minNumberOfMatchedLines, 10, "Arbitrary threshold to avoid small number statistics");
+    args.AddOptionalArgument("LocalMaxFilterWidth", LocalMaxFilterWidth, 0.0, "Method 1: To set a window filter to guarantee a line is not detected twice, in units of line width");
+    args.AddOptionalArgument("DetectionThreshold", DetectionThreshold, 0.0, "Method 1: Threshold to regulate the sensitivity of line detection, between 0 and 1");
+    args.AddOptionalArgument("MinPeakDepth", MinPeakDepth, 0.0, "Method 1: Limit that regulates the sensitity of line detection, in units of noise");
+    args.AddOptionalArgument("nsigclip", nsigclip, 0.0, "Method 1: Threshold to filter detected lines by line width compared to median line width, in units of line width error");
+    args.AddSwitch("emissionSpectrum", emissionSpectrum, "Method 1: Using emission spectrum for object");
+    args.AddOptionalArgument("minNumberOfMatchedLines", minNumberOfMatchedLines, 0, "Method 1: Arbitrary threshold to avoid small number statistics");
+    args.AddOptionalArgument("duplicateLineThreshold", duplicateLineThreshold, 0, "Method 1: Minimum distance between two object lines");
+    
+    args.AddOptionalArgument("XCorrelationThreshold", XCorrelationThreshold, 0.0, "Method 2: X-correlation lower threshold to consider a match between telluric and object spectra");
+    args.AddSwitch("useFitToFindMaximum", useFitToFindMaximum, "Method 2: use gaussian fit to find RV correction");
     
     args.AddOrderLimitArguments(ordernumber, minorder, maxorder, NOTPROVIDED);
     args.AddSwitch("StarPlusSky", StarPlusSky, "star plus sky mode");
+    args.AddSwitch("starplusskyInvertSkyFiber", starplusskyInvertSkyFiber, "Invert sky fiber (default is beam[0]=star, beam[1]=sky)");
+	args.AddOptionalArgument("skyOverStarFiberAreaRatio", skyOverStarFiberAreaRatio, 1.0, "Area of the sky fiber over the area of the star fiber.");
     
     args.AddOptionalArgument("rvcorrsplotfilename", rvcorrsplotfilename, "", "Output RV correction plot eps file name");
     args.AddOptionalArgument("specplotfilename", specplotfilename, "", "Output spectrum plot eps file name");
@@ -144,6 +152,7 @@ int main(int argc, char *argv[])
     args.AddOptionalArgument("rvcorrdatafilename", rvcorrdatafilename, "", "Output RV correction data file name");
     args.AddOptionalArgument("specdatafilename", specdatafilename, "", "Output spectrum data file name");
 	args.AddOptionalArgument("rvcorrfitdatafilename", rvcorrfitdatafilename, "", "Output RV correction fit data file name");
+	args.AddOptionalArgument("linesdatafilename", linesdatafilename, "", "Output object lines data file name");
 	
 	try {
 		args.Parse(argc, argv);
@@ -167,6 +176,14 @@ int main(int argc, char *argv[])
         if (inputWavelengthMaskForTelluric.empty()) {
             throw operaException("operaTelluricWavelengthCorrection: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
         }
+        if(RVCorrectionMethod == 1) {
+			if(!LocalMaxFilterWidth || !MinPeakDepth || !DetectionThreshold || !nsigclip || !minNumberOfMatchedLines || !duplicateLineThreshold)
+				throw operaException("operaTelluricWavelengthCorrection: missing parameters required for method 1", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
+		}
+		if(RVCorrectionMethod == 2) {
+			if(!XCorrelationThreshold)
+				throw operaException("operaTelluricWavelengthCorrection: missing parameters required for method 2", operaErrorInvalidInput, __FILE__, __FUNCTION__, __LINE__);
+		}
         
 		if (args.verbose) {
 			cout << "operaTelluricWavelengthCorrection: inputWaveFile = " << inputWaveFile << endl;
@@ -178,12 +195,24 @@ int main(int argc, char *argv[])
 			cout << "operaTelluricWavelengthCorrection: spectralResolution =" << spectralResolution << endl;
 			cout << "operaTelluricWavelengthCorrection: radialVelocityRange =" << radialVelocityRange << endl;
 			cout << "operaTelluricWavelengthCorrection: radialVelocityStep =" << radialVelocityStep << endl;
-			cout << "operaTelluricWavelengthCorrection: XCorrelationThreshold =" << XCorrelationThreshold << endl;
-            cout << "operaTelluricWavelengthCorrection: normalizationBinsize =" << normalizationBinsize << endl;
+			cout << "operaTelluricWavelengthCorrection: normalizationBinsize =" << normalizationBinsize << endl;
             cout << "operaTelluricWavelengthCorrection: StarPlusSky = " << StarPlusSky << endl;
-            cout << "operaTelluricWavelengthCorrection: useFitToFindMaximum = " << useFitToFindMaximum << endl;
+            cout << "operaTelluricWavelengthCorrection: starplusskyInvertSkyFiber = " << starplusskyInvertSkyFiber << endl;
+			cout << "operaTelluricWavelengthCorrection: skyOverStarFiberAreaRatio = " << skyOverStarFiberAreaRatio << endl;
             cout << "operaTelluricWavelengthCorrection: inputWavelengthMaskForTelluric = " << inputWavelengthMaskForTelluric << endl;
             cout << "operaTelluricWavelengthCorrection: RVCorrectionMethod = " << RVCorrectionMethod << endl;
+            if(RVCorrectionMethod == 1) {
+				cout << "operaTelluricWavelengthCorrection: LocalMaxFilterWidth =" << LocalMaxFilterWidth << endl;
+				cout << "operaTelluricWavelengthCorrection: MinPeakDepth =" << MinPeakDepth << endl;
+				cout << "operaTelluricWavelengthCorrection: DetectionThreshold =" << DetectionThreshold << endl;
+				cout << "operaTelluricWavelengthCorrection: nsigclip =" << nsigclip << endl;
+				cout << "operaTelluricWavelengthCorrection: emissionSpectrum =" << emissionSpectrum << endl;
+				cout << "operaTelluricWavelengthCorrection: minNumberOfMatchedLines =" << minNumberOfMatchedLines << endl;
+				cout << "operaTelluricWavelengthCorrection: duplicateLineThreshold =" << duplicateLineThreshold << endl;
+			} else if(RVCorrectionMethod == 2) {
+				cout << "operaTelluricWavelengthCorrection: XCorrelationThreshold =" << XCorrelationThreshold << endl;
+				cout << "operaTelluricWavelengthCorrection: useFitToFindMaximum = " << useFitToFindMaximum << endl;
+			}
             if(ordernumber != NOTPROVIDED) cout << "operaTelluricWavelengthCorrection: ordernumber = " << ordernumber << endl;
             if(args.plot) {
                 cout << "operaTelluricWavelengthCorrection: rvcorrsplotfilename = " << rvcorrsplotfilename << endl;
@@ -199,24 +228,28 @@ int main(int argc, char *argv[])
 		operaSpectralOrderVector spectralOrders;
 		operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputObjectSpectrum);
         operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputWaveFile);
-
+        
         UpdateOrderLimits(ordernumber, minorder, maxorder, spectralOrders);
-        if (args.verbose) cout << "operaTelluricWavelengthCorrection: minorder ="<< minorder << " maxorder=" << maxorder << endl;
-    
-        // Correct for flat-field
-        if (!inputFlatFluxCalibration.empty()) {
-			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputFlatFluxCalibration);
-            bool starplusskyInvertSkyFiber = false;
-            spectralOrders.correctFlatField(minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber);
-        }
-       
-        // Read telluric lines database lambda vs. intensity
+        if (args.verbose) cout << "operaTelluricWavelengthCorrection: minorder = "<< minorder << " maxorder = " << maxorder << endl;
+        
+        spectralOrders.setWavelengthsFromCalibration(minorder, maxorder);
+        
+		// Read telluric lines database lambda vs. intensity
 		if (args.debug) cout << "operaTelluricWavelengthCorrection: reading telluric lines database " << telluric_lines << endl;
-		
 		operaSpectrum telluricLines;
 		if (hitranformat) telluricLines = readTelluricLinesHITRAN(telluric_lines);
 		else telluricLines = readTelluricLinesRaw(telluric_lines);
         
+        // Ignore orders outside of our telluric mask
+        spectralOrders.getOrdersByWavelengthRange(operaWavelengthRange(telluricLines.firstwl(), telluricLines.lastwl()), minorder, maxorder);
+        if (args.verbose) cout << "operaTelluricWavelengthCorrection: useful minorder = " << minorder << " maxorder = " << maxorder << endl;
+        
+        // Correct for flat-field
+        if (!inputFlatFluxCalibration.empty()) {
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, inputFlatFluxCalibration);
+            spectralOrders.correctFlatField(minorder, maxorder, StarPlusSky, starplusskyInvertSkyFiber, skyOverStarFiberAreaRatio);
+        }
+       
         // Initialize rvshift to zero, so if telluric SNR is low the RV shift will not do anything.
         double rvshift = 0;
         double rvshifterror = 0;
@@ -231,11 +264,13 @@ int main(int argc, char *argv[])
                 
             case 1: {
                 // Detect absorption lines in the observed spectrum within telluric regions defined in inputWavelengthMaskForTelluric
-				operaSpectrum objectLines = spectralOrders.detectSpectralLinesWithinWavelengthMask(inputWavelengthMaskForTelluric, minorder, maxorder,true, normalizationBinsize, spectralResolution,emissionSpectrum,LocalMaxFilterWidth,MinPeakDepth,DetectionThreshold,nsigclip);
+				operaSpectralLineList objectLines = spectralOrders.detectSpectralLinesWithinWavelengthMask(inputWavelengthMaskForTelluric, minorder, maxorder,true, normalizationBinsize, spectralResolution,emissionSpectrum,LocalMaxFilterWidth,MinPeakDepth,DetectionThreshold,nsigclip);
+				if (args.verbose) cout << "operaTelluricWavelengthCorrection: " << objectLines.size() << " lines detected in object spectrum" << endl;
+				
 				if(args.debug){
 					for (unsigned l=0; l<objectLines.size(); l++) {
-						if(l == 0 || objectLines.getwavelength(l) - objectLines.getwavelength(l-1) > 0.001) cout << objectLines.getwavelength(l) << " " << objectLines.getflux(l) << " " << objectLines.getvariance(l) << endl;
-						else cout << "skipping line, too close to previous line: " << objectLines.getwavelength(l) << " " << objectLines.getflux(l) << " " << objectLines.getvariance(l) << endl;
+						if(l == 0 || objectLines.getwavelength(l) - objectLines.getwavelength(l-1) > duplicateLineThreshold) cout << objectLines.getwavelength(l) << " " << objectLines.getflux(l) << " " << objectLines.getsigma(l) << endl;
+						else cout << "skipping line, too close to previous line: " << objectLines.getwavelength(l) << " " << objectLines.getflux(l) << " " << objectLines.getsigma(l) << endl;
 					}
 				}
 				
@@ -246,7 +281,7 @@ int main(int argc, char *argv[])
                 operaSpectrum objectMatchedLines;
                 operaVector radialVelocities;
                 
-                matchTelluricLines(telluricLines, objectLines, telluricMatchedWavelengths, objectMatchedLines, radialVelocities, spectralResolution, radialVelocityRange);
+                matchTelluricLines(telluricLines, objectLines, telluricMatchedWavelengths, objectMatchedLines, radialVelocities, spectralResolution, radialVelocityRange, duplicateLineThreshold);
                 
                 if(telluricMatchedWavelengths.size() > minNumberOfMatchedLines) {
                     rvshift = Median(radialVelocities);
@@ -258,6 +293,11 @@ int main(int argc, char *argv[])
                 if (!specdatafilename.empty()) {
 					ofstream fspecdata(specdatafilename.c_str());
 					for(unsigned i=0; i<telluricLines.size(); i++) fspecdata << telluricLines.getwavelength(i) << " " << telluricLines.getflux(i) << endl;
+				}
+				
+				if (!linesdatafilename.empty()) {
+					ofstream flinesdata(linesdatafilename.c_str());
+					for(unsigned i=0; i<objectLines.size(); i++) flinesdata << objectLines.getwavelength(i) << " " << objectLines.getflux(i) << endl;
 				}
 				
                 if (!rvcorrdatafilename.empty()) {
@@ -806,34 +846,34 @@ bool calculateRVShiftByXCorr(const operaSpectrum& telluricLines, const operaSpec
 }
 
 // Function to match telluric lines
-void matchTelluricLines(const operaSpectrum& telluricLinesFromAtlas, const operaSpectrum& telluricLinesFromObject, operaVector& telluricMatchedWavelengths, operaSpectrum& objectMatchedLines, operaVector& radialVelocities, double spectralResolution, double radialVelocityRange)
+void matchTelluricLines(const operaSpectrum& atlasLines, const operaSpectralLineList& objectLines, operaVector& atlasMatchedWavelengths, operaSpectrum& objectMatchedLines, operaVector& radialVelocities, double spectralResolution, double radialVelocityRange, double duplicateLineThreshold)
 {
-    unsigned match_index = 0; //keep track of the last matched line in the atlas so we can skip ahead to there
-    for (unsigned j=0; j<telluricLinesFromObject.size(); j++) {
-		double objectwl = telluricLinesFromObject.getwavelength(j);
-		if(objectwl - telluricLinesFromObject.getwavelength(j) > 0.001) continue; //skip over object lines which are most likely duplicates
-        double linewidth = objectwl/spectralResolution;
+    unsigned match_index = 0; // Keep track of the last matched line in the atlas so we can skip ahead to there
+    for (unsigned j=0; j<objectLines.size(); j++) {
+		double objectwl = objectLines.getwavelength(j);
+		if(j > 0 && objectwl - objectLines.getwavelength(j-1) < duplicateLineThreshold) continue; // Skip over object lines which are most likely duplicates
         
-        const operaVector& atlaswlvector = telluricLinesFromAtlas.wavelengthvector();
-        match_index = findClosestInSortedRange(atlaswlvector, objectwl, match_index, atlaswlvector.size()); //search atlaswlvector in range [match_index, size) for the closest wavelength to objectwl
+        const operaVector& atlaswlvector = atlasLines.wavelengthvector();
+        match_index = findClosestInSortedRange(atlaswlvector, objectwl, match_index, atlaswlvector.size()); // Search atlaswlvector in range [match_index, size) for the closest wavelength to objectwl
         
         if(match_index < atlaswlvector.size()) {
 			double atlaswl = atlaswlvector[match_index];
 			double deltarv = calculateDeltaRadialVelocityInKPS(atlaswl, objectwl);
 			
-			//make sure that this line (and only this line) is within the rv range
+			// Make sure that this atlas line (and only this atlas line) is within the rv range of the object line
 			if(fabs(deltarv) >= radialVelocityRange/2.0) continue;
 			if(match_index > 0 && fabs(calculateDeltaRadialVelocityInKPS(atlaswlvector[match_index-1], objectwl)) < radialVelocityRange/2.0) continue;
 			if(match_index + 1 < atlaswlvector.size() && fabs(calculateDeltaRadialVelocityInKPS(atlaswlvector[match_index+1], objectwl)) < radialVelocityRange/2.0) continue;
 
+			double linewidth = objectwl/spectralResolution;
 			if(fabs(atlaswl - objectwl) < linewidth) {					
-				double objectflux = telluricLinesFromObject.getflux(j);
-				telluricMatchedWavelengths.insert(atlaswl);
+				double objectflux = objectLines.getflux(j);
+				atlasMatchedWavelengths.insert(atlaswl);
 				objectMatchedLines.insert(objectwl, objectflux);
 				radialVelocities.insert(deltarv);
 			}
 		}
-		else break; //no atlas lines remaining to match
+		else break; // No atlas lines remaining to match
 	}
 }
 

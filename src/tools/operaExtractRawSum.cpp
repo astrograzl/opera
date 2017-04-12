@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 						spectralOrder->CalculateWavelengthSolution();
 					}
 					if (normalize) {
-						spectralOrder->applyNormalization(binsize,orderOfPolynomial,usePolynomial,NULL,NULL,TRUE,0);
+						spectralOrder->applyNormalization(binsize,orderOfPolynomial,usePolynomial,true,false);
 					}
 				}
 			}

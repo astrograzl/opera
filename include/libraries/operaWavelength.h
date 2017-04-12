@@ -32,7 +32,7 @@
 
 #include "libraries/operaLibCommon.h"			// for doubleValue_t
 #include "libraries/Polynomial.h"	
-#include "libraries/operaWavelength.h"	
+#include "libraries/operaWavelength.h"
 
 #define MAXORDEROFWAVELENGTHPOLYNOMIAL 10
 
@@ -44,211 +44,122 @@
  * \ingroup libraries
  */
 
+class operaSpectralLineList;
 class operaSpectralOrder;
 
 class operaWavelength {
 	
 private:
+	Polynomial wavelengthPolynomial; // Polynomial lambda(d) representing the relation between distance and wavelength
+    
+	// Minimum and maximum distances from geometry information
 	double dmin;
 	double dmax;		
     
-    unsigned maxNDataPoints;    
+    // Distance and wavelength for each point to model the wavelength polynomial
     unsigned nDataPoints;
-    
-    double *distanceData;
-    double *wavelengthData;
-    double *wavelengthErrors; 
-    unsigned *matchAtlasindex;
-    unsigned *matchComparisonindex;
+    operaVector distanceData;
+    operaVector wavelengthData;
+    operaVector wavelengthErrors;
+    Vector<unsigned> matchAtlasindex; // The index of the atlas line that the wavelength came from
+    Vector<unsigned> matchComparisonindex; // The index of the comparison line that the distance came from
 
-    unsigned maxNAtlasLines;
+    // Atlas lines of used for line matching, by wavelength
     unsigned nAtlasLines;
+    operaVector atlasLinesflux;
+    operaVector atlasLineswl;
+    operaVector atlasLineswlError;
 
-    double *atlasLinesflux;
-    double *atlasLineswl;
-    double *atlasLineswlError;    
+    // Comparison lines used for line matching, by distance
+    unsigned nComparisonLines;
+    operaVector comparisonLinesflux;
+    operaVector comparisonLinespix;
+    operaVector comparisonLinespixError;
+    operaVector comparisonLineswl; // Comparison line wavelengths are calculated using the current polynomial
 
-    unsigned maxNComparisonLines;   
-    unsigned nComparisonLines;   
-
-    double *comparisonLinesflux;
-    double *comparisonLinespix;
-    double *comparisonLinespixError;    
-    double *comparisonLineswl;    
-
+    // Precision/resolution values
+    doubleValue_t resolutionElementInPixels;
     doubleValue_t spectralResolution;
-    double radialVelocityPrecision;    
+    double radialVelocityPrecision;
     
-    double xcorrelation;
+    double xcorrelation; // Cross-correlation between simulated spectra made from the comparison and atlas lines
     
-    Polynomial *wavelengthPolynomial; // lambda(d)
+    operaVector createSimulatedSpectrum(const operaVector& wl, const operaVector& flux, unsigned nstepspersigma) const;
+    void InsertLineMatch(unsigned atlasindex, unsigned compareindex); // Helper function to insert data points from matching atlas and comparison lines
 	
 public:
-		
-	/*
-	 * Constructors
-	 */
 	operaWavelength();
 	operaWavelength(unsigned Coeffs);
-	~operaWavelength();
-	
-	/*
-	 * Methods
-	 */
-	double getDmin(void) const;
-	
-	double getDmax(void) const;
-	
-	void setDmin(double Dmin);
-	
-	void setDmax(double Dmax);
-	
-	double getDistance(unsigned index) const;
-	
-	double getWavelength(unsigned index) const;
-	
-	double getWavelengthError(unsigned index) const;
-
-	unsigned getMatchAtlasIndex(unsigned index) const;
-    
-	unsigned getMatchComparisonIndex(unsigned index) const;
-    
-	double getcentralWavelength(void) const;
-	
-	double getinitialWavelength(void) const;
-	
-	double getfinalWavelength(void) const;
 	
 	Polynomial *getWavelengthPolynomial(void);
-	
 	const Polynomial *getWavelengthPolynomial(void) const;
-	
-	void CalculateWavelengthSolution(unsigned maxcoeffs, bool witherrors);
-    
-    void RefineWavelengthSolution(unsigned ncoeffs, bool witherrors);    
-	    
-    /*
-	 * Clean wavelength and distance data for fitting
-	 */
-    
-    void setnDataPoints(unsigned NDataPoints);
-    
-    unsigned getnDataPoints(void) const;
-	
-	void createDataVectors(unsigned NDataPoints);
-    
-    void createDataVectors(unsigned NDataPoints, double *WavelengthData, double *WavelengthErrors, double *DistanceData);
-
-	void deleteDataVectors(void);    
-	/*
-	 * Atlas wavelength data
-	 */
-	
-    void setnAtlasLines(unsigned NAtlasLines);
-    
-    unsigned getnAtlasLines(void) const;   
-
-    double getatlasLinesflux(unsigned index) const;
-    
-    double getatlasLineswl(unsigned index) const;
-    
-    double getatlasLineswlError(unsigned index) const;    
-    
-    void setatlasLinesflux(double AtlasLinesflux, unsigned index);
-    
-    void setatlasLineswl(double AtlasLineswl, unsigned index);     
-    
-    void setatlasLineswl(double AtlasLineswl, double AtlasLineswlError, unsigned index);     
-
-    void createAtlasDataVectors(unsigned NAtlasLines);
-    
-    void createAtlasDataVectors(unsigned NAtlasLines, double *AtlasLineswl, double *AtlasLineswlError, double *AtlasLinesflux);
-    
-    void deleteAtlasDataVectors(void);
-        
-	/*
-	 *  Comparison pixel data
-	 */    
-    
-    void setnComparisonLines(unsigned NComparisonLines);
-
-    unsigned getnComparisonLines(void) const;
-
-    double getcomparisonLinesflux(unsigned index) const;
-    
-    double getcomparisonLinespix(unsigned index) const;
-    
-    double getcomparisonLinespixError(unsigned index) const;
-    
-    double getcomparisonLineswl(unsigned index) const;
-    
-    void setcomparisonLinesflux(double ComparisonLinesflux, unsigned index);
-    
-    void setcomparisonLinespix(double ComparisonLinespix, double ComparisonLinespixError, unsigned index); 
-    
-    void setcomparisonLineswl(double ComparisonLineswl, unsigned index);  
-    
-    void recalculateComparisonLineswlVector(void);   
-    
-    void createComparisonDataVectors(unsigned NComparisonLines);
-    
-    void createComparisonDataVectors(unsigned NComparisonLines, double *ComparisonLinespix, double *ComparisonLinespixError, double *ComparisonLinesflux);    
-    
-    void deleteComparisonDataVectors(void); 
-    
-    
-	 /* 
-      * Other Methods     
-      */
-    void setSpectralResolution(doubleValue_t Resolution);
-    
-    doubleValue_t getSpectralResolution(void) const;
-	
-    void calculateSpectralResolution(doubleValue_t ResolutionElementInPixels);
-    
-    double evaluateWavelength(double distanceValue) const;
-    
+	double evaluateWavelength(double distanceValue) const;
+    operaVector evaluateWavelength(const operaVector& distancevalues) const;
     double convertPixelToWavelength(double DeltaDistanceInPixels) const;
+    void applyRadialVelocityCorrection(double rvshift_InKPS);
     
-    void setRadialVelocityPrecision(double radialvelocityprecision);    
-    
-    double getRadialVelocityPrecision(void) const;
-    
-    void calculateRadialVelocityPrecision(void);
-    
-    double calculateWavelengthRMSPrecision(void);
-    
-    double calculateWavelengthMedianPrecision(void);   
-    
-    void refineWavelengthSolutionOfSecondOrderByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch);
-    
-    void refineWavelengthSolutionByFindingMaxMatching(unsigned NpointsPerPar, double ParRangeSizeInPerCent, double acceptableMismatch);
-    
-    unsigned createAtlasSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
-    
-    unsigned createComparisonSimulatedSpectrumWithConstantFlux(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
-    
-    unsigned createAtlasSimulatedSpectrum(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
-        
-    unsigned createComparisonSimulatedSpectrum(double *outputwl, double *outputSpectrum, unsigned nstepspersigma);
-
-	double getxcorrelation(void) const;
+	double getDmin(void) const;
+	double getDmax(void) const;
+	void setDmin(double Dmin);
+	void setDmax(double Dmax);
+	double getinitialWavelength(void) const;
+	double getfinalWavelength(void) const;
+	double getcentralWavelength(void) const;
 	
-	void setxcorrelation(double Xcorrelation); 
+	unsigned getnDataPoints(void) const;
+	double getDistance(unsigned index) const;
+	double getWavelength(unsigned index) const;
+	double getWavelengthError(unsigned index) const;
+	unsigned getMatchAtlasIndex(unsigned index) const;
+    unsigned getMatchComparisonIndex(unsigned index) const;
+    void createDataVectors(const operaVector& WavelengthData, const operaVector& WavelengthErrors, const operaVector& DistanceData);
+    void resize(unsigned NDataPoints);
+	void clear();
+	
+	unsigned getnAtlasLines(void) const;   
+    double getatlasLinesflux(unsigned index) const;
+    double getatlasLineswl(unsigned index) const;
+    double getatlasLineswlError(unsigned index) const;    
+    void setAtlasDataVectors(const operaSpectralLineList& atlasLines);
     
-    void calculateXCorrelation(void);
+    unsigned getnComparisonLines(void) const;
+    double getcomparisonLinesflux(unsigned index) const;
+    double getcomparisonLinespix(unsigned index) const;
+    double getcomparisonLinespixError(unsigned index) const;
+    double getcomparisonLineswl(unsigned index) const;
+    void setComparisonDataVectors(const operaSpectralLineList& comparisonLines);
+    void recalculateComparisonLineswlVector(void);
     
     void matchAtlaswithComparisonLines(double acceptableMismatch);    
-            
     double getPerCentageOfComparisonMatch(void) const;
-    
     double getPerCentageOfAtlasMatch(void) const;
-    
     void filterDataPointsBySigmaClip(double nsig);
-    
     void filterDataPointsByErrorClip(double nsig);
     
-    void applyRadialVelocityCorrection(double rvshift_InKPS);
-
+	doubleValue_t getResolutionElementInPixels(void) const;
+    void setResolutionElementInPixels(doubleValue_t ResolutionElementInPixels);
+    doubleValue_t getSpectralResolution(void) const;
+	void setSpectralResolution(doubleValue_t Resolution);
+    double getRadialVelocityPrecision(void) const;
+    void setRadialVelocityPrecision(double radialvelocityprecision);    
+    void calculateSpectralResolution();
+    void calculateRadialVelocityPrecision(void);
+    double calculateWavelengthRMSPrecision(void);
+    double calculateWavelengthMedianPrecision(void);   
+    
+    double getxcorrelation(void) const;
+	void setxcorrelation(double Xcorrelation); 
+    void calculateXCorrelation(void);
+    
+	operaVector createAtlasSimulatedSpectrumWithConstantFlux(unsigned nstepspersigma) const;
+    operaVector createComparisonSimulatedSpectrumWithConstantFlux(unsigned nstepspersigma);
+    operaVector createAtlasSimulatedSpectrum(unsigned nstepspersigma) const;
+    operaVector createComparisonSimulatedSpectrum(unsigned nstepspersigma);
+    
+	void CalculateWavelengthSolution(unsigned maxcoeffs, bool witherrors);
+    void RefineWavelengthSolution(unsigned ncoeffs, bool witherrors);    
+	void refineWavelengthSolutionOfSecondOrderByXCorrelation(unsigned nPointsPerParameter, double parameterRangetoSearch);
+    void refineWavelengthSolutionByFindingMaxMatching(unsigned NpointsPerPar, double ParRangeSizeInPerCent, double acceptableMismatch);
 };
+
 #endif

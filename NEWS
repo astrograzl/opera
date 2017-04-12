@@ -1,78 +1,139 @@
-Feb 17 2016
-  - Updated the ArgumentHandler library to have a more flexible and robust design.
-  - Added several functions to operaSpectralTools and operaSpectralOrderVector libraries for increased utility.
-  - Separated vector calculation functions from operaVector library into new operaVectorOperations.
-  - Fixed bug that occured when reading in gain and disp formats, and improved range checking in GainBiasNoise library.
-  - Updated harness and scripts to allow parallel reductions to work properly, and improve error handling. Harness now produces intensity products before polarimetry products, and by default reduces 4 exposures at a time.
-  - Added functionality to remove continuum polarization, and to output the result along with the unmodified polarization values. Removal calculations currently disabled pending further testing.
-  - Updated operaTelluricWavelengthCorrection: Can read raw lines or HITRAN atlas. Ignores duplicate spectral lines from merged orders. Improved checks for mutiple nearby line matches. Makes better use of data being sorted.
-  - Doubled the result of the StokesI calculation.
-  - Updated the measureContinuum method in operaSpectralOrder library to give less curved edges, since it was introducing features on the spectra during normalization.
-  - Updated createBeamsAndBackgrounds method in operaSpectralOrder library to still work when the number of beams is zero.
-  - Updated FITS product headers for improved clarity and to fix a bug.
-  - Updated analysis modules: added new modules operaRadialVelocityFromSelectedLines and operaStackObjectSpectra, and updated existing module operaRadialVelocity.
-  - Updated python harness to incorporate a variety of changes, including implementing new analysis modules.
-  - Updated harness parameters for instrument profile, extraction, and telluric correction.
-  - Added new wavelength masks for continuum detection and telluric line detection.
+Apr 13 2017
+ Documentation:
+  - Added an offline copy of the OPERA documentation wiki pages.
+  - Removed README, DEPENDENCIES, INSTALLATION, the pipeline cookbook, and most files from doc (a few moved to extras instead).
+ Features and fixes:
+  - Implemented extraction option rejectBadpixInRawExtraction which filters out outlier pixels during raw extraction.
+  - Updated operaGain to changed minimum gain threshold from hardcoded value to optional parameter, and added this parameter to Espadons harness.
+  - Updated operaTelluricWavelengthCorrection to clarify argument descriptions, add linesdatafilename output file, and added output messages.
+  - Updated output text files so the specified number of orders accurately represents the contents of the file.
+  - Fixed a crash that occurred when setting beam SEDs from a continuum sample that was created without using the beams.
+  - Updated continuum mesauring function to throw an error message when not enough points are used to bin the continuum.
+  - Updated argurment descriptions.
+  - Implemented ability to search for and repair a shift in the numbering of orders compared to initial wavelength soltuons.
+  - Changes to clean up operaWavelengthCalibration code slightly modified the results of the module, and fixed small bugs.
+  - Added Python pipelines for MUSICOS and OES instruments, and updated the GRACES and ESPaDOnS pipelines.
+ Behind the scenes code changes:
+  - Updated Vector to work with more standard library functions, and added functions to condtionally filter out elements.
+  - Added functions to calculate the Mean Square and RMS of a Vector.
+  - Added Vector<unsigned> implementation.
+  - Updated operaFluxVector to add constructor taking in two operaVectors.
+  - Updated operaLMFitPolynomial to take in const parameters.
+  - Updated Gaussian, operaSpectralFeature, and operaSpectralLines classes to make methods const correct.
+  - Updated Polynomial class to add operaVector getters/setters, and to make parenthesis operator and printEquation method const.
+  - Refactored methods used for optimal extraction.
+  - Added method to operaSpectralOrder to reassign order number.
+  - Added methods to operaSpectralOrderVector to shift order numbers for all orders, and replaced main array with vector.
+  - Removed unused file floatingvector.h
+  - Refactored and simplified operaWavelength class.
+  - Updated several functions and classes and in operaSpectralTools to refactor, add flexibility, simplify, and optimize.
+  - Added operaSpectralLineList class to operaSpectralTools, along with various functions to process spectral lines.
+  - Refactored line detection methods in operaSpectralOrder and operaSpectralOrderVector.
+  - Modified operaTelluricWavelengthCorrection to use operaSpectralLineList.
+  - Heavily refactored operaWavelengthCalibration.
+  - Refactored and simiplfied operaCreateFlatResponse.
+  - Refactored parts common to all Python pipelines into new pyLib.
 
-Dec 24 2015
- Core libraries:
-  - Added operaVector class to provide an object oriented replacement to using double arrays. Provides vector calculations and other common functionality using the C++ standard library.
-  - Updated core library classes (operaFluxVector, operaSpectralElements, operaStokesVector, and operaPolarimetry) to:
-     - have more consistent and cleaner designs,
-     - use operaVector instead of arrays and pointers
-     - include updated Doxygen comments
-     - clean up include file trees
-  - Updated other libraries and modules to adapt to and simplify code using these changes.
- Range trimming:
-  - Added operaIndexRange class, to represent a range of elements in operaVector.
-  - Added methods to trim data to an operaIndexRange for operaVector, operaFluxVector, operaStokesVector, operaSpectralElements, and operaPolarimetry.
-  - Added method to operaSpectralElements to get an operaIndexRange for the wavelengths between given bounds.
-  - Modified operaSpectralOrder method TrimOrderToWavelengthRange to use these new methods, and to use minwavelength and maxwavelength members instead of taking parameters, fixing a bug where the xcorr was incorrect.
+Nov 30 2016
+ Optimal Extraction:
+   Motivation - After the changes made to the calculations in optimal extraction, two problems emerged. The first was an increase in the noise level of the flux.
+   The second problem was large artifacts appearing in the flux, especially when cosmic rays were prevalent. The underlying issue for this second problem was that
+   the pixel rejection scheme was filtering too aggresively in both directions in the case of outliers, causing many good subpixels to be lost with the bad ones,
+   skewing the flux towards any remaining pixels with flux values in between the worst one and the good ones. The primary reason for the first issue was a noisier
+   extracted flat-field spectrum, which was caused by the revised image profile being worsened with each iteration.
+   - Updated algorithm to not filter out subpixels if the measured flux is lower than the expected flux.
+   - Updated algorithm to only filter remaining subpixels with the largest residuals each iteration, rather than all subpixels with residuals past a fixed cutoff.
+   - Replaced parameter sigmaclip (fixed cutoff) with sigmaClipRange (divisor range from max residual) and minSigmaClip (limit to never filter below).
+   - Removed image profile refinement step.
+   - Increased number of iterations for object spectra to compensate for other changes, and decreased number of iterations for extracting flat-field spectra.
+   - Now even fewer flux artifacts/cosmic rays appear than did in the "clean" version, and noise levels are closer to expected values as well.
+ Spectral Energy Distribution (SED):
+   Motivation - The SED class was used by operaSpectralOrder in a such a way where some methods needed to be called in a specific order for resource allocation.
+   This led to effects such as making it impossible to apply a flat response or flux normalization without first applying a flat field correction.
+   - Refactored and simplified the design of operaSpectralEnergyDistribution class.
+   - Updated operaSpectralOrder to create SED objects during initialization, making operations that use the SED more independent of each other.
+   - Removed checks for a pre-existing SED in places it no longer needs to be a requirement.
+   - Simplified several pieces of code using SEDs in the flux calibration modules.
+ Extraction Aperture:
+   Motivation - When using a line aperture less than 1 pixel wide together with 1,1 pixel sampling, the method used for determining which subpixels fell within the
+   aperture (looking at the center of each subpixel) could frequently fail to find a subpixel in the y-range at many or all of subpixel x-positions. Since the
+   subpixels for each aperture are determined as a single pattern once, and then that pattern is shifted to each photocenter, this could mean no flux would be
+   found across the entire order. A simple, albiet imperfect, solution is to shift the aperture line to try to hit the section of the pixel with the highest flux.
+   - Refactored and simplified PixelSet class.
+   - Refactored operaGeometricShapes library and updated the shape classes to use a more consistent design.
+   - Refactored operaExtractionAperture class and turned it into a template class which can be used with any shape.
+   - Fixed multiple error conditions that could occur when calculating overlapping ranges between operaInstrumentProfile and operaExtractionAperture.
+   - Updated Optimal Extraction to work when beam apertures do not each have equal pixel counts.
+   - Refactored operaExtractionApertureCalibration module, and added more error checking.
+   - Added switch applyOffset in operaExtractionApertureCalibration to use the y-intercept of the IP line fit for the line aperture.
+   - Fixed a bug that occurs when stitching apertures not centered at y=0.
+   - Updated operaExtraction to normalize the flux for each beam using to the average number of pixels in each beam aperture.
+   - Added parameter aperapplyoffset to harness to enable the applyOffset switch.
+ Instrument Profile:
+   Motivation - The resource allocation scheme for operaInstrumentProfile was complicated, and led to the same object being reused for entirely different purposes.
+   This issue partially stemmed from classes used for components (e.g. Matrix and PolynomialMatrix) not using a simple allocation scheme either.
+   - Added a class template Vector based on existing operaVector class. Replaced operaVector using this template, and added Vector<float> implementation.
+   - Templatized operaVectorOperations.
+   - Renamed identifiers with misleadingly generic names like Matrix and Cube to prevent name conflicts.
+   - Added Matrix and Cube class templates to operaMatrix library, and replaced DMatrix and DCube using these templates.
+   - Refactored Polynomial class, and added evaluation operator to allow use as a functor.
+   - Replaced the formula used for evaluation in Polynomial class with the formula from PolynomialEval class. Replaced PolynomialEval with Polynomial.
+   - Removed PolynomialMatrix and CCube code from operaLibCommon. Added PolynomialMatrix as a typedef for Matrix<Polynomial> in operaInstrumentProfile.
+   - Refactored operaInstrumentProfile class.
+ Other module changes:
+   operaGain - Added an error check for gain values significantly lower than 1 (under 0.95, specfically). This occuring typically points to an input file problem.
+   operaStitchOrders - Moved module to extras. Also fixed an issue in the harness where creating the wcal from wcar would fail on Mac platforms.
+   operaHeliocentricWavelengthCorrection - Updated to use a leapsecond list (config/leapseconds.dat) to convert UTC to TT. Fixed MJD keyword selection in harness.
+   operaTelluricWavelengthCorrection:
+     - Updated to skip over orders that are outside of the wavelength range of lines used in the Telluric atlas.
+     - Fixed an issue where duplicate object lines weren't ignored correctly.
+     - Improved parameter requirements and outputs, tying each parameter more strictly to the method it is used with, adding parameter duplicateLineThreshold.
+     - Added a missing optional parameter (minNumberOfMatchedLines) to the harness.
+     - Added skyOverStarFiberAreaRatio and starplusskyInvertSkyFiber parameter for StarPlusSky mode.
+     - Replaced the telluric atlas.
+   operaExtendedSpectrumCreation - Modified to make inputFlatFluxCalibration an optional argument.
+   operaPolarimetryCorrection - Modified to add up individual exposure times in the harness instead of multiplying the first exposure time by 4 inside the module.
+   operaGenerateLEFormats - Set RemoveContinuumPolarization to 1 in the harness.
+   operaExtraction, operaTelluricWavelengthCorrection, operaStarPlusSky - Updated to correctly use skyOverStarFiberAreaRatio parameter.
+   operaSNR - Updated harness to make SNR plots match with Upena.
  Other library changes:
-  - Added operaSpectrum class to operaSpectralTools, which uses an operaVector and operaFluxVector to represent wavelength-flux pairs.
-  - Updated certain methods in operaSpectralOrderVector to use operaVector and operaSpectrum instead of using arrays.
-  - Updated operaSpectralOrder to seperate the calculation of fluxSNR from getting the calculated values.
-  - Added a fitSpectrum function to operaSpectralTools, and updated operaMasterFluxCalibration to use fitSpectrum.
-  - Updated frequently used functions in operaFit library to take const parameters.
-  - Fixed const correctness on a couple of methods in operaWavelength library.
-  - Updated calculateDeltaRadialVelocityInKPS function in operaSpectralTools to not take unused spectralResolution parameter.
-  - Moved operaSpectrumSimulation library to extras.
- Heliocentric wavelength correction:
-  - Added operaDateTime library to perform date and time conversions.
-  - Added simple operaMJD command line tool to convert input time formats to modified Julian date.
-  - Updated espadons harness to select most accurate FITS header value available for the start time of the exposure and get MJD parameter from that time.
-  - Rewrote operaHeliocentricWavelengthCorrection to use new calculation methods based on IRAF and the IDL Astronomy Library.
-  - Fixed bug with sexigesimal to decimal calculations with negative sign.
-  - Removed operaBarycentricWavelengthCorrection and operaCentricWavelengthCorrection.
-  - Removed SOFA library from OPERA and moved operaHelio and operaJD libraries to extras.
- Telluric wavelength correction (operaTelluricWavelengthCorrection):
-  - Added new parameters (LocalMaxFilterWidth, MinPeakDepth, DetectionThreshold, nsigclip) to replace constant values.
-  - Removed ability to read and use KPNO telluric spectrum for comparison.
-  - Updated telluric line matching to use radialVelocityRange parameter.
-  - Updated to use operaVector, operaFluxVector, and operaSpectrum instead of using arrays or vectors.
-  - Switched variables for results to double precision.
-  - Cleaned up/reorganized code.
- Data text formats:
-  - Modified order of Stokes I columns in .pol files for consistency with columns in .spc files.
-  - Modified all formats to use a more consistent method for writing their headers.
-  - Added a way for modules to read and write custom formats using the same layout as existing formats.
-  - Added new custom rvel and tell formats with several additional values written by their respective modules.
-  - Removed old rvel and tell formats, and updated existing modules to read new rvel and tell files.
-  - Added a new spectral resolution (sres) data file output for operaWavelengthCalibration.
- FITS products:
-  - Added q.fits product (extended polarimetry) output to harness.
-  - Removed unecessary references to operaFITSProduct from other libraries.
-  - Rewrote many parts of the operaFITSProduct library, removing unused functionality.
-  - Moved code that wrote column names depending on the format from operaFITSProduct to operaCreateProduct.
-  - Updated operaCreateProduct to put correct column names in m.fits, q.fits, and polar intensity i.fits headers.
-  - Updated operaCreateProduct to insert values from the SNR, rvel, tell, and sres files into the FITS header.
-  - Removed wavelengthrange option from operaCreateProduct, and cleaned up other bits of the module.
- Other changes:
-  - Updated harness to allow input images to be read in by modules from other locations than DATADIR (path in rlst file is used), and to allow distribution of intensity outputs.
-  - Fixed a bunch of the descriptions/output by the harness during the LE format creation.
-  - Corrected error types in operaSpectralOrder::normalizeSpectralElementsByConstant to be division by zero instead of length mismatch.
-  - Fixed a bunch of compiler warnings.
-  - Updated operaExtraction to include new argument biasConstantToAdd.
-  - Updated operagetmode to work with mode values for GRACES, and moved the script outside of the espadons folder.
-  - Added starplusskyInvertSkyFiber parameter to harness which is passed to operaExtraction during science data extraction.
+  - Combined duplicate continuum measuring functionality in operaSpectralOrder and operaSpectralEnergyDistribution and into a new function in operaSpectralTools.
+  - Modified operaSpectralOrder and operaSpectralOrderVector to make method names and parameter lists more consistent, updated comments, and cleaned up code.
+  - Added MedianQuick function (destructive median) for operaVector.
+  - Updated ladfit functions for const-correctness. Added LinearFit function based on ladfit algorithm, along with overload to calculate errors.
+  - Modified fitSpectrumToPolynomial in operaSpectralTools to take in and return operaVectors instead of operaFluxVectors.
+  - Added method to operaSpectralOrderVector to get a min and max order number from a wavelength range, with optional min and max order limits.
+  - Simplified the code to set wavelengths from calibrations.
+  - Added skyOverStarFiberAreaRatio parameter to calculateStarAndSkyElements and correctFlatField functions.
+  - Added cmath includes and/or removed math.h includes in operaMatrix, Polynonmial, and operaSpectralOrder to resolve minor calculation discrepancies.
+  - Removed some unused functions from operaStats.h, and cleaned up whitespace.
+  - Cleaned up various unnecessary includes, fixed compiler warnings and other miscellaneous code cleanup.
+
+Jul 20 2016
+  - Added ChiSqr function for operaVector.
+  - Added DMatrix and DCube classes for matrix and cube data of type double.
+  - Refactored and simplified operaInstrumentProfile. Modified profile fitting methods to filter out all NaNs.
+  - Refactored flux extraction methods in operaSpectralOrder.
+  - Refactored optimal extraction methods, fixed incorrect variance calculations, and fixed an issue where filtering out pixels would distort the image profile.
+  - Refactored operaExtractionApertureCalibration module. Fixed an error in tilt calculations. Fixed a bug which could cause a segfault.
+  - Fixed operaRotateMirrorCrop to use FITS compression type value, preventing a crash with newer versions of cfitsio. Fixed a bug with image file suffixes.
+  - Updated GRACES Python pipeline.
+
+Mar 29 2016
+  - Updated operaVector, operaFluxVector, and operaVectorOperations to add missing functionality, remove unnecessary methods, and improve comments.
+  - Updated operaSpectralElements to add missing getters and setters, and removed unnecessary methods.
+  - Refactored polarization calculation methods in operaPolarimetry, and fixed a bug that occured when calculating polarization from the degree of polarization.
+  - Modified includes so rather than operaSpectralTools using operaSpectralOrder, operaSpectralOrder uses operaSpectralTools which then uses operaSpectralElements.
+  - Removed detectSpectralLinesInSpectralOrder function from operaSpectralTools and replaced it with detectSpectralLines method in operaSpectralOrder.
+  - Updated and added classes and functions in operaSpectralTools to simplify storing and processing multiple flux vectors, and to improve performance.
+  - Added methods to operaSpectralOrder to simplify iterating through beams. Refactored operaSpectralOrder and operaSpectralOrderVector using these methods.
+  - Refactored, cleaned up, and fixed many parts of operaSpectralOrder and operaSpectralOrderVector with unclear behavior and inconsistent design.
+  - Updated variance calculation in fitSEDFcalAndThroughputToFlatResp to use var(1/flatResp) instead of just 1/flatResp.
+  - Updated operaFit library to use Horner's method for faster polynomial evaluation, and to make parameters more flexible for operaMPFitPolynomial function.
+  - Updated fitSpectrumToPolynomial function to filter out NaN flux values, and to disregard flux error values. Removed obsolete parameter portionToUseForFit.
+  - Updated operaPolarimetryCorrection to re-enabled continuum polarization since it no longer freezes.
+  - Updated harness to be able to turn continuum polarization removal in LE products on or off via the RemoveContinuumPolarization parameter.
+  - Updated operaArgumentHandler class to make verbose, debug, trace, and plot flags static so they can be accessed by library methods.
+  - Added tilt parameter to operaExtractionApertureCalibration to specify a fixed tilt for all orders when constantTilt is enabled.
+  - Updated harness for CFHT operations to improve reducing from archive and distribution.
+  - Fixed several errors in comments.

@@ -228,10 +228,10 @@ int main(int argc, char *argv[])
 						}
 						if (spectralOrder->gethasExtractionApertures()) {
 							for(unsigned beam=0;beam<spectralOrder->getnumberOfBeams(); beam++) {
-								operaExtractionAperture *beamAperture = spectralOrder->getExtractionApertures(beam);
-								Line *beamLineAperture = beamAperture->getLineAperture();
-								fout << beamLineAperture->getMidPoint()->getXcoord() << ' '
-								<< beamLineAperture->getMidPoint()->getYcoord() << ' '            
+								operaExtractionAperture<Line> *beamAperture = spectralOrder->getExtractionApertures(beam);
+								const Line *beamLineAperture = beamAperture->getApertureShape();
+								fout << beamLineAperture->getMidPoint().getXcoord() << ' '
+								<< beamLineAperture->getMidPoint().getYcoord() << ' '            
 								<< beamLineAperture->getWidth() << ' '
 								<< beamLineAperture->getLength() << ' ';
 							}     

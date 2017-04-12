@@ -271,7 +271,7 @@ done:
  * \return void
  */
 
-void ladfitWithError_d(double x[], double y[], int nX, double *a, double *aError, double *b, double *bError, double *absdev)
+void ladfitWithError_d(const double x[], const double y[], int nX, double *a, double *aError, double *b, double *bError, double *absdev)
 {
 	double aa, bb, f, f1, f2, b1, b2, del, delb, chisqr = 0.0, sigb, sigy;
 	double sx = 0.0, sy = 0.0, sxy = 0.0, sxx = 0.0;
@@ -361,7 +361,7 @@ done:
 	free(dev);
 }
 
-void ladfit_d(double x[], double y[], int nX, double *a, double *b, double *absdev)
+void ladfit_d(const double x[], const double y[], int nX, double *a, double *b, double *absdev)
 {
 	double aa, bb, f, f1, f2, b1, b2, del, delb, chisqr = 0.0, sigb;
 	double sx = 0.0, sy = 0.0, sxy = 0.0, sxx = 0.0;

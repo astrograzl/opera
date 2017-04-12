@@ -208,11 +208,11 @@ void operaGeometry::traceOrder(unsigned coeffs, double &chisqr, bool witherrors)
 	geometryPolynomial = new Polynomial(nparbestfit, par, errs);
 	geometryPolynomial->setChisqr(chisqr);
 	 */
+	geometryPolynomial->resize(nparbestfit);
 	for	(unsigned i=0; i<nparbestfit; i++) {
 		geometryPolynomial->setCoefficient(i, par[i]);
 		geometryPolynomial->setCoefficientError(i, errs[i]);
 	}
-	geometryPolynomial->setOrderOfPolynomial(nparbestfit);
 	geometryPolynomial->setChisqr(chisqr);
 	/* New Apr 25 2013, make sure order length is set */
 	CalculateAndSetOrderLength();

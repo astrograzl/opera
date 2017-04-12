@@ -39,6 +39,7 @@
 #include "libraries/operaIOFormats.h"
 #include "libraries/operaArgumentHandler.h"
 #include <cmath>
+#include <fstream>
 
 /*! \file operaHeliocentricWavelengthCorrection.cpp */
 
@@ -106,6 +107,16 @@ double OrbitalVelocity(double ra_radians, double dec_radians, double JDTime);
  */
 double LunarVelocity(double ra_radians, double dec_radians, double JDTime);
 
+unsigned NumberOfLeapSecondsElapsed(double mjd, string leapSecondList) {
+	ifstream fin(leapSecondList.c_str());
+	unsigned i = 0;
+	for(Date leapSecondDate; fin >> leapSecondDate; i++) {
+		double leapSecondMJD = JDtoMJD(leapSecondDate.ToJulianDayNumber() + 0.5); //Add 0.5, since leap second happens at the end of that day rather than noon
+		if(mjd < leapSecondMJD) break;
+	}
+	return i;
+}
+
 int main(int argc, char *argv[]) {
     string modulename = "operaHeliocentricWavelengthCorrection";
     operaArgumentHandler args;
@@ -116,6 +127,7 @@ int main(int argc, char *argv[]) {
     string observatory_coords_s = "19:49:41.86 -155:28:18.00";
     double observatory_elevation = 4200;
     double etime=0.0;
+    string leapseconds;
     
     args.AddRequiredArgument("outputRVelFile", outputRVelFile, "output radial velocity correction file (.rvel)");
     args.AddRequiredArgument("MJDTime", MJDTime, "time at the exposure start in modified Julian date");
@@ -123,6 +135,7 @@ int main(int argc, char *argv[]) {
     args.AddRequiredArgument("observatory_coords", observatory_coords_s, "observatory geographic coordinates \"latitude longitude\"");
     args.AddRequiredArgument("observatory_elevation", observatory_elevation, "observatory elevation in meters");
     args.AddRequiredArgument("etime", etime, "exposure time (shutter open)");
+    args.AddRequiredArgument("leapseconds", leapseconds, "file with a list of the dates of each leap second");
     
 	try {
 		args.Parse(argc, argv);
@@ -156,6 +169,7 @@ int main(int argc, char *argv[]) {
 			cout << modulename << ": geographic coordinates Latitude = " << lat_degrees  << "deg, Longitude = " << long_degrees << " deg\n";
             cout << modulename << ": observatory_elevation = " << observatory_elevation << " m" << endl;
             cout << modulename << ": etime = " << etime << endl;
+            cout << modulename << ": leapseconds file = " << leapseconds << endl;
 		}
 		
 		MJDTime += SecToDays(etime/2.0); //Divide by 2 to get the middle of the exposure, and convert from seconds to days
@@ -169,7 +183,8 @@ int main(int argc, char *argv[]) {
 		
 		double hmjd = CalculateHMJD(MJDTime, ra_radians, dec_radians);
 		double hjdtime_utc = MJDtoJD(hmjd);
-		double hjdtime_tt = hjdtime_utc + SecToDays(36.0 + 32.184); //Leap seconds to add to have HJD using Atomic Time(TT).
+		unsigned nleapseconds = NumberOfLeapSecondsElapsed(MJDTime, leapseconds);
+		double hjdtime_tt = hjdtime_utc + SecToDays(nleapseconds + 10 + 32.184); //Add leap seconds + 10 to convert UTC to TAI, and add 32.184 more to convert to TT.
 		
 		double vdiurnal = DiurnalVelocity(lat_degrees, long_degrees, observatory_elevation, ra_radians, dec_radians, hjdtime_tt);
 		double vorbital = OrbitalVelocity(ra_radians, dec_radians, hjdtime_tt);

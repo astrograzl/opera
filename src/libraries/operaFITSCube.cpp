@@ -61,7 +61,7 @@ using namespace std;
  */
 operaFITSCube::operaFITSCube() : operaFITSImage()
 {
-	imageType = Cube;
+	imageType = FITSCube;
     naxis = 3;
 }
 
@@ -91,7 +91,7 @@ operaFITSCube::operaFITSCube(unsigned Naxis1, unsigned Naxis2, unsigned Naxis3, 
 	npixels_per_extension = naxis1*naxis2*naxis3;
 	compression = cNone;
     datatype = Datatype;
-	imageType = Cube;
+	imageType = FITSCube;
     hdu = 0;	// signals the a header may need to be created...
 	isLazy = false;
 	
@@ -135,7 +135,7 @@ operaFITSCube::operaFITSCube(string Filename, unsigned Naxis1, unsigned Naxis2, 
     npixels_per_extension = naxis1*naxis2*naxis3;
     compression = Compression;
     datatype = Datatype;
-	imageType = Cube;
+	imageType = FITSCube;
     hdu = 0;	// signals the a header may need to be created...
 	isLazy = IsLazy;
     
@@ -214,7 +214,7 @@ operaFITSCube::operaFITSCube(operaFITSCube &imageIn, bool ViewOnly, bool AddHead
 	fptr = imageIn.fptr;
 	isClone = true;				// i.e. do not close fptr
 	datatype = imageIn.datatype;
-	imageType = Cube;
+	imageType = FITSCube;
 	bitpix = imageIn.bitpix;
 	isLazy = imageIn.isLazy;
 	viewOnly = ViewOnly;

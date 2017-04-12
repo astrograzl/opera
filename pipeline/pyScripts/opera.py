@@ -1,6 +1,14 @@
 #!/usr/bin/python
 # -*- coding: iso-8859-1 -*-
 """
+    *** IMPORTANT NOTE ***
+    Use line below as shebang for default python location
+    #!/usr/bin/python
+    
+    Use a line similar to the ones below as shebang for custom python location
+    #!/$HOME/Ureka/variants/common/bin/python
+    #!/opt/anaconda/bin/python
+
     Created on Oct 21 2014
 
     Description: A wrapper to run Opera ESPaDOnS reduction pipeline.
@@ -11,7 +19,7 @@
     
     Simple usage example:
     
-    ./opera.py --night=13BQ04-Sep20 -pvt
+    /Users/edermartioli/opera-1.0/pipeline/pyScripts/opera.py --datarootdir=/data/espadons/ --pipelinehomedir=/Users/edermartioli/opera-1.0 --productrootdir=/Users/edermartioli/Reductions/espadons/ --night=CoolSnap-14BQ02-Aug13 --product="CALIB" -pvt
 """
 
 __version__ = "1.0"

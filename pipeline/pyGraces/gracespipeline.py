@@ -3,10 +3,15 @@
 Created on May 28 2015
 @author: Eder Martioli
 Laboratorio Nacional de Astrofisica, Brazil
-Last update on May 28 2015
+Last update on Mar 07 2017
 """
-import sys
+import sys,os
 import graces
+
+pylibdir = os.path.split(os.path.dirname(__file__))[0] + '/pyLib'
+sys.path.insert(0,pylibdir)
+
+from pipelinebrain import Products
 
 ############# MAIN FUNCTION TO EXECUTE PIPELINE ###############
 def executePipeline(input, Dirs, config, keywords):
@@ -40,25 +45,19 @@ def executePipeline(input, Dirs, config, keywords):
     """
     CALIBRATION: Create calibration product file names, dependencies and command lines: 
     """
-    productFilenames = graces.setProductFilenames(Dirs,night,Instmode,Readmode,DefaultCal,keywords,allowanyreadout)
     plotFilenames = graces.setPlotFilenames(Dirs,night,Instmode,Readmode,plot)
-    productDependencies = graces.setDependencies(productFilenames,Instmode)
-    productCommands = graces.setPipelineCommands(productFilenames,Dirs,night,Instmode,Readmode,keywords,config,plotFilenames,allowanyreadout,verbose)
-    
-    """
-    Configure calibration product targets
-    """
-    products = graces.Products(productFilenames,plotFilenames,productDependencies,productCommands,trace)
+    productFilenames,productDependencies,productCommands,productCommandTypes = graces.setCalibrationProducts(Dirs,night,Instmode,Readmode,DefaultCal,keywords,allowanyreadout,config,plotFilenames,verbose)
     
     """
     REDUCTION: Create object product file names, dependencies and command lines:
     """
-    objproductFilenames = graces.setObjectTargets(productFilenames, Dirs, night, Instmode, Readmode, DefaultCal, keywords, config, verbose)
+    objectproducts = graces.setObjectProducts(productFilenames, Dirs, night, Instmode, Readmode, DefaultCal, keywords, config, verbose)
 
     """
-    Configure reduction product targets
+    Configure calibration and object product targets:
     """
-    products.addTargets(objproductFilenames)
+    products = Products(productFilenames,plotFilenames,productDependencies,productCommands,productCommandTypes,trace)
+    products.addTargets(objectproducts)
 
     """
     Activate simulation mode

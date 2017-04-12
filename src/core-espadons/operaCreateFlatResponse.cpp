@@ -51,25 +51,9 @@ using namespace std;
 
 operaArgumentHandler args;
 
-/*
- * the reference spectrum
- */
-static unsigned nPointsInReferenceSpectrum = 0;
-static double referenceWavelength[MAXFLUXREFERENCELENGTH];
-static double referenceIntensity[MAXFLUXREFERENCELENGTH];
-static double referenceNormIntensity[MAXFLUXREFERENCELENGTH];
-static double referenceVariance[MAXFLUXREFERENCELENGTH];  
-
-unsigned getReferenceSpectrumRange(double wl0, double wlf, double **wl, double **flux, double **normflux, double **fluxvar);
-unsigned readReferenceSpectrum(string reference_spectrum, double *referenceWavelength, double *referenceIntensity, double *referenceVariance);
-
-void normalizeIntensityByMaximum(unsigned np, double *intensity, double *variance);
-void normalizeIntensityByReferenceWavelength(unsigned np, double *intensity, double *wavelength, double *outputNormIntensity, double refWavelength);
-double getReferenceFlux(unsigned np, double *intensity, double *wavelength, double refWavelength);
-
-double operaArrayMaxValue_d(unsigned np, const double *xarray, const double *yarray, double *maxx);
-unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, float *refContinuumwl,float *refContinuumflux,float *refContinuumNormflux);
-unsigned getReferenceSpectrumRange(unsigned nRefContinuum,double *refContinuumwl,double *refContinuumflux,double *refContinuumNormflux,double wl0,double wlf, double **wl, double **flux, double **normflux);
+operaSpectrum readReferenceSpectrum(string reference_spectrum);
+double getIntensityAtReferenceWavelength(const operaSpectrum& spectrum, double refWavelength);
+operaSpectrum getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, const operaSpectrum& referenceSpectrum, double referenceFluxForNormalization);
 
 /*! 
  * operaCreateFlatResponse
@@ -189,22 +173,14 @@ int main(int argc, char *argv[])
 		 * Read reference calibrated spectrum
 		 *		lambda vs. intensity, intensityVariance (optional)
 		 */
-        nPointsInReferenceSpectrum = readReferenceSpectrum(inputCalibratedSpectrum, referenceWavelength, referenceIntensity, referenceVariance);        
-        normalizeIntensityByReferenceWavelength(nPointsInReferenceSpectrum,referenceIntensity,referenceWavelength,referenceNormIntensity,wavelengthForNormalization);
+        operaSpectrum referenceSpectrum = readReferenceSpectrum(inputCalibratedSpectrum);
+        double referenceFluxForNormalization = getIntensityAtReferenceWavelength(referenceSpectrum, wavelengthForNormalization);
         
         //---------------------------------
         // Loop over orders to set maximum number of elements, set wavelength and the number of beams
         // --> maxNElements & NumberofBeams
-        unsigned NumberofBeams = spectralOrders.getNumberofBeams(minorder, maxorder);
-        
-        for (int order=minorder; order<=maxorder; order++) {
-            operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
-            if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasWavelength()) {
-                operaWavelength *wavelength = spectralOrder->getWavelength();
-                operaSpectralElements *SpectralElements = spectralOrder->getSpectralElements();                
-                SpectralElements->setwavelengthsFromCalibration(wavelength);
-            }
-        }
+        unsigned NumberofBeams = spectralOrders.getNumberOfBeams(minorder, maxorder);
+        spectralOrders.setWavelengthsFromCalibration(minorder, maxorder);
         if (args.verbose) cout << "operaCreateFlatResponse: NumberofBeams = " << NumberofBeams << endl;
         if(NumberofBeams == 0) throw operaException("operaCreateFlatResponse: ", operaErrorNoInput, __FILE__, __FUNCTION__, __LINE__);
 
@@ -218,36 +194,18 @@ int main(int argc, char *argv[])
         
         //---------------------------------
         // Calculate a clean sample of the continuum from the ref spectrum
-        float *refContinuumwl = new float[MAXNUMBEROFREFWLRANGES];
-        float *refContinuumflux = new float[MAXNUMBEROFREFWLRANGES];
-        float *refContinuumNormflux = new float[MAXNUMBEROFREFWLRANGES];
+        operaSpectrum refContinuum = getContinuumFromInputReferenceSpectrum(inputWavelengthMaskForRefContinuum, referenceSpectrum, referenceFluxForNormalization);
 
-        unsigned nRefContinuum = getContinuumFromInputReferenceSpectrum(inputWavelengthMaskForRefContinuum,refContinuumwl,refContinuumflux,refContinuumNormflux);
+        operaSpectrum uniformRef = calculateUniformSample(refContinuum, numberOfPointsInUniformRefSample);
 
-        float *uniformRef_wl = new float[numberOfPointsInUniformRefSample];
-        float *uniformRef_flux = new float[numberOfPointsInUniformRefSample];
-        
-        calculateUniformSample(nRefContinuum,refContinuumwl,refContinuumflux,numberOfPointsInUniformRefSample,uniformRef_wl,uniformRef_flux);
+        operaSpectrum uniform = spectralOrders.calculateCleanUniformSampleOfContinuum(minorder, maxorder, binsize, DELTA_WL, inputWavelengthMaskForUncalContinuum, numberOfPointsInUniformSample, true);
 
-        float *uniform_wl = new float[numberOfPointsInUniformSample];
-        float *uniform_flux = new float[numberOfPointsInUniformSample];
-        float *uniform_Beamflux[MAXNUMBEROFBEAMS];
-        for(unsigned beam=0;beam<NumberofBeams;beam++) {
-            uniform_Beamflux[beam] = new float[numberOfPointsInUniformSample];
-        }
-        
-        spectralOrders.calculateCleanUniformSampleOfContinuum(minorder,maxorder,binsize,DELTA_WL,inputWavelengthMaskForUncalContinuum,numberOfPointsInUniformSample,uniform_wl,uniform_flux,uniform_Beamflux,TRUE);
+        const operaVector& uniform_wl = uniform.wavelengthvector();
+        operaVector calibratedModelFlux = fitSpectrum(uniformRef.wavelengthvector(), uniformRef.fluxvector(), uniform_wl);
 
-        float *calibratedModelFlux = new float[numberOfPointsInUniformSample];
-        operaFitSpline(numberOfPointsInUniformRefSample,uniformRef_wl,uniformRef_flux,numberOfPointsInUniformSample,uniform_wl,calibratedModelFlux);
+        operaVector flatResp = uniform.fluxvector() / calibratedModelFlux;
 
-        float *flatResp = new float[numberOfPointsInUniformSample];
-
-        for(unsigned i=0;i<numberOfPointsInUniformSample;i++) {
-            flatResp[i] = uniform_flux[i]/calibratedModelFlux[i];
-        }
-        
-        double flatRespForNormalization = getFluxAtWavelength(numberOfPointsInUniformSample,uniform_wl,flatResp,wavelengthForNormalization);
+        double flatRespForNormalization = getFluxAtWavelength(uniform_wl, flatResp, wavelengthForNormalization);
 
         if(outputFITS) {
             /*
@@ -258,8 +216,8 @@ int main(int argc, char *argv[])
             outFlatResp.operaFITSImageCopyHeader(&inImage);
             for(unsigned i=0;i<numberOfPointsInUniformSample;i++) {
                 flatResp[i] /= flatRespForNormalization;
-                outFlatResp.setpixel(uniform_wl[i],i,0);
-                outFlatResp.setpixel(flatResp[i],i,1);
+                outFlatResp.setpixel(float(uniform_wl[i]),i,0);
+                outFlatResp.setpixel(float(flatResp[i]),i,1);
             }
             
             outFlatResp.operaFITSAddComment("Created by the OPERA 1.0");
@@ -296,180 +254,55 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 } 
 
-/*
- * Read the the full reference spectrum
- */
-unsigned readReferenceSpectrum(string reference_spectrum, double *referenceWavelength, double *referenceIntensity, double *referenceVariance) {
-	ifstream astream;
-	string dataline;
-    
-	double tmpwl = -1.0; 
-	double tmpi = -1.0; 
-	unsigned np = 0;
-	
-	astream.open(reference_spectrum.c_str());
+operaSpectrum readReferenceSpectrum(string reference_spectrum) {
+	operaSpectrum referenceSpectrum;
+	ifstream astream(reference_spectrum.c_str());
 	if (astream.is_open()) {
-		while (astream.good()) {
-			getline(astream, dataline);
-			if (strlen(dataline.c_str())) {
-				if (dataline.c_str()[0] == '#') {
-					// skip comments
-				} else {
-					sscanf(dataline.c_str(), "%lf %lf", &tmpwl, &tmpi);
-                    
-                    referenceWavelength[np] = tmpwl;
-                    referenceIntensity[np] = tmpi;
-                    referenceVariance[np] = tmpi;
-                    np++;  
-                }	// skip comments
+		string dataline;
+		while (getline(astream, dataline)) {
+			if (!dataline.empty() && dataline[0] != '#') {
+				double tmpwl, tmpi;
+				sscanf(dataline.c_str(), "%lf %lf", &tmpwl, &tmpi);
+                referenceSpectrum.insert(tmpwl, tmpi, tmpi);
             }
-		} // while (astream.good())
+		}
         
-		if (np > 0) {
-			if (args.verbose) {
-				printf("          [Reference] %d points found wl0=%.2f wlc=%.2f wlf=%.2f\n", np, referenceWavelength[0], referenceWavelength[np/2], referenceWavelength[np-1]);
-			}
-		} else {
-			printf("          [Reference] no points found in flux reference file.\n");
+        if (args.verbose) {
+			if (referenceSpectrum.size() > 0) printf("          [Reference] %d points found wl0=%.2f wlc=%.2f wlf=%.2f\n", referenceSpectrum.size(), referenceSpectrum.firstwl(), referenceSpectrum.midwl(), referenceSpectrum.lastwl());
+			else printf("          [Reference] no points found in flux reference file.\n");
 		}
 		astream.close();
-	}	// if (astream.open())
-	return np;
-}
-
-/*
- * get a subset of the reference spectrum for this order only, between wl0 and wlf
- */
-unsigned getReferenceSpectrumRange(double wl0, double wlf, double **wl, double **flux, double **normflux, double **fluxvar) {
-	unsigned firstline = 0;
-	unsigned np = 0;
-    
-	for (np=0; np<nPointsInReferenceSpectrum; np++) {
-		if (referenceWavelength[np] >= wl0) {
-			if (firstline == 0 && np) {
-                    *flux = &referenceIntensity[np-1];
-                    *normflux = &referenceNormIntensity[np-1];
-                    *wl = &referenceWavelength[np-1];
-                    *fluxvar = &referenceVariance[np-1];
-                    firstline = np-1;
-			}
-			if (referenceWavelength[np] > wlf) {
-                np++;
-				break;
-            }
-		}
 	}
-	if (np == nPointsInReferenceSpectrum) np--;
-	if (np > firstline) return (np-firstline);
-	return 0;
+	return referenceSpectrum;
 }
 
-void normalizeIntensityByReferenceWavelength(unsigned np, double *intensity, double *wavelength, double *outputNormIntensity, double refWavelength) {
-    double referenceFlux = getReferenceFlux(np,intensity,wavelength,refWavelength);
-    
-	for(unsigned i=0;i<np;i++) {
-        outputNormIntensity[i] = intensity[i]/referenceFlux;
-	}
+double getIntensityAtReferenceWavelength(const operaSpectrum& spectrum, double refWavelength) {
+    double refFlux;
+    operaFitSplineDouble(spectrum.size(), spectrum.wavelength_ptr(), spectrum.flux_ptr(), 1, &refWavelength, &refFlux);
+	return refFlux;
 }
 
-double getReferenceFlux(unsigned np, double *intensity, double *wavelength, double refWavelength) {
-    
-    float *wavelengthData_f = new float[np];
-    float *fluxData_f = new float[np];
-    
-    for(unsigned i=0;i<np;i++) {
-        wavelengthData_f[i] = (float)wavelength[i];
-        fluxData_f[i] =  (float)intensity[i];
-    }
-    
-    unsigned nElements = 1;
-    
-    float *referenceFlux = new float[nElements];
-    float *referencewl = new float[nElements];
-    
-    for(unsigned i=0;i<nElements;i++) {
-        referencewl[i] = (float)refWavelength;
-    }
-    operaFitSpline(np,wavelengthData_f,fluxData_f,nElements,referencewl,referenceFlux);
-    
-    double outputflux = (double)(referenceFlux[0]);
-    
-    delete[] wavelengthData_f;
-    delete[] fluxData_f;
-    delete[] referenceFlux;
-    delete[] referencewl;
-    
-	return outputflux;
-}
-
-void normalizeIntensityByMaximum(unsigned np, double *intensity, double *variance) {
-	double maxIntensity = -3.4e+38;
-	
-	for(unsigned i=0;i<np;i++) {
-		if(intensity[i] > maxIntensity)
-			maxIntensity = intensity[i];
-	}
-	
-	for(unsigned i=0;i<np;i++) {
-        intensity[i] /= maxIntensity;
-        variance[i] /= maxIntensity;
-	}
-}
-
-double operaArrayMaxValue_d(unsigned np, const double *xarray, const double *yarray, double *maxx) {
-	double ymax = -3.4e+38;
-	double xmax = 0;
-    
-	while (np--) {
-		if(*yarray > ymax) {
-			ymax = *yarray;
-            xmax = *xarray;
-        }
-		yarray++;
-        xarray++;
-	}
-    *maxx = xmax;
-	return ymax;
-}
-
-unsigned getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, float *refContinuumwl,float *refContinuumflux,float *refContinuumNormflux) {
-    
-    double *wl0_vector = new double[MAXNUMBEROFREFWLRANGES];
-    double *wlf_vector = new double[MAXNUMBEROFREFWLRANGES];
-    
-    unsigned nRangesInWLMask = readContinuumWavelengthMask(inputWavelengthMaskForRefContinuum,wl0_vector,wlf_vector);
-    
-    unsigned nTotalPoints = 0;
-    for(unsigned k=0;k<nRangesInWLMask; k++){
+operaSpectrum getContinuumFromInputReferenceSpectrum(string inputWavelengthMaskForRefContinuum, const operaSpectrum& referenceSpectrum, double referenceFluxForNormalization) {
+    operaWavelengthRanges wlranges = readContinuumWavelengthMask(inputWavelengthMaskForRefContinuum);
+    operaSpectrum refContinuum;
+    operaVector refContinuumNormflux; //Not used.
+    for(unsigned k=0;k<wlranges.size(); k++){
+        operaSpectrum subSpectrum = getSpectrumWithinRange(wlranges.getrange(k), referenceSpectrum);
+        if(subSpectrum.size() == 0) continue;
         
-        double *refwl = NULL, *refflux = NULL, *refnormflux = NULL, *reffluxvar = NULL;
-        unsigned nPointsInReference = getReferenceSpectrumRange(wl0_vector[k],wlf_vector[k],&refwl,&refflux,&refnormflux,&reffluxvar);
-        
-        double ref_wl=0;
-        double ref_maxFlux = 0;
-        double ref_maxNormFlux = 0;
-        
-        ref_maxFlux = operaArrayMaxValue_d(nPointsInReference,refwl,refflux,&ref_wl);
-        ref_maxNormFlux = operaArrayMaxValue_d(nPointsInReference,refwl,refnormflux, &ref_wl);
+        unsigned maxindex = MaxIndex(subSpectrum.fluxvector());
+        double ref_wl = subSpectrum.getwavelength(maxindex);
+        double ref_maxFlux = subSpectrum.getflux(maxindex);
+        double ref_maxNormFlux = ref_maxFlux / referenceFluxForNormalization;
         
         if(args.debug) {
-            cout << k << " "
-            << nPointsInReference << " "
-            << wl0_vector[k] << " "
-            << wlf_vector[k] << " "
-            << ref_wl << " "
-            << ref_maxFlux << " "
-            << ref_maxNormFlux << endl;
+            cout << k << " " << subSpectrum.size() << " " << wlranges.wl0(k) << " " << wlranges.wlf(k) << " " << ref_wl << " " << ref_maxFlux << " " << ref_maxNormFlux << endl;
         }
         
         if(ref_wl && ref_maxFlux && ref_maxNormFlux) {
-            refContinuumwl[nTotalPoints] = (float)ref_wl;
-            refContinuumflux[nTotalPoints] = (float)ref_maxFlux;
-            refContinuumNormflux[nTotalPoints] = (float)ref_maxNormFlux;
-            nTotalPoints++;
+            refContinuum.insert(ref_wl, ref_maxFlux);
+            refContinuumNormflux.insert(ref_maxNormFlux);
         }
     }
-    delete[] wl0_vector;
-    delete[] wlf_vector;
-    return nTotalPoints;
+    return refContinuum;
 }

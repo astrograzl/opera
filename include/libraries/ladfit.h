@@ -80,7 +80,7 @@ extern "C" {
 	/*! 
 	 * static inline float MedianFunction_d(double *d, double *dm, double b, double x[], double y[], double *a, double *absdev, int size, double eps)
 	 */
-	static inline float MedianFunction_d(double *d, double *dm, double b, double x[], double y[], double *a, double *absdev, int size, double eps)
+	static inline float MedianFunction_d(double *d, double *dm, double b, const double x[], const double y[], double *a, double *absdev, int size, double eps)
 	{
 		double sum = 0.0, adev = 0.0;
 		int i, j = 0;
@@ -135,9 +135,9 @@ extern "C" {
 	
 	void ladfit(float x[], float y[], int nX, float *a, float *b, float *absdev);
 	
-	void ladfitWithError_d(double x[], double y[], int nX, double *a, double *aError, double *b, double *bError, double *absdev);
+	void ladfitWithError_d(const double x[], const double y[], int nX, double *a, double *aError, double *b, double *bError, double *absdev);
 	
-	void ladfit_d(double x[], double y[], int nX, double *a, double *b, double *absdev);
+	void ladfit_d(const double x[], const double y[], int nX, double *a, double *b, double *absdev);
 	
 #ifdef __cplusplus
 }

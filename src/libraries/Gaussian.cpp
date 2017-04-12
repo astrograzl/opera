@@ -93,7 +93,7 @@ gausschisqr(0.0)
       
 }
 
-Gaussian::Gaussian(unsigned NumberOfPeaks, double* AmplitudeVector, double* SigmaVector, double* CenterVector) :
+Gaussian::Gaussian(unsigned NumberOfPeaks, const double* AmplitudeVector, const double* SigmaVector, const double* CenterVector) :
 numberOfPeaks(0),
 maxnumberOfPeaks(0),
 amplitudeVector(NULL),
@@ -124,8 +124,8 @@ gausschisqr(0.0)
 }
 
 Gaussian::Gaussian(unsigned NumberOfPeaks, 
-                   double* AmplitudeVector, double* SigmaVector, double* CenterVector,
-                   double* AmplitudeErrors, double* SigmaErrors, double* CenterErrors) :
+                   const double* AmplitudeVector, const double* SigmaVector, const double* CenterVector,
+                   const double* AmplitudeErrors, const double* SigmaErrors, const double* CenterErrors) :
 numberOfPeaks(0),
 maxnumberOfPeaks(0),
 amplitudeVector(NULL),
@@ -201,7 +201,7 @@ Gaussian::~Gaussian(){
  * \param index is a unsigned index of the gaussian amplitude to get
  * \return void
  */
-double Gaussian::getAmplitude(unsigned index){
+double Gaussian::getAmplitude(unsigned index) const{
 	if (index > numberOfPeaks) {
 		throw operaException("Gaussian: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -229,7 +229,7 @@ void Gaussian::setAmplitude(double amplitude, unsigned index){
  * \param index is a unsigned index of the gaussian sigma to get
  * \return void
  */
-double Gaussian::getSigma(unsigned index){
+double Gaussian::getSigma(unsigned index) const{
 	if (index > numberOfPeaks) {
 		throw operaException("Gaussian: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -257,7 +257,7 @@ void Gaussian::setSigma(double sigma, unsigned index){
  * \param index is a unsigned index of the gaussian center to get
  * \return void
  */
-double Gaussian::getCenter(unsigned index){
+double Gaussian::getCenter(unsigned index) const{
 	if (index > numberOfPeaks) {
 		throw operaException("Gaussian: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);	
 	}
@@ -285,7 +285,7 @@ void Gaussian::setCenter(double center, unsigned index){
  * \param x is a double input value for which the given gaussian is evaluated
  * \return double value of evaluation of the gaussian
  */
-double Gaussian::EvaluateGaussian(double x){
+double Gaussian::EvaluateGaussian(double x) const{
 	double gaussfunc = 0;
 	if (numberOfPeaks == 0) {
 		throw operaException("Gaussian: ", operaErrorZeroLength, __FILE__, __FUNCTION__, __LINE__);	
@@ -302,6 +302,9 @@ double Gaussian::EvaluateGaussian(double x){
  * \brief usage: double *vec = getAmplitudeVector();
  * \return double * - the vector of gaussian amplitude coefficients
  */
+const double* Gaussian::getAmplitudeVector(void) const {
+    return amplitudeVector;
+}
 double* Gaussian::getAmplitudeVector(void){
     return amplitudeVector;
 }
@@ -312,6 +315,9 @@ double* Gaussian::getAmplitudeVector(void){
  * \brief usage: double *errs = getAmplitudeErrorVector();
  * \return double * - the vector of gaussian amplitude coefficient errors
  */
+const double* Gaussian::getAmplitudeErrorVector(void) const {
+    return amplitudeErrors;	
+}
 double* Gaussian::getAmplitudeErrorVector(void){
     return amplitudeErrors;	
 }
@@ -322,6 +328,9 @@ double* Gaussian::getAmplitudeErrorVector(void){
  * \brief usage: double *vec = getSigmaVector();
  * \return double * - the vector of gaussian sigma coefficients
  */
+const double* Gaussian::getSigmaVector(void) const {
+      return sigmaVector;  
+}
 double* Gaussian::getSigmaVector(void){
       return sigmaVector;  
 }
@@ -331,6 +340,9 @@ double* Gaussian::getSigmaVector(void){
  * \brief usage: double *errs = getSigmaErrorVector();
  * \return double * - the vector of gaussian sigma coefficient errors
  */
+const double* Gaussian::getSigmaErrorVector(void) const {
+	return sigmaErrors;
+}
 double* Gaussian::getSigmaErrorVector(void){
 	return sigmaErrors;
 }
@@ -341,6 +353,9 @@ double* Gaussian::getSigmaErrorVector(void){
  * \brief usage: double *vec = getCenterVector();
  * \return double * - the vector of gaussian center coefficients
  */
+const double* Gaussian::getCenterVector(void) const {
+    return centerVector;
+}
 double* Gaussian::getCenterVector(void){
     return centerVector;
 }
@@ -351,6 +366,9 @@ double* Gaussian::getCenterVector(void){
  * \brief usage: double *errs = getCenterErrorVector();
  * \return double * - the vector of gaussian center coefficient errors
  */
+const double* Gaussian::getCenterErrorVector(void) const {
+    return centerErrors;
+}
 double* Gaussian::getCenterErrorVector(void){
     return centerErrors;
 }
@@ -362,7 +380,7 @@ double* Gaussian::getCenterErrorVector(void){
  * \brief usage: unsigned npar = getNumberOfPeaks();
  * \return unsigned - the number of peaks
  */
-unsigned Gaussian::getNumberOfPeaks(){
+unsigned Gaussian::getNumberOfPeaks() const{
 	return numberOfPeaks;
 }
 
@@ -399,7 +417,7 @@ void Gaussian::setGaussianChisqr(double Chisqr){
  * \brief usage: double c = getGaussianChisqr();
  * \return double
  */
-double Gaussian::getGaussianChisqr(void){
+double Gaussian::getGaussianChisqr(void) const{
 	return gausschisqr;
 }
 
@@ -418,19 +436,19 @@ void Gaussian::setBaselineInterceptError(double BaselineInterceptError) {
 void Gaussian::setUseBaseline(bool UseBaseline) {
     useBaseline = UseBaseline;
 }
-double Gaussian::getBaselineSlope(void) {
+double Gaussian::getBaselineSlope(void) const {
     return baselineSlope;
 }
-double Gaussian::getBaselineSlopeError(void) {
+double Gaussian::getBaselineSlopeError(void) const {
     return baselineSlopeError;
 }
-double Gaussian::getBaselineIntercept(void) {
+double Gaussian::getBaselineIntercept(void) const {
     return baselineIntercept;    
 }
-double Gaussian::getBaselineInterceptError(void) {
+double Gaussian::getBaselineInterceptError(void) const {
     return baselineInterceptError;    
 }
-bool Gaussian::getUseBaseline(void) {
+bool Gaussian::getUseBaseline(void) const {
     return useBaseline;   
 }
 

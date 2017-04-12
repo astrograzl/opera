@@ -19,7 +19,7 @@ bin_PROGRAMS = operaSNR operaWavelengthCalibration \
 			operaCreateFluxCalibration operaTelluricWavelengthCorrection \
 			operaOrderSpacingCalibration operaPolarimetryCorrection \
 			operaCalculateSpectralResolution operaMasterFluxCalibration \
-			operaCreateFlatFieldFluxCalibration operaStitchOrders \
+			operaCreateFlatFieldFluxCalibration \
 			operaGenerateLEFormats operaCreateFlatResponse \
 			operaHeliocentricWavelengthCorrection
 
@@ -34,8 +34,6 @@ endif
 operaCreateFlatResponse_SOURCES = operaCreateFlatResponse.cpp
 
 operaGenerateLEFormats_SOURCES = operaGenerateLEFormats.cpp
-
-operaStitchOrders_SOURCES = operaStitchOrders.cpp
 
 operaCreateFlatFieldFluxCalibration_SOURCES = operaCreateFlatFieldFluxCalibration.cpp
 

@@ -33,9 +33,9 @@
 #include <stdio.h>      // for printMuellerMatrix, printVarianceMatrix
 
 #include "operaError.h"
-#include "libraries/operaLibCommon.h"			// for CMatrix
 #include "libraries/operaFluxVector.h"			// for FluxVector
 #include "libraries/operaStokesVector.h"		// for StokesVector
+#include "libraries/operaLibCommon.h"			// for doubleValue
 
 /*!
  * \file operaMuellerMatrix.h

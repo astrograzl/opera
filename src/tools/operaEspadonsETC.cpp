@@ -681,8 +681,8 @@ int main(int argc, char *argv[])
                 
                 double apertureAreaInPixelUnits = 0;
                 for(unsigned beam=0;beam<spectralOrder->getnumberOfBeams();beam++) {
-                    operaExtractionAperture *aperture = spectralOrder->getExtractionApertures(beam);
-                    PixelSet *aperturePixels = aperture->getSubpixels();
+                    operaExtractionAperture<Line> *aperture = spectralOrder->getExtractionApertures(beam);
+                    const PixelSet *aperturePixels = aperture->getSubpixels();
                     apertureAreaInPixelUnits += (double)aperturePixels->getNPixels()*(double)aperturePixels->getSubpixelArea();
                 }
                 

@@ -36,7 +36,7 @@
  * \brief This class provides a mapping from one set of indexes to another.
  * \ingroup libraries
  * \details
- * This container is designed to allow the re-indexing of an operaVector.
+ * This container is designed to allow the re-indexing of a Vector.
  * In particular, it stores a one-to-one mapping between an old and a new set of indexes.
  * Note that the class has no public interface outside of its default methods.
  */
@@ -45,15 +45,15 @@ private:
 	std::vector <unsigned> index;
 	operaIndexMap(unsigned size);
 public:
-	friend class operaVector;
+	template <typename T> friend class Vector;
 };
 
 /*!
  * \brief This class encapsulates the indexes for a range of elements.
  * \ingroup libraries
  * \details
- * This container is designed to allow the trimming of an operaVector.
- * In particular, it stores the indexes for a subrange of operaVector elements.
+ * This container is designed to allow the trimming of a Vector.
+ * In particular, it stores the indexes for a subrange of Vector elements.
  * Note that the class has no public constructors aside from the copy constructor.
  */
 class operaIndexRange {
@@ -68,7 +68,7 @@ public:
      */
 	unsigned size();
 	
-	friend class operaVector;
+	template <typename T> friend class Vector;
 };
 
 /*!
@@ -76,77 +76,96 @@ public:
  * \ingroup libraries
  * \details
  */
-class operaVector {
+template <typename T>
+class Vector {
 private:
-	std::vector <double> data;
-public:
-	/*!
-     * \brief Creates an empty operaVector.
-     */
-	operaVector();
+	std::vector <T> data;
 	
 	/*!
-     * \brief Creates an operaVector by copying in an existing array.
+     * \brief Private constructor to prevent implicit conversions from non-integers values.
+     * \details Normally, if a double is passed as an operaVector, it is implictly converted to int.
+     */
+	template <class U> Vector(U);
+public:
+	typedef T value_type;
+	typedef typename std::vector<value_type>::iterator iterator;
+	typedef typename std::vector<value_type>::const_iterator const_iterator;
+	typedef const T& const_reference;
+	
+	/*!
+     * \brief Creates an empty Vector.
+     */
+	Vector();
+	
+	/*!
+     * \brief Creates a Vector by copying in an existing array.
      * \param dataarray The array to be copied.
      * \param length The length of the array.
      */
-	operaVector(double* dataarray, unsigned length);
+	Vector(const value_type* dataarray, unsigned length);
 	
 	/*!
-     * \brief Creates an operaVector with the specified size.
+     * \brief Creates a Vector with the specified size.
      * \param length The length of the vector.
      */
-	operaVector(unsigned length);
+	Vector(unsigned length);
+	Vector(int length);
+	
+	/*!
+     * \brief Sets each element of the vector to the specified value.
+     * \param value The value to set the vector to.
+     */
+	Vector& operator=(value_type value);
 	
 	/*!
      * \brief Gets the element at the given index.
      * \param i The index to access.
      * \return A reference to the element.
      */
-	double& operator[](unsigned i);
+	value_type& operator[](unsigned i);
 	
 	/*!
      * \brief Gets the element at the given index.
      * \param i The index to access.
      * \return A const reference to the element.
      */
-	const double& operator[](unsigned i) const;
+	const value_type& operator[](unsigned i) const;
 	
 	/*!
      * \brief Gets an STL vector iterator for the beginning of the vector.
      * \return The begin iterator.
      */
-	std::vector<double>::iterator begin();
+	iterator begin();
 	
 	/*!
      * \brief Gets an STL vector constant iterator for the beginning of the vector.
      * \return The begin const_iterator.
      */
-	std::vector<double>::const_iterator begin() const;
+	const_iterator begin() const;
 	
 	/*!
      * \brief Gets an STL vector iterator for the end of the vector.
      * \return The end iterator.
      */
-	std::vector<double>::iterator end();
+	iterator end();
 	
 	/*!
      * \brief Gets an STL vector constant iterator for the end of the vector.
      * \return The end const_iterator.
      */
-	std::vector<double>::const_iterator end() const;
+	const_iterator end() const;
 	
 	/*!
      * \brief Gets the element at the first index in the vector.
      * \return The value of the first element.
      */
-	double first() const;
+	value_type first() const;
 	
 	/*!
      * \brief Gets the element at the last index in the vector.
      * \return The value of the last element.
      */
-	double last() const;
+	value_type last() const;
 	
 	/*!
      * \brief Gets the size of the vector.
@@ -180,7 +199,7 @@ public:
      * \details The vector must already be sorted, and min must be less than or equal to max.
      * \return The index range of elements between min and max.
      */
-	operaIndexRange subrange(double min, double max) const;
+	operaIndexRange subrange(value_type min, value_type max) const;
 	
 	/*!
      * \brief Removes all elments outside of the specified range from the vector.
@@ -192,14 +211,28 @@ public:
      * \brief Sets each element of the vector to the specified value.
      * \param value The value to fill the vector with.
      */
-	void fill(double value);
+	void fill(value_type value);
 	
 	/*!
      * \brief Inserts a new value into the vector.
      * \param newdata The value to be inserted.
      * \details The value is inserted at the end of the vector and the size is increased by one.
      */
-	void insert(double newdata);
+	void insert(value_type newdata);
+    
+    /*!
+     * \brief An alias for the insert method.
+     * \param newdata The value to be inserted.
+     * \details Useful for standard library templates such as back_inserter.
+     */
+	void push_back(value_type newdata);
+	
+	/*!
+     * \brief Inserts all the values from another vector into this vector.
+     * \param newdata The vetor to be appended.
+     * \details The values are inserted in the same order at the end of the vector.
+     */
+	void append(const Vector<T>& newdata);
 	
 	/*!
      * \brief Reverses the order of the elements in the vector.
@@ -233,7 +266,7 @@ public:
      * \param dataarray The array to be copied.
      * \details Assumes the array is equal in size to the current vector.
      */
-	void copyfrom(double* dataarray);
+	void copyfrom(value_type* dataarray);
 	
 	/*!
      * \brief Gets a pointer to the data stored in the vector.
@@ -241,7 +274,7 @@ public:
      * The pointer may become invalidated after calling another non-const method of the vector.
      * \return A pointer to the the array which can be modified.
      */
-	double* datapointer();
+	value_type* datapointer();
 	
 	/*!
      * \brief Gets a pointer to the data stored in the vector.
@@ -249,7 +282,9 @@ public:
      * The pointer may become invalidated after calling another non-const method of the vector.
      * \return A pointer the array which cannot be modified.
      */
-	const double* datapointer() const;
+	const value_type* datapointer() const;
 };
+
+typedef Vector<double> operaVector;
 
 #endif

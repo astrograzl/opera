@@ -48,21 +48,15 @@ operaFluxVector::operaFluxVector(unsigned length, TendsTowards_t towards) : towa
 
 operaFluxVector::operaFluxVector(double *fluxes, double *variances, unsigned length, TendsTowards_t towards) : towards(towards), flux(fluxes, length), variance(variances, length) { }
 
+operaFluxVector::operaFluxVector(const operaVector& fluxes, const operaVector& variances, TendsTowards_t towards) : towards(towards), flux(fluxes), variance(variances) { }
+
 operaFluxVector::operaFluxVector(const operaFluxVector &b, TendsTowards_t towards) : towards(towards), flux(b.flux), variance(b.variance) { }
 
 operaFluxVector::operaFluxVector(const operaVector &b, TendsTowards_t towards) : towards(towards), flux(b), variance(b.size()) { }
 
-void operaFluxVector::setFluxVector(double *fluxes) {
-	flux.copyfrom(fluxes);
-}
-
-void operaFluxVector::setVarianceVector(double *variances) {
-	variance.copyfrom(variances);
-}
-
-void operaFluxVector::setVectors(double *fluxes, double *variances) {
-	setFluxVector(fluxes);
-	setVarianceVector(variances);
+void operaFluxVector::clear() {
+	flux.clear();
+	variance.clear();
 }
 
 void operaFluxVector::trim(operaIndexRange range) {
@@ -96,6 +90,28 @@ const operaVector &operaFluxVector::getflux() const {
 
 const operaVector &operaFluxVector::getvariance() const {
 	return variance;
+}
+
+void operaFluxVector::setflux(const operaVector& newflux) {
+	if (flux.size() != newflux.size()) {
+		throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+	}
+	flux = newflux;
+}
+
+void operaFluxVector::setvariance(const operaVector& newvariance) {
+	if (variance.size() != newvariance.size()) {
+		throw operaException("operaFluxVector: ", operaErrorLengthMismatch, __FILE__, __FUNCTION__, __LINE__);
+	}
+	variance = newvariance;
+}
+
+void operaFluxVector::setflux(double newflux) {
+	flux = newflux;
+}
+
+void operaFluxVector::setvariance(double newvariance) {
+	variance = newvariance;
 }
 
 double* operaFluxVector::getfluxpointer() {
@@ -233,6 +249,18 @@ operaFluxVector& operaFluxVector::operator/=(double d) {
 	flux /= d;
 	variance /= d*d;
 	return *this;
+}
+
+operaFluxVector operator-(double d, operaFluxVector a) {
+	a.flux = d - a.flux;
+	return a;
+}
+
+operaFluxVector operator/(double d, operaFluxVector a) {
+	operaVector asqr = a.flux * a.flux;
+	a.variance *= (d * d) / (asqr * asqr);
+	a.flux = d / a.flux;
+	return a;
 }
 
 operaFluxVector Sqrt(operaFluxVector b) {

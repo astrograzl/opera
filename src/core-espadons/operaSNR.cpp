@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 			if (spectralOrder->gethasWavelength() && spectralOrder->gethasSpectralElements()) {
 				operaSpectralElements *spectralElements = spectralOrder->getSpectralElements();
 				if (spectralElements->getnSpectralElements() > 0) {
-					spectralElements->setwavelengthsFromCalibration(spectralOrder->getWavelength());
+					spectralOrder->setWavelengthsFromCalibration();
 					spectralOrder->sethasCenterSNROnly(centralsnr);
 					spectralOrder->calculateSNR();	// has side effect of retaining center SNR
 					spectralOrder->setsnrSpectralBinSize(spectralbinsize);

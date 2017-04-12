@@ -13,7 +13,7 @@ def main(argv):
     inputlist = ''
     instmode = ''            # options available are: staronly, starsky 
     readspeed = ''           # options available are: fast, normal, slow
-    obstype = ''             # options available are: bias, flat, arc, object
+    obstype = ''             # options available are: bias, flat, comp, object
     
     verbose = 0
     try:
@@ -28,7 +28,7 @@ def main(argv):
             print '-i , --inputlist=: "listoffiles.txt" '
             print '-m , --instmode=: "staronly" or "starsky" '
             print '-r , --readspeed=: "fast" or "normal" or "slow" '
-            print '-t , --obstype=: "bias" or "flat" or "arc" or "object" \n'
+            print '-t , --obstype=: "bias" or "flat" or "comp" or "object" \n'
             sys.exit()
         elif opt in ("-i", "--inputlist"):
             inputlist = arg
@@ -72,8 +72,8 @@ def main(argv):
         obstypekeyvalue = "BIAS"
     elif (obstype == "flat") :
         obstypekeyvalue = "FLAT"
-    elif (obstype == "arc") :
-        obstypekeyvalue = "COMPARISON"
+    elif (obstype == "comp") :
+        obstypekeyvalue = "COMP"
     elif (obstype == "object") :
         obstypekeyvalue = "OBJECT"
     

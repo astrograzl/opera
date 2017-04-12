@@ -45,73 +45,54 @@
  * \ingroup libraries
  */
 
+#include <vector>
+
 class PixelSet {
 private:
-    unsigned nPixels;       // number of subpixels
-    unsigned maxnPixels;    // maximum number of subpixels allocated
-    float *xcenter;         // subpixel x-center positions
-    float *ycenter;         // subpixel y-center positions
-    int *iIndex;			// original image pixel i-index (col) from which the subpixel was obtained
-    int *jIndex;			// original image pixel j-index (row) from which the subpixel was obtained
-    
-    unsigned *redundancy;   // redundancy  
-    
-    float *pixelValue;      // pixel value
-    float subpixelArea;     // area of subpixel in pixel^2, value depends on pixelation
+    unsigned nPixels;                   // number of subpixels
+    std::vector<float> xcenter;         // subpixel x-center positions
+    std::vector<float> ycenter;         // subpixel y-center positions
+    std::vector<int> iIndex;            // original image pixel i-index (col) from which the subpixel was obtained
+    std::vector<int> jIndex;            // original image pixel j-index (row) from which the subpixel was obtained
+    std::vector<unsigned> redundancy;   // redundancy  
+    std::vector<float> pixelValue;      // pixel value
+    float subpixelArea;                 // area of subpixel in pixel^2, value depends on pixelation
 public:
 	
 	/*
 	 * Constructor
 	 */
-    
     PixelSet(void);
-    
     PixelSet(float SubPixelArea);  
-    
     PixelSet(unsigned NPixels, float SubPixelArea);
     
     /*
-	 * Destructor
-	 */
-    
-    ~PixelSet(void);  
-	
-	/*
 	 * Setters/Getters
 	 */    
-	
-    unsigned getNPixels(void);
-	unsigned getmaxNPixels(void);
-    float getXcenter(unsigned index);
-    float getYcenter(unsigned index); 
-    int getiIndex(unsigned index); 
-    int getjIndex(unsigned index); 
-    unsigned getredundancy(unsigned index);     
-    float getPixelValue(unsigned index);   
-    void setNPixels(unsigned NPixels);
-	void setXcenter(float Xcenter, unsigned index);
+	unsigned getNPixels(void) const;
+	float getXcenter(unsigned index) const;
+    float getYcenter(unsigned index) const;
+    int getiIndex(unsigned index) const;
+    int getjIndex(unsigned index) const;
+    unsigned getredundancy(unsigned index) const;
+    float getPixelValue(unsigned index) const;
+    float getSubpixelArea(void) const;
+    void setXcenter(float Xcenter, unsigned index);
 	void setYcenter(float Ycenter, unsigned index);
 	void setiIndex(int iindex, unsigned k);
 	void setjIndex(int jindex, unsigned k);
 	void setredundancy(unsigned Redundancy, unsigned k);
 	void setPixelValue(float PixelValue, unsigned index);
-	
-    float getSubpixelArea(void);
-    void setSubpixelArea(float SubpixelArea);  
+	void setSubpixelArea(float SubpixelArea);
     
-	void resize(unsigned newsize);
-	void setSubPixels(PixelSet &pixels);
 	/*
 	 * Methods
 	 */      
-    void createVectors(unsigned NPixels);
-    void deleteVectors(void);
-    
-    float getMinXcoord(void);
-    float getMaxXcoord(void);
-    float getMinYcoord(void);
-    float getMaxYcoord(void);
-
+    void resize(unsigned newsize);
+	float getMinXcoord(void) const;
+    float getMaxXcoord(void) const;
+    float getMinYcoord(void) const;
+    float getMaxYcoord(void) const;
 };
 
 #endif

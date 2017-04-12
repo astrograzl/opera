@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
 	unsigned namps = 1; // 1 for EEV1 and OLAPAa, 2 for OLAPAab	
 	double defaultgain = 1.0;
 	double defaultnoise = 0.0;
+	double minimumAllowedGain = 0.0;
 	unsigned gainMinPixPerBin = 100;
 	unsigned gainMaxNBins = 1000;
 	unsigned gainLowestCount = 1000;
@@ -108,6 +109,7 @@ int main(int argc, char *argv[])
 	args.AddRequiredArgument("gainMaxNBins", gainMaxNBins, "Maximum number of bins to use");
 	args.AddRequiredArgument("gainLowestCount", gainLowestCount, "Lowest pixel count value to be considered");
 	args.AddRequiredArgument("gainHighestCount", gainHighestCount, "Highest pixel count value to be considered");
+	args.AddOptionalArgument("minimumAllowedGain", minimumAllowedGain, 0.0, "Minimum allowed gain");
 	args.AddRequiredArgument("subwindow", subwindow_str, "Subwindow where data will used for the gain/noise calculation \"x1 x2 y1 y2\"");
 	args.AddOptionalArgument("DATASEC", datasec_str, "", "Valid data region on the amplifier (1 amp mode) \"x1 x2 y1 y2\"");
 	args.AddOptionalArgument("DSECA", dseca_str, "", "Valid data region on amplifier A (2 amp mode) \"x1 x2 y1 y2\"");
@@ -173,7 +175,7 @@ int main(int argc, char *argv[])
 		
 		if (args.verbose) {
 			cout << "operaGain: subwindow = " << subwindow.x0 << " " << subwindow.nx << " " << subwindow.y0  << " " << subwindow.ny << endl; 
-			cout << "operaGain: gainMinPixPerBin = " << gainMinPixPerBin << " gainMaxNBins = " << gainMaxNBins << " gainLowestCount = " << gainLowestCount << " gainHighestCount = " << gainHighestCount << endl; 
+			cout << "operaGain: gainMinPixPerBin = " << gainMinPixPerBin << " gainMaxNBins = " << gainMaxNBins << " gainLowestCount = " << gainLowestCount << " gainHighestCount = " << gainHighestCount << " minimumAllowedGain = " << minimumAllowedGain << endl; 
 		}
 		
 		operaSpectralOrderVector spectralOrders;
@@ -234,6 +236,7 @@ int main(int argc, char *argv[])
 			if (isinf(noise)) throw operaException("operaGain: noise: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
 			if (isnan(gainError)) throw operaException("operaGain: gainError: ", operaErrorIsNaN, __FILE__, __FUNCTION__, __LINE__);	
 			if (isinf(gainError)) throw operaException("operaGain: gainError: ", operaErrorIsInf, __FILE__, __FUNCTION__, __LINE__);	
+			if (gain < minimumAllowedGain) throw operaException("operaGain: gain under minimumAllowedGain", operaErrorNegativeValues, __FILE__, __FUNCTION__, __LINE__);	
 			
 			spectralOrders.getGainBiasNoise()->setGain(amp, gain);
 			spectralOrders.getGainBiasNoise()->setGainError(amp, gainError);

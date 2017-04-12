@@ -138,22 +138,95 @@ public:
 	unsigned getnSpectralElements(void) const;
 	
 	/*!
-     * \brief Gets the wavelength vector.
-     * \return An immutable reference to the wavelength vector.
-     */
-	const operaVector& getWavelength(void) const;
-	
-	/*!
      * \brief Gets the main flux vector.
      * \return An immutable reference to the flux vector.
      */
 	const operaFluxVector& getFluxVector(void) const;
 	
 	/*!
+     * \brief Gets the cross correlation vector.
+     * \return An immutable reference to the XCorrelation vector.
+     */
+	const operaVector& getXCorrelation() const;
+	
+	/*!
+     * \brief Gets the vector of photocenter x-coordinates.
+     * \return An immutable reference to the photoCenterX vector.
+     */
+	const operaVector& getPhotoCenterX() const;
+	
+	/*!
+     * \brief Gets the vector of photocenter y-coordinates.
+     * \return An immutable reference to the photoCenterY vector.
+     */
+	const operaVector& getPhotoCenterY() const;
+	
+	/*!
+     * \brief Gets the distance vector.
+     * \return An immutable reference to the distd vector.
+     */
+	const operaVector& getDistd() const;
+	
+	/*!
+     * \brief Gets the wavelength vector.
+     * \return An immutable reference to the wavelength vector.
+     */
+	const operaVector& getWavelength(void) const;
+	
+	/*!
+     * \brief Gets the fluxSNR vector.
+     * \return An immutable reference to the fluxSNR vector.
+     */
+	const operaVector& getFluxSNR() const;
+	
+	/*!
+     * \brief Gets the wavelength correction vector.
+     * \return An immutable reference to the rvel vector.
+     */
+	const operaVector& getRvel(void) const;
+	
+	/*!
      * \brief Sets the main flux vector.
      * \param FluxVector A flux vector with same number of spectral elements.
      */
 	void setFluxVector(const operaFluxVector &FluxVector);
+	
+	/*!
+     * \brief Sets the cross correlation vector.
+     * \param XCorr A cross correlation vector with same number of spectral elements.
+     */
+	void setXCorrelation(const operaVector& XCorr);
+	
+	/*!
+     * \brief Sets the photo center vectors.
+     * \param PhotoCenterX A photocenter x-coordinate vector with same number of spectral elements.
+     * \param PhotoCenterY A photocenter y-coordinate vector with same number of spectral elements.
+     */
+	void setPhotoCenter(const operaVector& PhotoCenterX, const operaVector& PhotoCenterY);
+	
+	/*!
+     * \brief Sets the distance vector.
+     * \param Distd A distance vector with same number of spectral elements.
+     */
+	void setDistd(const operaVector& Distd);
+	
+	/*!
+     * \brief Sets the wavelength vector.
+     * \param Wavelength A wavelength vector with same number of spectral elements.
+     */
+	void setWavelength(const operaVector &Wavelength);
+	
+	/*!
+     * \brief Sets the fluxSNR vector.
+     * \param FluxSNR A fluxSNR vector with same number of spectral elements.
+     */
+	void setFluxSNR(const operaVector& FluxSNR);
+	
+	/*!
+     * \brief Sets the wavelength correction vector.
+     * \param Rvel A wavelength correction vector with same number of spectral elements.
+     */
+	void setRvel(const operaVector &Rvel);
 	
 	/*!
      * \brief Calculates the flux SNR from the flux vector.
@@ -318,14 +391,6 @@ public:
      * \param indexElem The index of the spectral element.
      */
 	void setrvel(double value, unsigned indexElem);    
-	/*!
-     * \brief Copies the wavelength vector into the radial velocity wavelength vector.
-     */
-	void copyTOrvel(void);
-	/*!
-     * \brief Copies the radial velocity wavelength vector into the wavelength vector.
-     */
-	void copyFROMrvel(void);
 	
 	/*!
      * \brief Gets the normalized flux of a spectral element.

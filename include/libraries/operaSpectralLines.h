@@ -94,25 +94,27 @@ public:
 
     void setDispersiontype(dispersionaxis_t Dispersiontype);   
 
-    dispersionaxis_t getDispersiontype(void); 
+    dispersionaxis_t getDispersiontype(void) const;
     
     void setnLines(unsigned NLines);
     
-    unsigned getnLines(void);
+    unsigned getnLines(void) const;
 
-    unsigned getNFeatures(void);
+    unsigned getNFeatures(void) const;
     
     void setNFeatures(unsigned NFeatures);
     
     void setReferenceLineWidth(double ReferenceLineWidth);
     
-    double getReferenceLineWidth(void);
+    double getReferenceLineWidth(void) const;
     
 #if 0    
     operaSpectralElements *getcomparisonSpectrum(void);
       
     void setSpectralFeature(operaSpectralFeature &SpectralFeature, unsigned indexFeature);
 #endif    
+    const operaSpectralFeature *getSpectralFeature(unsigned indexFeature) const;
+    
     operaSpectralFeature *getSpectralFeature(unsigned indexFeature);
 	
     /*
@@ -125,22 +127,22 @@ public:
     
     void subtractFeatureModel(void); 
     
-    void printLines(ostream *pout);
+    void printLines(ostream *pout) const;
     
-    void printReferenceSpectrum(ostream *pout);
+    void printReferenceSpectrum(ostream *pout) const;
     
     unsigned selectLines(double MaxContamination, unsigned nSig, double amplitudeCutOff, double *LinePositionVector,double *LineSigmaVector,double *LineAmplitudeVector);
     
 	// Note that these are length protected...
-	inline double getMX(unsigned k);
+	inline double getMX(unsigned k) const;
 	
-	inline double getMY(unsigned k);
+	inline double getMY(unsigned k) const;
 	
-    inline double getAbsorptionMY(unsigned k);
+    inline double getAbsorptionMY(unsigned k) const;
     
 	inline void setMY(double value, unsigned k);
 	
-	inline double getVar(unsigned k);
+	inline double getVar(unsigned k) const;
 	
 	inline void setVar(double value, unsigned k);
 	

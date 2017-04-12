@@ -70,7 +70,7 @@ void GenerateTelluricLineMatchPlot(string gnuScriptFileName, string outputPlotEP
 
 void GenerateTelluricSpecPlot(string gnuScriptFileName, string outputPlotEPSFileName, string specdatafilename);
 
-void matchTelluricLines(const operaSpectrum& telluricLinesFromAtlas, const operaSpectrum& telluricLinesFromObject, operaVector& telluricMatchedWavelengths, operaSpectrum& objectMatchedLines, operaVector& radialVelocities, double spectralResolution, double radialVelocityRange);
+void matchTelluricLines(const operaSpectrum& atlasLines, const operaSpectralLineList& objectLines, operaVector& atlasMatchedWavelengths, operaSpectrum& objectMatchedLines, operaVector& radialVelocities, double spectralResolution, double radialVelocityRange, double duplicateLineDist);
 
 void generateHistogramData(const operaVector& telluricMatchedWavelengths, const operaVector& radialVelocities, double radialVelocityRange, double radialVelocityStep, operaVector& rvVector, operaVector& probDensity, operaVector& wavelengthVector);
 

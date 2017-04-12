@@ -329,13 +329,13 @@ endef
 		upenadir=`echo $(spectradir) | sed -e 's:opera:upena:' -e 's:spectra:reductions:'` ; \
 		if [ -e $(spectradir)$${spectrum}$(gzip) ] ; then \
 			if [[ "$(order)" != "" ]] ; then \
-				$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +12 | awk '/^$(order)/' | awk '{printf("%g %g\n", $$2, $$3);}' >$(spectradir)$${spectrum} ; \
+				$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +12 | awk '/^$(order)/' | awk '{printf("%g %g\n", $$2, $$4);}' >$(spectradir)$${spectrum} ; \
 			else \
 				if [[ $${spectrum} =~ [0-9]*ie.sn ]] ; then \
-					$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +12 | awk '{printf("%g %g\n", $$2, $$3);}' >$(spectradir)$${spectrum} ; \
+					$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +12 | awk '{printf("%g %g\n", $$2, $$4);}' >$(spectradir)$${spectrum} ; \
 					upenaspectrum="`basename $${spectrum} e.sn`.sn" ; \
 				else \
-					$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +10 | awk '{printf("%g %g\n", $$2, $$3);}' >$(spectradir)$${spectrum} ; \
+					$(bindir)catz <$(spectradir)$${spectrum}$(gzip) | tail -n +10 | awk '{printf("%g %g\n", $$2, $$4);}' >$(spectradir)$${spectrum} ; \
 					upenaspectrum="`basename $${spectrum}`" ; \
 				fi ; \
 			fi ; \
@@ -344,9 +344,9 @@ endef
 			fi ; \
 		fi ; \
 		if [[ "$(centralsnr)" == "1" ]] ; then \
-			$(call prelude,$${spectrum},'Wl(nm)',SNR) ; \
+			$(call prelude,$${spectrum},'Wl(nm)',SNR_CCDbin) ; \
 		else \
-			$(call prelude,$${spectrum},Order,SNR) ; \
+			$(call prelude,$${spectrum},Order,SNR_CCDbin) ; \
 		fi ; \
 		if [ -e $(tmpdir)/$${spectrum} ] ; then \
             echo "set xrange[368:1050]" >>$(byproductsdir)$${spectrum}.gnu ; \

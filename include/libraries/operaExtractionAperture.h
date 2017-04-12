@@ -36,22 +36,6 @@
 // $Locker$
 // $Log$
 
-#ifndef CIRCLE
-#define CIRCLE 999
-#endif
-#ifndef RECTANGLE
-#define RECTANGLE 998
-#endif
-#ifndef POLYGON
-#define POLYGON 997
-#endif
-#ifndef LINE
-#define LINE 996
-#endif
-#ifndef PIXELSET
-#define PIXELSET 995
-#endif
-
 #include <ostream>
 #include <math.h>
 
@@ -63,10 +47,6 @@
 #include "libraries/operaInstrumentProfile.h"
 #include "libraries/PixelSet.h"
 
-enum apertureShape {circle=CIRCLE, rectangle=RECTANGLE, polygon=POLYGON, line=LINE, pixelset=PIXELSET};
-
-class operaSpectralOrder;
-
 /*! 
  * \sa class operaExtractionAperture
  * \brief The Extraction Aperture.
@@ -77,24 +57,34 @@ class operaSpectralOrder;
  * \file operaExtractionAperture.h
  * \ingroup libraries
  */
+
+class PixelBox;
+
+template <class Shape>
 class operaExtractionAperture {
 	
 private:    
-    apertureShape shape;	// (CIRCLE,RECTANGLE,POLYGON,LINE,PIXELSET)
-	
-    Circle circleAperture;         // Circle operaGeometricShape
-    Rectangle rectangleAperture;   // Rectangle operaGeometricShape 
-    Polygon polygonAperture;       // Polygon operaGeometricShape
-    Line lineAperture;             // Line operaGeometricShape
-    
-    Rectangle boundingBox;  // Box size that englobes aperture shape
-    
-	unsigned xsampling;		// sampling factor for the extraction aperture in x direction
+    Shape apertureShape;    // operaGeometricShape
+    BoundingBox boundingBox;  // Box size that englobes aperture shape
+    unsigned xsampling;		// sampling factor for the extraction aperture in x direction
 	unsigned ysampling;		// sampling factor for the extraction aperture in y direction
-    
-    PixelSet *subpixels;    // set of subpixels with coordinates, values, and area of each subpixel
-    
+    PixelSet subpixels;     // set of subpixels with coordinates, values, and area of each subpixel
     float fluxFraction;     // fraction of flux (with respect to the entire IP) contained in aperture  
+    
+    // Helper functions
+    void setSubpixelPositions(PixelBox pixelrange);
+    void setSubpixelPositionsWithRedundancy(PixelBox pixelrange);
+    void setSubpixelPositions(PixelBox pixelrange, operaInstrumentProfile *instrumentProfile);
+    void setSubpixelValues(operaFITSImage &Image);
+    void setSubpixelValues(operaInstrumentProfile *instrumentProfile, float d);
+    void setSubpixels(bool withRedundancy = false);
+    void setSubpixels(operaFITSImage &Image);
+    void setSubpixels(int naxis1, int naxis2, bool withRedundancy = false);
+    void setSubpixels(operaInstrumentProfile *instrumentProfile, float d); 
+    void setSubpixels(operaInstrumentProfile *instrumentProfile);
+    
+    void shift(float xshift, float yshift);
+    void recenter(const operaPoint &NewCenter);
     
 public:
 	
@@ -104,112 +94,31 @@ public:
 	
     operaExtractionAperture(void);
     
-    operaExtractionAperture(Circle *CircleAperture, unsigned XSampling, unsigned YSampling);
+    operaExtractionAperture(Shape *ApertureShape, unsigned XSampling, unsigned YSampling);
     
-    operaExtractionAperture(Circle *CircleAperture, unsigned XSampling, unsigned YSampling, operaFITSImage &Image);
-
-    operaExtractionAperture(Circle *CircleAperture, operaInstrumentProfile *instrumentProfile, float distd);
-
-    operaExtractionAperture(Circle *CircleAperture, operaInstrumentProfile *instrumentProfile);
+    operaExtractionAperture(Shape *ApertureShape, unsigned XSampling, unsigned YSampling, operaFITSImage &Image);
     
-    operaExtractionAperture(Rectangle *RectangleAperture, unsigned XSampling, unsigned YSampling); 
+    operaExtractionAperture(Shape *ApertureShape, operaInstrumentProfile *instrumentProfile, float distd);
     
-    operaExtractionAperture(Rectangle *RectangleAperture, unsigned XSampling, unsigned YSampling, operaFITSImage &Image);
-    
-    operaExtractionAperture(Rectangle *RectangleAperture, operaInstrumentProfile *instrumentProfile, float distd);
-
-    operaExtractionAperture(Rectangle *RectangleAperture, operaInstrumentProfile *instrumentProfile);
-
-    operaExtractionAperture(Polygon *PolygonAperture, unsigned XSampling, unsigned YSampling);
-    
-    operaExtractionAperture(Polygon *PolygonAperture, unsigned XSampling, unsigned YSampling, operaFITSImage &Image);
-    
-    operaExtractionAperture(Polygon *PolygonAperture, operaInstrumentProfile *instrumentProfile, float distd);
-    
-    operaExtractionAperture(Polygon *PolygonAperture, operaInstrumentProfile *instrumentProfile);    
-    
-    operaExtractionAperture(Line *LineAperture, unsigned XSampling, unsigned YSampling);
-    
-    operaExtractionAperture(Line *LineAperture, unsigned XSampling, unsigned YSampling, operaFITSImage &Image);
-    
-    operaExtractionAperture(Line *LineAperture, operaInstrumentProfile *instrumentProfile, float distd);    
-        
-    operaExtractionAperture(Line *LineAperture, operaInstrumentProfile *instrumentProfile);    
-#if 0    
-    operaExtractionAperture(PixelSet *Subpixels, unsigned XSampling, unsigned YSampling);
-#endif    
+    operaExtractionAperture(Shape *ApertureShape, operaInstrumentProfile *instrumentProfile);
 	
     /*
-	 * Destructor
-	 */
-	
-    ~operaExtractionAperture(void);
-	
-	/*
 	 * Setters/Getters
 	 */      
     
-	void operaSetExtractionAperture(Line *LineAperture, unsigned XSampling, unsigned YSampling);
-	
-    void setShape(apertureShape Shape);  
+	void setSubpixels(const PixelSet& Subpixels); 
     
-    apertureShape getShape(void) const;
+    const PixelSet* getSubpixels(void) const;
     
-	PixelSet* getSubpixels(void);
-	
-	const PixelSet* getSubpixels(void) const;
+    void setApertureShape(const Shape& ApertureShape);
     
-    void setCircleAperture(Circle *CircleAperture);  
-    
-    Circle *getCircleAperture(void);
-    
-    const Circle *getCircleAperture(void) const;
-    
-    void setRectangleAperture(Rectangle *RectangleAperture);  
-    
-    Rectangle* getRectangleAperture(void);
-    
-    const Rectangle* getRectangleAperture(void) const;
-    
-    void setPolygonAperture(Polygon *PolygonAperture);  
-    
-    Polygon* getPolygonAperture(void);
-    
-    const Polygon* getPolygonAperture(void) const;
-    
-    void setLineAperture(Line *LineAperture);  
-    
-    Line* getLineAperture(void);
-    
-    const Line* getLineAperture(void) const;
-    
-    void setBoundingBox(Rectangle *BoundingBox);  
-    
-    Rectangle *getBoundingBox(void);
-    
-    const Rectangle *getBoundingBox(void) const;
+    const Shape* getApertureShape(void) const;
     
     void setSampling(unsigned Xsampling, unsigned Ysampling);  
     
     unsigned getXsampling(void) const;
     
     unsigned getYsampling(void) const;
-
-    void setSubpixels(void);    
-    
-    void setSubpixelsWithRedundancy(void);    
-    
-    void setSubpixels(PixelSet *Subpixels); 
-    
-    void setSubpixels(operaFITSImage &Image); 
-    
-    void setSubpixels(int naxis1, int naxis2);
-    
-    void setSubpixelsWithRedundancy(int naxis1, int naxis2);
-    
-    void setSubpixels(operaInstrumentProfile *instrumentProfile, float d); 
-    
-    void setSubpixels(operaInstrumentProfile *instrumentProfile);     
 
     float getFluxFraction(void) const;
     
@@ -223,24 +132,11 @@ public:
     
     void shiftAperture(float xshift, float yshift, operaFITSImage &Image);
     
-    void recenterAperture(operaPoint &NewCenter);
+    void recenterAperture(const operaPoint &NewCenter, bool withRedundancy = false);
     
-    void recenterAperture(operaPoint &NewCenter, operaFITSImage &Image); 
+    void recenterAperture(const operaPoint &NewCenter, int naxis1, int naxis2, bool withRedundancy = false);
     
-    void recenterAperture(operaPoint &NewCenter,int naxis1, int naxis2);    
-    
-    void recenterApertureWithRedundancy(operaPoint &NewCenter);     
-    
-    void recenterApertureWithRedundancy(operaPoint &NewCenter,int naxis1, int naxis2);    
-    
-	unsigned calculateMAXnSubPixels(void);    
-    
-    unsigned calculateMAXnSubPixels(int naxis1, int naxis2);
-    
-    unsigned calculateMAXnSubPixels(operaFITSImage &Image);
-    
-    unsigned calculateMAXnSubPixels(operaInstrumentProfile *instrumentProfile);    
-	
+    void recenterAperture(const operaPoint &NewCenter, operaFITSImage &Image); 
 };
 
 #endif
