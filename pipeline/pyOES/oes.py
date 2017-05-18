@@ -281,6 +281,7 @@ class InstMode :
         self.TELL_DUPLICATELINETHRESHOLD='0.001'
         self.TELL_RADIALVELOCITYRANGE='0.8'
         self.TELL_RADIALVELOCITYSTEP='0.05'
+        self.TELL_INVERTSKYFIBERFLAG=''
 
         self.SNR_SPECTRUMTYPE='31'
         self.SNR_CENTRALSNR='1'

@@ -78,6 +78,27 @@ def get_fitsfilepaths(directory):
 ######################
 
 ######################
+def get_allfitsfilepaths(directory):
+    """
+    This function generates a list of file names in a directory
+    tree by walking the tree either top-down or bottom-up. For each
+    directory in the tree rooted at directory top (including top itself),
+    it yields a 3-tuple (dirpath, dirnames, filenames).
+    """
+    file_paths = []  # List which will store all of the full filepaths.
+                
+    # Walk the tree.
+    for root, directories, files in os.walk(directory):
+        for filename in files:
+            # Merge strings to form full filepaths
+            filepath = os.path.join(root, filename)
+            if filename.endswith(".fits") or filename.endswith(".fits.gz"):
+                file_paths.append(filepath)
+                                
+    return file_paths  # Self-explanatory.
+######################
+
+######################
 def selectObjects(file_paths) :
     """
     This function selects images from a list for which OBSTYPE='OBJECT'. 
@@ -120,5 +141,27 @@ def selectObjectsToFile(file_paths, objectname, objectlistfilename) :
     return objectlist
 ###############################################
 
+###############################################
+def getcompkey(Dirs, Keywords, Instmode, Readmode) :
+    
+    file_paths = get_fitsfilepaths(Dirs.DATADIR)
+    
+    selectedkey = ""
+    
+    for key in Keywords.COMPKEYWORD :
+        complist = []
+    
+        for file in file_paths:
+            header = getheader(file.rstrip('\n'), 0)
+            if header[Keywords.OBSTYPEKEY] == key and header[Keywords.INSTRUMEKEY] == Instmode.INSTRUME and header[Keywords.INSTMODEKEY] == Instmode.INSTRUMENTMODEKEY and header[Keywords.READMODEKEY] == Readmode.READOUTSPEED :
+                complist.append(file.rstrip('\n'))
 
+        if len(complist) :
+            selectedkey = key
+
+    if selectedkey == "" :
+        selectedkey="COMP"
+    
+    return selectedkey
+###############################################
 

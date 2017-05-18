@@ -43,6 +43,10 @@ using namespace std;
 
 void GenerateExtractionPlot(const char *gnuScriptFileName, const char *outputPlotEPSFileName,const char *dataFileName, unsigned nbeams, bool display);
 
+double CalculateCenterWavelengthError(const operaSpectralOrderVector& spectralOrders, int minorder, int maxorder, const operaVector& centralWavelength, int ordershift);
+
+int DetermineOrderShift(const operaSpectralOrderVector& spectralOrders, int minorder, int maxorder, int nOrdersToSearchAround);
+
 int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, const bool StarPlusSky, const bool PolarimetryCorrection)
 {
 	operaArgumentHandler args;
@@ -211,6 +215,12 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
         // Trim orders
         if(!wlrangefile.empty()) {
 			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wlrangefile);
+			int ordershift = DetermineOrderShift(spectralOrders, minorder, maxorder, 2);
+			if (args.verbose && ordershift) cout << moduleName << ": shifting orders by " << ordershift << endl;
+			spectralOrders.shiftOrders(ordershift);
+			minorder += ordershift;
+			maxorder += ordershift;
+			operaIOFormats::ReadIntoSpectralOrders(spectralOrders, wlrangefile);
 			spectralOrders.trimOrdersByWavelengthRanges(minorder, maxorder);
 		}
         
@@ -253,6 +263,39 @@ int ExtendedSpectrumCreation(int argc, char *argv[], const string moduleName, co
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
+}
+
+double CalculateCenterWavelengthError(const operaSpectralOrderVector& spectralOrders, int minorder, int maxorder, const operaVector& centralWavelength, int ordershift) {
+	double var = 0;
+	unsigned count = 0;
+	for (int order=minorder; order<=maxorder; order++) {
+		if(order + ordershift >= minorder && order + ordershift <= maxorder) {
+			const operaSpectralElements* spectralElements = spectralOrders.GetSpectralOrder(order)->getSpectralElements();
+			int centerindex = spectralElements->getnSpectralElements()/2;
+			double diff = spectralElements->getwavelength(centerindex) - centralWavelength[order + ordershift];
+			var += diff * diff;
+			count++;
+		}
+	}
+	return sqrt(var/count);
+}	
+
+int DetermineOrderShift(const operaSpectralOrderVector& spectralOrders, int minorder, int maxorder, int nOrdersToSearchAround) {
+	operaVector expectedCentralWavelength(maxorder+1);
+	for (int order=minorder; order<=maxorder; order++) {
+		const operaSpectralOrder* spectralOrder = spectralOrders.GetSpectralOrder(order);
+		expectedCentralWavelength[order] = (spectralOrder->getmaxwavelength() + spectralOrder->getminwavelength()) / 2.0;
+	}
+	double minerror = BIG;
+	int bestshift = 0;
+	for(int shift = -nOrdersToSearchAround; shift <= nOrdersToSearchAround; shift++) {
+		double error = CalculateCenterWavelengthError(spectralOrders, minorder, maxorder, expectedCentralWavelength, shift);
+		if(error < minerror) {
+			minerror = error;
+			bestshift = shift;
+		}
+	}
+	return bestshift;
 }
 
 void GenerateExtractionPlot(const char *gnuScriptFileName, const char *outputPlotEPSFileName,const char *dataFileName, unsigned nbeams, bool display)

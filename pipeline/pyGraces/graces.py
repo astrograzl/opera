@@ -17,6 +17,8 @@ sys.path.insert(0,pylibdir)
 
 from operacommands import *
 
+from gracesUtils import getcompkey
+
 ########## DIRECTORIES ############
 class Directories :
     
@@ -159,8 +161,7 @@ class Keywords :
     def __init__(self):
         self.BIASKEYWORD="BIAS"
         self.FLATKEYWORD="FLAT"
-        #self.COMPKEYWORD="COMPARISON"
-        self.COMPKEYWORD="COMP"
+        self.COMPKEYWORD=["COMP","COMPARISON","ARC"]
         self.OBJECTKEYWORD="OBJECT"
 
         self.INSTRUMEKEY = 'INSTRUME'
@@ -297,7 +298,7 @@ class InstMode :
         self.TELL_DUPLICATELINETHRESHOLD='0.001'
         self.TELL_RADIALVELOCITYRANGE='0.8'
         self.TELL_RADIALVELOCITYSTEP='0.05'
-        
+
         self.SNR_SPECTRUMTYPE='31'
         self.SNR_CENTRALSNR='1'
         self.SNR_SPECTRALBINSIZE=self.APER_APERTUREHEIGHT
@@ -364,6 +365,8 @@ class InstMode :
             self.SPC_SKYOVERSTARFIBERAREARATIO=''
             self.SPC_INVERTSKYFIBERFLAG=''
             
+            self.TELL_INVERTSKYFIBERFLAG=''
+
             self.RV_RADIALVELOCITYRANGE='0.8'
             self.RV_RADIALVELOCITYSTEP='0.05'
             self.RV_THRESHOLD='0.05'
@@ -405,6 +408,8 @@ class InstMode :
             self.SPC_MODULENAME='operaStarPlusSky'
             self.SPC_SKYOVERSTARFIBERAREARATIO=''
             self.SPC_INVERTSKYFIBERFLAG=' --starplusskyInvertSkyFiber=1'
+            
+            self.TELL_INVERTSKYFIBERFLAG=' --starplusskyInvertSkyFiber'
 
             self.RV_RADIALVELOCITYRANGE='0.8'
             self.RV_RADIALVELOCITYSTEP='0.05'
@@ -830,11 +835,12 @@ def setCalibrationProducts(Dirs,night,Instmode,Readmode,DefaultCal,Keywords,allo
         products["MASTERFLAT"] = DefaultCal.DEFAULTMASTERFLAT
         dependencies["MASTERFLAT"] = []
 
-    compcheck = testCalibrationListCommand(Dirs, Instmode, Readmode, Keywords.COMPKEYWORD, Keywords, allowanyreadout)
+    comparisonkey = getcompkey(Dirs, Keywords, Instmode, Readmode)
+    compcheck = testCalibrationListCommand(Dirs, Instmode, Readmode, comparisonkey, Keywords, allowanyreadout)
     if subprocess.check_output(compcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n') :
         products["COMPLIST"] = INSTCONFIGPREFIX + "_comp.list"
         dependencies["COMPLIST"] = []
-        commands["COMPLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, Keywords.COMPKEYWORD, Keywords, products["COMPLIST"],allowanyreadout)
+        commands["COMPLIST"] = CalibrationListCommand(Dirs, Instmode, Readmode, comparisonkey, Keywords, products["COMPLIST"],allowanyreadout)
         commandsType["COMPLIST"] = True
 
         products["MASTERCOMP"] = INSTCONFIGPREFIX + "_mastercomp.fits.gz"
@@ -1000,7 +1006,8 @@ class ReductionModes :
                     if len(flats) :
                         nflats = len(flats)
                     
-                    compcheck = testCalibrationListCommand(dirs, Instmode, Readmode,  keywords.COMPKEYWORD, keywords, allowanyreadout)
+                    comparisonkey = getcompkey(dirs, keywords, Instmode, Readmode)
+                    compcheck = testCalibrationListCommand(dirs, Instmode, Readmode,  comparisonkey, keywords, allowanyreadout)
                     comps = (subprocess.check_output(compcheck,stderr=subprocess.STDOUT,shell=True).rstrip('\n')).split()
                     if len(comps) :
                         ncomps = len(comps)

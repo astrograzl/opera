@@ -345,7 +345,6 @@ int main(int argc, char *argv[])
 		int referenceMinOrder = referenceOrder ? referenceOrder : minorder;
 		int referenceMaxOrder = referenceOrder ? referenceOrder : maxorder;
 		int selectedOrderShift = DetermineOrderShift(spectralOrders, referenceMinOrder, referenceMaxOrder, initialSolutions, nOrdersToSearchAround, atlasSpectrum, atlasLines, ParRangeSizeInPerCent, detectionParameters, nsigclip, NpointsPerPar, initialAcceptableMismatch, dampingFactor, minNumberOfLines, maxNIter);
-        spectralOrders.shiftOrders(-selectedOrderShift);
         
         unsigned validorders = 0;
         ostringstream outputResolutionData;
@@ -357,7 +356,7 @@ int main(int argc, char *argv[])
             
 			operaSpectralOrder *spectralOrder = spectralOrders.GetSpectralOrder(order);
 			WavelengthCalibration orderCalibration(spectralOrder, atlasSpectrum, atlasLines);
-			orderCalibration.SetFromInitialSolution(initialSolutions, order);
+			orderCalibration.SetFromInitialSolution(initialSolutions, order-selectedOrderShift);
 			if (spectralOrder->gethasSpectralElements() && spectralOrder->gethasGeometry() && spectralOrder->gethasWavelength()) {
 				orderCalibration.CalculateWavelengthSolution(ParRangeSizeInPerCent, detectionParameters, nsigclip, parseSolution, NpointsPerPar, initialAcceptableMismatch, dampingFactor, minNumberOfLines, maxNIter);
                 

@@ -334,7 +334,7 @@ def TelluricWaveCommand(Dirs, product, inputSpectrum, wave, flatSpectrum, config
     ' --nsigclip=' + Instmode.TELL_NSIGCLIP + \
     ' --minNumberOfMatchedLines=' + Instmode.TELL_MINNUMBEROFMATCHEDLINES + \
     ' --duplicateLineThreshold=' + Instmode.TELL_DUPLICATELINETHRESHOLD + \
-    Instmode.SPC_INVERTSKYFIBERFLAG + flagstring + plotstring
+    Instmode.TELL_INVERTSKYFIBERFLAG + flagstring + plotstring
 
     return commandline
 ##########################################
