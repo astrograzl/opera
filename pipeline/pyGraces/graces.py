@@ -204,8 +204,9 @@ class InstMode :
         self.MASTERCOMP_EXPTIMEFITSKEYWORD='EXPTIME'
         
         self.GAIN_DATASEC='1 2048 1 4608'
-        self.GAIN_NUMBEROFAMPLIFIERS='1'
-        self.GAIN_SUBWINDOW='100 800 500 4000'
+        self.GAIN_DSECA='21 1044 1 4608'
+        self.GAIN_DSECB='1045 2068 1 4608'
+        self.GAIN_SUBWINDOW='1 800 1 2000'
         self.GAIN_MINPIXPERBIN='1000'
         self.GAIN_MAXNBINS='100'
         self.GAIN_LOWESTCOUNT='1000'
@@ -216,7 +217,7 @@ class InstMode :
         self.SPACING_DETECTIONMETHOD = '2'
         self.SPACING_SUBFORMAT = '300 2040 3 4600'
         
-        self.GEOM_SUBFORMAT='8 2040 3 4100'
+        self.GEOM_SUBFORMAT='21 2040 3 4100'
         self.GEOM_DETECTIONMETHOD = '2'
         self.GEOM_FFTFILTER = '0'
         self.GEOM_NSAMPLES = '5'
@@ -344,7 +345,7 @@ class InstMode :
             self.SPACING_REFERENCEORDERNUMBER='47'
             self.SPACING_REFERENCEORDERSEPARATION='55'
             
-            self.GEOM_APERTURE='30'
+            self.GEOM_APERTURE='32'
             self.GEOM_MAXNORDERS='40'
             self.GEOM_MINORDERTOUSE='21'
             self.GEOM_RECENTERIPUSINGSLICESYMMETRY='1'
@@ -430,16 +431,38 @@ class ReadoutMode :
             self.READOUTSPEED="Fast: 4.70e noise, 1.60e/ADU, 32s"
             self.DEFAULTGAIN="1.6"
             self.DEFAULTNOISE="4.14"
+            self.GAIN_NUMBEROFAMPLIFIERS='1'
         elif (self.mode == 2) :
             self.READOUTSPEEDSHORTNAME="normal"
             self.READOUTSPEED="Normal: 4.20e noise, 1.30e/ADU, 38s"
             self.DEFAULTGAIN="1.3"
             self.DEFAULTNOISE="3.8"
+            self.GAIN_NUMBEROFAMPLIFIERS='1'
         elif (self.mode == 3) :
             self.READOUTSPEEDSHORTNAME="slow"
             self.READOUTSPEED="Slow: 2.90e noise, 1.20e/ADU, 60s"
             self.DEFAULTGAIN="1.1"
             self.DEFAULTNOISE="2.98"
+            self.GAIN_NUMBEROFAMPLIFIERS='1'
+
+        elif (self.mode == 4) :
+            self.READOUTSPEEDSHORTNAME="fast_2amp"
+            self.READOUTSPEED="Fast: ??e noise, ??e/ADU, ??s"
+            self.DEFAULTGAIN="1.6"
+            self.DEFAULTNOISE="4.14"
+            self.GAIN_NUMBEROFAMPLIFIERS='2'
+        elif (self.mode == 5) :
+            self.READOUTSPEEDSHORTNAME="normal_2amp"
+            self.READOUTSPEED="Normal: 4.15e noise, 1.30e/ADU, 19s"
+            self.DEFAULTGAIN="1.30"
+            self.DEFAULTNOISE="4.15"
+            self.GAIN_NUMBEROFAMPLIFIERS='2'
+        elif (self.mode == 6) :
+            self.READOUTSPEEDSHORTNAME="slow_2amp"
+            self.READOUTSPEED="Slow: 2.90e noise, 1.15e/ADU, 30s"
+            self.DEFAULTGAIN="1.15"
+            self.DEFAULTNOISE="2.90"
+            self.GAIN_NUMBEROFAMPLIFIERS='2'
 ##################################
 
 ######### OBJECT PRODUCT FILE NAMES, DEPENDENCIES, AND  COMMAND LINES ###########
@@ -967,7 +990,7 @@ class ReductionModes :
     # modes = {[modekey]: [modeName, InstMode, ReadMode, Nobjects, Nbiases, Nflats, Ncomps] }
     modes = {}
     files = {}
-    
+
     def __init__(self, dirs, keywords, allowanyreadout, forcecalibration):
         if os.path.exists(dirs.DATADIR) :
             self.displayStats = "---\n"
@@ -979,7 +1002,7 @@ class ReductionModes :
             self.displayStats += "-------------------------------------------------------------------\n"
             
             for mode in range(1,3) :
-                for read in range(1,4) :
+                for read in range(1,7) :
                     
                     Instmode = InstMode(mode)
                     Readmode = ReadoutMode(read)

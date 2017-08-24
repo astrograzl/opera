@@ -208,7 +208,8 @@ class InstMode :
         self.ROTMIRRCROP_SUFFIX='.gz'
         
         self.GAIN_DATASEC='1 2048 1 2048'
-        self.GAIN_NUMBEROFAMPLIFIERS='1'
+        self.GAIN_DSECA='21 1044 1 4608'
+        self.GAIN_DSECB='1045 2068 1 4608'        
         self.GAIN_SUBWINDOW='100 1948 100 1948'
         self.GAIN_MINPIXPERBIN='1000'
         self.GAIN_MAXNBINS='100'
@@ -429,6 +430,7 @@ class ReadoutMode :
     mode = 0
     def __init__(self, readoutmode):
         self.mode = int(readoutmode)
+        self.GAIN_NUMBEROFAMPLIFIERS='1'
         if (self.mode == 1) :
             self.READOUTSPEEDSHORTNAME="1MHz"
             self.READOUTSPEED="1.0e-06"

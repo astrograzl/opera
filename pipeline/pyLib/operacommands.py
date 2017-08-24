@@ -109,11 +109,17 @@ def MasterComparisonCommand(Dirs, product, list, badpix, masterbias, Instmode) :
 #### Function to generate a command line for operaGain: ####
 def GainCommand(Dirs, output, biaslist, flatlist, badpix, Readmode, Instmode) :
 
+    datasec_str = ''
+    if Readmode.GAIN_NUMBEROFAMPLIFIERS == '1' :
+        datasec_str += ' --DATASEC="' + Instmode.GAIN_DATASEC + '"'
+    elif Readmode.GAIN_NUMBEROFAMPLIFIERS == '2' :
+        datasec_str += ' --DSECA="'+Instmode.GAIN_DSECA + '"' + ' --DSECB="'+Instmode.GAIN_DSECB + '"'
+
     commandline = Dirs.EXE + 'operaGain --output=' + output + \
     ' --biaslistfile=' + biaslist + ' --flatlistfile=' + flatlist + \
     ' --badpixelmask=' + badpix + ' --defaultgain=' +  Readmode.DEFAULTGAIN + \
-    ' --defaultnoise=' + Readmode.DEFAULTNOISE + ' --DATASEC="'+Instmode.GAIN_DATASEC + '"' + \
-    ' --numberofamplifiers='+Instmode.GAIN_NUMBEROFAMPLIFIERS+' --subwindow="' + Instmode.GAIN_SUBWINDOW + '"' + \
+    ' --defaultnoise=' + Readmode.DEFAULTNOISE + datasec_str + \
+    ' --numberofamplifiers='+Readmode.GAIN_NUMBEROFAMPLIFIERS+' --subwindow="' + Instmode.GAIN_SUBWINDOW + '"' + \
     ' --gainMinPixPerBin=' + Instmode.GAIN_MINPIXPERBIN + ' --gainMaxNBins=' + Instmode.GAIN_MAXNBINS + \
     ' --gainLowestCount=' + Instmode.GAIN_LOWESTCOUNT + ' --gainHighestCount=' + Instmode.GAIN_HIGHESTCOUNT
     

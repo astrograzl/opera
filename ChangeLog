@@ -2868,3 +2868,6 @@ May 19 2017
   - Moved re-numbering of shifted orders from operaWavelengthCalibration to operaExtendedSpectrumCreation.
   - Updated GRACES Python harness to allow other header values (ARC, COMP, COMPARISON) for comparison images.
   - Fixed bug in Python harness with INVERTSKYFIBERFLAG.
+
+Jun 29 2017
+  - Updated GRACES and ESPaDOnS Python harnesses to implement 2-amp mode.
